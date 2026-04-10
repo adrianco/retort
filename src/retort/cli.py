@@ -10,6 +10,8 @@ from pathlib import Path
 import click
 
 from retort import __version__
+from retort.analysis.anova import run_all_responses, run_anova
+from retort.analysis.residuals import check_residuals
 from retort.design.factors import FactorRegistry
 from retort.design.generator import generate_design
 
@@ -549,6 +551,97 @@ def report_effects(
         click.echo(f"Report written to {output}")
     else:
         click.echo(rendered)
+
+
+@main.command()
+@click.option(
+    "--data",
+    type=click.Path(exists=True),
+    required=True,
+    help="CSV file with factor columns and response columns.",
+)
+@click.option(
+    "--responses",
+    "-r",
+    multiple=True,
+    required=True,
+    help="Response column name(s) to analyse. Repeat for multiple.",
+)
+@click.option(
+    "--factors",
+    "-f",
+    multiple=True,
+    default=None,
+    help="Factor column name(s). If omitted, all non-response columns are used.",
+)
+@click.option(
+    "--interactions/--no-interactions",
+    default=False,
+    help="Include two-factor interactions in the model.",
+)
+@click.option(
+    "--significance",
+    type=float,
+    default=0.10,
+    show_default=True,
+    help="P-value threshold for significance.",
+)
+@click.option(
+    "--residuals/--no-residuals",
+    "show_residuals",
+    default=False,
+    help="Run residual diagnostics on each model.",
+)
+def analyze(
+    data: str,
+    responses: tuple[str, ...],
+    factors: tuple[str, ...],
+    interactions: bool,
+    significance: float,
+    show_residuals: bool,
+) -> None:
+    """Analyse experimental results using ANOVA.
+
+    Reads a CSV of experiment data and runs Type II ANOVA for each response
+    metric, reporting which factors have statistically significant effects.
+    """
+    import pandas as pd
+
+    df = pd.read_csv(data)
+
+    factor_list = list(factors) if factors else None
+    response_list = list(responses)
+
+    missing = [r for r in response_list if r not in df.columns]
+    if missing:
+        click.echo(f"Error: response columns not found in data: {missing}", err=True)
+        sys.exit(1)
+
+    results = run_all_responses(
+        df,
+        responses=response_list,
+        factors=factor_list,
+        include_interactions=interactions,
+        significance=significance,
+    )
+
+    for resp_name, result in results.items():
+        click.echo(f"\n{'='*60}")
+        click.echo(f"Response: {resp_name}")
+        click.echo(f"R² = {result.r_squared:.4f}  Adj R² = {result.adj_r_squared:.4f}")
+        click.echo(f"{'='*60}")
+        click.echo(result.anova_table.to_string())
+        if result.significant_factors:
+            click.echo(
+                f"\nSignificant (p < {significance}): "
+                + ", ".join(result.significant_factors)
+            )
+        else:
+            click.echo(f"\nNo factors significant at p < {significance}")
+
+        if show_residuals:
+            diag = check_residuals(result.model, resp_name)
+            click.echo(f"\n{diag.summary()}")
 
 
 if __name__ == "__main__":
