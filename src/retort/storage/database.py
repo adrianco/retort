@@ -33,3 +33,8 @@ def create_tables(engine: Engine) -> None:
 def get_session_factory(engine: Engine) -> sessionmaker[Session]:
     """Return a session factory bound to the given engine."""
     return sessionmaker(bind=engine)
+
+
+def get_session(engine: Engine) -> Session:
+    """Create and return a new session bound to the given engine."""
+    return get_session_factory(engine)()

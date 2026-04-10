@@ -123,7 +123,7 @@ class ExperimentRun(Base):
     __tablename__ = "experiment_runs"
 
     id = Column(Integer, primary_key=True)
-    design_row_id = Column(Integer, ForeignKey("design_matrix_rows.id"), nullable=False, index=True)
+    design_row_id = Column(Integer, ForeignKey("design_matrix_rows.id"), nullable=True, index=True)
     replicate = Column(Integer, nullable=False, default=1)
     status = Column(Enum(RunStatus), nullable=False, default=RunStatus.pending)
     started_at = Column(DateTime(timezone=True), nullable=True)
@@ -133,6 +133,8 @@ class ExperimentRun(Base):
 
     design_row = relationship("DesignMatrixRow", back_populates="runs")
     results = relationship("RunResult", back_populates="run", cascade="all, delete-orphan")
+
+    run_config_json = Column(Text, nullable=True)
 
     __table_args__ = (
         UniqueConstraint("design_row_id", "replicate", name="uq_run_replicate"),

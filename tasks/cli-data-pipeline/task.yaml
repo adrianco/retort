@@ -1,0 +1,37 @@
+name: cli-data-pipeline
+description: |
+  Build a CLI tool that reads CSV data, transforms it, and outputs
+  results. Tests data processing, error handling, and CLI usability.
+
+prompt: |
+  Create a command-line data pipeline tool.
+
+  Requirements:
+  - Read CSV files from stdin or a file path argument
+  - Support these transformations (via subcommands or flags):
+    - filter: Keep rows matching a column condition (e.g., --filter "age>30")
+    - sort: Sort by a specified column (ascending/descending)
+    - aggregate: Group by a column and compute sum/mean/count on another
+  - Output results as CSV to stdout or a specified file
+
+  Technical constraints:
+  - Use the specified language and framework
+  - Handle malformed CSV gracefully (skip bad rows, report count)
+  - Support large files (streaming, not loading all into memory)
+  - Exit code 0 on success, 1 on error with message to stderr
+
+  Deliverables:
+  - Working CLI tool with --help documentation
+  - README.md with usage examples
+  - At least 3 tests covering filter, sort, and aggregate
+
+validation:
+  commands:
+    - cmd: "--help"
+      expect_exit: 0
+    - cmd: "filter --filter 'value>10' < test_data.csv"
+      expect_exit: 0
+    - cmd: "sort --by name < test_data.csv"
+      expect_exit: 0
+
+timeout_minutes: 15

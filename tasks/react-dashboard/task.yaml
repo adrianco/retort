@@ -1,0 +1,36 @@
+name: react-dashboard
+description: |
+  Build a simple dashboard UI that displays data from a JSON API.
+  Tests frontend scaffolding, component structure, and data fetching.
+
+prompt: |
+  Create a dashboard application that displays metrics.
+
+  Requirements:
+  - Display a list of metrics fetched from a mock API endpoint
+  - Each metric shows: name, current value, trend (up/down/stable)
+  - Include a search/filter input to filter metrics by name
+  - Responsive layout that works on mobile and desktop
+  - Loading and error states for the data fetch
+
+  Technical constraints:
+  - Use the specified language and framework
+  - Mock the API data (no external dependencies needed)
+  - Use semantic HTML and accessible markup
+  - Include a component for individual metric cards
+
+  Deliverables:
+  - Working source code with build configuration
+  - README.md with setup and run instructions
+  - At least 3 component/unit tests
+
+validation:
+  files:
+    - pattern: "*.{tsx,jsx,vue,svelte}"
+      min_count: 3
+    - pattern: "README.md"
+      min_count: 1
+    - pattern: "*test*"
+      min_count: 3
+
+timeout_minutes: 20

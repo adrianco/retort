@@ -31,6 +31,9 @@ responses:
   - build_time
   - test_coverage
 
+tasks:
+  - source: bundled://rest-api-crud
+
 playpen:
   runner: docker
   replicates: 3
@@ -194,6 +197,193 @@ def _load_from_stdin() -> FactorRegistry:
 
     data = json.load(sys.stdin)
     return FactorRegistry.from_dict(data)
+
+
+@main.command("run")
+@click.option(
+    "--phase",
+    type=click.Choice(["screening", "characterization"]),
+    required=True,
+    help="Experiment phase to execute.",
+)
+@click.option(
+    "--config",
+    type=click.Path(exists=True),
+    default="workspace.yaml",
+    show_default=True,
+    help="Path to workspace YAML config.",
+)
+@click.option(
+    "--task",
+    "task_source",
+    type=str,
+    default=None,
+    help="Task source URI (e.g., bundled://rest-api-crud). Defaults to first task in config.",
+)
+@click.option(
+    "--replicates",
+    type=int,
+    default=None,
+    help="Override number of replicates per design point.",
+)
+@click.option(
+    "--dry-run",
+    is_flag=True,
+    help="Show what would be run without executing.",
+)
+def run_experiments(
+    phase: str,
+    config: str,
+    task_source: str | None,
+    replicates: int | None,
+    dry_run: bool,
+) -> None:
+    """Execute experiment runs for a design matrix.
+
+    Generates the design, provisions playpens, executes each run,
+    scores the results, and stores everything in the workspace database.
+    """
+    import yaml as _yaml
+
+    from retort.config.loader import load_workspace
+    from retort.playpen.docker_runner import DockerRunner
+    from retort.playpen.runner import StackConfig, TaskSpec
+    from retort.playpen.task_loader import load_task
+    from retort.scoring.collector import ScoreCollector
+    from retort.storage.database import create_tables, get_engine, get_session
+
+    # Load workspace config
+    workspace_config = load_workspace(config)
+
+    # Build factor registry
+    registry = FactorRegistry()
+    for name, factor in workspace_config.factors.items():
+        registry.add(name, factor.levels)
+
+    if len(registry) < 2:
+        raise click.ClickException("Need at least 2 factors for experiment runs.")
+
+    # Generate design matrix
+    design = generate_design(registry, phase)
+    click.echo(f"Design matrix: {design.num_runs} runs ({phase})")
+
+    # Resolve task
+    if task_source is None:
+        task_source = workspace_config.tasks[0].source
+    task = load_task(task_source)
+    click.echo(f"Task: {task.name}")
+
+    # Determine replicates
+    reps = replicates or workspace_config.playpen.replicates
+    total_runs = design.num_runs * reps
+    click.echo(f"Replicates: {reps} ({total_runs} total runs)")
+
+    if dry_run:
+        click.echo("\n[dry-run] Design matrix:")
+        for i, run_config in enumerate(design.run_configs()):
+            click.echo(f"  Run {i+1}: {run_config}")
+        click.echo(f"\nWould execute {total_runs} runs. Exiting.")
+        return
+
+    # Initialize database
+    config_dir = Path(config).resolve().parent
+    db_path = config_dir / "retort.db"
+    engine = get_engine(db_path)
+    create_tables(engine)
+
+    # Set up runner and scorer
+    runner = DockerRunner(timeout_minutes=workspace_config.playpen.timeout_minutes)
+    metric_names = [r.name for r in workspace_config.responses]
+    collector = ScoreCollector(metrics=metric_names)
+
+    click.echo(f"\nStarting experiment runs...")
+
+    completed = 0
+    failed = 0
+
+    session = get_session(engine)
+    try:
+        for run_idx, run_config in enumerate(design.run_configs()):
+            stack = StackConfig.from_run_config(run_config)
+
+            for rep in range(1, reps + 1):
+                label = f"[{run_idx+1}/{design.num_runs} rep {rep}/{reps}]"
+                click.echo(f"  {label} {stack.language}/{stack.framework}/{stack.agent}", nl=False)
+
+                env_id = runner.provision(stack, task)
+                try:
+                    artifacts = runner.execute(env_id, stack, task)
+                    scores = collector.collect(artifacts, stack)
+
+                    status = "ok" if artifacts.succeeded else "FAIL"
+                    score_str = ", ".join(
+                        f"{k}={v:.2f}" for k, v in scores.to_dict().items()
+                    )
+                    click.echo(f" — {status} ({artifacts.duration_seconds:.1f}s) [{score_str}]")
+
+                    # Store results
+                    _store_run_result(
+                        session, run_config, phase, run_idx, rep,
+                        artifacts, scores,
+                    )
+
+                    if artifacts.succeeded:
+                        completed += 1
+                    else:
+                        failed += 1
+                finally:
+                    runner.teardown(env_id)
+
+        session.commit()
+    except Exception:
+        session.rollback()
+        raise
+    finally:
+        session.close()
+        engine.dispose()
+
+    click.echo(f"\nDone: {completed} completed, {failed} failed out of {total_runs}")
+
+
+def _store_run_result(
+    session,
+    run_config: dict[str, str],
+    phase: str,
+    run_idx: int,
+    replicate: int,
+    artifacts,
+    scores,
+) -> None:
+    """Store a run and its scores in the database."""
+    from retort.storage.models import (
+        ExperimentRun,
+        RunResult,
+        RunStatus,
+    )
+    from datetime import datetime, timezone
+
+    status = RunStatus.completed if artifacts.succeeded else RunStatus.failed
+
+    run = ExperimentRun(
+        design_row_id=None,
+        replicate=replicate,
+        status=status,
+        started_at=datetime.now(timezone.utc),
+        finished_at=datetime.now(timezone.utc),
+        error_message=artifacts.stderr if not artifacts.succeeded else None,
+        run_config_json=json.dumps(run_config),
+    )
+
+    session.add(run)
+    session.flush()  # Get the run ID
+
+    for score in scores.scores:
+        result = RunResult(
+            run_id=run.id,
+            metric_name=score.metric_name,
+            value=score.value,
+        )
+        session.add(result)
 
 
 if __name__ == "__main__":
