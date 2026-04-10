@@ -386,5 +386,93 @@ def _store_run_result(
         session.add(result)
 
 
+@main.command()
+@click.argument("stack_id")
+@click.option(
+    "--from",
+    "from_phase",
+    type=click.Choice(["screening", "trial", "production"]),
+    required=True,
+    help="Current lifecycle phase of the stack.",
+)
+@click.option(
+    "--to",
+    "to_phase",
+    type=click.Choice(["trial", "production", "retired"]),
+    required=True,
+    help="Target lifecycle phase.",
+)
+@click.option(
+    "--evidence",
+    type=str,
+    default=None,
+    help='JSON object of evidence metrics, e.g. \'{"p_value": 0.05}\'.',
+)
+@click.option(
+    "--config",
+    "config_path",
+    type=click.Path(exists=True),
+    default=None,
+    help="Path to workspace YAML config for gate thresholds.",
+)
+def promote(
+    stack_id: str,
+    from_phase: str,
+    to_phase: str,
+    evidence: str | None,
+    config_path: str | None,
+) -> None:
+    """Evaluate a promotion gate and report whether a stack passes.
+
+    Example::
+
+        retort promote my-stack --from screening --to trial \\
+            --evidence '{"p_value": 0.05}' --config workspace.yaml
+    """
+    from retort.config.schema import PromotionConfig
+    from retort.promotion.gates import evaluate_gate
+
+    # Determine the gate name from the transition.
+    gate_name = f"{from_phase}_to_{to_phase}"
+    valid_gates = {"screening_to_trial", "trial_to_production", "production_to_retired"}
+    if gate_name not in valid_gates:
+        raise click.ClickException(
+            f"Invalid transition: {from_phase} → {to_phase}. "
+            f"Valid transitions: screening→trial, trial→production, production→retired."
+        )
+
+    # Parse evidence.
+    if evidence is None:
+        evidence_dict: dict[str, float] = {}
+    else:
+        try:
+            evidence_dict = json.loads(evidence)
+        except json.JSONDecodeError as exc:
+            raise click.ClickException(f"Invalid JSON in --evidence: {exc}") from exc
+
+    # Load promotion config from workspace YAML or use defaults.
+    if config_path is not None:
+        try:
+            import yaml
+        except ImportError:
+            raise click.ClickException(
+                "pyyaml required for --config. Install with: pip install pyyaml"
+            )
+        with open(config_path) as f:
+            data = yaml.safe_load(f)
+        promo_data = data.get("promotion", {})
+        promo_config = PromotionConfig(**promo_data)
+    else:
+        promo_config = PromotionConfig()
+
+    result = evaluate_gate(gate_name, evidence_dict, promo_config)
+
+    if result.passed:
+        click.echo(f"PASS: {stack_id} may advance {from_phase} → {to_phase}")
+    else:
+        click.echo(f"FAIL: {stack_id} does not pass {from_phase} → {to_phase}")
+    click.echo(f"  {result.detail}")
+
+
 if __name__ == "__main__":
     main()
