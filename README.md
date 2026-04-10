@@ -44,6 +44,10 @@ retort promote my-stack --from screening --to trial \
 | `retort promote` | Evaluate promotion gates for stack lifecycle transitions |
 | `retort report effects` | Compute and export main effects and interaction effects (text, JSON, CSV) |
 | `retort analyze` | Run ANOVA analysis on experiment data with optional residual diagnostics |
+| `retort intake` | Ingest a new candidate (factor level) and generate D-optimal augmentation runs |
+| `retort report dashboard` | Show full workspace status dashboard (experiments, lifecycle, budget) |
+| `retort plugin list` | List installed retort plugins and their scorer/runner contributions |
+| `retort plugin show <name>` | Show details for a specific scorer or runner |
 
 ## Configuration
 
@@ -90,9 +94,11 @@ src/retort/
 ├── config/             # Pydantic config schema and YAML loader
 ├── design/             # Factor registry and fractional factorial generator (pyDOE3)
 ├── playpen/            # Isolated execution: DockerRunner, task loading, prompt building
+├── plugins.py          # Pluggy-based plugin system for custom scorers and runners
 ├── scoring/            # Score collection with pluggable scorers (code_quality, token_efficiency, build_time)
 ├── promotion/          # Lifecycle state machine, configurable gates, immutable changelog
-├── reporting/          # Effects computation and export (text, JSON, CSV)
+├── reporting/          # Effects computation, export (text, JSON, CSV), and status dashboard
+├── scheduler/          # Candidate intake, D-optimal augmentation, budget tracking, run queue
 └── storage/            # SQLAlchemy models and Alembic migrations (SQLite)
 ```
 
@@ -112,7 +118,7 @@ src/retort/
 | **Phase 1: Playpen + Scoring** | COMPLETE | DockerRunner, scoring framework (3 built-in scorers), bundled task specs, `retort run` |
 | **Phase 2: Promotion + Reporting** | COMPLETE | Lifecycle state machine, promotion gates, changelog, effects computation, multi-format export, `retort promote`, `retort report effects` |
 | **Phase 3: Analysis** | COMPLETE | ANOVA with residual diagnostics (statsmodels), Bayesian updating with conjugate NIG priors (scipy), Pareto frontier ranking, `retort analyze` |
-| **Phase 4: Polish** | PLANNED | Wardley map overlay, HTML reports, aliasing diagnostics, D-optimal augmentation, scheduler, plugin system, documentation, PyPI publication |
+| **Phase 4: Polish** | COMPLETE | D-optimal augmentation, candidate intake, scheduler (budget & queue), pluggy-based plugin system, status dashboard, CLI refinements |
 
 ## Development
 
