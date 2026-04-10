@@ -553,6 +553,58 @@ def report_effects(
         click.echo(rendered)
 
 
+@report.command("dashboard")
+@click.option(
+    "--db",
+    type=click.Path(exists=True),
+    required=True,
+    help="Path to the retort SQLite database.",
+)
+@click.option(
+    "--format",
+    "fmt",
+    type=click.Choice(["text", "json"]),
+    default="text",
+    help="Output format (default: text).",
+)
+@click.option(
+    "--output",
+    "-o",
+    type=click.Path(),
+    default=None,
+    help="Output file path. Defaults to stdout.",
+)
+def report_dashboard(db: str, fmt: str, output: str | None) -> None:
+    """Show full workspace status dashboard.
+
+    Displays active experiments, lifecycle states, budget usage,
+    and recent promotions in a single overview.
+    """
+    from retort.reporting.dashboard import build_dashboard, render_json, render_text
+    from retort.storage.database import get_engine, get_session_factory
+
+    engine = get_engine(Path(db))
+    session_factory = get_session_factory(engine)
+    session = session_factory()
+
+    try:
+        report_data = build_dashboard(session)
+    finally:
+        session.close()
+        engine.dispose()
+
+    if fmt == "json":
+        rendered = render_json(report_data)
+    else:
+        rendered = render_text(report_data)
+
+    if output:
+        Path(output).write_text(rendered)
+        click.echo(f"Dashboard written to {output}")
+    else:
+        click.echo(rendered)
+
+
 @main.command()
 @click.option(
     "--data",
