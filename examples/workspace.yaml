@@ -1,0 +1,49 @@
+# Retort — Example workspace configuration
+#
+# This file defines an experiment workspace for evaluating AI-assisted
+# development tooling stacks using Design of Experiments methodology.
+
+factors:
+  language:
+    levels: [python, typescript, rust, go]
+  agent:
+    levels: [claude-code, cursor, copilot, aider]
+  framework:
+    levels: [fastapi, nextjs, axum, stdlib]
+  app_type:
+    levels: [rest-api, cli-tool, react-frontend, data-pipeline]
+  orchestration:
+    levels: [single-agent, swarm, hive-mind]
+  constraint_style:
+    levels: [rfc-2119, bdd, unconstrained]
+
+responses:
+  - code_quality
+  - token_efficiency
+  - build_time
+  - test_coverage
+  - defect_rate
+  - maintainability
+  - idiomatic_score
+
+tasks:
+  - source: bundled://rest-api-crud
+  - source: bundled://cli-data-pipeline
+  - source: git://github.com/brazil-bench/template-repo
+  - source: local://./my-custom-task
+
+playpen:
+  runner: docker
+  replicates: 3
+  timeout_minutes: 30
+  cost_limit_usd: 500.00
+
+design:
+  screening_resolution: 3
+  characterization_resolution: 4
+  significance_threshold: 0.10
+
+promotion:
+  screening_to_trial: { p_value: 0.10 }
+  trial_to_production: { posterior_confidence: 0.80 }
+  production_to_retired: { dominated_confidence: 0.95 }
