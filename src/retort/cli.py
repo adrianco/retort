@@ -605,6 +605,59 @@ def report_dashboard(db: str, fmt: str, output: str | None) -> None:
         click.echo(rendered)
 
 
+@report.command("wardley")
+@click.option(
+    "--db",
+    type=click.Path(exists=True),
+    required=True,
+    help="Path to the retort SQLite database.",
+)
+@click.option(
+    "--format",
+    "fmt",
+    type=click.Choice(["text", "json"]),
+    default="text",
+    help="Output format (default: text).",
+)
+@click.option(
+    "--output",
+    "-o",
+    type=click.Path(),
+    default=None,
+    help="Output file path. Defaults to stdout.",
+)
+def report_wardley(db: str, fmt: str, output: str | None) -> None:
+    """Show Wardley map overlay of stack evolution stages.
+
+    Visualizes where each stack sits on the Wardley evolution axis
+    (Genesis → Custom-Built → Product → Commodity) based on its
+    current lifecycle phase.
+    """
+    from retort.reporting.wardley import build_wardley_map, render_json, render_text
+    from retort.storage.database import get_engine, get_session_factory
+
+    engine = get_engine(Path(db))
+    session_factory = get_session_factory(engine)
+    session = session_factory()
+
+    try:
+        report_data = build_wardley_map(session)
+    finally:
+        session.close()
+        engine.dispose()
+
+    if fmt == "json":
+        rendered = render_json(report_data)
+    else:
+        rendered = render_text(report_data)
+
+    if output:
+        Path(output).write_text(rendered)
+        click.echo(f"Wardley map written to {output}")
+    else:
+        click.echo(rendered)
+
+
 @main.command()
 @click.option(
     "--factor",
