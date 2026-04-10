@@ -4,6 +4,39 @@
 
 Retort applies statistical Design of Experiments (DoE) to systematically evaluate AI-assisted development tooling stacks. It generates fractional factorial designs across languages, coding agents, and frameworks, executes experiments in isolated playpens, scores the results, and promotes or retires stacks based on measured confidence.
 
+## Early Results: Experiment 1
+
+> **Caveat:** These are single runs on a small task (REST API CRUD). No replicates — treat as directional, not statistically significant. The purpose is to validate that the pipeline works end-to-end with real agent execution.
+
+**Task:** Build a REST API with CRUD operations for a book collection (Flask/Express/net-http + SQLite)
+**Factors:** Language (python, typescript, go) x Model (opus, sonnet) x Tooling (none, beads)
+**Agent:** Claude Code in all runs
+
+| Language | Model | Tooling | Quality | Tokens | Cost | Time | Status |
+|----------|-------|---------|---------|--------|------|------|--------|
+| python | opus | none | 0.79 | 154,864 | $0.21 | 129s | ok |
+| python | opus | beads | 0.62 | 261,251 | $0.29 | 86s | ok |
+| python | sonnet | none | 0.67 | 431,978 | $0.30 | 108s | ok |
+| python | sonnet | beads | 0.62 | 386,816 | $0.26 | 106s | ok |
+| typescript | opus | none | 0.73 | 245,081 | $0.30 | 109s | ok |
+| typescript | opus | beads | 0.73 | 407,961 | $0.43 | 231s | ok |
+| typescript | sonnet | none | 0.73 | 936,583 | $0.59 | 273s | ok |
+| typescript | sonnet | beads | — | 730,588 | $0.43 | 249s | FAIL |
+| go | opus | none | 0.89 | 187,950 | $0.30 | 119s | ok |
+| go | opus | beads | 0.96 | 322,783 | $0.40 | 163s | ok |
+| go | sonnet | none | 0.96 | 275,497 | $0.25 | 126s | ok |
+| go | sonnet | beads | **1.00** | 571,800 | $0.35 | 163s | ok |
+
+**Observations (n=1, directional only):**
+- **Go scored highest** across all combinations (0.89–1.00), likely due to `go vet` catching real issues and Go's simpler project structure
+- **Go + sonnet + beads** achieved a perfect 1.00 quality score
+- **Beads helped Go** but **hurt Python** — may be a language-ecosystem effect (Go's explicit style benefits from structured task tracking)
+- **Sonnet used more tokens** than Opus across all languages, especially TypeScript (936K vs 245K)
+- **TypeScript + sonnet + beads** was the only failure — the combination exceeded useful context
+- **Total experiment cost: $3.97** for 12 runs (4.9M tokens)
+
+These results will be refined with replicates and more complex tasks (brazil-bench template).
+
 ## Installation
 
 Requires Python 3.11+.
