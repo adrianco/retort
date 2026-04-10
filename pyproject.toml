@@ -7,18 +7,26 @@ name = "retort"
 version = "0.1.0"
 description = "Platform Evolution Engine. Distill the best from the combinatorial mess."
 readme = "README.md"
-license = "MIT"
+license = "Apache-2.0"
+license-files = ["LICENSE"]
 requires-python = ">=3.11"
 authors = [
     { name = "Adrian Cockcroft" },
 ]
+keywords = ["doe", "experiment", "optimization", "platform-engineering", "retort"]
 classifiers = [
     "Development Status :: 3 - Alpha",
+    "Intended Audience :: Developers",
+    "Intended Audience :: Science/Research",
+    "License :: OSI Approved :: Apache Software License",
+    "Operating System :: OS Independent",
     "Programming Language :: Python :: 3",
     "Programming Language :: Python :: 3.11",
     "Programming Language :: Python :: 3.12",
     "Programming Language :: Python :: 3.13",
-    "License :: OSI Approved :: MIT License",
+    "Topic :: Scientific/Engineering",
+    "Topic :: Software Development :: Libraries :: Python Modules",
+    "Typing :: Typed",
 ]
 dependencies = [
     "click>=8.1",
@@ -56,7 +64,9 @@ retort = "retort.cli:main"
 #   my_plugin = "my_package.retort_plugin"
 
 [project.urls]
+Homepage = "https://github.com/adrianco/retort"
 Repository = "https://github.com/adrianco/retort"
+Issues = "https://github.com/adrianco/retort/issues"
 
 [tool.hatch.build.targets.wheel]
 packages = ["src/retort"]
