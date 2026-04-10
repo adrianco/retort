@@ -503,7 +503,7 @@ def report() -> None:
 @click.option(
     "--format",
     "fmt",
-    type=click.Choice(["text", "json", "csv"]),
+    type=click.Choice(["text", "json", "csv", "html"]),
     default="text",
     help="Output format (default: text).",
 )
@@ -543,6 +543,10 @@ def report_effects(
         rendered = to_json(effects)
     elif fmt == "csv":
         rendered = to_csv(effects)
+    elif fmt == "html":
+        from retort.reporting.export import to_html
+
+        rendered = to_html(effects)
     else:
         rendered = to_text(effects)
 
@@ -601,6 +605,81 @@ def report_dashboard(db: str, fmt: str, output: str | None) -> None:
     if output:
         Path(output).write_text(rendered)
         click.echo(f"Dashboard written to {output}")
+    else:
+        click.echo(rendered)
+
+
+@report.command("aliasing")
+@click.option(
+    "--config",
+    type=click.Path(exists=True),
+    default=None,
+    help="Path to workspace YAML config. If omitted, reads factors from stdin as JSON.",
+)
+@click.option(
+    "--phase",
+    type=click.Choice(["screening", "characterization"]),
+    default="screening",
+    show_default=True,
+    help="Design phase (screening = Resolution III, characterization = Resolution IV).",
+)
+@click.option(
+    "--max-order",
+    type=int,
+    default=3,
+    show_default=True,
+    help="Maximum interaction order to analyse (1=main only, 2=+2FI, 3=+3FI).",
+)
+@click.option(
+    "--format",
+    "fmt",
+    type=click.Choice(["text", "json"]),
+    default="text",
+    help="Output format (default: text).",
+)
+@click.option(
+    "--output",
+    "-o",
+    type=click.Path(),
+    default=None,
+    help="Output file path. Defaults to stdout.",
+)
+def report_aliasing(
+    config: str | None,
+    phase: str,
+    max_order: int,
+    fmt: str,
+    output: str | None,
+) -> None:
+    """Inspect the aliasing / confounding structure of a fractional factorial design.
+
+    Shows which effects are aliased (confounded) with one another for
+    a given set of factors and design resolution. This helps determine
+    which effects can be independently estimated.
+
+    Example::
+
+        retort report aliasing --config workspace.yaml --phase screening
+    """
+    from retort.design.aliasing import compute_aliasing
+    from retort.reporting.aliasing_report import render_json, render_text
+
+    registry = _load_factors(config)
+
+    if len(registry) < 2:
+        click.echo("Error: need at least 2 factors for aliasing analysis.", err=True)
+        sys.exit(1)
+
+    report_data = compute_aliasing(registry, phase, max_order=max_order)
+
+    if fmt == "json":
+        rendered = render_json(report_data)
+    else:
+        rendered = render_text(report_data)
+
+    if output:
+        Path(output).write_text(rendered)
+        click.echo(f"Aliasing report written to {output}")
     else:
         click.echo(rendered)
 
