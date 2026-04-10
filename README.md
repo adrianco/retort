@@ -43,6 +43,7 @@ retort promote my-stack --from screening --to trial \
 | `retort run` | Execute experiment runs: design matrix, playpen provisioning, scoring, storage |
 | `retort promote` | Evaluate promotion gates for stack lifecycle transitions |
 | `retort report effects` | Compute and export main effects and interaction effects (text, JSON, CSV) |
+| `retort analyze` | Run ANOVA analysis on experiment data with optional residual diagnostics |
 
 ## Configuration
 
@@ -85,6 +86,7 @@ promotion:
 ```
 src/retort/
 ├── cli.py              # Click-based CLI entry point
+├── analysis/           # ANOVA, Bayesian updating (conjugate NIG), Pareto frontier, residual diagnostics
 ├── config/             # Pydantic config schema and YAML loader
 ├── design/             # Factor registry and fractional factorial generator (pyDOE3)
 ├── playpen/            # Isolated execution: DockerRunner, task loading, prompt building
@@ -109,8 +111,8 @@ src/retort/
 | **Phase 0: Skeleton** | COMPLETE | Project structure, config schema, design generation, storage layer, `retort init`, `retort design generate` |
 | **Phase 1: Playpen + Scoring** | COMPLETE | DockerRunner, scoring framework (3 built-in scorers), bundled task specs, `retort run` |
 | **Phase 2: Promotion + Reporting** | COMPLETE | Lifecycle state machine, promotion gates, changelog, effects computation, multi-format export, `retort promote`, `retort report effects` |
-| **Phase 3: Analysis + Continuous Operation** | PLANNED | ANOVA (statsmodels), Bayesian updating (pymc), Pareto frontier, D-optimal augmentation, scheduler, `retort analyze`, `retort intake` |
-| **Phase 4: Polish** | PLANNED | Wardley map overlay, HTML reports, aliasing diagnostics, plugin system, documentation, PyPI publication |
+| **Phase 3: Analysis** | COMPLETE | ANOVA with residual diagnostics (statsmodels), Bayesian updating with conjugate NIG priors (scipy), Pareto frontier ranking, `retort analyze` |
+| **Phase 4: Polish** | PLANNED | Wardley map overlay, HTML reports, aliasing diagnostics, D-optimal augmentation, scheduler, plugin system, documentation, PyPI publication |
 
 ## Development
 
