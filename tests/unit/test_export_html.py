@@ -1,0 +1,159 @@
+"""Tests for the HTML export functionality."""
+
+from __future__ import annotations
+
+import json
+
+import pytest
+from click.testing import CliRunner
+
+from retort.reporting.effects import EffectsReport, InteractionEffect, MainEffect
+from retort.reporting.export import to_html
+
+
+# ---------------------------------------------------------------------------
+# Fixtures
+# ---------------------------------------------------------------------------
+
+
+@pytest.fixture
+def sample_report() -> EffectsReport:
+    """A simple effects report for testing."""
+    return EffectsReport(
+        metric="code_quality",
+        design_name="screening-v1",
+        n_runs=12,
+        grand_mean=0.75,
+        main_effects=[
+            MainEffect(
+                factor="language",
+                metric="code_quality",
+                level_means={"python": 0.85, "go": 0.65},
+                grand_mean=0.75,
+            ),
+            MainEffect(
+                factor="agent",
+                metric="code_quality",
+                level_means={"claude": 0.90, "copilot": 0.60},
+                grand_mean=0.75,
+            ),
+        ],
+        interactions=[
+            InteractionEffect(
+                factor_a="language",
+                factor_b="agent",
+                metric="code_quality",
+                cell_means={
+                    ("python", "claude"): 0.95,
+                    ("python", "copilot"): 0.75,
+                    ("go", "claude"): 0.85,
+                    ("go", "copilot"): 0.45,
+                },
+                grand_mean=0.75,
+            ),
+        ],
+    )
+
+
+@pytest.fixture
+def report_no_interactions() -> EffectsReport:
+    """Effects report with no interactions."""
+    return EffectsReport(
+        metric="build_time",
+        design_name="quick-test",
+        n_runs=4,
+        grand_mean=10.0,
+        main_effects=[
+            MainEffect(
+                factor="language",
+                metric="build_time",
+                level_means={"python": 8.0, "go": 12.0},
+                grand_mean=10.0,
+            ),
+        ],
+    )
+
+
+# ---------------------------------------------------------------------------
+# Tests
+# ---------------------------------------------------------------------------
+
+
+class TestToHtml:
+    def test_is_complete_html(self, sample_report: EffectsReport):
+        html = to_html(sample_report)
+        assert html.startswith("<!DOCTYPE html>")
+        assert "</html>" in html
+        assert "<head>" in html
+        assert "<body>" in html
+
+    def test_contains_title(self, sample_report: EffectsReport):
+        html = to_html(sample_report)
+        assert "screening-v1" in html
+        assert "<title>" in html
+
+    def test_contains_metadata(self, sample_report: EffectsReport):
+        html = to_html(sample_report)
+        assert "code_quality" in html
+        assert "12" in html  # n_runs
+        assert "0.7500" in html  # grand_mean
+
+    def test_contains_main_effects(self, sample_report: EffectsReport):
+        html = to_html(sample_report)
+        assert "Main Effects" in html
+        assert "language" in html
+        assert "python" in html
+        assert "0.8500" in html  # python mean
+        assert "agent" in html
+        assert "claude" in html
+
+    def test_contains_interactions(self, sample_report: EffectsReport):
+        html = to_html(sample_report)
+        assert "Interaction Effects" in html
+        assert "0.9500" in html  # python x claude
+
+    def test_no_interactions_section_when_empty(
+        self, report_no_interactions: EffectsReport
+    ):
+        html = to_html(report_no_interactions)
+        assert "Main Effects" in html
+        assert "Interaction Effects" not in html
+
+    def test_positive_negative_classes(self, sample_report: EffectsReport):
+        html = to_html(sample_report)
+        assert 'class="positive"' in html
+        assert 'class="negative"' in html
+
+    def test_has_style_section(self, sample_report: EffectsReport):
+        html = to_html(sample_report)
+        assert "<style>" in html
+        assert "border-collapse" in html
+
+    def test_html_escaping(self):
+        """Ensure special characters are escaped in HTML output."""
+        report = EffectsReport(
+            metric="<script>alert(1)</script>",
+            design_name='test"name',
+            n_runs=1,
+            grand_mean=1.0,
+            main_effects=[
+                MainEffect(
+                    factor="x&y",
+                    metric="m",
+                    level_means={"a<b": 1.0},
+                    grand_mean=1.0,
+                ),
+            ],
+        )
+        html = to_html(report)
+        assert "<script>" not in html
+        assert "&lt;script&gt;" in html
+        assert "x&amp;y" in html
+
+    def test_footer_present(self, sample_report: EffectsReport):
+        html = to_html(sample_report)
+        assert "Generated by Retort" in html
+
+    def test_rowspan_for_multi_level(self, sample_report: EffectsReport):
+        html = to_html(sample_report)
+        assert 'rowspan="2"' in html  # 2 levels per factor
