@@ -24,6 +24,7 @@ dependencies = [
     "click>=8.1",
     "numpy>=1.24",
     "pandas>=2.0",
+    "pluggy>=1.3",
     "pydantic>=2.0",
     "pyDOE3>=1.0",
     "pyyaml>=6.0",
@@ -47,6 +48,11 @@ test = [
 
 [project.scripts]
 retort = "retort.cli:main"
+
+[project.entry-points."retort.plugins"]
+# Third-party plugins register here via their own pyproject.toml:
+#   [project.entry-points."retort.plugins"]
+#   my_plugin = "my_package.retort_plugin"
 
 [project.urls]
 Repository = "https://github.com/adrianco/retort"

@@ -60,7 +60,12 @@ class ScorerRegistry:
 
 
 def create_default_registry() -> ScorerRegistry:
-    """Create a registry pre-loaded with built-in scorers."""
+    """Create a registry pre-loaded with built-in and plugin scorers.
+
+    Built-in scorers are registered first, then any scorers discovered
+    via the ``retort.plugins`` entry-point group are added.  Plugin
+    scorers can override built-ins by using the same ``name``.
+    """
     from retort.scoring.scorers.build_time import BuildTimeScorer
     from retort.scoring.scorers.code_quality import CodeQualityScorer
     from retort.scoring.scorers.token_efficiency import TokenEfficiencyScorer
@@ -69,4 +74,11 @@ def create_default_registry() -> ScorerRegistry:
     registry.register(CodeQualityScorer())
     registry.register(TokenEfficiencyScorer())
     registry.register(BuildTimeScorer())
+
+    # Discover and register plugin scorers
+    from retort.plugins import discover_scorers
+
+    for scorer in discover_scorers():
+        registry.register(scorer)
+
     return registry

@@ -93,3 +93,53 @@ class PlaypenRunner(Protocol):
     def teardown(self, env_id: str) -> None:
         """Clean up the provisioned environment."""
         ...
+
+
+class RunnerRegistry:
+    """Registry of available PlaypenRunner implementations."""
+
+    def __init__(self) -> None:
+        self._runners: dict[str, PlaypenRunner] = {}
+
+    def register(self, name: str, runner: PlaypenRunner) -> None:
+        """Register a runner instance under the given name."""
+        self._runners[name] = runner
+
+    def get(self, name: str) -> PlaypenRunner:
+        """Get a runner by name."""
+        if name not in self._runners:
+            raise KeyError(
+                f"Unknown runner: {name!r}. "
+                f"Available: {sorted(self._runners.keys())}"
+            )
+        return self._runners[name]
+
+    def available(self) -> list[str]:
+        """List registered runner names."""
+        return sorted(self._runners.keys())
+
+    def __contains__(self, name: str) -> bool:
+        return name in self._runners
+
+    def __len__(self) -> int:
+        return len(self._runners)
+
+
+def create_default_runner_registry() -> RunnerRegistry:
+    """Create a registry with built-in and plugin runners.
+
+    The ``docker`` runner is always registered.  Additional runners
+    discovered via the ``retort.plugins`` entry-point group are added
+    afterwards and may override built-ins.
+    """
+    from retort.playpen.docker_runner import DockerRunner
+
+    registry = RunnerRegistry()
+    registry.register("docker", DockerRunner())
+
+    from retort.plugins import discover_runners
+
+    for name, runner in discover_runners().items():
+        registry.register(name, runner)
+
+    return registry

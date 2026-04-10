@@ -696,5 +696,100 @@ def analyze(
             click.echo(f"\n{diag.summary()}")
 
 
+@main.group()
+def plugin() -> None:
+    """Plugin management commands."""
+
+
+@plugin.command("list")
+@click.option(
+    "--format",
+    "fmt",
+    type=click.Choice(["text", "json"]),
+    default="text",
+    help="Output format.",
+)
+def plugin_list(fmt: str) -> None:
+    """List installed retort plugins and their contributions."""
+    from retort.plugins import get_plugin_manager, discover_scorers, discover_runners
+
+    pm = get_plugin_manager()
+    scorers = discover_scorers(pm)
+    runners = discover_runners(pm)
+
+    if fmt == "json":
+        data = {
+            "scorers": [s.name for s in scorers],
+            "runners": list(runners.keys()),
+        }
+        click.echo(json.dumps(data, indent=2))
+        return
+
+    # Text format
+    click.echo("Scorers:")
+    if scorers:
+        for s in scorers:
+            click.echo(f"  {s.name} (plugin)")
+    else:
+        click.echo("  (no plugin scorers)")
+
+    click.echo("\nRunners:")
+    if runners:
+        for name in sorted(runners.keys()):
+            click.echo(f"  {name} (plugin)")
+    else:
+        click.echo("  (no plugin runners)")
+
+    # Show built-in counts
+    from retort.scoring.registry import create_default_registry
+    from retort.playpen.runner import create_default_runner_registry
+
+    scorer_reg = create_default_registry()
+    runner_reg = create_default_runner_registry()
+
+    click.echo(f"\nTotal scorers: {len(scorer_reg)} ({len(scorers)} from plugins)")
+    click.echo(f"Total runners: {len(runner_reg)} ({len(runners)} from plugins)")
+
+
+@plugin.command("show")
+@click.argument("name")
+def plugin_show(name: str) -> None:
+    """Show details for a specific scorer or runner.
+
+    NAME is a scorer or runner name (e.g. 'build_time' or 'docker').
+    """
+    from retort.scoring.registry import create_default_registry
+    from retort.playpen.runner import create_default_runner_registry
+
+    scorer_reg = create_default_registry()
+    runner_reg = create_default_runner_registry()
+
+    if name in scorer_reg:
+        scorer = scorer_reg.get(name)
+        click.echo(f"Scorer: {scorer.name}")
+        click.echo(f"  Type:   {type(scorer).__qualname__}")
+        click.echo(f"  Module: {type(scorer).__module__}")
+        doc = type(scorer).__doc__
+        if doc:
+            click.echo(f"  Description: {doc.strip().splitlines()[0]}")
+        return
+
+    if name in runner_reg:
+        runner = runner_reg.get(name)
+        click.echo(f"Runner: {name}")
+        click.echo(f"  Type:   {type(runner).__qualname__}")
+        click.echo(f"  Module: {type(runner).__module__}")
+        doc = type(runner).__doc__
+        if doc:
+            click.echo(f"  Description: {doc.strip().splitlines()[0]}")
+        return
+
+    raise click.ClickException(
+        f"No scorer or runner named {name!r}. "
+        f"Available scorers: {scorer_reg.available()}, "
+        f"runners: {runner_reg.available()}"
+    )
+
+
 if __name__ == "__main__":
     main()
