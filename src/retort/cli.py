@@ -326,7 +326,11 @@ def run_experiments(
                     score_str = ", ".join(
                         f"{k}={v:.2f}" for k, v in scores.to_dict().items()
                     )
-                    click.echo(f" — {status} ({artifacts.duration_seconds:.1f}s) [{score_str}]")
+                    token_str = ""
+                    if artifacts.token_count > 0:
+                        cost = artifacts.metadata.get("total_cost_usd", "0")
+                        token_str = f" tokens={artifacts.token_count:,} cost=${float(cost):.4f}"
+                    click.echo(f" — {status} ({artifacts.duration_seconds:.1f}s) [{score_str}]{token_str}")
 
                     # Store results
                     _store_run_result(

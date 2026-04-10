@@ -113,12 +113,43 @@ class LocalRunner:
             )
             elapsed = time.monotonic() - start
 
+            # Parse token usage from JSON output
+            token_count = 0
+            cost_usd = 0.0
+            metadata = {}
+            stdout_text = result.stdout or ""
+            try:
+                import json as _json
+                data = _json.loads(stdout_text)
+                usage = data.get("usage", {})
+                token_count = (
+                    usage.get("input_tokens", 0)
+                    + usage.get("output_tokens", 0)
+                    + usage.get("cache_read_input_tokens", 0)
+                    + usage.get("cache_creation_input_tokens", 0)
+                )
+                cost_usd = data.get("total_cost_usd", 0.0)
+                metadata = {
+                    "input_tokens": str(usage.get("input_tokens", 0)),
+                    "output_tokens": str(usage.get("output_tokens", 0)),
+                    "cache_read_input_tokens": str(usage.get("cache_read_input_tokens", 0)),
+                    "cache_creation_input_tokens": str(usage.get("cache_creation_input_tokens", 0)),
+                    "total_cost_usd": str(cost_usd),
+                    "num_turns": str(data.get("num_turns", 0)),
+                    "duration_api_ms": str(data.get("duration_api_ms", 0)),
+                    "stop_reason": data.get("stop_reason", ""),
+                }
+            except (ValueError, KeyError):
+                pass  # Not JSON or missing fields
+
             return RunArtifacts(
                 output_dir=info.workspace,
-                stdout=result.stdout[-10000:] if result.stdout else "",
+                stdout=stdout_text[-10000:],
                 stderr=result.stderr[-5000:] if result.stderr else "",
                 exit_code=result.returncode,
                 duration_seconds=elapsed,
+                token_count=token_count,
+                metadata=metadata,
             )
         except subprocess.TimeoutExpired:
             elapsed = time.monotonic() - start
@@ -158,7 +189,7 @@ class LocalRunner:
             return [
                 "claude",
                 "-p", prompt,
-                "--output-format", "text",
+                "--output-format", "json",
                 "--max-turns", "30",
                 "--dangerously-skip-permissions",
             ]
