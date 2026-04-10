@@ -205,3 +205,10 @@ cython_debug/
 marimo/_static/
 marimo/_lsp/
 __marimo__/
+
+# Gas Town (added by gt)
+.runtime/
+.claude/
+.logs/
+.beads/
+state.json
