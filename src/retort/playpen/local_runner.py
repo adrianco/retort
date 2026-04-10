@@ -179,20 +179,40 @@ class LocalRunner:
 
     def _build_agent_command(self, stack: StackConfig, task: TaskSpec) -> list[str] | None:
         """Build the CLI command to invoke the agent."""
-        if stack.agent == "claude-code":
+        agent = stack.agent if stack.agent != "unknown" else "claude-code"
+        if agent == "claude-code":
             prompt = (
                 f"You are working in {stack.language}. "
                 f"Read TASK.md in the current directory and implement everything it asks for. "
                 f"Write all code files to the current directory. "
                 f"Make sure the code builds and tests pass."
             )
-            return [
+
+            # Check for beads/tooling factor
+            tooling = stack.extra.get("tooling", "none")
+            if tooling == "beads":
+                prompt += (
+                    " Use bd (beads) for task tracking. "
+                    "Run bd init first, then bd create for each subtask, "
+                    "bd update --claim to claim work, and bd close when done."
+                )
+
+            cmd = [
                 "claude",
                 "-p", prompt,
                 "--output-format", "json",
                 "--max-turns", "30",
                 "--dangerously-skip-permissions",
             ]
+
+            # Check for model factor
+            model = stack.extra.get("model", "")
+            if model == "sonnet":
+                cmd.extend(["--model", "sonnet"])
+            elif model == "opus":
+                cmd.extend(["--model", "opus"])
+
+            return cmd
 
         # Other agents: return None (not implemented)
         logger.warning("Agent %r not implemented, skipping", stack.agent)

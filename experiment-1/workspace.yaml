@@ -1,0 +1,31 @@
+# Experiment 1: Opus vs Sonnet, Beads vs None, Python/TypeScript/Go
+# Task: rest-api-crud (CRUD book collection API)
+# Runner: local (claude CLI on host)
+
+factors:
+  language:
+    levels: [python, typescript, go]
+  model:
+    levels: [opus, sonnet]
+  tooling:
+    levels: [none, beads]
+
+responses:
+  - code_quality
+  - build_time
+
+tasks:
+  - source: bundled://rest-api-crud
+
+playpen:
+  runner: local
+  replicates: 1
+  timeout_minutes: 15
+
+design:
+  screening_resolution: 3
+  significance_threshold: 0.10
+
+promotion:
+  screening_to_trial: { p_value: 0.10 }
+  trial_to_production: { posterior_confidence: 0.80 }
