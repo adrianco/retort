@@ -474,5 +474,82 @@ def promote(
     click.echo(f"  {result.detail}")
 
 
+@main.group()
+def report() -> None:
+    """Analysis and reporting commands."""
+
+
+@report.command("effects")
+@click.option(
+    "--db",
+    type=click.Path(exists=True),
+    required=True,
+    help="Path to the retort SQLite database.",
+)
+@click.option(
+    "--matrix-id",
+    type=int,
+    required=True,
+    help="ID of the design matrix to analyze.",
+)
+@click.option(
+    "--metric",
+    type=str,
+    required=True,
+    help="Response metric name to compute effects for.",
+)
+@click.option(
+    "--format",
+    "fmt",
+    type=click.Choice(["text", "json", "csv"]),
+    default="text",
+    help="Output format (default: text).",
+)
+@click.option(
+    "--output",
+    "-o",
+    type=click.Path(),
+    default=None,
+    help="Output file path. Defaults to stdout.",
+)
+def report_effects(
+    db: str, matrix_id: int, metric: str, fmt: str, output: str | None
+) -> None:
+    """Compute and display main effects and interaction plots.
+
+    Analyzes completed experiment runs for a design matrix, computing
+    the mean response per level of each factor (main effects) and per
+    level-pair of each factor combination (interaction effects).
+    """
+    from retort.reporting.effects import compute_effects
+    from retort.reporting.export import to_csv, to_json, to_text
+    from retort.storage.database import get_engine, get_session_factory
+
+    engine = get_engine(Path(db))
+    session_factory = get_session_factory(engine)
+    session = session_factory()
+
+    try:
+        effects = compute_effects(session, matrix_id, metric)
+    except ValueError as exc:
+        raise click.ClickException(str(exc)) from None
+    finally:
+        session.close()
+        engine.dispose()
+
+    if fmt == "json":
+        rendered = to_json(effects)
+    elif fmt == "csv":
+        rendered = to_csv(effects)
+    else:
+        rendered = to_text(effects)
+
+    if output:
+        Path(output).write_text(rendered)
+        click.echo(f"Report written to {output}")
+    else:
+        click.echo(rendered)
+
+
 if __name__ == "__main__":
     main()
