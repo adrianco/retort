@@ -607,6 +607,99 @@ def report_dashboard(db: str, fmt: str, output: str | None) -> None:
 
 @main.command()
 @click.option(
+    "--factor",
+    type=str,
+    required=True,
+    help="Name of the factor gaining a new level (e.g., 'agent').",
+)
+@click.option(
+    "--level",
+    type=str,
+    required=True,
+    help="New level value to add (e.g., 'new-agent-v1').",
+)
+@click.option(
+    "--config",
+    "config_path",
+    type=click.Path(exists=True),
+    default="workspace.yaml",
+    show_default=True,
+    help="Path to workspace YAML config.",
+)
+@click.option(
+    "--phase",
+    type=click.Choice(["screening", "characterization"]),
+    default="screening",
+    show_default=True,
+    help="Design phase for augmentation.",
+)
+@click.option(
+    "--output",
+    "-o",
+    type=click.Path(),
+    default=None,
+    help="Write augmentation rows to CSV file.",
+)
+@click.option(
+    "--nrestarts",
+    type=int,
+    default=40,
+    show_default=True,
+    help="Number of optimizer restarts for D-optimal generation.",
+)
+def intake(
+    factor: str,
+    level: str,
+    config_path: str,
+    phase: str,
+    output: str | None,
+    nrestarts: int,
+) -> None:
+    """Ingest a new candidate (factor level) and generate augmentation runs.
+
+    When a new candidate appears (e.g., a new AI agent ships), this command
+    triggers D-optimal augmentation to extend the existing design matrix
+    with the minimum new runs needed.
+
+    Example::
+
+        retort intake --factor agent --level "new-agent-v1"
+    """
+    from retort.scheduler.intake import intake_candidate, load_existing_design
+
+    registry, existing_design = load_existing_design(config_path, phase)
+
+    try:
+        result = intake_candidate(
+            factor_name=factor,
+            new_level=level,
+            registry=registry,
+            existing_design=existing_design,
+            nrestarts=nrestarts,
+        )
+    except ValueError as exc:
+        raise click.ClickException(str(exc)) from None
+    except ImportError as exc:
+        raise click.ClickException(str(exc)) from None
+
+    click.echo(f"Intake: {factor}={level}")
+    click.echo(f"  Stack ID:     {result.stack_id}")
+    click.echo(f"  Lifecycle:    {result.lifecycle_state}")
+    click.echo(f"  D-efficiency: {result.augmentation.d_efficiency:.6f}")
+    click.echo(f"  New runs:     {result.num_new_runs}")
+    click.echo(f"  Total design: {result.augmentation.full_design.num_runs} runs")
+
+    if result.num_new_runs > 0:
+        click.echo(f"\nAugmentation rows:")
+        click.echo(result.new_rows.to_string(index=False))
+
+    if output:
+        result.new_rows.to_csv(output, index=False)
+        click.echo(f"\nAugmentation rows written to {output}")
+
+
+@main.command()
+@click.option(
     "--data",
     type=click.Path(exists=True),
     required=True,
