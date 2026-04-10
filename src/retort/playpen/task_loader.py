@@ -3,6 +3,8 @@
 from __future__ import annotations
 
 import importlib.resources
+import subprocess
+import tempfile
 from pathlib import Path
 
 import yaml
@@ -18,6 +20,7 @@ def load_task(source: str) -> TaskSpec:
     Supported schemes:
     - bundled://<name> — load from the bundled tasks directory
     - local://<path> — load from a local directory
+    - git://<url> — clone from a git repository
     """
     if source.startswith("bundled://"):
         name = source[len("bundled://"):]
@@ -25,6 +28,9 @@ def load_task(source: str) -> TaskSpec:
     elif source.startswith("local://"):
         path = Path(source[len("local://"):])
         return _load_from_dir(path)
+    elif source.startswith("git://"):
+        url = source[len("git://"):]
+        return _load_from_git(url)
     else:
         raise ValueError(f"Unsupported task source: {source!r}")
 
@@ -61,6 +67,50 @@ def _load_from_dir(task_dir: Path) -> TaskSpec:
         prompt=data.get("prompt", ""),
         validation_script=validation_script,
         timeout_minutes=data.get("timeout_minutes", 30),
+    )
+
+
+def _load_from_git(url: str) -> TaskSpec:
+    """Clone a git repo and load the task spec from it."""
+    # Normalize URL — git:// scheme maps to https://
+    if not url.startswith("http"):
+        url = f"https://{url}"
+
+    clone_dir = Path(tempfile.mkdtemp(prefix="retort-task-"))
+    result = subprocess.run(
+        ["git", "clone", "--depth", "1", "-q", url, str(clone_dir / "repo")],
+        capture_output=True,
+        text=True,
+        timeout=120,
+    )
+    if result.returncode != 0:
+        raise RuntimeError(
+            f"Failed to clone {url}: {result.stderr.strip()}"
+        )
+
+    repo_dir = clone_dir / "repo"
+
+    # Look for task.yaml in repo root
+    if (repo_dir / "task.yaml").exists():
+        return _load_from_dir(repo_dir)
+
+    # If no task.yaml, create a synthetic task from the repo's README
+    readme = None
+    for name in ("README.md", "readme.md", "README"):
+        if (repo_dir / name).exists():
+            readme = (repo_dir / name).read_text()
+            break
+
+    if readme is None:
+        raise FileNotFoundError(
+            f"No task.yaml or README found in {url}"
+        )
+
+    return TaskSpec(
+        name=repo_dir.name,
+        description=f"Task from {url}",
+        prompt=readme,
+        timeout_minutes=30,
     )
 
 

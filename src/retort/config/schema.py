@@ -68,6 +68,7 @@ class TaskSource(BaseModel):
 class RunnerType(str, Enum):
     docker = "docker"
     cloud = "cloud"
+    local = "local"
 
 
 class PlaypenConfig(BaseModel):

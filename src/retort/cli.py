@@ -249,6 +249,7 @@ def run_experiments(
 
     from retort.config.loader import load_workspace
     from retort.playpen.docker_runner import DockerRunner
+    from retort.playpen.local_runner import LocalRunner
     from retort.playpen.runner import StackConfig, TaskSpec
     from retort.playpen.task_loader import load_task
     from retort.scoring.collector import ScoreCollector
@@ -294,7 +295,11 @@ def run_experiments(
     create_tables(engine)
 
     # Set up runner and scorer
-    runner = DockerRunner(timeout_minutes=workspace_config.playpen.timeout_minutes)
+    runner_type = workspace_config.playpen.runner
+    if runner_type == "local":
+        runner = LocalRunner(timeout_minutes=workspace_config.playpen.timeout_minutes)
+    else:
+        runner = DockerRunner(timeout_minutes=workspace_config.playpen.timeout_minutes)
     metric_names = [r.name for r in workspace_config.responses]
     collector = ScoreCollector(metrics=metric_names)
 

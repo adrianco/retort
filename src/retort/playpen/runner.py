@@ -128,14 +128,16 @@ class RunnerRegistry:
 def create_default_runner_registry() -> RunnerRegistry:
     """Create a registry with built-in and plugin runners.
 
-    The ``docker`` runner is always registered.  Additional runners
-    discovered via the ``retort.plugins`` entry-point group are added
-    afterwards and may override built-ins.
+    The ``docker`` and ``local`` runners are always registered.
+    Additional runners discovered via the ``retort.plugins`` entry-point
+    group are added afterwards and may override built-ins.
     """
     from retort.playpen.docker_runner import DockerRunner
+    from retort.playpen.local_runner import LocalRunner
 
     registry = RunnerRegistry()
     registry.register("docker", DockerRunner())
+    registry.register("local", LocalRunner())
 
     from retort.plugins import discover_runners
 
