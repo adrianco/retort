@@ -1,0 +1,27 @@
+======================================================================
+RETORT DASHBOARD
+======================================================================
+
+Budget Usage
+----------------------------------------
+  Total runs:    28
+  Completed:     21
+  Failed:        7
+  Pending:       0
+  Running:       0
+  Cancelled:     0
+  Completion:    75.0%
+  Failure rate:  25.0%
+
+Lifecycle States
+----------------------------------------
+  (no experiments)
+
+Active Experiments
+----------------------------------------
+  (no experiments)
+
+Recent Promotions
+----------------------------------------
+  (no promotions)
+

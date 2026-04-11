@@ -1,0 +1,22 @@
+Aliasing / Confounding Report
+============================================================
+Factors:    2
+Runs:       4
+Resolution: Full
+
+Factor Labels
+----------------------------------------
+  A = language
+  B = agent
+
+Alias Structure
+----------------------------------------
+  language  [clear]
+  agent  [clear]
+  language:agent  [clear]
+
+Summary
+----------------------------------------
+  Clear effects:      3
+  Confounded groups:  0
+

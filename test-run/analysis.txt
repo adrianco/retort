@@ -1,0 +1,38 @@
+/usr/local/python/3.12.1/lib/python3.12/site-packages/statsmodels/regression/linear_model.py:1782: RuntimeWarning: divide by zero encountered in scalar divide
+  return 1 - self.ssr/self.centered_tss
+
+============================================================
+Response: code_quality
+R² = 0.9994  Adj R² = 0.9993
+============================================================
+               sum_sq    df             F        PR(>F)
+C(language)  0.368170   1.0  27460.393915  4.120345e-30
+C(agent)     0.000011   1.0      0.834879  3.729428e-01
+Residual     0.000241  18.0           NaN           NaN
+
+Significant (p < 0.1): language
+
+Residual Diagnostics: code_quality
+  Observations: 21
+  Shapiro-Wilk: W=0.4855, p=0.0000  FAIL
+  Durbin-Watson: 1.8055  PASS
+  Outliers (|z|>3): rows [1]
+  Overall: FAIL
+
+============================================================
+Response: build_time
+R² = -inf  Adj R² = -inf
+============================================================
+                   sum_sq    df         F    PR(>F)
+C(language)  4.838636e-32   1.0  0.736044  0.402211
+C(agent)     3.554917e-32   1.0  0.540767  0.471589
+Residual     1.183291e-30  18.0       NaN       NaN
+
+No factors significant at p < 0.1
+
+Residual Diagnostics: build_time
+  Observations: 21
+  Shapiro-Wilk: W=0.8149, p=0.0011  FAIL
+  Durbin-Watson: 0.1146  FAIL
+  Outliers (|z|>3): rows [0, 7, 8, 9, 10, 11]
+  Overall: FAIL

@@ -1,0 +1,32 @@
+# Retort workspace configuration
+# See docs/configuration.md for full reference
+
+factors:
+  language:
+    levels: [python, typescript, go]
+  agent:
+    levels: [claude-code, cursor, copilot]
+  framework:
+    levels: [fastapi, nextjs, stdlib]
+
+responses:
+  - code_quality
+  - token_efficiency
+  - build_time
+  - test_coverage
+
+tasks:
+  - source: bundled://rest-api-crud
+
+playpen:
+  runner: docker
+  replicates: 3
+  timeout_minutes: 30
+
+design:
+  screening_resolution: 3
+  significance_threshold: 0.10
+
+promotion:
+  screening_to_trial: { p_value: 0.10 }
+  trial_to_production: { posterior_confidence: 0.80 }
