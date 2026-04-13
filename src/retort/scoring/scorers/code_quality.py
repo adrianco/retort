@@ -37,9 +37,10 @@ class CodeQualityScorer:
         return "code_quality"
 
     def score(self, artifacts: RunArtifacts, stack: StackConfig) -> float:
-        if not artifacts.succeeded:
-            return 0.0
-
+        # Score whatever's in the workspace, regardless of the agent's
+        # exit code. An agent that hit --max-turns may still have produced
+        # buildable, useful code; an agent that exited 0 may have produced
+        # nothing. The file-existence check below is the real gate.
         if artifacts.output_dir is None or not artifacts.output_dir.exists():
             return 0.0
 

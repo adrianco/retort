@@ -42,8 +42,7 @@ class TestCoverageScorer:
         return "test_coverage"
 
     def score(self, artifacts: RunArtifacts, stack: StackConfig) -> float:
-        if not artifacts.succeeded:
-            return 0.0
+        # Score regardless of exit_code — see CodeQualityScorer for rationale.
         if artifacts.output_dir is None or not artifacts.output_dir.exists():
             return 0.0
 

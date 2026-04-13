@@ -937,6 +937,28 @@ def _store_run_result(
 
     status = RunStatus.completed if artifacts.succeeded else RunStatus.failed
 
+    # Resume + retry-failed: a failed ExperimentRun for this same
+    # (design_row_id, replicate) already exists. The unique constraint on
+    # (design_row_id, replicate) blocks a fresh insert, so delete the
+    # superseded row + its results first. design_row_id is None for runs
+    # that predate matrix persistence; in that case match by run_config.
+    if design_row_id is not None:
+        existing = (session.query(ExperimentRun)
+                    .filter_by(design_row_id=design_row_id, replicate=replicate)
+                    .all())
+    else:
+        existing = (session.query(ExperimentRun)
+                    .filter(
+                        ExperimentRun.replicate == replicate,
+                        ExperimentRun.run_config_json == json.dumps(run_config),
+                    )
+                    .all())
+    for old in existing:
+        session.query(RunResult).filter_by(run_id=old.id).delete()
+        session.delete(old)
+    if existing:
+        session.flush()
+
     run = ExperimentRun(
         design_row_id=design_row_id,
         replicate=replicate,

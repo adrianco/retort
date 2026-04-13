@@ -27,9 +27,7 @@ class TokenEfficiencyScorer:
         return "token_efficiency"
 
     def score(self, artifacts: RunArtifacts, stack: StackConfig) -> float:
-        if not artifacts.succeeded:
-            return 0.0
-
+        # Score regardless of exit_code — see CodeQualityScorer for rationale.
         tokens = artifacts.token_count
         if tokens <= 0:
             # No token data — estimate from output length
