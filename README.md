@@ -113,6 +113,40 @@ retort promote my-stack --from screening --to trial \
     --evidence '{"p_value": 0.05}' --config workspace.yaml
 ```
 
+## Running at scale with Gas Town (optional)
+
+Retort runs standalone — `pip install` + `claude` CLI is enough to drive every command above. There is **no Gas Town dependency**.
+
+That said, real experiments are long-running, parallelizable, and benefit from an orchestrator. [Gas Town](https://github.com/steveyegge/gastown) is the orchestrator we use during development; it adds:
+
+- **Parallel execution.** `gt sling` dispatches a slice of the design to a polecat (a worker agent in its own git worktree). Multiple polecats share one `retort.db` via `retort run --shard N/M --resume`. The `--shard` partition is a deterministic hash, so two polecats never both pick the same cell, and per-run sqlite commits keep concurrent writers safe.
+- **Patrol + escalation.** `witness` watches the merge queue; `refinery` patrols it; mail/escalations route to the mayor agent if anything sticks.
+- **Auto-evaluation.** With gt + `bd` (beads) installed, the `evaluate-run` and `file-run-issues` skills file findings as tracked beads in your project — survives session resets and shows up in queries.
+
+Pattern:
+
+```bash
+gt sling re-ucc retort --crew alpha   --args "retort run --phase screening --config experiment-2/workspace.yaml --resume --shard 0/4"
+gt sling re-ucc retort --crew bravo   --args "retort run --phase screening --config experiment-2/workspace.yaml --resume --shard 1/4"
+gt sling re-ucc retort --crew charlie --args "retort run --phase screening --config experiment-2/workspace.yaml --resume --shard 2/4"
+gt sling re-ucc retort --crew delta   --args "retort run --phase screening --config experiment-2/workspace.yaml --resume --shard 3/4"
+```
+
+**Without Gas Town, the same parallelism works in plain bash:**
+
+```bash
+for s in 0 1 2 3; do
+    nohup retort run --phase screening --config experiment-2/workspace.yaml \
+        --resume --shard $s/4 > shard-$s.log 2>&1 &
+done
+wait
+```
+
+**Caveats if you choose the gt path:**
+
+- Some current gt 0.12.0 rough edges (project-id mismatches, missing `bd agent` subcommand, `gt dolt fix-metadata` vs `rig-config-sync` disagreement) are documented in `re-o5b` in the beads tracker. None block work; they produce noisy telemetry warnings.
+- Concurrent runs multiply per-second token usage. Keep the shard count to a value the Anthropic API tier comfortably supports — start at 2× and monitor rate-limit headers before going higher.
+
 ## CLI Commands
 
 | Command | Description |
