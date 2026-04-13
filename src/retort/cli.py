@@ -1268,5 +1268,111 @@ def plugin_show(name: str) -> None:
     )
 
 
+@main.group()
+def export() -> None:
+    """Export experiment data for downstream analysis."""
+
+
+@export.command("csv")
+@click.option(
+    "--db",
+    type=click.Path(exists=True),
+    required=True,
+    help="Path to the retort SQLite database.",
+)
+@click.option(
+    "--output",
+    "-o",
+    type=click.Path(),
+    default=None,
+    help="Output CSV path. Defaults to stdout.",
+)
+@click.option(
+    "--include-failed",
+    is_flag=True,
+    default=False,
+    help="Include failed runs (with NaN scores) in the export.",
+)
+def export_csv(db: str, output: str | None, include_failed: bool) -> None:
+    """Export experiment_runs + run_results to a flat CSV.
+
+    Joins the per-run factor configuration (parsed from run_config_json) with
+    each metric's score, producing the wide-format CSV that ``retort analyze``
+    consumes. Useful when the design matrix wasn't persisted at run time
+    (older runs) or when you want to feed the data into another tool.
+    """
+    import csv as _csv
+    import io
+    import sys
+
+    from retort.storage.database import get_engine, get_session_factory
+    from retort.storage.models import ExperimentRun, RunResult, RunStatus
+
+    engine = get_engine(Path(db))
+    session_factory = get_session_factory(engine)
+    session = session_factory()
+
+    try:
+        runs_query = session.query(ExperimentRun)
+        if not include_failed:
+            runs_query = runs_query.filter(ExperimentRun.status == RunStatus.completed)
+        runs = runs_query.all()
+        if not runs:
+            raise click.ClickException("No runs to export.")
+
+        # Collect factor names + metric names across all runs.
+        factor_names: set[str] = set()
+        metric_names: set[str] = set()
+        rows: list[dict[str, str | float | int]] = []
+
+        # Pre-load all results to avoid N+1.
+        all_results = session.query(RunResult).all()
+        results_by_run: dict[int, list[RunResult]] = {}
+        for r in all_results:
+            results_by_run.setdefault(r.run_id, []).append(r)
+
+        for run in runs:
+            try:
+                cfg = json.loads(run.run_config_json or "{}")
+            except (TypeError, ValueError):
+                cfg = {}
+            row: dict[str, str | float | int] = {
+                "run_id": run.id,
+                "replicate": run.replicate,
+                "status": run.status.value if hasattr(run.status, "value") else str(run.status),
+            }
+            for k, v in cfg.items():
+                row[k] = v
+                factor_names.add(k)
+            for res in results_by_run.get(run.id, []):
+                row[res.metric_name] = res.value
+                metric_names.add(res.metric_name)
+            rows.append(row)
+
+        # Stable column order: meta, then factors (sorted), then metrics (sorted).
+        columns = (
+            ["run_id", "replicate", "status"]
+            + sorted(factor_names)
+            + sorted(metric_names)
+        )
+
+        buf = io.StringIO()
+        writer = _csv.DictWriter(buf, fieldnames=columns, extrasaction="ignore")
+        writer.writeheader()
+        for row in rows:
+            writer.writerow(row)
+
+        rendered = buf.getvalue()
+    finally:
+        session.close()
+        engine.dispose()
+
+    if output:
+        Path(output).write_text(rendered)
+        click.echo(f"Wrote {len(rows)} rows to {output}", err=True)
+    else:
+        sys.stdout.write(rendered)
+
+
 if __name__ == "__main__":
     main()

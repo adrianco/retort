@@ -113,6 +113,7 @@ retort promote my-stack --from screening --to trial \
 | `retort run` | Execute experiment runs: design matrix, playpen provisioning, scoring, storage |
 | `retort promote` | Evaluate promotion gates for stack lifecycle transitions |
 | `retort report effects` | Compute and export main effects and interaction effects (text, JSON, CSV) |
+| `retort export csv` | Export experiment runs + scores to CSV for `retort analyze` and external tools |
 | `retort analyze` | Run ANOVA analysis on experiment data with optional residual diagnostics |
 | `retort intake` | Ingest a new candidate (factor level) and generate D-optimal augmentation runs |
 | `retort report dashboard` | Show full workspace status dashboard (experiments, lifecycle, budget) |
@@ -187,7 +188,7 @@ Honest accounting. "Code exists" ≠ "tested end-to-end against real data."
 | Phase | Status | Notes |
 |-------|--------|-------|
 | **Phase 0: Skeleton** | ✅ Working | Project structure, Pydantic config schema, factor registry, fractional-factorial design generation, SQLite/SQLAlchemy storage, `retort init`, `retort design generate`. Covered by unit tests. |
-| **Phase 1: Playpen + Scoring** | 🟡 Partial | `LocalRunner` (claude CLI on host) is the supported path and has been exercised end-to-end against `bundled://rest-api-crud`. **`DockerRunner` is a skeleton — not exercised.** All 7 scorers from the plan are implemented (`code_quality`, `build_time`, `token_efficiency`, `test_coverage`, `defect_rate`, `maintainability`, `idiomatic`); the new four are wired but not yet exercised against an experiment with replicates. Only one bundled task (`rest-api-crud`) ships. |
+| **Phase 1: Playpen + Scoring** | 🟡 Partial | `LocalRunner` (claude CLI on host) is the supported path and has been exercised end-to-end against `bundled://rest-api-crud`. **`DockerRunner` is a skeleton — not exercised.** All 7 scorers from the plan are implemented (`code_quality`, `build_time`, `token_efficiency`, `test_coverage`, `defect_rate`, `maintainability`, `idiomatic`); the four added scorers are wired but not yet exercised against an experiment with replicates. Three bundled tasks ship (`rest-api-crud`, `cli-data-pipeline`, `react-dashboard`) but only `rest-api-crud` has been exercised end-to-end. Task source schemes `bundled://`, `local://`, and `git://` work; a `brazil-bench` task source for benchmark integration is tracked as future work. |
 | **Phase 2: Promotion + Reporting** | 🟡 Code present, lightly exercised | Lifecycle state machine, promotion gates, changelog, multi-format export, `retort promote`, `retort report effects` exist and unit-test. Not yet run on a real promotion decision. |
 | **Phase 3: Analysis** | 🟡 Code present, lightly exercised | ANOVA + residual diagnostics (statsmodels), Bayesian conjugate-NIG updating (scipy), Pareto frontier, `retort analyze`. Verified on synthetic data; not yet on a complete experiment-1 dataset with replicates. |
 | **Phase 4: Polish** | 🔴 Code present, untested | D-optimal augmentation (OApackage), candidate intake, scheduler, pluggy plugin system, status dashboard. Almost none of this has been exercised against real workloads yet. |
@@ -200,7 +201,7 @@ Honest accounting. "Code exists" ≠ "tested end-to-end against real data."
 - New scorers (`test_coverage`, `defect_rate`, `maintainability`, `idiomatic`) are wired but not yet exercised against an experiment with replicates
 - `idiomatic` is opt-in via the `responses:` list in `workspace.yaml` (each invocation makes a Claude haiku call, ~$0.001/run, cached per workspace)
 - `retort intake` / D-optimal augmentation untested against a real candidate
-- Bundled tasks: just `rest-api-crud`; `brazil-bench` integration is aspirational
+- Bundled tasks `cli-data-pipeline` and `react-dashboard` exist but haven't been run end-to-end; `brazil-bench` integration tracked as `re-cn5`
 
 ## Development
 
