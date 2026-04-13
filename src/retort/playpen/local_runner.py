@@ -210,11 +210,13 @@ class LocalRunner:
                     "bd update --claim to claim work, and bd close when done."
                 )
 
+            # Per-task max_turns wins over workspace-wide setting if set.
+            effective_max_turns = task.max_turns if task.max_turns is not None else self.max_turns
             cmd = [
                 "claude",
                 "-p", prompt,
                 "--output-format", "json",
-                "--max-turns", str(self.max_turns),
+                "--max-turns", str(effective_max_turns),
                 "--dangerously-skip-permissions",
             ]
 

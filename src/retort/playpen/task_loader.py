@@ -91,6 +91,7 @@ def _load_from_dir(task_dir: Path) -> TaskSpec:
         prompt=data.get("prompt", ""),
         validation_script=validation_script,
         timeout_minutes=data.get("timeout_minutes", 30),
+        max_turns=data.get("max_turns"),
     )
 
 

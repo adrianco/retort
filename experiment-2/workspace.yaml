@@ -69,10 +69,15 @@ playpen:
   replicates: 1          # screening singletons; characterization adds
                          # reps on the surviving factors.
   timeout_minutes: 25    # brazil-bench takes longer than rest-api-crud
-  max_turns: 60          # brazil-bench is more complex; especially Java
-                         # needs ~30 turns just to scaffold pom.xml +
-                         # package dirs before reaching implementation.
-                         # Smoke test confirmed 30 wasn't enough for Java.
+  max_turns: 200         # brazil-bench is a real workload — MCP server +
+                         # CSV ingest + BDD tests across 16 canonical
+                         # requirements. Smoke test history:
+                         #   30  → java didn't reach any code
+                         #   60  → java barely produced a project (61 turns)
+                         #   90  → headroom for one model
+                         #   200 → headroom for verbose stacks + reps
+                         # Per-task overrides go in task.yaml's max_turns
+                         # field; this is the workspace-wide ceiling.
 
 design:
   screening_resolution: 3

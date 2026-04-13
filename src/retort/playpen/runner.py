@@ -54,6 +54,11 @@ class TaskSpec:
     validation_script: str | None = None
     timeout_minutes: int = 30
     support_dir: Path | None = None
+    # Per-task agent turn cap. None ⇒ inherit from playpen.max_turns
+    # (workspace-wide default). Override here for tasks that are
+    # substantially bigger than the workspace's typical run — production
+    # workloads frequently need 200+ turns.
+    max_turns: int | None = None
 
 
 @dataclass
