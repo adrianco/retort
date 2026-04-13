@@ -1465,6 +1465,26 @@ def intake(
     default=False,
     help="Run residual diagnostics on each model.",
 )
+@click.option(
+    "--transform",
+    type=click.Choice(["log", "none"]),
+    default="log",
+    show_default=True,
+    help=(
+        "Response transform before fitting. 'log' (default) fits a "
+        "multiplicative model — the typical shape for tokens, cost, "
+        "duration, error counts. Use 'none' for an additive/classical "
+        "ANOVA when you have a real reason."
+    ),
+)
+@click.option(
+    "--predict/--no-predict",
+    default=False,
+    help=(
+        "Predict response values + 95% CI for unmeasured factor combinations. "
+        "Useful for fractional designs where most cells weren't run."
+    ),
+)
 def analyze(
     data: str,
     responses: tuple[str, ...],
@@ -1472,11 +1492,14 @@ def analyze(
     interactions: bool,
     significance: float,
     show_residuals: bool,
+    transform: str,
+    predict: bool,
 ) -> None:
     """Analyse experimental results using ANOVA.
 
     Reads a CSV of experiment data and runs Type II ANOVA for each response
     metric, reporting which factors have statistically significant effects.
+    Defaults to log-transformed responses (multiplicative model).
     """
     import pandas as pd
 
@@ -1496,11 +1519,12 @@ def analyze(
         factors=factor_list,
         include_interactions=interactions,
         significance=significance,
+        transform=transform,
     )
 
     for resp_name, result in results.items():
         click.echo(f"\n{'='*60}")
-        click.echo(f"Response: {resp_name}")
+        click.echo(f"Response: {resp_name}    transform: {result.transform}")
         click.echo(f"R² = {result.r_squared:.4f}  Adj R² = {result.adj_r_squared:.4f}")
         click.echo(f"{'='*60}")
         click.echo(result.anova_table.to_string())
@@ -1515,6 +1539,12 @@ def analyze(
         if show_residuals:
             diag = check_residuals(result.model, resp_name)
             click.echo(f"\n{diag.summary()}")
+
+        if predict:
+            from retort.analysis.predict import predict_unmeasured, render_predictions
+            preds = predict_unmeasured(result, df, factor_list)
+            click.echo(f"\n--- Predictions for unmeasured cells ---")
+            click.echo(render_predictions(preds, transform=result.transform))
 
 
 @main.group()
