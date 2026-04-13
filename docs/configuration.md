@@ -30,7 +30,7 @@ responses:
   - test_coverage
   - defect_rate
   - maintainability
-  - idiomatic_score
+  - idiomatic            # opt-in: per-run claude haiku call (~$0.001/run)
 ```
 
 These names must match the scorer plugins available (built-in or custom). See [Extending](extending.md) for custom scorers.
@@ -41,11 +41,13 @@ Define what the AI agents will build in each experiment run.
 
 ```yaml
 tasks:
-  - source: bundled://rest-api-crud       # Ships with Retort
+  - source: bundled://rest-api-crud                                            # Ships with Retort
   - source: bundled://cli-data-pipeline
   - source: bundled://react-dashboard
-  - source: git://github.com/org/repo     # Clone from git
-  - source: local://./my-custom-task      # Local directory
+  - source: git://github.com/org/repo                                          # Clone from git
+  - source: github://brazil-bench/benchmark-template                           # Github shorthand
+  - source: github://brazil-bench/benchmark-template/spec.md                   # Specific spec file
+  - source: local://./my-custom-task                                           # Local directory
 ```
 
 Each task source must contain a `task.yaml` (functional spec) and `validate.py` (automated pass/fail checks). See the `tasks/` directory for bundled examples.
@@ -56,7 +58,7 @@ Configure the isolated execution environment.
 
 ```yaml
 playpen:
-  runner: docker              # "docker" (default) or "cloud"
+  runner: local               # "local" (supported) or "docker" (skeleton)
   replicates: 3               # Runs per design point (minimum: 1)
   timeout_minutes: 30         # Max time per run
   cost_limit_usd: 500.00      # Budget cap per screening phase
@@ -64,7 +66,7 @@ playpen:
 
 | Field | Default | Description |
 |-------|---------|-------------|
-| `runner` | `docker` | `docker` for local Docker-in-Docker, `cloud` for AWS/GCP VMs |
+| `runner` | `local` | `local` shells out to the agent CLI on the host; `docker` exists but is a skeleton |
 | `replicates` | `3` | Number of times to repeat each design point. Higher = less noise, more cost |
 | `timeout_minutes` | `30` | Kill a run after this many minutes |
 | `cost_limit_usd` | none | Optional budget cap. Runs stop when limit is reached |

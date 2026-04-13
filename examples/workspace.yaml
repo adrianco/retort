@@ -1,58 +1,67 @@
 # Retort — Example workspace configuration
 #
-# This file defines an experiment workspace for evaluating AI-assisted
-# development tooling stacks using Design of Experiments methodology.
+# Defines an experiment for evaluating AI-assisted development stacks using
+# Design of Experiments. This example mirrors what a real screening run
+# would look like — small enough to actually run, but exercises the full
+# pipeline: factors → design → playpen → score → evaluate → store → analyze.
+#
+# To use:
+#   retort init my-eval --visibility public
+#   cp examples/workspace.yaml my-eval/workspace.yaml
+#   retort run --phase screening --config my-eval/workspace.yaml --dry-run
+#   retort run --phase screening --config my-eval/workspace.yaml
+#   retort export csv --db my-eval/retort.db -o results.csv
+#   retort analyze --data results.csv -r code_quality -f language -f model -f tooling
 
 experiment:
-  name: example
-  # public  -> runs/, reports/web/, evaluations are git-tracked and safe to publish.
-  # private -> all generated artifacts stay local. Default if omitted (fail-closed).
+  name: example-screening
+  # public  -> runs/, reports/, evaluations git-tracked + safe to publish.
+  # private -> all generated artifacts stay local. Default if omitted.
   visibility: public
 
+# Three factors → 2 × 2 × 2 = 8 cells. With replicates: 3, that's 24 runs.
+# Manageable cost (~$5–10 on a small task) and enough power to detect main
+# effects with retort analyze.
 factors:
   language:
-    levels: [python, typescript, rust, go]
-  agent:
-    levels: [claude-code, cursor, copilot, aider]
-  framework:
-    levels: [fastapi, nextjs, axum, stdlib]
-  app_type:
-    levels: [rest-api, cli-tool, react-frontend, data-pipeline]
-  orchestration:
-    levels: [single-agent, swarm, hive-mind]
-  constraint_style:
-    levels: [rfc-2119, bdd, unconstrained]
+    levels: [python, go]
+  model:
+    levels: [opus, sonnet]
+  tooling:
+    levels: [none, beads]
 
+# Response metrics. Only metrics listed here are computed (the registry has
+# more — see retort plugin list). Listing `idiomatic` adds an LLM-as-judge
+# call per run; omit it if you don't want that cost (~$0.001/run).
 responses:
   - code_quality
-  - token_efficiency
   - build_time
+  - token_efficiency
   - test_coverage
   - defect_rate
   - maintainability
-  - idiomatic_score
+  # - idiomatic           # opt-in: per-run claude haiku call
 
+# Task source. `bundled://` ships with retort. `github://` clones a public
+# repo (optionally pointing at a specific spec file). `local://` and
+# `git://` are also supported.
 tasks:
   - source: bundled://rest-api-crud
-  - source: bundled://cli-data-pipeline
-  - source: git://github.com/brazil-bench/template-repo
-  - source: local://./my-custom-task
+  # - source: github://brazil-bench/benchmark-template/brazilian-soccer-mcp-guide.md
 
 playpen:
-  runner: docker
+  runner: local             # 'local' is the supported path; 'docker' is a skeleton.
   replicates: 3
-  timeout_minutes: 30
-  cost_limit_usd: 500.00
+  timeout_minutes: 15
+  # cost_limit_usd: 50.00   # supported by scheduler/budget; not yet wired into retort run
 
 design:
   screening_resolution: 3
-  characterization_resolution: 4
   significance_threshold: 0.10
 
 promotion:
   screening_to_trial: { p_value: 0.10 }
   trial_to_production: { posterior_confidence: 0.80 }
-  production_to_retired: { dominated_confidence: 0.95 }
 
 # Auto-evaluation — after each successful run, score the generated code using
 # the evaluate-run skill (and optionally file findings as issues). Failures
