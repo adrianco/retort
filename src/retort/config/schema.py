@@ -31,6 +31,24 @@ class ExperimentConfig(BaseModel):
     visibility: Annotated[Visibility, Field(default="private", description="public = artifacts safe to publish; private = local-only")]
 
 
+IssueTracker = Literal["beads", "github", "both"]
+Severity = Literal["critical", "high", "medium", "low", "info"]
+
+
+class EvaluationConfig(BaseModel):
+    """Auto-evaluation configuration.
+
+    After each successful run, retort can invoke the ``evaluate-run`` skill
+    (and optionally ``file-run-issues``) to score the generated code and
+    surface findings. Evaluation failures never abort the experiment.
+    """
+
+    enabled: Annotated[bool, Field(default=True, description="Run evaluate-run skill after each successful run")]
+    model: Annotated[str, Field(default="haiku", description="Claude model passed as --model to the skill invocation")]
+    min_severity_to_file: Annotated[Severity, Field(default="high", description="Findings below this severity stay in findings.jsonl only")]
+    issue_tracker: Annotated[IssueTracker, Field(default="beads", description="Where file-run-issues mirrors findings")]
+
+
 # ---------------------------------------------------------------------------
 # Factors
 # ---------------------------------------------------------------------------
@@ -163,6 +181,7 @@ class WorkspaceConfig(BaseModel):
     playpen: Annotated[PlaypenConfig, Field(default_factory=PlaypenConfig)]
     design: Annotated[DesignConfig, Field(default_factory=DesignConfig)]
     promotion: Annotated[PromotionConfig, Field(default_factory=PromotionConfig)]
+    evaluation: Annotated[EvaluationConfig, Field(default_factory=EvaluationConfig)]
 
     @model_validator(mode="before")
     @classmethod

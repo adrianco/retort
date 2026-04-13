@@ -3,7 +3,9 @@
 from __future__ import annotations
 
 import json
+import os
 import shutil
+import subprocess
 import sys
 from pathlib import Path
 
@@ -55,6 +57,12 @@ design:
 promotion:
   screening_to_trial: { p_value: 0.10 }
   trial_to_production: { posterior_confidence: 0.80 }
+
+evaluation:
+  enabled: true
+  model: haiku
+  min_severity_to_file: high
+  issue_tracker: beads
 """
 
 
@@ -542,13 +550,22 @@ def run_experiments(
                     session.commit()
 
                     # Archive the workspace before teardown wipes it.
-                    _archive_run_workspace(
+                    archived = _archive_run_workspace(
                         archive_root, run_config, rep, artifacts,
                         visibility=workspace_config.experiment.visibility,
                     )
 
                     if artifacts.succeeded:
                         completed += 1
+                        if archived is not None:
+                            try:
+                                _run_auto_evaluation(
+                                    archived,
+                                    workspace_config.evaluation,
+                                    workspace_config.experiment.visibility,
+                                )
+                            except Exception as exc:
+                                click.echo(f"  (evaluate crashed: {exc}; continuing)", err=True)
                     else:
                         failed += 1
                 finally:
@@ -572,36 +589,37 @@ def _archive_run_workspace(
     replicate: int,
     artifacts,
     visibility: str = "private",
-) -> None:
+) -> Path | None:
     """Copy a run's workspace into the archive so it survives /tmp cleanup.
 
     Layout: <archive_root>/<sorted-factor=value-pairs>/rep<N>[ -failed]/
 
     Writes ``_meta.json`` next to the copied workspace so downstream tooling
     (report web, file-run-issues) can read the experiment's visibility level
-    without re-parsing workspace.yaml.
+    without re-parsing workspace.yaml. Returns the archived destination path
+    (or None if archival was skipped or failed).
     """
     import shutil
 
     src = getattr(artifacts, "output_dir", None)
     if not src:
-        return
+        return None
     src = Path(src)
     if not src.exists():
-        return
+        return None
 
     cell_name = "_".join(f"{k}={v}" for k, v in sorted(run_config.items()))
     suffix = "" if artifacts.succeeded else "-failed"
     dest = archive_root / cell_name / f"rep{replicate}{suffix}"
     if dest.exists():
         # Already archived (idempotent on resume of an in-progress run).
-        return
+        return dest
     dest.parent.mkdir(parents=True, exist_ok=True)
     try:
         shutil.copytree(src, dest)
     except Exception as exc:  # don't let archival failure abort the experiment
         click.echo(f"  (archive failed for {cell_name} rep{replicate}: {exc})", err=True)
-        return
+        return None
 
     meta = {
         "visibility": visibility,
@@ -613,6 +631,135 @@ def _archive_run_workspace(
         (dest / "_meta.json").write_text(json.dumps(meta, indent=2, sort_keys=True))
     except Exception as exc:
         click.echo(f"  (meta write failed for {cell_name} rep{replicate}: {exc})", err=True)
+    return dest
+
+
+def _find_skill(skill_name: str, start: Path | None = None) -> Path | None:
+    """Locate a skill's SKILL.md by walking upward from ``start`` (or CWD).
+
+    Skills live in ``<repo>/skills/<name>/SKILL.md``. Returns None if not found.
+    """
+    start = (start or Path.cwd()).resolve()
+    candidates = [start, *start.parents]
+    # Also try the retort package's repo root (useful when installed from source).
+    try:
+        import retort as _retort_pkg
+        pkg_root = Path(_retort_pkg.__file__).resolve().parent.parent.parent
+        candidates.append(pkg_root)
+    except Exception:
+        pass
+    for base in candidates:
+        candidate = base / "skills" / skill_name / "SKILL.md"
+        if candidate.is_file():
+            return candidate
+    return None
+
+
+def _evaluation_is_current(run_dir: Path) -> bool:
+    """True if ``evaluation.md`` exists and is newer than every source file."""
+    eval_path = run_dir / "evaluation.md"
+    if not eval_path.is_file():
+        return False
+    eval_mtime = eval_path.stat().st_mtime
+    ignore_dirs = {"node_modules", "target", "__pycache__", ".git", "summary"}
+    ignore_names = {"evaluation.md", "findings.jsonl"}
+    for root, dirs, files in os.walk(run_dir):
+        dirs[:] = [d for d in dirs if d not in ignore_dirs]
+        for f in files:
+            if f in ignore_names:
+                continue
+            p = Path(root) / f
+            try:
+                if p.stat().st_mtime > eval_mtime:
+                    return False
+            except OSError:
+                continue
+    return True
+
+
+def _invoke_claude_skill(
+    skill_path: Path,
+    params: dict[str, str],
+    model: str,
+    timeout: int = 300,
+) -> tuple[int, str]:
+    """Invoke a claude skill via ``claude -p``. Returns (exit_code, combined_output).
+
+    Never raises — a missing ``claude`` binary or a non-zero exit is reported
+    through the returned code and stderr text so callers can log and continue.
+    """
+    param_str = " ".join(f"{k}={v}" for k, v in params.items())
+    prompt = f"Follow skill at {skill_path} for {param_str}"
+    cmd = ["claude", "-p", prompt, "--model", model]
+    try:
+        proc = subprocess.run(
+            cmd, capture_output=True, text=True, timeout=timeout, check=False
+        )
+        return proc.returncode, (proc.stdout or "") + (proc.stderr or "")
+    except FileNotFoundError:
+        return 127, "claude CLI not found on PATH"
+    except subprocess.TimeoutExpired:
+        return 124, f"skill invocation timed out after {timeout}s"
+    except Exception as exc:
+        return 1, f"skill invocation failed: {exc}"
+
+
+def _run_auto_evaluation(
+    run_dir: Path,
+    eval_config,
+    visibility: str,
+    *,
+    force: bool = False,
+) -> None:
+    """Invoke evaluate-run and optionally file-run-issues for a completed run.
+
+    Never raises. Skips when ``evaluation.md`` is already current (idempotent
+    on ``retort run --resume``) unless ``force`` is set. Private experiments
+    are clamped to the beads tracker regardless of config, to avoid leaking
+    findings to GitHub.
+    """
+    if not eval_config.enabled:
+        return
+    if not run_dir.is_dir():
+        click.echo(f"  (evaluate: {run_dir} missing, skipping)", err=True)
+        return
+    if not force and _evaluation_is_current(run_dir):
+        click.echo(f"  (evaluate: {run_dir.name} up-to-date, skipping)")
+        return
+
+    skill = _find_skill("evaluate-run", start=run_dir)
+    if skill is None:
+        click.echo("  (evaluate: skills/evaluate-run not found, skipping)", err=True)
+        return
+
+    click.echo(f"  evaluating {run_dir.name} (model={eval_config.model})...")
+    rc, output = _invoke_claude_skill(
+        skill, {"run_dir": str(run_dir)}, eval_config.model
+    )
+    if rc != 0:
+        click.echo(f"  (evaluate failed rc={rc}; continuing) {output[:200]}", err=True)
+        return
+
+    # File findings if requested. Private experiments never reach GitHub.
+    tracker = eval_config.issue_tracker
+    if visibility == "private" and tracker != "beads":
+        click.echo(f"  (file-run-issues: visibility=private, forcing tracker=beads)")
+        tracker = "beads"
+
+    file_skill = _find_skill("file-run-issues", start=run_dir)
+    if file_skill is None:
+        return
+    rc, output = _invoke_claude_skill(
+        file_skill,
+        {
+            "run_dir": str(run_dir),
+            "tracker": tracker,
+            "min_severity": eval_config.min_severity_to_file,
+        },
+        eval_config.model,
+    )
+    if rc != 0:
+        click.echo(f"  (file-run-issues failed rc={rc}; continuing) {output[:200]}", err=True)
 
 
 def _persist_design_matrix(
@@ -1475,6 +1622,95 @@ def export_csv(db: str, output: str | None, include_failed: bool) -> None:
         click.echo(f"Wrote {len(rows)} rows to {output}", err=True)
     else:
         sys.stdout.write(rendered)
+
+
+@main.command("evaluate")
+@click.argument("run_dir", type=click.Path(exists=True, file_okay=False))
+@click.option(
+    "--config",
+    type=click.Path(exists=True),
+    default="workspace.yaml",
+    show_default=True,
+    help="Path to workspace YAML config (for model + tracker settings).",
+)
+@click.option(
+    "--force",
+    is_flag=True,
+    help="Re-run evaluation even if evaluation.md is up-to-date.",
+)
+def evaluate(run_dir: str, config: str, force: bool) -> None:
+    """Evaluate a single run archive via the evaluate-run skill.
+
+    Use this for manual or retroactive evaluation of runs that predate
+    auto-evaluation, or to re-evaluate after updating the skill.
+    """
+    from retort.config.loader import load_workspace
+
+    workspace_config = load_workspace(config)
+    eval_cfg = workspace_config.evaluation
+    # For manual invocation, always run regardless of the enabled flag.
+    if not eval_cfg.enabled:
+        click.echo("evaluation.enabled=false in config, but running on manual request.")
+    _run_auto_evaluation(
+        Path(run_dir),
+        eval_cfg,
+        workspace_config.experiment.visibility,
+        force=force,
+    )
+
+
+@report.command("compare")
+@click.option(
+    "--experiment-dir",
+    type=click.Path(exists=True, file_okay=False),
+    default=".",
+    show_default=True,
+    help="Experiment directory containing retort.db and runs/.",
+)
+@click.option(
+    "--config",
+    type=click.Path(exists=True),
+    default="workspace.yaml",
+    show_default=True,
+    help="Path to workspace YAML config (for model settings).",
+)
+@click.option(
+    "--output",
+    "-o",
+    type=click.Path(),
+    default=None,
+    help="Output path for comparison.md. Defaults to <experiment>/reports/comparison.md.",
+)
+@click.option(
+    "--group-by",
+    type=str,
+    default=None,
+    help="Comma-separated factors to isolate. Default: all factors.",
+)
+def report_compare(
+    experiment_dir: str, config: str, output: str | None, group_by: str | None
+) -> None:
+    """Compare evaluated runs across factor dimensions via the compare-runs skill."""
+    from retort.config.loader import load_workspace
+
+    workspace_config = load_workspace(config)
+    exp_dir = Path(experiment_dir).resolve()
+
+    skill = _find_skill("compare-runs", start=exp_dir)
+    if skill is None:
+        raise click.ClickException("skills/compare-runs not found")
+
+    params = {"experiment_dir": str(exp_dir)}
+    if output:
+        params["output_file"] = str(Path(output).resolve())
+    if group_by:
+        params["group_by"] = group_by
+
+    click.echo(f"Running compare-runs (model={workspace_config.evaluation.model})...")
+    rc, out = _invoke_claude_skill(skill, params, workspace_config.evaluation.model, timeout=600)
+    if rc != 0:
+        raise click.ClickException(f"compare-runs failed rc={rc}: {out[:500]}")
+    click.echo(out.strip() or "(compare-runs completed)")
 
 
 if __name__ == "__main__":

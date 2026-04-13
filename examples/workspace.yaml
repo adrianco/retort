@@ -53,3 +53,12 @@ promotion:
   screening_to_trial: { p_value: 0.10 }
   trial_to_production: { posterior_confidence: 0.80 }
   production_to_retired: { dominated_confidence: 0.95 }
+
+# Auto-evaluation — after each successful run, score the generated code using
+# the evaluate-run skill (and optionally file findings as issues). Failures
+# here never abort the experiment. Omit this block to accept defaults.
+evaluation:
+  enabled: true                    # default true
+  model: haiku                     # claude model passed to the skill invocation
+  min_severity_to_file: high       # findings below this stay in findings.jsonl only
+  issue_tracker: beads             # beads | github | both (private experiments force beads)
