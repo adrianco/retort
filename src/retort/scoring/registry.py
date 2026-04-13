@@ -69,6 +69,7 @@ def create_default_registry() -> ScorerRegistry:
     from retort.scoring.scorers.build_time import BuildTimeScorer
     from retort.scoring.scorers.code_quality import CodeQualityScorer
     from retort.scoring.scorers.defect_rate import DefectRateScorer
+    from retort.scoring.scorers.idiomatic import IdiomaticScorer
     from retort.scoring.scorers.maintainability import MaintainabilityScorer
     from retort.scoring.scorers.test_coverage import TestCoverageScorer
     from retort.scoring.scorers.token_efficiency import TokenEfficiencyScorer
@@ -80,6 +81,8 @@ def create_default_registry() -> ScorerRegistry:
     registry.register(TestCoverageScorer())
     registry.register(DefectRateScorer())
     registry.register(MaintainabilityScorer())
+    # Opt-in via responses: list — every invocation makes an LLM call.
+    registry.register(IdiomaticScorer())
 
     # Discover and register plugin scorers
     from retort.plugins import discover_scorers

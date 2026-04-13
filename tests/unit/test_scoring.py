@@ -13,6 +13,7 @@ from retort.scoring.registry import ScorerRegistry, create_default_registry
 from retort.scoring.scorers.build_time import BuildTimeScorer
 from retort.scoring.scorers.code_quality import CodeQualityScorer
 from retort.scoring.scorers.defect_rate import DefectRateScorer
+from retort.scoring.scorers.idiomatic import IdiomaticScorer
 from retort.scoring.scorers.maintainability import MaintainabilityScorer
 from retort.scoring.scorers.test_coverage import TestCoverageScorer
 from retort.scoring.scorers.token_efficiency import TokenEfficiencyScorer
@@ -59,7 +60,8 @@ class TestScorerRegistry:
         assert "test_coverage" in reg
         assert "defect_rate" in reg
         assert "maintainability" in reg
-        assert len(reg) == 6
+        assert "idiomatic" in reg
+        assert len(reg) == 7
 
     def test_register_and_get(self):
         reg = ScorerRegistry()
@@ -79,6 +81,7 @@ class TestScorerRegistry:
             "build_time",
             "code_quality",
             "defect_rate",
+            "idiomatic",
             "maintainability",
             "test_coverage",
             "token_efficiency",
@@ -289,3 +292,66 @@ class TestMaintainabilityScorer:
         assert _ramp(0.5, 0.5, 0.0, lower_is_better=False) == 1.0
         assert _ramp(0.0, 0.5, 0.0, lower_is_better=False) == 0.0
         assert _ramp(0.25, 0.5, 0.0, lower_is_better=False) == 0.5
+
+
+class TestIdiomaticScorer:
+    def test_failed_run_scores_zero(self, failed_artifacts, python_stack):
+        scorer = IdiomaticScorer()
+        assert scorer.score(failed_artifacts, python_stack) == 0.0
+
+    def test_no_output_dir_scores_zero(self, python_stack):
+        scorer = IdiomaticScorer()
+        artifacts = RunArtifacts(stdout="", exit_code=0, duration_seconds=10.0)
+        assert scorer.score(artifacts, python_stack) == 0.0
+
+    def test_cli_missing_returns_neutral(self, python_stack, tmp_path):
+        # Code present, but the judge CLI doesn't exist.
+        (tmp_path / "app.py").write_text("def main():\n    return 1\n" * 5)
+        artifacts = RunArtifacts(
+            output_dir=tmp_path, stdout="", exit_code=0, duration_seconds=1.0,
+        )
+        scorer = IdiomaticScorer(cli="this-binary-does-not-exist-12345")
+        # Falls back to neutral when the CLI is unavailable. No cache write
+        # since the judge call failed.
+        assert scorer.score(artifacts, python_stack) == 0.5
+
+    def test_cache_short_circuits(self, python_stack, tmp_path):
+        # Pre-populate the cache; scorer should never invoke the CLI.
+        (tmp_path / "app.py").write_text("def main():\n    return 1\n" * 5)
+        cache = tmp_path / ".idiomatic_cache.json"
+        import json
+        cache.write_text(json.dumps({"score": 0.42, "model": "test"}))
+        artifacts = RunArtifacts(
+            output_dir=tmp_path, stdout="", exit_code=0, duration_seconds=1.0,
+        )
+        # Pointing the scorer at a nonexistent CLI proves the cache hit
+        # bypasses the subprocess entirely.
+        scorer = IdiomaticScorer(cli="this-binary-does-not-exist-12345")
+        assert scorer.score(artifacts, python_stack) == 0.42
+
+    def test_parse_score(self):
+        from retort.scoring.scorers.idiomatic import _parse_score
+        assert _parse_score("0.85") == 0.85
+        assert _parse_score("Score: 0.7\nReason: ...") == 0.7
+        assert _parse_score("1.0") == 1.0
+        assert _parse_score("not a number") is None
+        assert _parse_score("") is None
+        # Clamped to [0,1]
+        assert _parse_score("1.5") == 1.0  # matches "1.5" at the boundary, capped
+
+    def test_representative_sample_skips_tiny_files(self, tmp_path):
+        from retort.scoring.scorers.idiomatic import _representative_sample
+        (tmp_path / "stub.py").write_text("x=1\n")  # under 64 bytes — skipped
+        (tmp_path / "real.py").write_text("def main():\n    return 'hello'\n" * 10)
+        sample = _representative_sample(tmp_path, "python")
+        assert "real.py" in sample
+        assert "stub.py" not in sample
+
+    def test_representative_sample_skips_build_artifacts(self, tmp_path):
+        from retort.scoring.scorers.idiomatic import _representative_sample
+        (tmp_path / "node_modules").mkdir()
+        (tmp_path / "node_modules" / "huge.ts").write_text("x" * 1000)
+        (tmp_path / "real.ts").write_text("export const main = () => 1;\n" * 10)
+        sample = _representative_sample(tmp_path, "typescript")
+        assert "real.ts" in sample
+        assert "huge.ts" not in sample

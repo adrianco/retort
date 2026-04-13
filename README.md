@@ -187,7 +187,7 @@ Honest accounting. "Code exists" ≠ "tested end-to-end against real data."
 | Phase | Status | Notes |
 |-------|--------|-------|
 | **Phase 0: Skeleton** | ✅ Working | Project structure, Pydantic config schema, factor registry, fractional-factorial design generation, SQLite/SQLAlchemy storage, `retort init`, `retort design generate`. Covered by unit tests. |
-| **Phase 1: Playpen + Scoring** | 🟡 Partial | `LocalRunner` (claude CLI on host) is the supported path and has been exercised end-to-end against `bundled://rest-api-crud`. **`DockerRunner` is a skeleton — not exercised.** Scoring framework with 6 scorers (`code_quality`, `build_time`, `token_efficiency`, `test_coverage`, `defect_rate`, `maintainability`); only `idiomatic` from the plan remains unimplemented (LLM-as-judge — needs design). Only one bundled task (`rest-api-crud`) ships. |
+| **Phase 1: Playpen + Scoring** | 🟡 Partial | `LocalRunner` (claude CLI on host) is the supported path and has been exercised end-to-end against `bundled://rest-api-crud`. **`DockerRunner` is a skeleton — not exercised.** All 7 scorers from the plan are implemented (`code_quality`, `build_time`, `token_efficiency`, `test_coverage`, `defect_rate`, `maintainability`, `idiomatic`); the new four are wired but not yet exercised against an experiment with replicates. Only one bundled task (`rest-api-crud`) ships. |
 | **Phase 2: Promotion + Reporting** | 🟡 Code present, lightly exercised | Lifecycle state machine, promotion gates, changelog, multi-format export, `retort promote`, `retort report effects` exist and unit-test. Not yet run on a real promotion decision. |
 | **Phase 3: Analysis** | 🟡 Code present, lightly exercised | ANOVA + residual diagnostics (statsmodels), Bayesian conjugate-NIG updating (scipy), Pareto frontier, `retort analyze`. Verified on synthetic data; not yet on a complete experiment-1 dataset with replicates. |
 | **Phase 4: Polish** | 🔴 Code present, untested | D-optimal augmentation (OApackage), candidate intake, scheduler, pluggy plugin system, status dashboard. Almost none of this has been exercised against real workloads yet. |
@@ -197,8 +197,8 @@ Honest accounting. "Code exists" ≠ "tested end-to-end against real data."
 
 - `DockerRunner` not validated — use `runner: local` in `workspace.yaml` for now
 - Only `claude-code` is wired up as an agent
-- The `idiomatic` scorer (LLM-as-judge for language conventions) is not yet implemented — needs a design that doesn't double the per-run cost
-- New scorers (`test_coverage`, `defect_rate`, `maintainability`) are wired but not yet exercised against an experiment with replicates
+- New scorers (`test_coverage`, `defect_rate`, `maintainability`, `idiomatic`) are wired but not yet exercised against an experiment with replicates
+- `idiomatic` is opt-in via the `responses:` list in `workspace.yaml` (each invocation makes a Claude haiku call, ~$0.001/run, cached per workspace)
 - `retort intake` / D-optimal augmentation untested against a real candidate
 - Bundled tasks: just `rest-api-crud`; `brazil-bench` integration is aspirational
 
