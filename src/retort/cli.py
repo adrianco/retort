@@ -955,6 +955,34 @@ def _store_run_result(
         )
         session.add(result)
 
+    # Persist non-scorer telemetry as RunResult rows too. Underscore prefix
+    # marks them as side-channel data (vs. configured response metrics) so
+    # downstream tools (analyze, web report) can choose to surface or hide
+    # them. Without this, token/cost/duration are visible only at run-time
+    # and lost forever.
+    if artifacts.duration_seconds:
+        session.add(RunResult(
+            run_id=run.id,
+            metric_name="_duration_seconds",
+            value=float(artifacts.duration_seconds),
+        ))
+    if artifacts.token_count:
+        session.add(RunResult(
+            run_id=run.id,
+            metric_name="_tokens",
+            value=float(artifacts.token_count),
+        ))
+    cost_str = artifacts.metadata.get("total_cost_usd") if artifacts.metadata else None
+    if cost_str:
+        try:
+            session.add(RunResult(
+                run_id=run.id,
+                metric_name="_cost_usd",
+                value=float(cost_str),
+            ))
+        except (TypeError, ValueError):
+            pass
+
 
 @main.command()
 @click.argument("stack_id")

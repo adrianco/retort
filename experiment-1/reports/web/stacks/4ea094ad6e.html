@@ -14,26 +14,26 @@
   &nbsp;maturity 0.791
 </p>
 
-<div class="summary">
-  <div class="summary-item"><div class="label">Replicates</div>
-       <div class="value">3/3</div></div>
-  <div class="summary-item"><div class="label">Completion</div>
-       <div class="value">100%</div></div>
-  <div class="summary-item"><div class="label">Replicate agreement</div>
-       <div class="value">0.56</div></div>
-  <div class="summary-item"><div class="label">code_quality</div>
-       <div class="value">0.696</div></div>
-</div>
+<div class="summary"><div class="summary-item"><div class="label">Replicates</div><div class="value">3/3</div></div>
+<div class="summary-item"><div class="label">Completion</div><div class="value">100%</div></div>
+<div class="summary-item"><div class="label">Replicate agreement</div><div class="value">0.56</div></div>
+<div class="summary-item"><div class="label">code_quality</div><div class="value">0.696</div></div>
+<div class="summary-item"><div class="label">Tokens (total)</div><div class="value">873,507</div></div>
+<div class="summary-item"><div class="label">Cost (total)</div><div class="value">$0.5234</div></div></div>
 
 <h2>Runs</h2>
 <table>
-  <thead><tr>
-    <th>Run ID</th><th>Replicate</th><th>Status</th><th class="numeric">build_time</th><th class="numeric">code_quality</th>
-  </tr></thead>
-  <tbody><tr><td>4</td><td>rep 1</td><td>completed</td><td class="numeric">1.000</td><td class="numeric">0.622</td></tr>
-<tr><td>19</td><td>rep 2</td><td>completed</td><td class="numeric">1.000</td><td class="numeric">0.800</td></tr>
-<tr><td>20</td><td>rep 3</td><td>completed</td><td class="numeric">1.000</td><td class="numeric">0.667</td></tr></tbody>
+  <thead><tr><th class="numeric">Run</th><th>Rep</th><th>Status</th><th class="numeric">build_time</th><th class="numeric">code_quality</th><th class="numeric">cost ($)</th><th class="numeric">duration (s)</th><th class="numeric">tokens</th><th>Code review</th></tr></thead>
+  <tbody><tr><td>4</td><td>rep 1</td><td>completed</td><td class="numeric">1.000</td><td class="numeric">0.622</td><td class="numeric muted">—</td><td class="numeric muted">—</td><td class="numeric muted">—</td><td class="muted">—</td></tr>
+<tr><td>19</td><td>rep 2</td><td>completed</td><td class="numeric">1.000</td><td class="numeric">0.800</td><td class="numeric">$0.2995</td><td class="numeric">129.0s</td><td class="numeric">493,328</td><td class="muted">—</td></tr>
+<tr><td>20</td><td>rep 3</td><td>completed</td><td class="numeric">1.000</td><td class="numeric">0.667</td><td class="numeric">$0.2239</td><td class="numeric">91.3s</td><td class="numeric">380,179</td><td class="muted">—</td></tr></tbody>
 </table>
+
+<p class="muted">
+  Code review summaries are produced by the <code>run-summary</code> skill
+  in each run's archive directory. The dash means the skill hasn't been
+  run on that replicate yet (or the experiment is private).
+</p>
 
 <p class="muted">
   Stack signature (sorted JSON): <code>{&quot;language&quot;: &quot;python&quot;, &quot;model&quot;: &quot;sonnet&quot;, &quot;tooling&quot;: &quot;beads&quot;}</code>

@@ -16,9 +16,11 @@ Retort applies statistical Design of Experiments (DoE) to systematically evaluat
 
 ## Experiment 1 Results
 
-Full data is in [`experiment-1/reports/`](experiment-1/reports/) — ANOVA, per-stack maturity, full CSV, and a static-HTML web report (sortable, with per-stack drill-downs). Below is the headline.
+📊 **[Browse the live web report →](https://raw.githack.com/adrianco/retort/main/experiment-1/reports/web/index.html)** (sortable leaderboard with per-stack drill-downs, token/cost data, and links to per-run code reviews)
 
-**Setup:** 4 languages (python, typescript, go, rust) × 2 models (opus, sonnet) × 2 tooling (none, beads) × 3 replicates = 48 runs against the bundled `rest-api-crud` task. **46 completed, 3 failed.** Total cost ≈ $20.
+Full data is also in [`experiment-1/reports/`](experiment-1/reports/) — ANOVA, per-stack maturity, full CSV, and the same static-HTML web report. Below is the headline.
+
+**Setup:** 4 languages (python, typescript, go, rust) × 2 models (opus, sonnet) × 2 tooling (none, beads) × 3 replicates = 48 runs against the bundled `rest-api-crud` task. **46 completed, 3 failed.** Total cost ≈ $12.73, ≈ 13.2M tokens (token/cost data only available for the 35 resumed runs — the original 11 predate the persistence fix).
 
 **ANOVA on `code_quality`:** R² = 0.80, language is highly significant (p < 5e-14); model and tooling are not significant on their own.
 

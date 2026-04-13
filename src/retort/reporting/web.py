@@ -109,10 +109,19 @@ def generate_web_report(
     output_dir: Path,
     title: str | None = None,
     visibility: str = "public",
+    experiment_dir: Path | None = None,
 ) -> int:
-    """Render the experiment as static HTML. Returns number of pages written."""
+    """Render the experiment as static HTML. Returns number of pages written.
+
+    experiment_dir is used to locate per-run archives at
+    ``<experiment_dir>/runs/<cell>/rep<N>/summary/index.md``. Defaults to
+    the database's parent directory.
+    """
     output_dir.mkdir(parents=True, exist_ok=True)
     (output_dir / "style.css").write_text(_STYLE)
+
+    if experiment_dir is None:
+        experiment_dir = db_path.parent
 
     engine = get_engine(db_path)
     session = get_session_factory(engine)()
@@ -151,11 +160,64 @@ def generate_web_report(
                 stack=stack,
                 runs=runs,
                 results_by_run=results_by_run,
+                experiment_dir=experiment_dir,
             )
             (stacks_dir / f"{slug}.html").write_text(html_str)
             n_pages += 1
 
     return n_pages
+
+
+_RESPONSE_METRICS_LAST: tuple[str, ...] = ()  # (placeholder for future config)
+
+
+def _split_metrics(metric_names: list[str]) -> tuple[list[str], list[str]]:
+    """Partition into (response metrics, side-channel telemetry).
+
+    Telemetry metrics use a leading underscore by convention (set in
+    cli._store_run_result). Everything else is a configured response.
+    """
+    responses = sorted(m for m in metric_names if not m.startswith("_"))
+    telemetry = sorted(m for m in metric_names if m.startswith("_"))
+    return responses, telemetry
+
+
+_TELEMETRY_LABELS: dict[str, str] = {
+    "_tokens": "tokens",
+    "_cost_usd": "cost ($)",
+    "_duration_seconds": "duration (s)",
+}
+
+
+def _format_metric(name: str, value: float) -> str:
+    """Render a metric value with sensible units per name."""
+    if name == "_tokens":
+        return f"{int(value):,}"
+    if name == "_cost_usd":
+        return f"${value:.4f}"
+    if name == "_duration_seconds":
+        return f"{value:.1f}s"
+    return f"{value:.3f}"
+
+
+def _cell_dir_name(factors: dict[str, str]) -> str:
+    """Match cli._archive_run_workspace's directory naming."""
+    return "_".join(f"{k}={v}" for k, v in sorted(factors.items()))
+
+
+def _summary_link(experiment_dir: Path, factors: dict[str, str], replicate: int) -> str | None:
+    """Return a relative URL to the run-summary skill output if it exists.
+
+    Looks at <experiment_dir>/runs/<cell>/rep<N>/summary/index.md. Returns
+    a path relative to the rendered stacks/<slug>.html page, or None if no
+    summary exists.
+    """
+    cell = _cell_dir_name(factors)
+    rel = f"../../runs/{cell}/rep{replicate}/summary/index.md"
+    abs_target = experiment_dir / "runs" / cell / f"rep{replicate}" / "summary" / "index.md"
+    if abs_target.exists():
+        return rel
+    return None
 
 
 def _infer_title(db_path: Path) -> str:
@@ -186,6 +248,16 @@ def _render_index(
         res.metric_name for results in results_by_run.values() for res in results
     })
 
+    # Roll up tokens + cost across the whole experiment.
+    total_tokens = 0
+    total_cost = 0.0
+    for results in results_by_run.values():
+        for res in results:
+            if res.metric_name == "_tokens":
+                total_tokens += int(res.value or 0)
+            elif res.metric_name == "_cost_usd":
+                total_cost += float(res.value or 0)
+
     summary_items = [
         ("Stacks", len(stacks)),
         ("Runs", n_runs),
@@ -193,6 +265,10 @@ def _render_index(
         ("Failed", n_failed),
         ("Metrics", len(metric_names)),
     ]
+    if total_tokens:
+        summary_items.append(("Tokens (total)", f"{total_tokens:,}"))
+    if total_cost:
+        summary_items.append(("Cost (total)", f"${total_cost:.2f}"))
     if visibility == "private":
         summary_items.append(("Visibility", "private"))
 
@@ -277,6 +353,7 @@ def _render_stack_page(
     stack: StackMaturity,
     runs: list,
     results_by_run: dict[int, list],
+    experiment_dir: Path,
 ) -> str:
     factors_str = ", ".join(f"{k}={v}" for k, v in stack.factors.items())
     phase = classify_phase(stack.maturity)
@@ -292,25 +369,66 @@ def _render_stack_page(
             stack_runs.append(run)
     stack_runs.sort(key=lambda r: r.replicate)
 
-    # Build runs table.
     metric_names = sorted({
         res.metric_name for r in stack_runs for res in results_by_run.get(r.id, [])
     })
-    headers = "".join(f'<th class="numeric">{html.escape(m)}</th>' for m in metric_names)
+    response_metrics, telemetry_metrics = _split_metrics(metric_names)
+
+    def _column_label(name: str) -> str:
+        return _TELEMETRY_LABELS.get(name, name)
+
+    headers = "".join(
+        f'<th class="numeric">{html.escape(_column_label(m))}</th>'
+        for m in response_metrics + telemetry_metrics
+    )
+    headers = (
+        '<th class="numeric">Run</th><th>Rep</th><th>Status</th>'
+        + headers
+        + '<th>Code review</th>'
+    )
+
     rows = []
+    total_cost = 0.0
+    total_tokens = 0
     for run in stack_runs:
         scores = {res.metric_name: res.value for res in results_by_run.get(run.id, [])}
+        if "_tokens" in scores:
+            total_tokens += int(scores["_tokens"])
+        if "_cost_usd" in scores:
+            total_cost += scores["_cost_usd"]
         cells = "".join(
-            f'<td class="numeric">{scores[m]:.3f}</td>' if m in scores
+            f'<td class="numeric">{_format_metric(m, scores[m])}</td>' if m in scores
             else '<td class="numeric muted">—</td>'
-            for m in metric_names
+            for m in response_metrics + telemetry_metrics
         )
         status_label = run.status.value if hasattr(run.status, "value") else str(run.status)
+        summary_url = _summary_link(experiment_dir, stack.factors, run.replicate)
+        if summary_url:
+            review_cell = f'<td><a href="{html.escape(summary_url)}">summary</a></td>'
+        else:
+            review_cell = '<td class="muted">—</td>'
         rows.append(
             f"<tr><td>{run.id}</td><td>rep {run.replicate}</td>"
-            f"<td>{html.escape(status_label)}</td>{cells}</tr>"
+            f"<td>{html.escape(status_label)}</td>{cells}{review_cell}</tr>"
         )
     rows_html = "\n".join(rows) or '<tr><td colspan="99" class="muted">No runs.</td></tr>'
+
+    # Aggregate summary cards.
+    cards = [
+        ("Replicates", f"{stack.n_completed}/{stack.n_replicates}"),
+        ("Completion", f"{stack.completion_rate * 100:.0f}%"),
+        ("Replicate agreement", f"{stack.replicate_agreement:.2f}"),
+        (stack.headline_metric, _fmt_optional(stack.headline_mean)),
+    ]
+    if total_tokens:
+        cards.append(("Tokens (total)", f"{total_tokens:,}"))
+    if total_cost:
+        cards.append(("Cost (total)", f"${total_cost:.4f}"))
+    summary_html = "\n".join(
+        f'<div class="summary-item"><div class="label">{html.escape(label)}</div>'
+        f'<div class="value">{html.escape(str(value))}</div></div>'
+        for label, value in cards
+    )
 
     return _PAGE_TEMPLATE.format(
         title=html.escape(f"{page_title} · {factors_str}"),
@@ -323,24 +441,19 @@ def _render_stack_page(
   &nbsp;maturity {stack.maturity:.3f}
 </p>
 
-<div class="summary">
-  <div class="summary-item"><div class="label">Replicates</div>
-       <div class="value">{stack.n_completed}/{stack.n_replicates}</div></div>
-  <div class="summary-item"><div class="label">Completion</div>
-       <div class="value">{stack.completion_rate * 100:.0f}%</div></div>
-  <div class="summary-item"><div class="label">Replicate agreement</div>
-       <div class="value">{stack.replicate_agreement:.2f}</div></div>
-  <div class="summary-item"><div class="label">{html.escape(stack.headline_metric)}</div>
-       <div class="value">{_fmt_optional(stack.headline_mean)}</div></div>
-</div>
+<div class="summary">{summary_html}</div>
 
 <h2>Runs</h2>
 <table>
-  <thead><tr>
-    <th>Run ID</th><th>Replicate</th><th>Status</th>{headers}
-  </tr></thead>
+  <thead><tr>{headers}</tr></thead>
   <tbody>{rows_html}</tbody>
 </table>
+
+<p class="muted">
+  Code review summaries are produced by the <code>run-summary</code> skill
+  in each run's archive directory. The dash means the skill hasn't been
+  run on that replicate yet (or the experiment is private).
+</p>
 
 <p class="muted">
   Stack signature (sorted JSON): <code>{html.escape(stack.stack_signature)}</code>
