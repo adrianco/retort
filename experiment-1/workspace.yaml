@@ -1,10 +1,14 @@
-# Experiment 1: Opus vs Sonnet, Beads vs None, Python/TypeScript/Go/Rust
+# Experiment 1: Opus vs Sonnet, Beads vs None, six languages
 # Task: rest-api-crud (CRUD book collection API)
 # Runner: local (claude CLI on host)
+#
+# Language extension history:
+#   - Original 4: python, typescript, go, rust (48 runs, 46 completed)
+#   - Added java + clojure (24 new runs at 3 reps each)
 
 factors:
   language:
-    levels: [python, typescript, go, rust]
+    levels: [python, typescript, go, rust, java, clojure]
   model:
     levels: [opus, sonnet]
   tooling:

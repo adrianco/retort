@@ -18,6 +18,12 @@ COVERAGE_COMMANDS: dict[str, list[str]] = {
     "go": ["go", "test", "-cover", "./..."],
     # TypeScript handled specially — needs to detect jest vs vitest
     # Rust requires cargo-llvm-cov which isn't always installed
+    # Java: jacoco via maven if pom.xml exists
+    "java": ["mvn", "-q", "test", "jacoco:report"],
+    # Clojure: cloverage via clojure CLI; requires :test alias to be set up
+    "clojure": ["clojure", "-Sdeps",
+                "{:deps {cloverage/cloverage {:mvn/version \"1.2.4\"}}}",
+                "-M", "-m", "cloverage.coverage"],
 }
 
 # Regex to extract a percentage like "75%" from coverage output.

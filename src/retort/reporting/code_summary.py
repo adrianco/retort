@@ -23,6 +23,8 @@ _SOURCE_EXTENSIONS: dict[str, set[str]] = {
     "typescript": {".ts", ".tsx", ".js", ".jsx"},
     "go": {".go"},
     "rust": {".rs"},
+    "java": {".java"},
+    "clojure": {".clj", ".cljc", ".cljs"},
 }
 
 _SKIP_PARTS = {
@@ -49,6 +51,20 @@ _SYMBOL_PATTERNS: dict[str, list[tuple[str, re.Pattern[str]]]] = {
         ("fn",     re.compile(r"^\s*(?:pub\s+)?(?:async\s+)?fn\s+(\w+)", re.MULTILINE)),
         ("struct", re.compile(r"^\s*(?:pub\s+)?struct\s+(\w+)", re.MULTILINE)),
         ("enum",   re.compile(r"^\s*(?:pub\s+)?enum\s+(\w+)", re.MULTILINE)),
+    ],
+    "java": [
+        ("class",     re.compile(r"^\s*(?:public\s+|abstract\s+|final\s+)*class\s+(\w+)", re.MULTILINE)),
+        ("interface", re.compile(r"^\s*(?:public\s+)?interface\s+(\w+)", re.MULTILINE)),
+        ("method",    re.compile(
+            r"^\s*(?:public|private|protected)\s+(?:static\s+)?(?:final\s+)?"
+            r"[\w<>\[\]]+\s+(\w+)\s*\(",
+            re.MULTILINE,
+        )),
+    ],
+    "clojure": [
+        ("defn", re.compile(r"^\s*\(defn-?\s+([\w?!*+/<=>-]+)", re.MULTILINE)),
+        ("def",  re.compile(r"^\s*\(def\s+([\w?!*+/<=>-]+)", re.MULTILINE)),
+        ("ns",   re.compile(r"^\s*\(ns\s+([\w.]+)", re.MULTILINE)),
     ],
 }
 

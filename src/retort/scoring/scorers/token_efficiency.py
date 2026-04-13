@@ -55,6 +55,8 @@ class TokenEfficiencyScorer:
             "typescript": {".ts", ".tsx", ".js", ".jsx"},
             "go": {".go"},
             "rust": {".rs"},
+            "java": {".java"},
+            "clojure": {".clj", ".cljc", ".cljs"},
         }
         exts = extensions.get(language, {".py"})
 

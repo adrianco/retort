@@ -17,6 +17,12 @@ LINT_COMMANDS: dict[str, list[str]] = {
     "python": ["ruff", "check", "--select", "E,F,W", "--quiet"],
     "typescript": ["npx", "eslint", "--format", "compact", "--quiet"],
     "go": ["go", "vet", "./..."],
+    # Java: maven compile catches type errors and basic issues. Falls back
+    # if no pom.xml — javac doesn't do project compilation easily.
+    "java": ["mvn", "-q", "compile"],
+    # Clojure: clj-kondo is the de facto linter; skip if not installed
+    # (the scorer returns a neutral 0.5 when the command is missing).
+    "clojure": ["clj-kondo", "--lint", "."],
 }
 
 
@@ -82,6 +88,8 @@ class CodeQualityScorer:
             "typescript": ".ts",
             "go": ".go",
             "rust": ".rs",
+            "java": ".java",
+            "clojure": ".clj",
         }
         ext = extensions.get(language, ".py")
         source_files = list(output_dir.rglob(f"*{ext}"))

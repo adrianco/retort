@@ -36,6 +36,12 @@ _DEFECT_COMMANDS: dict[str, list[list[str]]] = {
     "rust": [
         ["cargo", "clippy", "--quiet", "--message-format=short"],
     ],
+    "java": [
+        ["mvn", "-q", "compile"],
+    ],
+    "clojure": [
+        ["clj-kondo", "--lint", "."],
+    ],
 }
 
 
@@ -44,6 +50,8 @@ _LOC_EXTENSIONS: dict[str, set[str]] = {
     "typescript": {".ts", ".tsx", ".js", ".jsx"},
     "go": {".go"},
     "rust": {".rs"},
+    "java": {".java"},
+    "clojure": {".clj", ".cljc", ".cljs"},
 }
 
 

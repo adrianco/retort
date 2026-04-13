@@ -40,6 +40,8 @@ _LANGUAGE_EXTENSIONS: dict[str, set[str]] = {
     "typescript": {".ts", ".tsx"},
     "go": {".go"},
     "rust": {".rs"},
+    "java": {".java"},
+    "clojure": {".clj", ".cljc", ".cljs"},
 }
 
 _SKIP_PARTS = {"node_modules", "target", "__pycache__", ".git", "dist", "build"}

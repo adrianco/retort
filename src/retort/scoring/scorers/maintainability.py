@@ -30,6 +30,17 @@ _FUNCTION_PATTERNS: dict[str, list[re.Pattern[str]]] = {
     ],
     "go": [re.compile(r"^func\s+(\(\w+\s+\*?\w+\)\s+)?\w+\s*\(", re.MULTILINE)],
     "rust": [re.compile(r"^\s*(pub\s+)?(async\s+)?fn\s+\w+\s*[<(]", re.MULTILINE)],
+    "java": [
+        # Methods inside classes — heuristic, captures public/private/protected
+        # static return-type Name(. Won't match constructors but close enough
+        # for the avg-length proxy.
+        re.compile(
+            r"^\s*(?:public|private|protected)\s+(?:static\s+)?(?:final\s+)?"
+            r"[\w<>\[\]]+\s+\w+\s*\(",
+            re.MULTILINE,
+        ),
+    ],
+    "clojure": [re.compile(r"^\s*\(defn-?\s+\w+", re.MULTILINE)],
 }
 
 _SOURCE_EXTENSIONS: dict[str, set[str]] = {
@@ -37,6 +48,8 @@ _SOURCE_EXTENSIONS: dict[str, set[str]] = {
     "typescript": {".ts", ".tsx", ".js", ".jsx"},
     "go": {".go"},
     "rust": {".rs"},
+    "java": {".java"},
+    "clojure": {".clj", ".cljc", ".cljs"},
 }
 
 _SKIP_PARTS = {"node_modules", "target", "__pycache__", ".git", "dist", "build"}
