@@ -18,21 +18,45 @@ def load_task(source: str) -> TaskSpec:
     """Load a task from a source URI.
 
     Supported schemes:
-    - bundled://<name> — load from the bundled tasks directory
-    - local://<path> — load from a local directory
-    - git://<url> — clone from a git repository
+    - bundled://<name>                    — load from the bundled tasks directory
+    - local://<path>                      — load from a local directory
+    - git://<url>                         — clone from a git repository
+    - github://<owner>/<repo>[/<spec>]    — shorthand for github.com URLs.
+                                            Optional trailing path points at
+                                            the file to use as the prompt
+                                            (defaults to task.yaml or README).
     """
     if source.startswith("bundled://"):
         name = source[len("bundled://"):]
         return _load_bundled(name)
-    elif source.startswith("local://"):
+    if source.startswith("local://"):
         path = Path(source[len("local://"):])
         return _load_from_dir(path)
-    elif source.startswith("git://"):
+    if source.startswith("git://"):
         url = source[len("git://"):]
         return _load_from_git(url)
-    else:
-        raise ValueError(f"Unsupported task source: {source!r}")
+    if source.startswith("github://"):
+        return _load_from_github(source[len("github://"):])
+    raise ValueError(f"Unsupported task source: {source!r}")
+
+
+def _load_from_github(spec: str) -> TaskSpec:
+    """Load a task from a github://owner/repo[/path/to/spec] URI.
+
+    The optional spec path picks a specific file inside the repo to use
+    as the prompt. Without it, the loader falls back to task.yaml or README
+    (the same precedence as plain git:// sources).
+    """
+    parts = spec.split("/", 2)
+    if len(parts) < 2 or not parts[0] or not parts[1]:
+        raise ValueError(
+            f"github:// requires owner/repo, got {spec!r}. "
+            f"Example: github://brazil-bench/benchmark-template"
+        )
+    owner, repo = parts[0], parts[1]
+    spec_path = parts[2] if len(parts) == 3 else None
+    url = f"https://github.com/{owner}/{repo}.git"
+    return _load_from_git(url, spec_path=spec_path)
 
 
 def _load_bundled(name: str) -> TaskSpec:
@@ -70,8 +94,13 @@ def _load_from_dir(task_dir: Path) -> TaskSpec:
     )
 
 
-def _load_from_git(url: str) -> TaskSpec:
-    """Clone a git repo and load the task spec from it."""
+def _load_from_git(url: str, *, spec_path: str | None = None) -> TaskSpec:
+    """Clone a git repo and load the task spec from it.
+
+    If spec_path is given, that file (relative to the repo root) is used as
+    the prompt source. Otherwise the loader looks for task.yaml first, then
+    falls back to a README.
+    """
     # Normalize URL — git:// scheme maps to https://
     if not url.startswith("http"):
         url = f"https://{url}"
@@ -89,6 +118,22 @@ def _load_from_git(url: str) -> TaskSpec:
         )
 
     repo_dir = clone_dir / "repo"
+
+    # Explicit spec_path wins.
+    if spec_path:
+        target = repo_dir / spec_path
+        if not target.exists():
+            available = sorted(p.name for p in repo_dir.iterdir() if p.is_file())
+            raise FileNotFoundError(
+                f"Spec file {spec_path!r} not found in {url}. "
+                f"Top-level files: {available}"
+            )
+        return TaskSpec(
+            name=f"{repo_dir.name}#{spec_path}",
+            description=f"Task from {url} (spec: {spec_path})",
+            prompt=target.read_text(),
+            timeout_minutes=30,
+        )
 
     # Look for task.yaml in repo root
     if (repo_dir / "task.yaml").exists():
