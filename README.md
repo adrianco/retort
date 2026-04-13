@@ -115,6 +115,7 @@ retort promote my-stack --from screening --to trial \
 | `retort report effects` | Compute and export main effects and interaction effects (text, JSON, CSV) |
 | `retort export csv` | Export experiment runs + scores to CSV for `retort analyze` and external tools |
 | `retort maturity` | Score each stack's maturity (replicate agreement, completion rate, score level, coverage) and suggest a lifecycle phase |
+| `retort report web` | Generate static HTML reports (sortable leaderboard + per-stack drill-downs); respects experiment.visibility for private experiments |
 | `retort analyze` | Run ANOVA analysis on experiment data with optional residual diagnostics |
 | `retort intake` | Ingest a new candidate (factor level) and generate D-optimal augmentation runs |
 | `retort report dashboard` | Show full workspace status dashboard (experiments, lifecycle, budget) |

@@ -1790,5 +1790,68 @@ def report_compare(
     click.echo(out.strip() or "(compare-runs completed)")
 
 
+@report.command("web")
+@click.option(
+    "--db",
+    type=click.Path(exists=True),
+    required=True,
+    help="Path to the retort SQLite database.",
+)
+@click.option(
+    "--config",
+    type=click.Path(exists=True),
+    default=None,
+    help="Optional workspace.yaml — used to read experiment.visibility.",
+)
+@click.option(
+    "--out",
+    "out_dir",
+    type=click.Path(),
+    default=None,
+    help="Output directory. Defaults to <db-dir>/reports/web/.",
+)
+@click.option(
+    "--title",
+    type=str,
+    default=None,
+    help="Override page title (defaults to the experiment name).",
+)
+def report_web(
+    db: str, config: str | None, out_dir: str | None, title: str | None,
+) -> None:
+    """Generate static HTML reports from the run database.
+
+    Produces an index.html with a sortable per-stack maturity table plus
+    raw run details. No JavaScript framework — pure HTML + CSS + a small
+    inline sort script.
+
+    Respects experiment.visibility from workspace.yaml: in private mode,
+    file paths and per-run details are redacted to aggregate metrics only.
+    Public mode includes the full drill-down per stack.
+    """
+    from retort.reporting.web import generate_web_report
+
+    db_path = Path(db).resolve()
+    output = Path(out_dir).resolve() if out_dir else db_path.parent / "reports" / "web"
+
+    visibility = "public"
+    if config:
+        from retort.config.loader import load_workspace
+        try:
+            ws = load_workspace(config)
+            visibility = ws.experiment.visibility
+        except Exception as exc:
+            click.echo(f"warning: could not read visibility from {config}: {exc}", err=True)
+
+    n_pages = generate_web_report(
+        db_path=db_path,
+        output_dir=output,
+        title=title,
+        visibility=visibility,
+    )
+    click.echo(f"Wrote {n_pages} page(s) to {output}", err=True)
+    click.echo(str(output / "index.html"))
+
+
 if __name__ == "__main__":
     main()
