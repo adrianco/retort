@@ -100,3 +100,68 @@ class TestDockerRunner:
             assert isinstance(artifacts.exit_code, int)
 
             runner.teardown(env_id)
+
+
+class TestLocalRunnerSupportFiles:
+    def test_provision_copies_support_files(self, tmp_path):
+        from retort.playpen.local_runner import LocalRunner
+
+        # A fake support repo (e.g. brazil-bench/benchmark-template).
+        support = tmp_path / "support"
+        support.mkdir()
+        (support / "README.md").write_text("# brazil-bench\n")
+        (support / "data").mkdir()
+        (support / "data" / "matches.csv").write_text("id,team\n1,SP\n")
+        (support / ".git").mkdir()
+        (support / ".git" / "config").write_text("[core]\n")  # source git → skipped
+
+        work = tmp_path / "work"
+        runner = LocalRunner(work_dir=work)
+        stack = StackConfig(language="python", agent="claude-code", framework="fastapi")
+        task = TaskSpec(
+            name="test-with-support",
+            description="task with support files",
+            prompt="Do the thing using data/matches.csv",
+            support_dir=support,
+        )
+
+        env_id = runner.provision(stack, task)
+        env_dir = work / env_id
+
+        # Support files copied
+        assert (env_dir / "README.md").exists()
+        assert (env_dir / "data" / "matches.csv").exists()
+        assert (env_dir / "data" / "matches.csv").read_text().startswith("id,team")
+
+        # Source .git NOT copied — the env's .git is from a fresh `git
+        # init`, which never has the source's `[core]` line in its config.
+        env_git_config = (env_dir / ".git" / "config").read_text()
+        assert "[core]\n" not in env_git_config or "filemode" in env_git_config
+
+        # TASK.md and stack.json still written (and TASK.md = the task prompt,
+        # not anything the support repo might have had)
+        assert (env_dir / "TASK.md").read_text() == task.prompt
+        assert (env_dir / "stack.json").exists()
+
+        # A new git repo was initialized
+        assert (env_dir / ".git").exists()
+
+        runner.teardown(env_id)
+
+    def test_provision_no_support_unchanged(self, tmp_path):
+        """Tasks without support_dir behave exactly as before."""
+        from retort.playpen.local_runner import LocalRunner
+
+        runner = LocalRunner(work_dir=tmp_path)
+        stack = StackConfig(language="go", agent="claude-code", framework="stdlib")
+        task = TaskSpec(name="plain", description="d", prompt="hi")
+        env_id = runner.provision(stack, task)
+        env_dir = tmp_path / env_id
+
+        assert (env_dir / "TASK.md").exists()
+        assert (env_dir / "stack.json").exists()
+        # Only the files we wrote + .git from init
+        names = {p.name for p in env_dir.iterdir()}
+        assert names == {"TASK.md", "stack.json", ".git"}
+
+        runner.teardown(env_id)

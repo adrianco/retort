@@ -119,7 +119,11 @@ def _load_from_git(url: str, *, spec_path: str | None = None) -> TaskSpec:
 
     repo_dir = clone_dir / "repo"
 
-    # Explicit spec_path wins.
+    # Explicit spec_path wins. The whole cloned repo travels with the
+    # task as support_dir so the agent sees data files, supporting docs,
+    # fixtures — anything the spec references. The cloned repo is
+    # tempfile.mkdtemp-allocated and stays around for the process lifetime
+    # (LocalRunner copies from it per run).
     if spec_path:
         target = repo_dir / spec_path
         if not target.exists():
@@ -133,6 +137,7 @@ def _load_from_git(url: str, *, spec_path: str | None = None) -> TaskSpec:
             description=f"Task from {url} (spec: {spec_path})",
             prompt=target.read_text(),
             timeout_minutes=30,
+            support_dir=repo_dir,
         )
 
     # Look for task.yaml in repo root

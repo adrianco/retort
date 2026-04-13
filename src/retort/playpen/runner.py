@@ -39,13 +39,21 @@ class StackConfig:
 
 @dataclass(frozen=True)
 class TaskSpec:
-    """A task to execute inside the playpen."""
+    """A task to execute inside the playpen.
+
+    support_dir, when set, is a directory whose contents (data files,
+    supporting docs, fixtures, etc.) should be copied into the playpen
+    workspace alongside TASK.md before the agent runs. Used for tasks
+    where the prompt references external files — e.g. brazil-bench
+    needs the kaggle CSVs from the source repo.
+    """
 
     name: str
     description: str
     prompt: str
     validation_script: str | None = None
     timeout_minutes: int = 30
+    support_dir: Path | None = None
 
 
 @dataclass

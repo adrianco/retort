@@ -28,35 +28,30 @@ Full data is also in [`experiment-1/reports/`](experiment-1/reports/) — ANOVA,
 
 **Failed cells:** `typescript / sonnet / beads` (1 of 3), `rust / sonnet / beads` (2 of 3) — likely the 15-minute timeout on slower toolchains, not a true language-stack issue.
 
-The original n=1 table below (from the first pass before replicates landed) is kept for reference.
+### Per-stack means (live data, all 49 runs)
 
-### Original n=1 table (pre-replicates)
+Sortable equivalent in the [web report](https://raw.githack.com/adrianco/retort/main/experiment-1/reports/web/index.html). Token / Cost / Duration columns are means across replicates; the original 11 first-pass runs predate the persistence fix and don't contribute to those columns (their quality scores still do).
 
-> Single runs on a small task (REST API CRUD). Treat as directional only — superseded by the replicate-aware results above.
+| Language | Model | Tooling | n | Quality (mean) | Tokens (mean) | Cost (mean) | Duration (mean) |
+|---|---|---|---|---|---|---|---|
+| go | opus | beads | 3/3 | 0.985 | 346,215 | $0.491 | 117s |
+| go | opus | none | 3/3 | 0.963 | 230,498 | $0.361 | 94s |
+| go | sonnet | beads | 3/3 | **1.000** | 476,955 | $0.311 | 147s |
+| go | sonnet | none | 3/3 | 0.956 | 435,373 | $0.303 | 123s |
+| python | opus | beads | 3/3 | 0.672 | 280,359 | $0.373 | 79s |
+| python | opus | none | 3/3 | 0.789 | 91,698 | $0.203 | 44s |
+| python | sonnet | beads | 3/3 | 0.696 | 436,753 | $0.262 | 110s |
+| python | sonnet | none | 3/3 | 0.637 | 332,390 | $0.226 | 74s |
+| rust | opus | beads | 3/3 | 0.833 | 355,099 | $0.481 | 143s |
+| rust | opus | none | 3/3 | 0.833 | 150,702 | $0.331 | 106s |
+| rust | sonnet | beads | 2/3 | 0.556 | 643,793 | $0.414 | 208s |
+| rust | sonnet | none | 3/3 | 0.833 | 395,257 | $0.355 | 194s |
+| typescript | opus | beads | 3/3 | 0.733 | 454,220 | $0.512 | 219s |
+| typescript | opus | none | 3/3 | 0.733 | 168,703 | $0.319 | 181s |
+| typescript | sonnet | beads | 3/4 | 0.550 | 637,682 | $0.381 | 168s |
+| typescript | sonnet | none | 2/3 | 0.489 | 835,319 | $0.531 | 281s |
 
-**Task:** Build a REST API with CRUD operations for a book collection (Flask/Express/net-http + SQLite)
-**Factors:** Language (python, typescript, go) x Model (opus, sonnet) x Tooling (none, beads)
-**Agent:** Claude Code in all runs
-
-| Language | Model | Tooling | Quality | Tokens | Cost | Time | Status |
-|----------|-------|---------|---------|--------|------|------|--------|
-| python | opus | none | 0.79 | 154,864 | $0.21 | 129s | ok |
-| python | opus | beads | 0.62 | 261,251 | $0.29 | 86s | ok |
-| python | sonnet | none | 0.67 | 431,978 | $0.30 | 108s | ok |
-| python | sonnet | beads | 0.62 | 386,816 | $0.26 | 106s | ok |
-| typescript | opus | none | 0.73 | 245,081 | $0.30 | 109s | ok |
-| typescript | opus | beads | 0.73 | 407,961 | $0.43 | 231s | ok |
-| typescript | sonnet | none | 0.73 | 936,583 | $0.59 | 273s | ok |
-| typescript | sonnet | beads | — | 730,588 | $0.43 | 249s | FAIL |
-| go | opus | none | 0.89 | 187,950 | $0.30 | 119s | ok |
-| go | opus | beads | 0.96 | 322,783 | $0.40 | 163s | ok |
-| go | sonnet | none | 0.96 | 275,497 | $0.25 | 126s | ok |
-| go | sonnet | beads | **1.00** | 571,800 | $0.35 | 163s | ok |
-
-**Observations (n=1, directional only — superseded by replicate-aware ANOVA above):**
-- **Go scored highest** across all combinations (0.89–1.00)
-- **Beads helped Go** but **hurt Python** — replicate runs confirmed: the only sub-0.8-maturity stacks in the full experiment are `python/{opus,sonnet}/beads`
-- **TypeScript + sonnet + beads** failed in the original pass; rerunning with replicates surfaced timeout-related rust failures too
+**Headline:** `go / sonnet / beads` is the only stack at quality 1.000 across all replicates, **and** is among the cheapest at $0.31/run. Go dominates on quality. Python is cheapest overall but trades off ~25% quality. Rust and TypeScript are the most expensive, with TS/sonnet/none the only stack with sub-$0.50 mean cost AND under 0.5 quality — i.e., poor value.
 
 ## Installation
 

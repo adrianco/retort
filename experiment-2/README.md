@@ -14,7 +14,7 @@ Smarter answer: **add `task` as a factor and combine the two datasets.** Experim
 
 | | |
 |---|---|
-| **Task** | [`brazil-bench/benchmark-template`](https://github.com/brazil-bench/benchmark-template) — Brazilian Soccer MCP server. CSV ingest, BDD tests, 16 canonical requirements (FR/QP/DC/TR). |
+| **Task** | [`brazil-bench/benchmark-template`](https://github.com/brazil-bench/benchmark-template) — Brazilian Soccer MCP server. CSV ingest, BDD tests, 16 canonical requirements (FR/QP/DC/TR). The whole repo (including the `data/` kaggle CSVs and supporting docs) travels with the task into each playpen workspace — the spec references those files. |
 | **Factors** | `language` (4), `model` (2), `tooling` (2) — same as experiment-1 so the data combines |
 | **Cells** | 4 × 2 × 2 = 16 (full design at this size; the fractional pyDOE3 generator doesn't reduce mixed-level designs below ~16 cells without dropping a factor) |
 | **Replicates** | 1 (singleton screening; the existing experiment-1 reps anchor the variance estimate) |

@@ -53,7 +53,16 @@ class LocalRunner:
         env_dir = self.work_dir / env_id
         env_dir.mkdir(parents=True, exist_ok=True)
 
-        # Write the task prompt
+        # Copy supporting files from the task's support_dir, if any. Used
+        # for tasks where the prompt references external files (e.g.
+        # brazil-bench needs the kaggle CSVs from the source repo). Done
+        # FIRST so TASK.md/stack.json overwrite any colliding files in
+        # the support tree.
+        if task.support_dir is not None:
+            _copy_support_files(task.support_dir, env_dir)
+
+        # Write the task prompt (overwrites any TASK.md that came from
+        # the support dir — the loader-extracted prompt wins).
         (env_dir / "TASK.md").write_text(task.prompt)
 
         # Write stack metadata
@@ -63,12 +72,14 @@ class LocalRunner:
             f'"framework": "{stack.framework}"}}'
         )
 
-        # Init git repo — many agents expect it
-        subprocess.run(
-            ["git", "init", "-q"],
-            cwd=env_dir,
-            capture_output=True,
-        )
+        # Init git repo — many agents expect it. Skip if the support
+        # files already brought a .git dir along.
+        if not (env_dir / ".git").exists():
+            subprocess.run(
+                ["git", "init", "-q"],
+                cwd=env_dir,
+                capture_output=True,
+            )
 
         self._envs[env_id] = _EnvInfo(
             env_id=env_id,
@@ -225,6 +236,24 @@ class LocalRunner:
         # Disable interactive features
         env["CLAUDE_CODE_NON_INTERACTIVE"] = "1"
         return env
+
+
+def _copy_support_files(src: Path, dst: Path) -> None:
+    """Copy the contents of src into dst, skipping the source's .git dir.
+
+    Used by LocalRunner.provision to bring task support files (data
+    fixtures, supporting docs, etc.) into the workspace alongside the
+    prompt. The agent gets a fresh git repo (initialized later), not
+    the source repo's history.
+    """
+    for item in src.iterdir():
+        if item.name == ".git":
+            continue
+        target = dst / item.name
+        if item.is_dir():
+            shutil.copytree(item, target, dirs_exist_ok=True)
+        else:
+            shutil.copy2(item, target)
 
 
 class _EnvInfo:
