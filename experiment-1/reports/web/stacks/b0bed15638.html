@@ -1,0 +1,42 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Experiment 1 — Multi-language results (live) · language=clojure, model=sonnet, tooling=none</title>
+  <link rel="stylesheet" href="../style.css">
+</head>
+<body>
+<p class="muted"><a href="../index.html">&larr; index</a></p>
+<h1>language=clojure, model=sonnet, tooling=none</h1>
+<p class="subtitle">
+  <span class="phase phase-trial">trial</span>
+  &nbsp;maturity 0.708
+</p>
+
+<div class="summary"><div class="summary-item"><div class="label">Replicates</div><div class="value">1/1</div></div>
+<div class="summary-item"><div class="label">Completion</div><div class="value">100%</div></div>
+<div class="summary-item"><div class="label">Replicate agreement</div><div class="value">0.50</div></div>
+<div class="summary-item"><div class="label">code_quality</div><div class="value">0.833</div></div>
+<div class="summary-item"><div class="label">Tokens (total)</div><div class="value">780,404</div></div>
+<div class="summary-item"><div class="label">Cost (total)</div><div class="value">$0.6919</div></div></div>
+
+<h2>Runs</h2>
+<table>
+  <thead><tr><th class="numeric">Run</th><th>Rep</th><th>Status</th><th class="numeric">build_time</th><th class="numeric">code_quality</th><th class="numeric">cost ($)</th><th class="numeric">duration (s)</th><th class="numeric">tokens</th><th class="numeric">Files</th><th class="numeric">LOC</th></tr></thead>
+  <tbody><tr><td>66</td><td>rep 1</td><td>completed</td><td class="numeric">0.927</td><td class="numeric">0.833</td><td class="numeric">$0.6919</td><td class="numeric">410.2s</td><td class="numeric">780,404</td><td class="numeric">4</td><td class="numeric">258</td></tr></tbody>
+</table>
+
+<h2>Code review</h2>
+<p class="muted">
+  Per-replicate file listing extracted from the archived workspace.
+  For semantic analysis (architecture, interfaces, control flow), invoke
+  the <code>run-summary</code> skill via <code>retort evaluate &lt;run_dir&gt;</code>.
+</p>
+<details class="code-summary"><summary>rep 1 — 4 file(s), 258 loc (1 test file(s), 109 test loc)</summary><div class="code-files"><div class="file"><span class="file-name">src/books/core.clj</span> <span class="muted">(26 loc)</span><div class="symbols">defn -main, def app, ns books.core</div></div><div class="file"><span class="file-name">src/books/db.clj</span> <span class="muted">(47 loc)</span><div class="symbols">defn init-db!, defn create-book!, defn list-books, defn get-book, defn update-book!, defn delete-book!, def db-spec, def datasource, ns books.db</div></div><div class="file"><span class="file-name">src/books/handlers.clj</span> <span class="muted">(76 loc)</span><div class="symbols">defn json-response, defn parse-int, defn read-body, defn validate-book, defn health-handler, defn create-book-handler, defn list-books-handler, defn get-book-handler, defn update-book-handler, defn delete-book-handler, ns books.handlers</div></div><div class="file test"><span class="file-name">test/books/core_test.clj</span> <span class="muted">(109 loc, test)</span><div class="symbols">defn reset-db!, defn parse-body, defn json-post, defn json-put, def test-db-path, ns books.core</div></div></div></details>
+
+<p class="muted">
+  Stack signature (sorted JSON): <code>{&quot;language&quot;: &quot;clojure&quot;, &quot;model&quot;: &quot;sonnet&quot;, &quot;tooling&quot;: &quot;none&quot;}</code>
+</p>
+</body>
+</html>

@@ -1,0 +1,46 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Experiment 1 — Multi-language results (live) · language=java, model=opus, tooling=beads</title>
+  <link rel="stylesheet" href="../style.css">
+</head>
+<body>
+<p class="muted"><a href="../index.html">&larr; index</a></p>
+<h1>language=java, model=opus, tooling=beads</h1>
+<p class="subtitle">
+  <span class="phase phase-production">production</span>
+  &nbsp;maturity 1.000
+</p>
+
+<div class="summary"><div class="summary-item"><div class="label">Replicates</div><div class="value">3/3</div></div>
+<div class="summary-item"><div class="label">Completion</div><div class="value">100%</div></div>
+<div class="summary-item"><div class="label">Replicate agreement</div><div class="value">1.00</div></div>
+<div class="summary-item"><div class="label">code_quality</div><div class="value">1.000</div></div>
+<div class="summary-item"><div class="label">Tokens (total)</div><div class="value">975,336</div></div>
+<div class="summary-item"><div class="label">Cost (total)</div><div class="value">$1.6575</div></div></div>
+
+<h2>Runs</h2>
+<table>
+  <thead><tr><th class="numeric">Run</th><th>Rep</th><th>Status</th><th class="numeric">code_quality</th><th class="numeric">cost ($)</th><th class="numeric">duration (s)</th><th class="numeric">tokens</th><th class="numeric">Files</th><th class="numeric">LOC</th></tr></thead>
+  <tbody><tr><td>58</td><td>rep 1</td><td>completed</td><td class="numeric">1.000</td><td class="numeric">$0.4674</td><td class="numeric">125.2s</td><td class="numeric">291,090</td><td class="numeric">4</td><td class="numeric">275</td></tr>
+<tr><td>52</td><td>rep 2</td><td>completed</td><td class="numeric">1.000</td><td class="numeric">$0.5062</td><td class="numeric">165.3s</td><td class="numeric">323,893</td><td class="numeric">6</td><td class="numeric">197</td></tr>
+<tr><td>55</td><td>rep 3</td><td>completed</td><td class="numeric">1.000</td><td class="numeric">$0.6840</td><td class="numeric">158.4s</td><td class="numeric">360,353</td><td class="numeric">4</td><td class="numeric">288</td></tr></tbody>
+</table>
+
+<h2>Code review</h2>
+<p class="muted">
+  Per-replicate file listing extracted from the archived workspace.
+  For semantic analysis (architecture, interfaces, control flow), invoke
+  the <code>run-summary</code> skill via <code>retort evaluate &lt;run_dir&gt;</code>.
+</p>
+<details class="code-summary"><summary>rep 1 — 4 file(s), 275 loc (1 test file(s), 100 test loc)</summary><div class="code-files"><div class="file"><span class="file-name">src/main/java/com/example/App.java</span> <span class="muted">(58 loc)</span><div class="symbols">class App, method main, method start, method routes, method parseId, method validate</div></div><div class="file"><span class="file-name">src/main/java/com/example/Book.java</span> <span class="muted">(16 loc)</span><div class="symbols">class Book</div></div><div class="file"><span class="file-name">src/main/java/com/example/BookDao.java</span> <span class="muted">(101 loc)</span><div class="symbols">class BookDao, method conn, method init, method create, method list, method get, method update, method delete, method map</div></div><div class="file test"><span class="file-name">src/test/java/com/example/BookApiTest.java</span> <span class="muted">(100 loc, test)</span><div class="symbols">class BookApiTest</div></div></div></details>
+<details class="code-summary"><summary>rep 2 — 6 file(s), 197 loc (1 test file(s), 78 test loc)</summary><div class="code-files"><div class="file"><span class="file-name">src/main/java/com/example/books/Book.java</span> <span class="muted">(33 loc)</span><div class="symbols">class Book, method getId, method setId, method getTitle, method setTitle, method getAuthor, method setAuthor, method getYear, method setYear, method getIsbn, method setIsbn</div></div><div class="file"><span class="file-name">src/main/java/com/example/books/BookController.java</span> <span class="muted">(54 loc)</span><div class="symbols">class BookController, method create, method list, method get, method update, method delete</div></div><div class="file"><span class="file-name">src/main/java/com/example/books/BookRepository.java</span> <span class="muted">(6 loc)</span><div class="symbols">interface BookRepository</div></div><div class="file"><span class="file-name">src/main/java/com/example/books/BooksApplication.java</span> <span class="muted">(9 loc)</span><div class="symbols">class BooksApplication, method main</div></div><div class="file"><span class="file-name">src/main/java/com/example/books/ValidationExceptionHandler.java</span> <span class="muted">(17 loc)</span><div class="symbols">class ValidationExceptionHandler</div></div><div class="file test"><span class="file-name">src/test/java/com/example/books/BookControllerTest.java</span> <span class="muted">(78 loc, test)</span><div class="symbols">class BookControllerTest</div></div></div></details>
+<details class="code-summary"><summary>rep 3 — 4 file(s), 288 loc (1 test file(s), 92 test loc)</summary><div class="code-files"><div class="file"><span class="file-name">src/main/java/com/example/books/App.java</span> <span class="muted">(77 loc)</span><div class="symbols">class App, method create, method parseId, method validate, method main</div></div><div class="file"><span class="file-name">src/main/java/com/example/books/Book.java</span> <span class="muted">(16 loc)</span><div class="symbols">class Book</div></div><div class="file"><span class="file-name">src/main/java/com/example/books/BookRepository.java</span> <span class="muted">(103 loc)</span><div class="symbols">class BookRepository, method conn, method init, method create, method findAll, method findById, method update, method delete, method map</div></div><div class="file test"><span class="file-name">src/test/java/com/example/books/BooksApiTest.java</span> <span class="muted">(92 loc, test)</span><div class="symbols">class BooksApiTest, method send</div></div></div></details>
+
+<p class="muted">
+  Stack signature (sorted JSON): <code>{&quot;language&quot;: &quot;java&quot;, &quot;model&quot;: &quot;opus&quot;, &quot;tooling&quot;: &quot;beads&quot;}</code>
+</p>
+</body>
+</html>

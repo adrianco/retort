@@ -1,0 +1,44 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Experiment 1 — Multi-language results (live) · language=clojure, model=opus, tooling=none</title>
+  <link rel="stylesheet" href="../style.css">
+</head>
+<body>
+<p class="muted"><a href="../index.html">&larr; index</a></p>
+<h1>language=clojure, model=opus, tooling=none</h1>
+<p class="subtitle">
+  <span class="phase phase-production">production</span>
+  &nbsp;maturity 0.908
+</p>
+
+<div class="summary"><div class="summary-item"><div class="label">Replicates</div><div class="value">2/2</div></div>
+<div class="summary-item"><div class="label">Completion</div><div class="value">100%</div></div>
+<div class="summary-item"><div class="label">Replicate agreement</div><div class="value">1.00</div></div>
+<div class="summary-item"><div class="label">code_quality</div><div class="value">0.833</div></div>
+<div class="summary-item"><div class="label">Tokens (total)</div><div class="value">688,097</div></div>
+<div class="summary-item"><div class="label">Cost (total)</div><div class="value">$1.0894</div></div></div>
+
+<h2>Runs</h2>
+<table>
+  <thead><tr><th class="numeric">Run</th><th>Rep</th><th>Status</th><th class="numeric">code_quality</th><th class="numeric">cost ($)</th><th class="numeric">duration (s)</th><th class="numeric">tokens</th><th class="numeric">Files</th><th class="numeric">LOC</th></tr></thead>
+  <tbody><tr><td>65</td><td>rep 1</td><td>completed</td><td class="numeric">0.833</td><td class="numeric">$0.5177</td><td class="numeric">154.7s</td><td class="numeric">350,599</td><td class="numeric">4</td><td class="numeric">209</td></tr>
+<tr><td>56</td><td>rep 3</td><td>completed</td><td class="numeric">0.833</td><td class="numeric">$0.5717</td><td class="numeric">193.8s</td><td class="numeric">337,498</td><td class="numeric">4</td><td class="numeric">227</td></tr></tbody>
+</table>
+
+<h2>Code review</h2>
+<p class="muted">
+  Per-replicate file listing extracted from the archived workspace.
+  For semantic analysis (architecture, interfaces, control flow), invoke
+  the <code>run-summary</code> skill via <code>retort evaluate &lt;run_dir&gt;</code>.
+</p>
+<details class="code-summary"><summary>rep 1 — 4 file(s), 209 loc (1 test file(s), 87 test loc)</summary><div class="code-files"><div class="file"><span class="file-name">src/books/core.clj</span> <span class="muted">(12 loc)</span><div class="symbols">defn -main, def default-db, ns books.core</div></div><div class="file"><span class="file-name">src/books/db.clj</span> <span class="muted">(36 loc)</span><div class="symbols">defn ds, defn init!, defn create-book, defn list-books, defn get-book, defn update-book, defn delete-book, def opts, ns books.db</div></div><div class="file"><span class="file-name">src/books/handler.clj</span> <span class="muted">(74 loc)</span><div class="symbols">defn bad-request, defn not-found, defn validate-book, defn parse-id, defn book-fields, defn create-handler, defn list-handler, defn get-handler, defn update-handler, defn delete-handler, defn health-handler, defn app-routes, defn make-app, ns books.handler</div></div><div class="file test"><span class="file-name">test/books/handler_test.clj</span> <span class="muted">(87 loc, test)</span><div class="symbols">defn test-fixture, defn json-body, defn parse, ns books.handler</div></div></div></details>
+<details class="code-summary"><summary>rep 3 — 4 file(s), 227 loc (1 test file(s), 87 test loc)</summary><div class="code-files"><div class="file"><span class="file-name">src/books/core.clj</span> <span class="muted">(33 loc)</span><div class="symbols">defn app, defn start!, defn -main, ns books.core</div></div><div class="file"><span class="file-name">src/books/db.clj</span> <span class="muted">(46 loc)</span><div class="symbols">defn make-datasource, defn init-schema!, defn row-&gt;book, defn insert-book!, defn list-books, defn get-book, defn update-book!, defn delete-book!, defn clear!, ns books.db</div></div><div class="file"><span class="file-name">src/books/handlers.clj</span> <span class="muted">(61 loc)</span><div class="symbols">defn json-response, defn parse-id, defn read-body, defn validate-book, defn health, defn create-book, defn list-books, defn get-book, defn update-book, defn delete-book, ns books.handlers</div></div><div class="file test"><span class="file-name">test/books/core_test.clj</span> <span class="muted">(87 loc, test)</span><div class="symbols">defn with-test-app, defn json-request, defn parse-body, ns books.core</div></div></div></details>
+
+<p class="muted">
+  Stack signature (sorted JSON): <code>{&quot;language&quot;: &quot;clojure&quot;, &quot;model&quot;: &quot;opus&quot;, &quot;tooling&quot;: &quot;none&quot;}</code>
+</p>
+</body>
+</html>

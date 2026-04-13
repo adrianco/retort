@@ -16,7 +16,9 @@ factors:
 
 responses:
   - code_quality
-  - build_time
+  # Timing comes from the auto-persisted _duration_seconds telemetry — see
+  # `retort analyze --data ... -r _duration_seconds ...` and the
+  # corresponding column in the web report.
 
 tasks:
   - source: bundled://rest-api-crud

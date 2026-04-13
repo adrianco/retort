@@ -66,7 +66,6 @@ def create_default_registry() -> ScorerRegistry:
     via the ``retort.plugins`` entry-point group are added.  Plugin
     scorers can override built-ins by using the same ``name``.
     """
-    from retort.scoring.scorers.build_time import BuildTimeScorer
     from retort.scoring.scorers.code_quality import CodeQualityScorer
     from retort.scoring.scorers.defect_rate import DefectRateScorer
     from retort.scoring.scorers.idiomatic import IdiomaticScorer
@@ -77,12 +76,14 @@ def create_default_registry() -> ScorerRegistry:
     registry = ScorerRegistry()
     registry.register(CodeQualityScorer())
     registry.register(TokenEfficiencyScorer())
-    registry.register(BuildTimeScorer())
     registry.register(TestCoverageScorer())
     registry.register(DefectRateScorer())
     registry.register(MaintainabilityScorer())
     # Opt-in via responses: list — every invocation makes an LLM call.
     registry.register(IdiomaticScorer())
+    # build_time was removed in favor of the raw `_duration_seconds`
+    # telemetry written automatically by cli._store_run_result. Use that
+    # column in retort analyze / report effects for timing analysis.
 
     # Discover and register plugin scorers
     from retort.plugins import discover_scorers

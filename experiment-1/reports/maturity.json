@@ -26,6 +26,84 @@
     }
   },
   {
+    "stack_signature": "{\"language\": \"java\", \"model\": \"opus\", \"tooling\": \"none\"}",
+    "factors": {
+      "language": "java",
+      "model": "opus",
+      "tooling": "none"
+    },
+    "n_replicates": 3,
+    "n_completed": 3,
+    "n_failed": 0,
+    "headline_metric": "code_quality",
+    "headline_mean": 1.0,
+    "headline_stdev": 0.0,
+    "headline_cv": 0.0,
+    "completion_rate": 1.0,
+    "replicate_agreement": 1.0,
+    "score_level": 1.0,
+    "coverage": 1.0,
+    "maturity": 1.0,
+    "components": {
+      "replicate_agreement": 1.0,
+      "completion_rate": 1.0,
+      "score_level": 1.0,
+      "coverage": 1.0
+    }
+  },
+  {
+    "stack_signature": "{\"language\": \"java\", \"model\": \"opus\", \"tooling\": \"beads\"}",
+    "factors": {
+      "language": "java",
+      "model": "opus",
+      "tooling": "beads"
+    },
+    "n_replicates": 3,
+    "n_completed": 3,
+    "n_failed": 0,
+    "headline_metric": "code_quality",
+    "headline_mean": 1.0,
+    "headline_stdev": 0.0,
+    "headline_cv": 0.0,
+    "completion_rate": 1.0,
+    "replicate_agreement": 1.0,
+    "score_level": 1.0,
+    "coverage": 1.0,
+    "maturity": 1.0,
+    "components": {
+      "replicate_agreement": 1.0,
+      "completion_rate": 1.0,
+      "score_level": 1.0,
+      "coverage": 1.0
+    }
+  },
+  {
+    "stack_signature": "{\"language\": \"java\", \"model\": \"sonnet\", \"tooling\": \"none\"}",
+    "factors": {
+      "language": "java",
+      "model": "sonnet",
+      "tooling": "none"
+    },
+    "n_replicates": 3,
+    "n_completed": 3,
+    "n_failed": 0,
+    "headline_metric": "code_quality",
+    "headline_mean": 1.0,
+    "headline_stdev": 0.0,
+    "headline_cv": 0.0,
+    "completion_rate": 1.0,
+    "replicate_agreement": 1.0,
+    "score_level": 1.0,
+    "coverage": 1.0,
+    "maturity": 1.0,
+    "components": {
+      "replicate_agreement": 1.0,
+      "completion_rate": 1.0,
+      "score_level": 1.0,
+      "coverage": 1.0
+    }
+  },
+  {
     "stack_signature": "{\"language\": \"go\", \"model\": \"sonnet\", \"tooling\": \"none\"}",
     "factors": {
       "language": "go",
@@ -156,6 +234,32 @@
     }
   },
   {
+    "stack_signature": "{\"language\": \"java\", \"model\": \"sonnet\", \"tooling\": \"beads\"}",
+    "factors": {
+      "language": "java",
+      "model": "sonnet",
+      "tooling": "beads"
+    },
+    "n_replicates": 2,
+    "n_completed": 2,
+    "n_failed": 0,
+    "headline_metric": "code_quality",
+    "headline_mean": 1.0,
+    "headline_stdev": 0.0,
+    "headline_cv": 0.0,
+    "completion_rate": 1.0,
+    "replicate_agreement": 1.0,
+    "score_level": 1.0,
+    "coverage": 0.6666666666666666,
+    "maturity": 0.95,
+    "components": {
+      "replicate_agreement": 1.0,
+      "completion_rate": 1.0,
+      "score_level": 1.0,
+      "coverage": 0.6666666666666666
+    }
+  },
+  {
     "stack_signature": "{\"language\": \"typescript\", \"model\": \"opus\", \"tooling\": \"none\"}",
     "factors": {
       "language": "typescript",
@@ -231,6 +335,32 @@
       "completion_rate": 1.0,
       "score_level": 0.962962962962963,
       "coverage": 1.0
+    }
+  },
+  {
+    "stack_signature": "{\"language\": \"clojure\", \"model\": \"opus\", \"tooling\": \"none\"}",
+    "factors": {
+      "language": "clojure",
+      "model": "opus",
+      "tooling": "none"
+    },
+    "n_replicates": 2,
+    "n_completed": 2,
+    "n_failed": 0,
+    "headline_metric": "code_quality",
+    "headline_mean": 0.8333333333333334,
+    "headline_stdev": 0.0,
+    "headline_cv": 0.0,
+    "completion_rate": 1.0,
+    "replicate_agreement": 1.0,
+    "score_level": 0.8333333333333334,
+    "coverage": 0.6666666666666666,
+    "maturity": 0.9083333333333333,
+    "components": {
+      "replicate_agreement": 1.0,
+      "completion_rate": 1.0,
+      "score_level": 0.8333333333333334,
+      "coverage": 0.6666666666666666
     }
   },
   {
@@ -413,6 +543,84 @@
       "completion_rate": 1.0,
       "score_level": 0.7888888888888889,
       "coverage": 1.0
+    }
+  },
+  {
+    "stack_signature": "{\"language\": \"clojure\", \"model\": \"sonnet\", \"tooling\": \"beads\"}",
+    "factors": {
+      "language": "clojure",
+      "model": "sonnet",
+      "tooling": "beads"
+    },
+    "n_replicates": 1,
+    "n_completed": 1,
+    "n_failed": 0,
+    "headline_metric": "code_quality",
+    "headline_mean": 0.8333333333333334,
+    "headline_stdev": null,
+    "headline_cv": null,
+    "completion_rate": 1.0,
+    "replicate_agreement": 0.5,
+    "score_level": 0.8333333333333334,
+    "coverage": 0.3333333333333333,
+    "maturity": 0.7083333333333334,
+    "components": {
+      "replicate_agreement": 0.5,
+      "completion_rate": 1.0,
+      "score_level": 0.8333333333333334,
+      "coverage": 0.3333333333333333
+    }
+  },
+  {
+    "stack_signature": "{\"language\": \"clojure\", \"model\": \"sonnet\", \"tooling\": \"none\"}",
+    "factors": {
+      "language": "clojure",
+      "model": "sonnet",
+      "tooling": "none"
+    },
+    "n_replicates": 1,
+    "n_completed": 1,
+    "n_failed": 0,
+    "headline_metric": "code_quality",
+    "headline_mean": 0.8333333333333334,
+    "headline_stdev": null,
+    "headline_cv": null,
+    "completion_rate": 1.0,
+    "replicate_agreement": 0.5,
+    "score_level": 0.8333333333333334,
+    "coverage": 0.3333333333333333,
+    "maturity": 0.7083333333333334,
+    "components": {
+      "replicate_agreement": 0.5,
+      "completion_rate": 1.0,
+      "score_level": 0.8333333333333334,
+      "coverage": 0.3333333333333333
+    }
+  },
+  {
+    "stack_signature": "{\"language\": \"clojure\", \"model\": \"opus\", \"tooling\": \"beads\"}",
+    "factors": {
+      "language": "clojure",
+      "model": "opus",
+      "tooling": "beads"
+    },
+    "n_replicates": 2,
+    "n_completed": 1,
+    "n_failed": 1,
+    "headline_metric": "code_quality",
+    "headline_mean": 0.8333333333333334,
+    "headline_stdev": null,
+    "headline_cv": null,
+    "completion_rate": 0.5,
+    "replicate_agreement": 0.5,
+    "score_level": 0.8333333333333334,
+    "coverage": 0.3333333333333333,
+    "maturity": 0.5583333333333333,
+    "components": {
+      "replicate_agreement": 0.5,
+      "completion_rate": 0.5,
+      "score_level": 0.8333333333333334,
+      "coverage": 0.3333333333333333
     }
   }
 ]

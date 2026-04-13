@@ -56,12 +56,14 @@ class TestScorerRegistry:
         reg = create_default_registry()
         assert "code_quality" in reg
         assert "token_efficiency" in reg
-        assert "build_time" in reg
         assert "test_coverage" in reg
         assert "defect_rate" in reg
         assert "maintainability" in reg
         assert "idiomatic" in reg
-        assert len(reg) == 7
+        # build_time was removed — use the raw `_duration_seconds`
+        # telemetry instead (auto-persisted from artifacts.duration_seconds).
+        assert "build_time" not in reg
+        assert len(reg) == 6
 
     def test_register_and_get(self):
         reg = ScorerRegistry()
@@ -78,7 +80,6 @@ class TestScorerRegistry:
         reg = create_default_registry()
         avail = reg.available()
         assert avail == [
-            "build_time",
             "code_quality",
             "defect_rate",
             "idiomatic",
@@ -109,6 +110,17 @@ class TestBuildTimeScorer:
         artifacts = RunArtifacts(exit_code=0, duration_seconds=2000.0)
         scorer = BuildTimeScorer()
         assert scorer.score(artifacts, python_stack) == 0.0
+
+    def test_monotonic_decreasing(self, python_stack):
+        """Regression: previous formula collapsed every short run to 1.0,
+        making build_time a useless constant. Must be strictly monotonic."""
+        scorer = BuildTimeScorer()
+        scores = [
+            scorer.score(RunArtifacts(exit_code=0, duration_seconds=t), python_stack)
+            for t in (10, 50, 100, 200, 300, 600, 900, 1500)
+        ]
+        # No two adjacent scores are equal, and they decrease as duration grows.
+        assert all(a > b for a, b in zip(scores, scores[1:])), scores
 
 
 class TestTokenEfficiencyScorer:
@@ -156,15 +168,14 @@ class TestScoreCollector:
         d = vector.to_dict()
         assert "code_quality" in d
         assert "token_efficiency" in d
-        assert "build_time" in d
         assert all(0.0 <= v <= 1.0 for v in d.values())
 
     def test_collect_subset(self, successful_artifacts, python_stack):
-        collector = ScoreCollector(metrics=["build_time"])
+        collector = ScoreCollector(metrics=["code_quality"])
         vector = collector.collect(successful_artifacts, python_stack)
         d = vector.to_dict()
-        assert "build_time" in d
-        assert "code_quality" not in d
+        assert "code_quality" in d
+        assert "token_efficiency" not in d
 
     def test_collect_failed_run(self, failed_artifacts, python_stack):
         collector = ScoreCollector()
@@ -173,10 +184,10 @@ class TestScoreCollector:
         assert all(v == 0.0 for v in d.values())
 
     def test_unknown_metric_skipped(self, successful_artifacts, python_stack):
-        collector = ScoreCollector(metrics=["nonexistent", "build_time"])
+        collector = ScoreCollector(metrics=["nonexistent", "code_quality"])
         vector = collector.collect(successful_artifacts, python_stack)
         d = vector.to_dict()
-        assert "build_time" in d
+        assert "code_quality" in d
         assert "nonexistent" not in d
 
 

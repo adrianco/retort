@@ -1,0 +1,46 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Experiment 1 — Multi-language results (live) · language=java, model=sonnet, tooling=none</title>
+  <link rel="stylesheet" href="../style.css">
+</head>
+<body>
+<p class="muted"><a href="../index.html">&larr; index</a></p>
+<h1>language=java, model=sonnet, tooling=none</h1>
+<p class="subtitle">
+  <span class="phase phase-production">production</span>
+  &nbsp;maturity 1.000
+</p>
+
+<div class="summary"><div class="summary-item"><div class="label">Replicates</div><div class="value">3/3</div></div>
+<div class="summary-item"><div class="label">Completion</div><div class="value">100%</div></div>
+<div class="summary-item"><div class="label">Replicate agreement</div><div class="value">1.00</div></div>
+<div class="summary-item"><div class="label">code_quality</div><div class="value">1.000</div></div>
+<div class="summary-item"><div class="label">Tokens (total)</div><div class="value">1,482,347</div></div>
+<div class="summary-item"><div class="label">Cost (total)</div><div class="value">$0.9776</div></div></div>
+
+<h2>Runs</h2>
+<table>
+  <thead><tr><th class="numeric">Run</th><th>Rep</th><th>Status</th><th class="numeric">code_quality</th><th class="numeric">cost ($)</th><th class="numeric">duration (s)</th><th class="numeric">tokens</th><th class="numeric">Files</th><th class="numeric">LOC</th></tr></thead>
+  <tbody><tr><td>53</td><td>rep 1</td><td>completed</td><td class="numeric">1.000</td><td class="numeric">$0.3847</td><td class="numeric">181.7s</td><td class="numeric">612,173</td><td class="numeric">9</td><td class="numeric">284</td></tr>
+<tr><td>59</td><td>rep 2</td><td>completed</td><td class="numeric">1.000</td><td class="numeric">$0.2478</td><td class="numeric">122.9s</td><td class="numeric">336,186</td><td class="numeric">6</td><td class="numeric">243</td></tr>
+<tr><td>63</td><td>rep 3</td><td>completed</td><td class="numeric">1.000</td><td class="numeric">$0.3450</td><td class="numeric">150.1s</td><td class="numeric">533,988</td><td class="numeric">5</td><td class="numeric">237</td></tr></tbody>
+</table>
+
+<h2>Code review</h2>
+<p class="muted">
+  Per-replicate file listing extracted from the archived workspace.
+  For semantic analysis (architecture, interfaces, control flow), invoke
+  the <code>run-summary</code> skill via <code>retort evaluate &lt;run_dir&gt;</code>.
+</p>
+<details class="code-summary"><summary>rep 1 — 9 file(s), 284 loc (1 test file(s), 118 test loc)</summary><div class="code-files"><div class="file"><span class="file-name">src/main/java/com/books/BookApplication.java</span> <span class="muted">(9 loc)</span><div class="symbols">class BookApplication, method main</div></div><div class="file"><span class="file-name">src/main/java/com/books/controller/BookController.java</span> <span class="muted">(51 loc)</span><div class="symbols">class BookController, method create, method list, method get, method update, method delete</div></div><div class="file"><span class="file-name">src/main/java/com/books/controller/HealthController.java</span> <span class="muted">(12 loc)</span><div class="symbols">class HealthController</div></div><div class="file"><span class="file-name">src/main/java/com/books/dto/BookRequest.java</span> <span class="muted">(18 loc)</span><div class="symbols">class BookRequest, method getTitle, method setTitle, method getAuthor, method setAuthor, method getYear, method setYear, method getIsbn, method setIsbn</div></div><div class="file"><span class="file-name">src/main/java/com/books/exception/BookNotFoundException.java</span> <span class="muted">(6 loc)</span><div class="symbols">class BookNotFoundException</div></div><div class="file"><span class="file-name">src/main/java/com/books/exception/GlobalExceptionHandler.java</span> <span class="muted">(26 loc)</span><div class="symbols">class GlobalExceptionHandler</div></div><div class="file"><span class="file-name">src/main/java/com/books/model/Book.java</span> <span class="muted">(35 loc)</span><div class="symbols">class Book, method getId, method setId, method getTitle, method setTitle, method getAuthor, method setAuthor, method getYear, method setYear, method getIsbn, method setIsbn</div></div><div class="file"><span class="file-name">src/main/java/com/books/repository/BookRepository.java</span> <span class="muted">(9 loc)</span><div class="symbols">interface BookRepository</div></div><div class="file test"><span class="file-name">src/test/java/com/books/BookApiTest.java</span> <span class="muted">(118 loc, test)</span><div class="symbols">class BookApiTest</div></div></div></details>
+<details class="code-summary"><summary>rep 2 — 6 file(s), 243 loc (1 test file(s), 114 test loc)</summary><div class="code-files"><div class="file"><span class="file-name">src/main/java/com/example/books/BooksApplication.java</span> <span class="muted">(9 loc)</span><div class="symbols">class BooksApplication, method main</div></div><div class="file"><span class="file-name">src/main/java/com/example/books/controller/BookController.java</span> <span class="muted">(70 loc)</span><div class="symbols">class BookController, method createBook, method listBooks, method getBook, method updateBook, method deleteBook</div></div><div class="file"><span class="file-name">src/main/java/com/example/books/exception/BookNotFoundException.java</span> <span class="muted">(6 loc)</span><div class="symbols">class BookNotFoundException</div></div><div class="file"><span class="file-name">src/main/java/com/example/books/model/Book.java</span> <span class="muted">(35 loc)</span><div class="symbols">class Book, method getId, method setId, method getTitle, method setTitle, method getAuthor, method setAuthor, method getYear, method setYear, method getIsbn, method setIsbn</div></div><div class="file"><span class="file-name">src/main/java/com/example/books/repository/BookRepository.java</span> <span class="muted">(9 loc)</span><div class="symbols">interface BookRepository</div></div><div class="file test"><span class="file-name">src/test/java/com/example/books/BookControllerTest.java</span> <span class="muted">(114 loc, test)</span><div class="symbols">class BookControllerTest</div></div></div></details>
+<details class="code-summary"><summary>rep 3 — 5 file(s), 237 loc (1 test file(s), 124 test loc)</summary><div class="code-files"><div class="file"><span class="file-name">src/main/java/com/example/books/BookApplication.java</span> <span class="muted">(9 loc)</span><div class="symbols">class BookApplication, method main</div></div><div class="file"><span class="file-name">src/main/java/com/example/books/controller/BookController.java</span> <span class="muted">(60 loc)</span><div class="symbols">class BookController, method createBook, method listBooks, method getBook, method updateBook, method deleteBook</div></div><div class="file"><span class="file-name">src/main/java/com/example/books/model/Book.java</span> <span class="muted">(35 loc)</span><div class="symbols">class Book, method getId, method setId, method getTitle, method setTitle, method getAuthor, method setAuthor, method getYear, method setYear, method getIsbn, method setIsbn</div></div><div class="file"><span class="file-name">src/main/java/com/example/books/repository/BookRepository.java</span> <span class="muted">(9 loc)</span><div class="symbols">interface BookRepository</div></div><div class="file test"><span class="file-name">src/test/java/com/example/books/BookApiTest.java</span> <span class="muted">(124 loc, test)</span><div class="symbols">class BookApiTest</div></div></div></details>
+
+<p class="muted">
+  Stack signature (sorted JSON): <code>{&quot;language&quot;: &quot;java&quot;, &quot;model&quot;: &quot;sonnet&quot;, &quot;tooling&quot;: &quot;none&quot;}</code>
+</p>
+</body>
+</html>

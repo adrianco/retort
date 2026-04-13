@@ -268,9 +268,9 @@ class TestRunnerRegistry:
 class TestScorerRegistryWithPlugins:
     def test_default_registry_has_builtins(self):
         reg = create_default_registry()
-        assert "build_time" in reg
         assert "code_quality" in reg
         assert "token_efficiency" in reg
+        assert "test_coverage" in reg
 
     def test_default_registry_length_at_least_builtins(self):
         reg = create_default_registry()
@@ -322,9 +322,9 @@ class TestPluginCLI:
 
     def test_plugin_show_builtin_scorer(self):
         runner = CliRunner()
-        result = runner.invoke(cli, ["plugin", "show", "build_time"])
+        result = runner.invoke(cli, ["plugin", "show", "code_quality"])
         assert result.exit_code == 0
-        assert "Scorer: build_time" in result.output
+        assert "Scorer: code_quality" in result.output
         assert "Module:" in result.output
 
     def test_plugin_show_builtin_runner(self):

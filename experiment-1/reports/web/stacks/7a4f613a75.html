@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>Experiment 1 — Final Results · language=typescript, model=opus, tooling=beads</title>
+  <title>Experiment 1 — Multi-language results (live) · language=typescript, model=opus, tooling=beads</title>
   <link rel="stylesheet" href="../style.css">
 </head>
 <body>
@@ -23,10 +23,10 @@
 
 <h2>Runs</h2>
 <table>
-  <thead><tr><th class="numeric">Run</th><th>Rep</th><th>Status</th><th class="numeric">build_time</th><th class="numeric">code_quality</th><th class="numeric">cost ($)</th><th class="numeric">duration (s)</th><th class="numeric">tokens</th><th class="numeric">Files</th><th class="numeric">LOC</th></tr></thead>
-  <tbody><tr><td>6</td><td>rep 1</td><td>completed</td><td class="numeric">1.000</td><td class="numeric">0.733</td><td class="numeric muted">—</td><td class="numeric muted">—</td><td class="numeric muted">—</td><td class="numeric muted">—</td><td class="numeric muted">—</td></tr>
-<tr><td>23</td><td>rep 2</td><td>completed</td><td class="numeric">1.000</td><td class="numeric">0.733</td><td class="numeric">$0.5452</td><td class="numeric">226.6s</td><td class="numeric">505,402</td><td class="numeric">4</td><td class="numeric">208</td></tr>
-<tr><td>24</td><td>rep 3</td><td>completed</td><td class="numeric">1.000</td><td class="numeric">0.733</td><td class="numeric">$0.4785</td><td class="numeric">211.7s</td><td class="numeric">403,038</td><td class="numeric">5</td><td class="numeric">206</td></tr></tbody>
+  <thead><tr><th class="numeric">Run</th><th>Rep</th><th>Status</th><th class="numeric">code_quality</th><th class="numeric">cost ($)</th><th class="numeric">duration (s)</th><th class="numeric">tokens</th><th class="numeric">Files</th><th class="numeric">LOC</th></tr></thead>
+  <tbody><tr><td>6</td><td>rep 1</td><td>completed</td><td class="numeric">0.733</td><td class="numeric muted">—</td><td class="numeric muted">—</td><td class="numeric muted">—</td><td class="numeric muted">—</td><td class="numeric muted">—</td></tr>
+<tr><td>23</td><td>rep 2</td><td>completed</td><td class="numeric">0.733</td><td class="numeric">$0.5452</td><td class="numeric">226.6s</td><td class="numeric">505,402</td><td class="numeric">4</td><td class="numeric">208</td></tr>
+<tr><td>24</td><td>rep 3</td><td>completed</td><td class="numeric">0.733</td><td class="numeric">$0.4785</td><td class="numeric">211.7s</td><td class="numeric">403,038</td><td class="numeric">5</td><td class="numeric">206</td></tr></tbody>
 </table>
 
 <h2>Code review</h2>
@@ -36,7 +36,7 @@
   the <code>run-summary</code> skill via <code>retort evaluate &lt;run_dir&gt;</code>.
 </p>
 <details class="code-summary"><summary>rep 2 — 4 file(s), 208 loc (1 test file(s), 82 test loc)</summary><div class="code-files"><div class="file"><span class="file-name">src/app.ts</span> <span class="muted">(95 loc)</span><div class="symbols">function createApp</div></div><div class="file"><span class="file-name">src/db.ts</span> <span class="muted">(22 loc)</span><div class="symbols">function createDb</div></div><div class="file"><span class="file-name">src/index.ts</span> <span class="muted">(9 loc)</span></div><div class="file test"><span class="file-name">tests/api.test.ts</span> <span class="muted">(82 loc, test)</span><div class="symbols">function makeApp</div></div></div></details>
-<details class="code-summary"><summary>rep 3 — 5 file(s), 206 loc (1 test file(s), 82 test loc)</summary><div class="code-files"><div class="file"><span class="file-name">src/app.ts</span> <span class="muted">(96 loc)</span><div class="symbols">function createApp</div></div><div class="file"><span class="file-name">src/db.ts</span> <span class="muted">(14 loc)</span><div class="symbols">function createDb</div></div><div class="file"><span class="file-name">src/server.ts</span> <span class="muted">(9 loc)</span></div><div class="file test"><span class="file-name">tests/books.test.ts</span> <span class="muted">(82 loc, test)</span><div class="symbols">function makeApp</div></div><div class="file"><span class="file-name">jest.config.js</span> <span class="muted">(5 loc)</span></div></div></details>
+<details class="code-summary"><summary>rep 3 — 5 file(s), 206 loc (1 test file(s), 82 test loc)</summary><div class="code-files"><div class="file"><span class="file-name">jest.config.js</span> <span class="muted">(5 loc)</span></div><div class="file"><span class="file-name">src/app.ts</span> <span class="muted">(96 loc)</span><div class="symbols">function createApp</div></div><div class="file"><span class="file-name">src/db.ts</span> <span class="muted">(14 loc)</span><div class="symbols">function createDb</div></div><div class="file"><span class="file-name">src/server.ts</span> <span class="muted">(9 loc)</span></div><div class="file test"><span class="file-name">tests/books.test.ts</span> <span class="muted">(82 loc, test)</span><div class="symbols">function makeApp</div></div></div></details>
 
 <p class="muted">
   Stack signature (sorted JSON): <code>{&quot;language&quot;: &quot;typescript&quot;, &quot;model&quot;: &quot;opus&quot;, &quot;tooling&quot;: &quot;beads&quot;}</code>
