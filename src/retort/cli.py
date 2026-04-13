@@ -233,12 +233,24 @@ def _load_from_stdin() -> FactorRegistry:
     is_flag=True,
     help="Show what would be run without executing.",
 )
+@click.option(
+    "--resume",
+    is_flag=True,
+    help="Skip cells already completed in the workspace database. Use to continue an interrupted experiment.",
+)
+@click.option(
+    "--retry-failed",
+    is_flag=True,
+    help="With --resume, also re-run cells whose prior attempts only failed (no completed replicate).",
+)
 def run_experiments(
     phase: str,
     config: str,
     task_source: str | None,
     replicates: int | None,
     dry_run: bool,
+    resume: bool,
+    retry_failed: bool,
 ) -> None:
     """Execute experiment runs for a design matrix.
 
@@ -266,6 +278,9 @@ def run_experiments(
     if len(registry) < 2:
         raise click.ClickException("Need at least 2 factors for experiment runs.")
 
+    if retry_failed and not resume:
+        raise click.ClickException("--retry-failed requires --resume.")
+
     # Generate design matrix
     design = generate_design(registry, phase)
     click.echo(f"Design matrix: {design.num_runs} runs ({phase})")
@@ -281,18 +296,59 @@ def run_experiments(
     total_runs = design.num_runs * reps
     click.echo(f"Replicates: {reps} ({total_runs} total runs)")
 
-    if dry_run:
-        click.echo("\n[dry-run] Design matrix:")
-        for i, run_config in enumerate(design.run_configs()):
-            click.echo(f"  Run {i+1}: {run_config}")
-        click.echo(f"\nWould execute {total_runs} runs. Exiting.")
-        return
-
-    # Initialize database
+    # Initialize database (needed early so --resume can inspect existing runs
+    # before dry-run reports what would actually execute).
     config_dir = Path(config).resolve().parent
     db_path = config_dir / "retort.db"
     engine = get_engine(db_path)
     create_tables(engine)
+
+    # Archive root: per-run workspaces are copied here so artifacts survive
+    # /tmp cleanup and process kills.
+    archive_root = config_dir / "runs"
+    archive_root.mkdir(exist_ok=True)
+
+    # Build set of (run_config_json, replicate) pairs to skip when resuming.
+    skip_keys: set[tuple[str, int]] = set()
+    if resume:
+        from retort.storage.models import ExperimentRun, RunStatus
+
+        existing_session = get_session(engine)
+        try:
+            statuses = [RunStatus.completed]
+            if not retry_failed:
+                statuses.append(RunStatus.failed)
+            for row in existing_session.query(
+                ExperimentRun.run_config_json, ExperimentRun.replicate
+            ).filter(ExperimentRun.status.in_(statuses)).all():
+                # Normalize JSON key ordering so config dicts match regardless
+                # of how they were serialized originally.
+                try:
+                    normalized = json.dumps(json.loads(row[0]), sort_keys=True)
+                except (TypeError, ValueError):
+                    normalized = row[0]
+                skip_keys.add((normalized, row[1]))
+        finally:
+            existing_session.close()
+        if skip_keys:
+            click.echo(f"Resume: {len(skip_keys)} run(s) already recorded — will skip.")
+
+    if dry_run:
+        click.echo("\n[dry-run] Design matrix:")
+        will_run = 0
+        will_skip = 0
+        for i, run_config in enumerate(design.run_configs()):
+            config_key = json.dumps(run_config, sort_keys=True)
+            for rep in range(1, reps + 1):
+                marker = "skip" if (config_key, rep) in skip_keys else "RUN "
+                if marker == "skip":
+                    will_skip += 1
+                else:
+                    will_run += 1
+                click.echo(f"  [{marker}] Run {i+1} rep {rep}: {run_config}")
+        click.echo(f"\nWould execute {will_run} runs ({will_skip} skipped). Exiting.")
+        engine.dispose()
+        return
 
     # Set up runner and scorer
     runner_type = workspace_config.playpen.runner
@@ -307,14 +363,20 @@ def run_experiments(
 
     completed = 0
     failed = 0
+    skipped = 0
 
     session = get_session(engine)
     try:
         for run_idx, run_config in enumerate(design.run_configs()):
             stack = StackConfig.from_run_config(run_config)
+            config_key = json.dumps(run_config, sort_keys=True)
 
             for rep in range(1, reps + 1):
                 label = f"[{run_idx+1}/{design.num_runs} rep {rep}/{reps}]"
+                if (config_key, rep) in skip_keys:
+                    click.echo(f"  {label} {stack.language}/{stack.framework}/{stack.agent} — skip (resume)")
+                    skipped += 1
+                    continue
                 click.echo(f"  {label} {stack.language}/{stack.framework}/{stack.agent}", nl=False)
 
                 env_id = runner.provision(stack, task)
@@ -337,6 +399,13 @@ def run_experiments(
                         session, run_config, phase, run_idx, rep,
                         artifacts, scores,
                     )
+                    # Commit per-run so an interrupt loses at most one run.
+                    session.commit()
+
+                    # Archive the workspace before teardown wipes it.
+                    _archive_run_workspace(
+                        archive_root, run_config, rep, artifacts,
+                    )
 
                     if artifacts.succeeded:
                         completed += 1
@@ -344,8 +413,6 @@ def run_experiments(
                         failed += 1
                 finally:
                     runner.teardown(env_id)
-
-        session.commit()
     except Exception:
         session.rollback()
         raise
@@ -353,7 +420,42 @@ def run_experiments(
         session.close()
         engine.dispose()
 
-    click.echo(f"\nDone: {completed} completed, {failed} failed out of {total_runs}")
+    summary = f"\nDone: {completed} completed, {failed} failed out of {total_runs}"
+    if skipped:
+        summary += f" ({skipped} skipped via resume)"
+    click.echo(summary)
+
+
+def _archive_run_workspace(
+    archive_root: Path,
+    run_config: dict[str, str],
+    replicate: int,
+    artifacts,
+) -> None:
+    """Copy a run's workspace into the archive so it survives /tmp cleanup.
+
+    Layout: <archive_root>/<sorted-factor=value-pairs>/rep<N>[ -failed]/
+    """
+    import shutil
+
+    src = getattr(artifacts, "output_dir", None)
+    if not src:
+        return
+    src = Path(src)
+    if not src.exists():
+        return
+
+    cell_name = "_".join(f"{k}={v}" for k, v in sorted(run_config.items()))
+    suffix = "" if artifacts.succeeded else "-failed"
+    dest = archive_root / cell_name / f"rep{replicate}{suffix}"
+    if dest.exists():
+        # Already archived (idempotent on resume of an in-progress run).
+        return
+    dest.parent.mkdir(parents=True, exist_ok=True)
+    try:
+        shutil.copytree(src, dest)
+    except Exception as exc:  # don't let archival failure abort the experiment
+        click.echo(f"  (archive failed for {cell_name} rep{replicate}: {exc})", err=True)
 
 
 def _store_run_result(

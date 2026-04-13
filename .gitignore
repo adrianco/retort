@@ -212,3 +212,8 @@ __marimo__/
 .logs/
 .beads/
 state.json
+
+# Experiment workspace databases (sqlite shadow files) and per-run archives
+*.db-shm
+*.db-wal
+experiment-*/runs/
