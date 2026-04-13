@@ -431,6 +431,21 @@ def run_experiments(
     archive_root = config_dir / "runs"
     archive_root.mkdir(exist_ok=True)
 
+    # Persist the design matrix so downstream `retort report effects --matrix-id`
+    # can join run results back to factor levels. Idempotent on resume — looks
+    # up by (matrix name + phase) and reuses if found.
+    design_session = get_session(engine)
+    try:
+        matrix_id, run_config_to_row_id = _persist_design_matrix(
+            design_session, registry, design, phase, workspace_config,
+        )
+        design_session.commit()
+    except Exception:
+        design_session.rollback()
+        raise
+    finally:
+        design_session.close()
+
     # Build set of (run_config_json, replicate) pairs to skip when resuming.
     skip_keys: set[tuple[str, int]] = set()
     if resume:
@@ -521,6 +536,7 @@ def run_experiments(
                     _store_run_result(
                         session, run_config, phase, run_idx, rep,
                         artifacts, scores,
+                        design_row_id=run_config_to_row_id.get(config_key),
                     )
                     # Commit per-run so an interrupt loses at most one run.
                     session.commit()
@@ -599,6 +615,92 @@ def _archive_run_workspace(
         click.echo(f"  (meta write failed for {cell_name} rep{replicate}: {exc})", err=True)
 
 
+def _persist_design_matrix(
+    session,
+    registry,
+    design,
+    phase: str,
+    workspace_config,
+) -> tuple[int, dict[str, int]]:
+    """Persist the generated design matrix + factor levels to the database.
+
+    Returns (matrix_id, mapping from sorted-json-config-key to row_id).
+
+    Idempotent: a matrix with a matching (name, phase) is reused, with its
+    rows looked up rather than re-created. This keeps repeated `retort run`
+    invocations from accumulating duplicate matrices.
+    """
+    from retort.storage.models import (
+        DesignMatrix,
+        DesignMatrixCell,
+        DesignMatrixRow,
+        FactorLevel,
+        LifecyclePhase,
+    )
+
+    name = workspace_config.experiment.name or "experiment"
+    matrix_name = f"{name}-{phase}"
+    phase_enum = LifecyclePhase(phase) if not isinstance(phase, LifecyclePhase) else phase
+
+    # Look up an existing matrix with the same (name, phase). On resume this
+    # avoids spawning a new matrix per run.
+    matrix = (
+        session.query(DesignMatrix)
+        .filter(DesignMatrix.name == matrix_name, DesignMatrix.phase == phase_enum)
+        .one_or_none()
+    )
+    if matrix is None:
+        matrix = DesignMatrix(name=matrix_name, phase=phase_enum)
+        session.add(matrix)
+        session.flush()
+
+    # Ensure all (factor_name, level_name) pairs exist as FactorLevel rows.
+    level_lookup: dict[tuple[str, str], int] = {}
+    for factor in registry.factors:
+        for level in factor.levels:
+            existing = (
+                session.query(FactorLevel)
+                .filter(
+                    FactorLevel.factor_name == factor.name,
+                    FactorLevel.level_name == level,
+                )
+                .one_or_none()
+            )
+            if existing is None:
+                existing = FactorLevel(factor_name=factor.name, level_name=level)
+                session.add(existing)
+                session.flush()
+            level_lookup[(factor.name, level)] = existing.id
+
+    # Build the row index → row_id map. Skip rows that already exist (resume).
+    config_to_row_id: dict[str, int] = {}
+    for row_idx, run_config in enumerate(design.run_configs()):
+        existing_row = (
+            session.query(DesignMatrixRow)
+            .filter(
+                DesignMatrixRow.matrix_id == matrix.id,
+                DesignMatrixRow.row_index == row_idx,
+            )
+            .one_or_none()
+        )
+        if existing_row is None:
+            existing_row = DesignMatrixRow(matrix_id=matrix.id, row_index=row_idx)
+            session.add(existing_row)
+            session.flush()
+            for factor_name, level_name in run_config.items():
+                level_id = level_lookup.get((factor_name, level_name))
+                if level_id is None:
+                    # Factor or level not in registry — skip silently.
+                    continue
+                session.add(DesignMatrixCell(
+                    row_id=existing_row.id, factor_level_id=level_id,
+                ))
+
+        config_to_row_id[json.dumps(run_config, sort_keys=True)] = existing_row.id
+
+    return matrix.id, config_to_row_id
+
+
 def _store_run_result(
     session,
     run_config: dict[str, str],
@@ -607,6 +709,7 @@ def _store_run_result(
     replicate: int,
     artifacts,
     scores,
+    design_row_id: int | None = None,
 ) -> None:
     """Store a run and its scores in the database."""
     from retort.storage.models import (
@@ -619,7 +722,7 @@ def _store_run_result(
     status = RunStatus.completed if artifacts.succeeded else RunStatus.failed
 
     run = ExperimentRun(
-        design_row_id=None,
+        design_row_id=design_row_id,
         replicate=replicate,
         status=status,
         started_at=datetime.now(timezone.utc),

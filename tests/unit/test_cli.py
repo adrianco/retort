@@ -105,6 +105,107 @@ def test_export_csv_round_trip(tmp_path: Path):
     assert "0.85" in lines[1]
 
 
+class _StubExperiment:
+    def __init__(self, name="test-exp"):
+        self.name = name
+
+
+class _StubWorkspaceConfig:
+    def __init__(self, name="test-exp"):
+        self.experiment = _StubExperiment(name)
+
+
+def test_persist_design_matrix_creates_rows(tmp_path: Path):
+    from retort.cli import _persist_design_matrix
+    from retort.design.factors import FactorRegistry
+    from retort.design.generator import generate_design
+    from retort.storage.database import create_tables, get_engine, get_session_factory
+    from retort.storage.models import (
+        DesignMatrix, DesignMatrixCell, DesignMatrixRow, FactorLevel,
+    )
+
+    db_path = tmp_path / "retort.db"
+    engine = get_engine(db_path)
+    create_tables(engine)
+    session = get_session_factory(engine)()
+
+    registry = FactorRegistry()
+    registry.add("language", ["python", "go"])
+    registry.add("model", ["opus", "sonnet"])
+    design = generate_design(registry, "screening")
+
+    matrix_id, mapping = _persist_design_matrix(
+        session, registry, design, "screening", _StubWorkspaceConfig(),
+    )
+    session.commit()
+
+    # Matrix row created
+    matrix = session.query(DesignMatrix).filter(DesignMatrix.id == matrix_id).one()
+    assert matrix.name == "test-exp-screening"
+
+    # FactorLevel rows created for every (factor, level) pair
+    levels = {(fl.factor_name, fl.level_name)
+              for fl in session.query(FactorLevel).all()}
+    assert ("language", "python") in levels
+    assert ("language", "go") in levels
+    assert ("model", "opus") in levels
+    assert ("model", "sonnet") in levels
+
+    # One DesignMatrixRow per design row
+    rows = session.query(DesignMatrixRow).filter(
+        DesignMatrixRow.matrix_id == matrix_id,
+    ).all()
+    assert len(rows) == design.num_runs
+
+    # Cells exist linking rows to factor levels
+    cells = session.query(DesignMatrixCell).count()
+    assert cells == len(rows) * 2  # 2 factors per row
+
+    # Mapping covers every config
+    assert len(mapping) == design.num_runs
+
+    session.close()
+    engine.dispose()
+
+
+def test_persist_design_matrix_idempotent(tmp_path: Path):
+    """Re-running --resume must not duplicate the matrix or its rows."""
+    from retort.cli import _persist_design_matrix
+    from retort.design.factors import FactorRegistry
+    from retort.design.generator import generate_design
+    from retort.storage.database import create_tables, get_engine, get_session_factory
+    from retort.storage.models import DesignMatrix, DesignMatrixRow, FactorLevel
+
+    db_path = tmp_path / "retort.db"
+    engine = get_engine(db_path)
+    create_tables(engine)
+    session = get_session_factory(engine)()
+
+    registry = FactorRegistry()
+    registry.add("language", ["python", "go"])
+    registry.add("model", ["opus", "sonnet"])
+    design = generate_design(registry, "screening")
+
+    id1, map1 = _persist_design_matrix(
+        session, registry, design, "screening", _StubWorkspaceConfig(),
+    )
+    session.commit()
+    id2, map2 = _persist_design_matrix(
+        session, registry, design, "screening", _StubWorkspaceConfig(),
+    )
+    session.commit()
+
+    assert id1 == id2  # same matrix
+    assert map1 == map2  # same row IDs
+    # No duplicate matrices, rows, or factor levels
+    assert session.query(DesignMatrix).count() == 1
+    assert session.query(DesignMatrixRow).count() == design.num_runs
+    assert session.query(FactorLevel).count() == 4  # 2 factors x 2 levels
+
+    session.close()
+    engine.dispose()
+
+
 def test_export_csv_excludes_failed_by_default(tmp_path: Path):
     import json
 
