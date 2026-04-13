@@ -6,9 +6,29 @@ Covers all top-level sections: factors, responses, tasks, playpen, design, promo
 from __future__ import annotations
 
 from enum import Enum
-from typing import Annotated, Any
+from typing import Annotated, Any, Literal
 
 from pydantic import BaseModel, Field, model_validator
+
+
+# ---------------------------------------------------------------------------
+# Experiment metadata (visibility, naming)
+# ---------------------------------------------------------------------------
+
+Visibility = Literal["public", "private"]
+
+
+class ExperimentConfig(BaseModel):
+    """Experiment-level metadata.
+
+    ``visibility`` controls which artifacts may be published outside the
+    workspace. It defaults to ``"private"`` (fail-closed) so that omitting
+    the field — or copy-pasting a public example for confidential work —
+    never accidentally leaks proprietary code, task specs, or reports.
+    """
+
+    name: Annotated[str | None, Field(default=None, description="Human-readable experiment name")]
+    visibility: Annotated[Visibility, Field(default="private", description="public = artifacts safe to publish; private = local-only")]
 
 
 # ---------------------------------------------------------------------------
@@ -136,6 +156,7 @@ def _parse_responses(raw: list[str | dict[str, Any]]) -> list[ResponseMetric]:
 class WorkspaceConfig(BaseModel):
     """Root configuration model for a Retort workspace.yaml file."""
 
+    experiment: Annotated[ExperimentConfig, Field(default_factory=ExperimentConfig)]
     factors: Annotated[dict[str, Factor], Field(min_length=1, description="Experimental factors")]
     responses: Annotated[list[ResponseMetric], Field(min_length=1, description="Response metrics to measure")]
     tasks: Annotated[list[TaskSource], Field(min_length=1, description="Task source specifications")]

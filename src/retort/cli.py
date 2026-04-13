@@ -19,6 +19,13 @@ WORKSPACE_TEMPLATE = """\
 # Retort workspace configuration
 # See docs/configuration.md for full reference
 
+experiment:
+  name: __NAME__
+  # visibility: public  -> runs/ and reports/web/ are git-tracked and safe to publish
+  # visibility: private -> all artifacts stay local; nothing leaks
+  # Default is "private" (fail-closed). Opt into public explicitly.
+  visibility: __VISIBILITY__
+
 factors:
   language:
     levels: [python, typescript, go]
@@ -60,13 +67,53 @@ def main() -> None:
     """
 
 
+_GITIGNORE_COMMON = """\
+# Retort — workspace-local state
+retort.db
+retort.db-journal
+retort.db-shm
+retort.db-wal
+"""
+
+_GITIGNORE_PRIVATE_EXTRA = """\
+
+# Retort — visibility=private: keep all generated artifacts local
+runs/
+reports/
+evaluation.md
+findings.jsonl
+TASK.md
+"""
+
+_GITIGNORE_PUBLIC_EXTRA = """\
+
+# Retort — visibility=public: artifacts (runs/, reports/web/) are tracked
+# Only ignore caches and intermediate scratch.
+.retort-cache/
+"""
+
+
+def _gitignore_for(visibility: str) -> str:
+    """Return the .gitignore body for a given visibility level."""
+    extra = _GITIGNORE_PUBLIC_EXTRA if visibility == "public" else _GITIGNORE_PRIVATE_EXTRA
+    return _GITIGNORE_COMMON + extra
+
+
 @main.command()
 @click.argument("name")
 @click.option("--force", is_flag=True, help="Overwrite existing directory")
-def init(name: str, force: bool):
+@click.option(
+    "--visibility",
+    type=click.Choice(["public", "private"]),
+    default="private",
+    show_default=True,
+    help="public = artifacts safe to publish; private = local-only (fail-closed default).",
+)
+def init(name: str, force: bool, visibility: str):
     """Initialize a new Retort workspace.
 
-    Creates a workspace directory with a config template and initialized SQLite database.
+    Creates a workspace directory with a config template, a visibility-aware
+    .gitignore, and an initialized SQLite database.
     """
     workspace = Path(name).resolve()
 
@@ -82,15 +129,26 @@ def init(name: str, force: bool):
 
     # Write config template
     config_path = workspace / "workspace.yaml"
-    config_path.write_text(WORKSPACE_TEMPLATE)
+    config_path.write_text(
+        WORKSPACE_TEMPLATE.replace("__NAME__", name).replace("__VISIBILITY__", visibility)
+    )
+
+    # Write visibility-aware .gitignore
+    gitignore_path = workspace / ".gitignore"
+    gitignore_path.write_text(_gitignore_for(visibility))
 
     # Initialize database
     db_path = workspace / "retort.db"
     _init_database(db_path)
 
     click.echo(f"Initialized Retort workspace in {workspace}")
-    click.echo(f"  Config:   {config_path}")
-    click.echo(f"  Database: {db_path}")
+    click.echo(f"  Config:     {config_path}")
+    click.echo(f"  Gitignore:  {gitignore_path} (visibility={visibility})")
+    click.echo(f"  Database:   {db_path}")
+    if visibility == "private":
+        click.echo("  Visibility: PRIVATE — runs/, reports/, evaluations stay local.")
+    else:
+        click.echo("  Visibility: PUBLIC — runs/ and reports/web/ are git-tracked.")
     click.echo()
     click.echo("Next steps:")
     click.echo(f"  cd {name}")
@@ -105,6 +163,71 @@ def _init_database(db_path: Path) -> None:
     engine = get_engine(db_path)
     create_tables(engine)
     engine.dispose()
+
+
+# Paths whose contents are sensitive in private mode (must be ignored).
+_PRIVATE_SENSITIVE_PATHS = (
+    "runs",
+    "reports",
+    "evaluation.md",
+    "findings.jsonl",
+    "TASK.md",
+)
+
+
+@main.command("visibility-check")
+@click.option(
+    "--config",
+    type=click.Path(exists=True),
+    default="workspace.yaml",
+    show_default=True,
+    help="Path to workspace YAML config.",
+)
+def visibility_check(config: str) -> None:
+    """Audit which workspace artifacts would be published vs kept local.
+
+    Reads ``experiment.visibility`` from the workspace config, then walks
+    the workspace directory and reports each notable artifact as PUBLISHED
+    or LOCAL based on .gitignore rules. Exits non-zero if a private-mode
+    workspace would publish a sensitive path.
+    """
+    from retort.config.loader import load_workspace
+
+    cfg = load_workspace(config)
+    workspace_dir = Path(config).resolve().parent
+    visibility = cfg.experiment.visibility
+
+    click.echo(f"Workspace:  {workspace_dir}")
+    click.echo(f"Visibility: {visibility}")
+    click.echo()
+
+    gitignore_path = workspace_dir / ".gitignore"
+    ignored_lines: set[str] = set()
+    if gitignore_path.is_file():
+        for line in gitignore_path.read_text().splitlines():
+            line = line.strip()
+            if line and not line.startswith("#"):
+                ignored_lines.add(line.rstrip("/"))
+
+    leaks: list[str] = []
+    for entry in sorted(workspace_dir.iterdir()):
+        name = entry.name
+        if name in {".git", ".gitignore", "workspace.yaml"}:
+            continue
+        ignored = name in ignored_lines or f"{name}/" in ignored_lines or name.rstrip("/") in ignored_lines
+        status = "LOCAL " if ignored else "PUBLISH"
+        click.echo(f"  {status}  {name}")
+        if visibility == "private" and not ignored and name in _PRIVATE_SENSITIVE_PATHS:
+            leaks.append(name)
+
+    if leaks:
+        click.echo()
+        click.echo(
+            f"ERROR: visibility=private but these sensitive paths are NOT gitignored: {leaks}",
+            err=True,
+        )
+        click.echo("Add them to .gitignore before committing.", err=True)
+        raise click.ClickException("private workspace would leak sensitive artifacts")
 
 
 @main.group()
@@ -405,6 +528,7 @@ def run_experiments(
                     # Archive the workspace before teardown wipes it.
                     _archive_run_workspace(
                         archive_root, run_config, rep, artifacts,
+                        visibility=workspace_config.experiment.visibility,
                     )
 
                     if artifacts.succeeded:
@@ -431,10 +555,15 @@ def _archive_run_workspace(
     run_config: dict[str, str],
     replicate: int,
     artifacts,
+    visibility: str = "private",
 ) -> None:
     """Copy a run's workspace into the archive so it survives /tmp cleanup.
 
     Layout: <archive_root>/<sorted-factor=value-pairs>/rep<N>[ -failed]/
+
+    Writes ``_meta.json`` next to the copied workspace so downstream tooling
+    (report web, file-run-issues) can read the experiment's visibility level
+    without re-parsing workspace.yaml.
     """
     import shutil
 
@@ -456,6 +585,18 @@ def _archive_run_workspace(
         shutil.copytree(src, dest)
     except Exception as exc:  # don't let archival failure abort the experiment
         click.echo(f"  (archive failed for {cell_name} rep{replicate}: {exc})", err=True)
+        return
+
+    meta = {
+        "visibility": visibility,
+        "run_config": run_config,
+        "replicate": replicate,
+        "succeeded": artifacts.succeeded,
+    }
+    try:
+        (dest / "_meta.json").write_text(json.dumps(meta, indent=2, sort_keys=True))
+    except Exception as exc:
+        click.echo(f"  (meta write failed for {cell_name} rep{replicate}: {exc})", err=True)
 
 
 def _store_run_result(

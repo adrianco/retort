@@ -3,6 +3,12 @@
 # This file defines an experiment workspace for evaluating AI-assisted
 # development tooling stacks using Design of Experiments methodology.
 
+experiment:
+  name: example
+  # public  -> runs/, reports/web/, evaluations are git-tracked and safe to publish.
+  # private -> all generated artifacts stay local. Default if omitted (fail-closed).
+  visibility: public
+
 factors:
   language:
     levels: [python, typescript, rust, go]
