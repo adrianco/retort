@@ -206,6 +206,34 @@ def test_persist_design_matrix_idempotent(tmp_path: Path):
     engine.dispose()
 
 
+class TestShardLogic:
+    def test_no_shard_owns_everything(self):
+        from retort.cli import _parse_shard, _shard_owns
+        idx, total = _parse_shard(None)
+        assert (idx, total) == (0, 1)
+        assert _shard_owns("anything", 1, idx, total)
+
+    def test_shard_partition_covers_everything(self):
+        from retort.cli import _shard_owns
+        # 100 (config_key, rep) pairs across 4 shards → each cell owned
+        # by exactly one shard.
+        keys = [(f"k{i}", r) for i in range(20) for r in range(1, 6)]
+        ownership = {k: 0 for k in keys}
+        for i in range(4):
+            for k, r in keys:
+                if _shard_owns(k, r, i, 4):
+                    ownership[(k, r)] += 1
+        assert all(v == 1 for v in ownership.values())
+
+    def test_invalid_shard_format(self):
+        import pytest as _pt
+        from retort.cli import _parse_shard
+        from click.exceptions import ClickException
+        for bad in ["0", "1/0", "-1/4", "5/4", "x/4"]:
+            with _pt.raises(ClickException):
+                _parse_shard(bad)
+
+
 def test_export_csv_excludes_failed_by_default(tmp_path: Path):
     import json
 

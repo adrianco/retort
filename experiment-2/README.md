@@ -36,6 +36,21 @@ retort run --phase screening --config experiment-2/workspace.yaml
 retort run --phase screening --config experiment-2/workspace.yaml --resume
 ```
 
+## Run in parallel (multiple polecats)
+
+Each invocation can take a slice of the design via `--shard`. Slings to N polecats then look like:
+
+```bash
+gt sling re-ucc retort --crew alpha   --args "retort run --phase screening --config experiment-2/workspace.yaml --resume --shard 0/4"
+gt sling re-ucc retort --crew bravo   --args "retort run --phase screening --config experiment-2/workspace.yaml --resume --shard 1/4"
+gt sling re-ucc retort --crew charlie --args "retort run --phase screening --config experiment-2/workspace.yaml --resume --shard 2/4"
+gt sling re-ucc retort --crew delta   --args "retort run --phase screening --config experiment-2/workspace.yaml --resume --shard 3/4"
+```
+
+The shard partition is a deterministic hash of `(config_key, replicate)`, so two shards never both pick the same cell. Per-run sqlite commits + `--resume` mean concurrent writers are safe (sqlite WAL handles the brief lock contention), and the archived workspaces (`runs/<cell>/rep<N>/`) get unique paths per cell.
+
+**Cost ceiling:** parallelism multiplies per-second token usage. With opus + claude code, 4 parallel runs at ~150K tokens/min each will graze the org's rate limit. Keep the shard count to a value the API tier comfortably supports.
+
 ## Combine with experiment-1 for cross-task ANOVA
 
 After the run completes, build a combined CSV that adds a `task` column to each experiment's data, then run ANOVA:
@@ -45,10 +60,11 @@ After the run completes, build a combined CSV that adds a `task` column to each 
 retort export csv --db experiment-1/retort.db -o experiment-1/reports/runs.csv
 retort export csv --db experiment-2/retort.db -o experiment-2/reports/runs.csv
 
-# Tag each with its task and concat. Awk one-liner avoids new tooling:
-{ awk 'NR==1{print "task,"$0; next}{print "rest-api-crud,"$0}' experiment-1/reports/runs.csv;
-  awk 'NR>1{print "brazil-bench,"$0}' experiment-2/reports/runs.csv;
-} > combined.csv
+# Tag each with its task and merge — adds a "task" column from the label.
+retort export merge \
+    rest-api-crud=experiment-1/reports/runs.csv \
+    brazil-bench=experiment-2/reports/runs.csv \
+    --tag-column task -o combined.csv
 
 # Cross-task ANOVA: task is now a factor alongside the others
 retort analyze \

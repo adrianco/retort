@@ -374,6 +374,17 @@ def _load_from_stdin() -> FactorRegistry:
     is_flag=True,
     help="With --resume, also re-run cells whose prior attempts only failed (no completed replicate).",
 )
+@click.option(
+    "--shard",
+    type=str,
+    default=None,
+    help=(
+        "Run only a slice of the design: 'INDEX/TOTAL' (e.g. '0/4' takes the "
+        "1st of 4 shards). Each (run, replicate) pair is hashed deterministically "
+        "to a shard. Combine with --resume on a shared retort.db so multiple "
+        "polecats can run in parallel without colliding."
+    ),
+)
 def run_experiments(
     phase: str,
     config: str,
@@ -382,6 +393,7 @@ def run_experiments(
     dry_run: bool,
     resume: bool,
     retry_failed: bool,
+    shard: str | None,
 ) -> None:
     """Execute experiment runs for a design matrix.
 
@@ -411,6 +423,8 @@ def run_experiments(
 
     if retry_failed and not resume:
         raise click.ClickException("--retry-failed requires --resume.")
+
+    shard_index, shard_total = _parse_shard(shard)
 
     # Generate design matrix
     design = generate_design(registry, phase)
@@ -481,18 +495,29 @@ def run_experiments(
 
     if dry_run:
         click.echo("\n[dry-run] Design matrix:")
+        if shard_total > 1:
+            click.echo(f"Shard: {shard_index}/{shard_total} — only owned cells run.")
         will_run = 0
         will_skip = 0
+        will_other_shard = 0
         for i, run_config in enumerate(design.run_configs()):
             config_key = json.dumps(run_config, sort_keys=True)
             for rep in range(1, reps + 1):
+                if not _shard_owns(config_key, rep, shard_index, shard_total):
+                    will_other_shard += 1
+                    click.echo(f"  [shrd] Run {i+1} rep {rep}: {run_config}")
+                    continue
                 marker = "skip" if (config_key, rep) in skip_keys else "RUN "
                 if marker == "skip":
                     will_skip += 1
                 else:
                     will_run += 1
                 click.echo(f"  [{marker}] Run {i+1} rep {rep}: {run_config}")
-        click.echo(f"\nWould execute {will_run} runs ({will_skip} skipped). Exiting.")
+        msg = f"\nWould execute {will_run} runs ({will_skip} skipped"
+        if shard_total > 1:
+            msg += f", {will_other_shard} owned by other shards"
+        msg += "). Exiting."
+        click.echo(msg)
         engine.dispose()
         return
 
@@ -519,6 +544,10 @@ def run_experiments(
 
             for rep in range(1, reps + 1):
                 label = f"[{run_idx+1}/{design.num_runs} rep {rep}/{reps}]"
+                if not _shard_owns(config_key, rep, shard_index, shard_total):
+                    # Belongs to a different shard. Don't even mark it skipped —
+                    # another polecat will pick it up.
+                    continue
                 if (config_key, rep) in skip_keys:
                     click.echo(f"  {label} {stack.language}/{stack.framework}/{stack.agent} — skip (resume)")
                     skipped += 1
@@ -581,6 +610,43 @@ def run_experiments(
     if skipped:
         summary += f" ({skipped} skipped via resume)"
     click.echo(summary)
+
+
+def _parse_shard(spec: str | None) -> tuple[int, int]:
+    """Parse '--shard INDEX/TOTAL' into (index, total). None ⇒ (0, 1)."""
+    if not spec:
+        return (0, 1)
+    if "/" not in spec:
+        raise click.ClickException(
+            f"--shard must be 'INDEX/TOTAL', got {spec!r} (e.g. '0/4')"
+        )
+    idx_str, _, total_str = spec.partition("/")
+    try:
+        idx = int(idx_str)
+        total = int(total_str)
+    except ValueError as exc:
+        raise click.ClickException(f"--shard parts must be integers: {exc}") from None
+    if total < 1:
+        raise click.ClickException("--shard TOTAL must be ≥ 1")
+    if idx < 0 or idx >= total:
+        raise click.ClickException(f"--shard INDEX must be in [0, {total - 1}], got {idx}")
+    return (idx, total)
+
+
+def _shard_owns(config_key: str, rep: int, shard_index: int, shard_total: int) -> bool:
+    """Deterministic per-(cell, replicate) sharding.
+
+    A simple modulo over a hash of the (config, replicate) string. Stable
+    across runs and across processes — every shard sees the same partition
+    so two polecats with --shard 0/4 and --shard 1/4 never both pick the
+    same cell.
+    """
+    if shard_total <= 1:
+        return True
+    import hashlib
+    digest = hashlib.sha1(f"{config_key}#{rep}".encode()).digest()
+    bucket = int.from_bytes(digest[:4], "big") % shard_total
+    return bucket == shard_index
 
 
 def _archive_run_workspace(
@@ -1620,6 +1686,94 @@ def export_csv(db: str, output: str | None, include_failed: bool) -> None:
     if output:
         Path(output).write_text(rendered)
         click.echo(f"Wrote {len(rows)} rows to {output}", err=True)
+    else:
+        sys.stdout.write(rendered)
+
+
+@export.command("merge")
+@click.argument("inputs", nargs=-1, required=True)
+@click.option(
+    "--output",
+    "-o",
+    type=click.Path(),
+    default=None,
+    help="Output CSV path. Defaults to stdout.",
+)
+@click.option(
+    "--tag-column",
+    type=str,
+    default="experiment",
+    show_default=True,
+    help="Name of the column added to distinguish rows by source.",
+)
+def export_merge(inputs: tuple[str, ...], output: str | None, tag_column: str) -> None:
+    """Combine multiple per-experiment CSVs into one wide CSV.
+
+    Each input is supplied as ``label=path/to/runs.csv``. The label is
+    written into a new column named by ``--tag-column`` (default
+    ``experiment``). All input columns are unioned; missing columns
+    fill with empty strings. Suitable for cross-experiment ANOVA.
+
+    Example (combine experiment-1 + experiment-2 for a task-factored
+    ANOVA):
+
+    \b
+        retort export merge \\
+            rest-api-crud=experiment-1/reports/runs.csv \\
+            brazil-bench=experiment-2/reports/runs.csv \\
+            --tag-column task -o combined.csv
+
+        retort analyze --data combined.csv -r code_quality \\
+            -f language -f model -f tooling -f task --interactions
+    """
+    import csv as _csv
+    import io
+    import sys
+
+    parsed: list[tuple[str, Path]] = []
+    for spec in inputs:
+        if "=" not in spec:
+            raise click.ClickException(
+                f"Each input must be label=path, got {spec!r}. "
+                "Example: rest-api-crud=experiment-1/reports/runs.csv"
+            )
+        label, _, path_str = spec.partition("=")
+        path = Path(path_str)
+        if not path.exists():
+            raise click.ClickException(f"Input not found: {path}")
+        parsed.append((label, path))
+
+    # First pass: collect the union of all columns.
+    all_columns: list[str] = [tag_column]
+    seen_columns: set[str] = {tag_column}
+    rows_by_label: list[tuple[str, list[dict[str, str]]]] = []
+    for label, path in parsed:
+        with path.open() as f:
+            reader = _csv.DictReader(f)
+            file_rows = list(reader)
+            rows_by_label.append((label, file_rows))
+            for col in reader.fieldnames or []:
+                if col not in seen_columns:
+                    all_columns.append(col)
+                    seen_columns.add(col)
+
+    buf = io.StringIO()
+    writer = _csv.DictWriter(buf, fieldnames=all_columns, extrasaction="ignore")
+    writer.writeheader()
+    total = 0
+    for label, file_rows in rows_by_label:
+        for row in file_rows:
+            row[tag_column] = label
+            writer.writerow(row)
+            total += 1
+
+    rendered = buf.getvalue()
+    if output:
+        Path(output).write_text(rendered)
+        click.echo(
+            f"Merged {len(parsed)} input(s), {total} row(s), {len(all_columns)} column(s) -> {output}",
+            err=True,
+        )
     else:
         sys.stdout.write(rendered)
 
