@@ -14,9 +14,23 @@ Retort applies statistical Design of Experiments (DoE) to systematically evaluat
 >
 > **Currently in flight:** Experiment 1 is being re-run with `replicates: 3` to get past the n=1 results below. Rust was added as a fourth language. Results will replace the table when the run completes.
 
-## Early Results: Experiment 1 (in progress)
+## Experiment 1 Results
 
-> **Caveat:** The table below is from a single replicate of each cell on a small task (REST API CRUD) — directional, not statistically significant. Replicates and a Rust column are being added now; results will be revised.
+Full data is in [`experiment-1/reports/`](experiment-1/reports/) — ANOVA, per-stack maturity, full CSV, and a static-HTML web report (sortable, with per-stack drill-downs). Below is the headline.
+
+**Setup:** 4 languages (python, typescript, go, rust) × 2 models (opus, sonnet) × 2 tooling (none, beads) × 3 replicates = 48 runs against the bundled `rest-api-crud` task. **46 completed, 3 failed.** Total cost ≈ $20.
+
+**ANOVA on `code_quality`:** R² = 0.80, language is highly significant (p < 5e-14); model and tooling are not significant on their own.
+
+**Top stack by maturity:** `go / sonnet / beads` — maturity 1.000 (3/3 completed, perfect agreement, code_quality 1.000). Generate the maturity report yourself with `retort maturity --db experiment-1/retort.db`.
+
+**Failed cells:** `typescript / sonnet / beads` (1 of 3), `rust / sonnet / beads` (2 of 3) — likely the 15-minute timeout on slower toolchains, not a true language-stack issue.
+
+The original n=1 table below (from the first pass before replicates landed) is kept for reference.
+
+### Original n=1 table (pre-replicates)
+
+> Single runs on a small task (REST API CRUD). Treat as directional only — superseded by the replicate-aware results above.
 
 **Task:** Build a REST API with CRUD operations for a book collection (Flask/Express/net-http + SQLite)
 **Factors:** Language (python, typescript, go) x Model (opus, sonnet) x Tooling (none, beads)
@@ -37,15 +51,10 @@ Retort applies statistical Design of Experiments (DoE) to systematically evaluat
 | go | sonnet | none | 0.96 | 275,497 | $0.25 | 126s | ok |
 | go | sonnet | beads | **1.00** | 571,800 | $0.35 | 163s | ok |
 
-**Observations (n=1, directional only):**
-- **Go scored highest** across all combinations (0.89–1.00), likely due to `go vet` catching real issues and Go's simpler project structure
-- **Go + sonnet + beads** achieved a perfect 1.00 quality score
-- **Beads helped Go** but **hurt Python** — may be a language-ecosystem effect (Go's explicit style benefits from structured task tracking)
-- **Sonnet used more tokens** than Opus across all languages, especially TypeScript (936K vs 245K)
-- **TypeScript + sonnet + beads** was the only failure — the combination exceeded useful context
-- **Total experiment cost: $3.97** for 12 runs (4.9M tokens)
-
-These results will be refined with replicates and more complex tasks (brazil-bench template).
+**Observations (n=1, directional only — superseded by replicate-aware ANOVA above):**
+- **Go scored highest** across all combinations (0.89–1.00)
+- **Beads helped Go** but **hurt Python** — replicate runs confirmed: the only sub-0.8-maturity stacks in the full experiment are `python/{opus,sonnet}/beads`
+- **TypeScript + sonnet + beads** failed in the original pass; rerunning with replicates surfaced timeout-related rust failures too
 
 ## Installation
 
