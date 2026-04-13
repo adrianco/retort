@@ -156,4 +156,4 @@ Retort ships with these scorers:
 | `test_coverage` | Percentage of code covered by generated tests |
 | `defect_rate` | Fraction of validation checks that fail |
 | `maintainability` | Success rate when a different agent modifies the code |
-| `idiomatic_score` | LLM-as-judge rating of convention adherence |
+| `idiomatic` | LLM-as-judge rating of convention adherence (opt-in: per-run claude haiku call) |

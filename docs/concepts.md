@@ -34,7 +34,7 @@ Each experiment run produces a vector of response metrics:
 | `test_coverage` | Generated test coverage percentage |
 | `defect_rate` | Post-generation validation failures |
 | `maintainability` | Cross-agent modification success rate |
-| `idiomatic_score` | LLM-as-judge convention adherence |
+| `idiomatic` | LLM-as-judge convention adherence (opt-in: per-run claude haiku call) |
 
 ## ANOVA: Which factors matter?
 
