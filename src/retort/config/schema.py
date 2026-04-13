@@ -86,14 +86,15 @@ class ResponseMetric(BaseModel):
 class TaskSource(BaseModel):
     """A task source specification.
 
-    Supported URI schemes: ``bundled://``, ``git://``, ``local://``.
+    Supported URI schemes: ``bundled://``, ``git://``, ``local://``,
+    ``github://owner/repo[/path/to/spec]``.
     """
 
-    source: Annotated[str, Field(description="Task source URI (bundled://, git://, local://)")]
+    source: Annotated[str, Field(description="Task source URI (bundled://, git://, local://, github://)")]
 
     @model_validator(mode="after")
     def valid_scheme(self) -> TaskSource:
-        valid = ("bundled://", "git://", "local://")
+        valid = ("bundled://", "git://", "local://", "github://")
         if not any(self.source.startswith(s) for s in valid):
             raise ValueError(f"task source must start with one of {valid}, got {self.source!r}")
         return self

@@ -1,0 +1,9 @@
+# Retort — workspace-local state
+retort.db
+retort.db-journal
+retort.db-shm
+retort.db-wal
+
+# Retort — visibility=public: artifacts (runs/, reports/web/) are tracked
+# Only ignore caches and intermediate scratch.
+.retort-cache/

@@ -1,0 +1,84 @@
+# Experiment 2 — Cross-task prediction via fractional brazil-bench sample
+#
+# Strategy: don't run brazil-bench's full design. Run a small *aligned*
+# fraction whose factor space matches experiment-1, then combine the
+# two datasets for an ANOVA where `task` is itself a factor. The model
+# fitted on the combined data can predict brazil-bench cells we haven't
+# actually run.
+#
+# Why this works:
+#   - Experiment 1 has the full 16-cell language × model × tooling cube
+#     covered for task=rest-api-crud (with replicates).
+#   - Experiment 2 covers a Resolution III fraction of the same cube
+#     for task=brazil-bench (singletons — characterization adds reps
+#     later if needed).
+#   - The combined CSV gives the ANOVA enough degrees of freedom to
+#     estimate the (task) main effect and identify which cells, if any,
+#     change ranking when the task gets harder.
+#
+# Cost model: brazil-bench runs ~5–10× longer per cell than rest-api-crud.
+# A R3 fraction of 4 × 2 × 2 = 16 cells lands at ~6–8 cells. 6 cells × 1
+# replicate × ~10 min/cell ≈ 1 hour. Cheap enough to iterate.
+#
+# To use:
+#   retort design generate --phase screening --config experiment-2/workspace.yaml
+#   retort run --phase screening --config experiment-2/workspace.yaml --dry-run
+#   retort run --phase screening --config experiment-2/workspace.yaml
+#
+# Then combine with experiment-1 for cross-task prediction:
+#   retort export csv --db experiment-1/retort.db -o experiment-1/reports/runs.csv
+#   retort export csv --db experiment-2/retort.db -o experiment-2/reports/runs.csv
+#   # Add a task column to each, concat, then:
+#   retort analyze --data combined.csv -r code_quality \
+#       -f language -f model -f tooling -f task
+
+experiment:
+  name: experiment-2-brazil-bench-fraction
+  visibility: public
+
+# Factors deliberately match experiment-1's so the two CSVs are
+# directly combinable. No new factors here — the new dimension is
+# `task`, added at merge time (see experiment-2/README.md).
+factors:
+  language:
+    levels: [python, typescript, go, rust]
+  model:
+    levels: [opus, sonnet]
+  tooling:
+    levels: [none, beads]
+
+# All scorers including idiomatic — experiment-2 is where we validate
+# the new ones against a non-trivial task.
+responses:
+  - code_quality
+  - build_time
+  - token_efficiency
+  - test_coverage
+  - defect_rate
+  - maintainability
+  - idiomatic            # opt-in — ~$0.001/run for haiku judge
+
+# brazil-bench/benchmark-template — Brazilian Soccer MCP server.
+# Pinning the spec at file granularity so reruns see the same prompt.
+tasks:
+  - source: github://brazil-bench/benchmark-template/brazilian-soccer-mcp-guide.md
+
+playpen:
+  runner: local
+  replicates: 1          # screening singletons; characterization adds
+                         # reps on the surviving factors.
+  timeout_minutes: 25    # brazil-bench takes longer than rest-api-crud
+
+design:
+  screening_resolution: 3
+  significance_threshold: 0.10
+
+promotion:
+  screening_to_trial: { p_value: 0.10 }
+  trial_to_production: { posterior_confidence: 0.80 }
+
+evaluation:
+  enabled: true
+  model: haiku
+  min_severity_to_file: high
+  issue_tracker: beads
