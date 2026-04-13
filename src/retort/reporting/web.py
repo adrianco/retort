@@ -208,6 +208,7 @@ _TELEMETRY_LABELS: dict[str, str] = {
     "_tokens": "tokens",
     "_cost_usd": "cost ($)",
     "_duration_seconds": "duration (s)",
+    "_turns": "turns",
 }
 
 
@@ -219,6 +220,8 @@ def _format_metric(name: str, value: float) -> str:
         return f"${value:.4f}"
     if name == "_duration_seconds":
         return f"{value:.1f}s"
+    if name == "_turns":
+        return f"{int(value)}"
     return f"{value:.3f}"
 
 
@@ -305,11 +308,12 @@ def _stack_telemetry(
     runs: list,
     results_by_run: dict[int, list],
 ) -> dict[str, float | None]:
-    """Per-stack mean tokens/cost/duration. None when no data."""
+    """Per-stack mean tokens/cost/duration/turns. None when no data."""
     sig = stack.stack_signature
     tokens: list[float] = []
     cost: list[float] = []
     duration: list[float] = []
+    turns: list[float] = []
     for run in runs:
         try:
             run_sig = json.dumps(json.loads(run.run_config_json or "{}"), sort_keys=True)
@@ -326,10 +330,13 @@ def _stack_telemetry(
                 cost.append(float(res.value))
             elif res.metric_name == "_duration_seconds":
                 duration.append(float(res.value))
+            elif res.metric_name == "_turns":
+                turns.append(float(res.value))
     return {
         "tokens_mean": (sum(tokens) / len(tokens)) if tokens else None,
         "cost_mean": (sum(cost) / len(cost)) if cost else None,
         "duration_mean": (sum(duration) / len(duration)) if duration else None,
+        "turns_mean": (sum(turns) / len(turns)) if turns else None,
     }
 
 
@@ -432,6 +439,7 @@ def _render_index(
     <th class="numeric">tokens (mean)</th>
     <th class="numeric">cost (mean)</th>
     <th class="numeric">duration (mean)</th>
+    <th class="numeric">turns (mean)</th>
     <th class="numeric">$/quality</th>
   </tr></thead>
   <tbody>{rows_html}</tbody>
@@ -476,6 +484,7 @@ def _render_stack_row(
     tokens_cell = _num_cell(telemetry["tokens_mean"], "{:,.0f}")
     cost_cell = _num_cell(telemetry["cost_mean"], "${:.4f}")
     duration_cell = _num_cell(telemetry["duration_mean"], "{:.1f}s")
+    turns_cell = _num_cell(telemetry["turns_mean"], "{:.1f}")
 
     # $/quality — lower is better (more quality per dollar).
     if telemetry["cost_mean"] and stack.headline_mean and stack.headline_mean > 0:
@@ -497,6 +506,7 @@ def _render_stack_row(
   {tokens_cell}
   {cost_cell}
   {duration_cell}
+  {turns_cell}
   {cpq_cell}
 </tr>"""
 

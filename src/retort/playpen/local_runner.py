@@ -41,9 +41,11 @@ class LocalRunner:
         self,
         *,
         timeout_minutes: int = 30,
+        max_turns: int = 30,
         work_dir: Path | None = None,
     ) -> None:
         self.timeout_minutes = timeout_minutes
+        self.max_turns = max_turns
         self.work_dir = work_dir or Path(tempfile.mkdtemp(prefix="retort-local-"))
         self._envs: dict[str, _EnvInfo] = {}
 
@@ -212,7 +214,7 @@ class LocalRunner:
                 "claude",
                 "-p", prompt,
                 "--output-format", "json",
-                "--max-turns", "30",
+                "--max-turns", str(self.max_turns),
                 "--dangerously-skip-permissions",
             ]
 

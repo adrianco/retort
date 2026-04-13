@@ -69,6 +69,10 @@ playpen:
   replicates: 1          # screening singletons; characterization adds
                          # reps on the surviving factors.
   timeout_minutes: 25    # brazil-bench takes longer than rest-api-crud
+  max_turns: 60          # brazil-bench is more complex; especially Java
+                         # needs ~30 turns just to scaffold pom.xml +
+                         # package dirs before reaching implementation.
+                         # Smoke test confirmed 30 wasn't enough for Java.
 
 design:
   screening_resolution: 3

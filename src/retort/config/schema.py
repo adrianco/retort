@@ -116,6 +116,14 @@ class PlaypenConfig(BaseModel):
     runner: Annotated[RunnerType, Field(default=RunnerType.docker)]
     replicates: Annotated[int, Field(default=3, ge=1, description="Runs per design point")]
     timeout_minutes: Annotated[int, Field(default=30, ge=1)]
+    max_turns: Annotated[int, Field(
+        default=30, ge=1,
+        description=(
+            "Per-run agent turn cap (passed to claude --max-turns). Bigger "
+            "tasks like brazil-bench or anything verbose-Java need more "
+            "turns to scaffold project structure AND write code."
+        ),
+    )]
     cost_limit_usd: Annotated[float | None, Field(default=None, ge=0, description="Spend cap per screening phase")]
 
 

@@ -524,7 +524,10 @@ def run_experiments(
     # Set up runner and scorer
     runner_type = workspace_config.playpen.runner
     if runner_type == "local":
-        runner = LocalRunner(timeout_minutes=workspace_config.playpen.timeout_minutes)
+        runner = LocalRunner(
+            timeout_minutes=workspace_config.playpen.timeout_minutes,
+            max_turns=workspace_config.playpen.max_turns,
+        )
     else:
         runner = DockerRunner(timeout_minutes=workspace_config.playpen.timeout_minutes)
     metric_names = [r.name for r in workspace_config.responses]
@@ -980,6 +983,18 @@ def _store_run_result(
                 metric_name="_cost_usd",
                 value=float(cost_str),
             ))
+        except (TypeError, ValueError):
+            pass
+    turns_str = artifacts.metadata.get("num_turns") if artifacts.metadata else None
+    if turns_str:
+        try:
+            turns_val = float(turns_str)
+            if turns_val > 0:
+                session.add(RunResult(
+                    run_id=run.id,
+                    metric_name="_turns",
+                    value=turns_val,
+                ))
         except (TypeError, ValueError):
             pass
 
