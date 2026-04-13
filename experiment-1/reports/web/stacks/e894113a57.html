@@ -23,17 +23,21 @@
 
 <h2>Runs</h2>
 <table>
-  <thead><tr><th class="numeric">Run</th><th>Rep</th><th>Status</th><th class="numeric">build_time</th><th class="numeric">code_quality</th><th class="numeric">cost ($)</th><th class="numeric">duration (s)</th><th class="numeric">tokens</th><th>Code review</th></tr></thead>
-  <tbody><tr><td>41</td><td>rep 1</td><td>completed</td><td class="numeric">1.000</td><td class="numeric">0.833</td><td class="numeric">$0.5013</td><td class="numeric">134.6s</td><td class="numeric">405,949</td><td class="muted">—</td></tr>
-<tr><td>42</td><td>rep 2</td><td>completed</td><td class="numeric">1.000</td><td class="numeric">0.833</td><td class="numeric">$0.4481</td><td class="numeric">129.9s</td><td class="numeric">287,633</td><td class="muted">—</td></tr>
-<tr><td>43</td><td>rep 3</td><td>completed</td><td class="numeric">1.000</td><td class="numeric">0.833</td><td class="numeric">$0.4931</td><td class="numeric">163.4s</td><td class="numeric">371,717</td><td class="muted">—</td></tr></tbody>
+  <thead><tr><th class="numeric">Run</th><th>Rep</th><th>Status</th><th class="numeric">build_time</th><th class="numeric">code_quality</th><th class="numeric">cost ($)</th><th class="numeric">duration (s)</th><th class="numeric">tokens</th><th class="numeric">Files</th><th class="numeric">LOC</th></tr></thead>
+  <tbody><tr><td>41</td><td>rep 1</td><td>completed</td><td class="numeric">1.000</td><td class="numeric">0.833</td><td class="numeric">$0.5013</td><td class="numeric">134.6s</td><td class="numeric">405,949</td><td class="numeric">3</td><td class="numeric">342</td></tr>
+<tr><td>42</td><td>rep 2</td><td>completed</td><td class="numeric">1.000</td><td class="numeric">0.833</td><td class="numeric">$0.4481</td><td class="numeric">129.9s</td><td class="numeric">287,633</td><td class="numeric">3</td><td class="numeric">388</td></tr>
+<tr><td>43</td><td>rep 3</td><td>completed</td><td class="numeric">1.000</td><td class="numeric">0.833</td><td class="numeric">$0.4931</td><td class="numeric">163.4s</td><td class="numeric">371,717</td><td class="numeric">3</td><td class="numeric">342</td></tr></tbody>
 </table>
 
+<h2>Code review</h2>
 <p class="muted">
-  Code review summaries are produced by the <code>run-summary</code> skill
-  in each run's archive directory. The dash means the skill hasn't been
-  run on that replicate yet (or the experiment is private).
+  Per-replicate file listing extracted from the archived workspace.
+  For semantic analysis (architecture, interfaces, control flow), invoke
+  the <code>run-summary</code> skill via <code>retort evaluate &lt;run_dir&gt;</code>.
 </p>
+<details class="code-summary"><summary>rep 1 — 3 file(s), 342 loc (1 test file(s), 149 test loc)</summary><div class="code-files"><div class="file"><span class="file-name">src/lib.rs</span> <span class="muted">(183 loc)</span><div class="symbols">fn err, fn init_db, fn app, fn health, fn row_to_book, fn list_books, fn create_book, fn get_book, fn update_book, fn delete_book, struct Book, struct BookInput, struct ErrorBody</div></div><div class="file"><span class="file-name">src/main.rs</span> <span class="muted">(10 loc)</span><div class="symbols">fn main</div></div><div class="file test"><span class="file-name">tests/api.rs</span> <span class="muted">(149 loc, test)</span><div class="symbols">fn make_app, fn body_json, fn health_returns_ok, fn create_and_get_book, fn create_without_title_rejected, fn list_filter_by_author_and_update_delete</div></div></div></details>
+<details class="code-summary"><summary>rep 2 — 3 file(s), 388 loc (1 test file(s), 168 test loc)</summary><div class="code-files"><div class="file"><span class="file-name">src/lib.rs</span> <span class="muted">(206 loc)</span><div class="symbols">fn init_db, fn build_app, fn health, fn err, fn create_book, fn list_books, fn row_to_book, fn get_book, fn update_book, fn delete_book, struct AppState, struct Book, struct BookInput, struct ErrorResponse</div></div><div class="file"><span class="file-name">src/main.rs</span> <span class="muted">(14 loc)</span><div class="symbols">fn main</div></div><div class="file test"><span class="file-name">tests/api.rs</span> <span class="muted">(168 loc, test)</span><div class="symbols">fn app, fn body_json, fn health_ok, fn create_and_get_book, fn create_missing_title_fails, fn list_filter_by_author, fn update_and_delete</div></div></div></details>
+<details class="code-summary"><summary>rep 3 — 3 file(s), 342 loc (1 test file(s), 126 test loc)</summary><div class="code-files"><div class="file"><span class="file-name">src/lib.rs</span> <span class="muted">(204 loc)</span><div class="symbols">fn into_response, fn init_db, fn open_db, fn open_memory_db, fn app, fn health, fn row_to_book, fn create_book, fn list_books, fn get_book, fn update_book, fn delete_book, struct Book, struct BookInput, struct ListQuery, struct ErrorResponse, enum ApiError</div></div><div class="file"><span class="file-name">src/main.rs</span> <span class="muted">(12 loc)</span><div class="symbols">fn main</div></div><div class="file test"><span class="file-name">tests/api.rs</span> <span class="muted">(126 loc, test)</span><div class="symbols">fn body_json, fn req_json, fn health_ok, fn create_and_get_book, fn create_missing_title_is_400, fn list_filter_by_author_and_update_delete</div></div></div></details>
 
 <p class="muted">
   Stack signature (sorted JSON): <code>{&quot;language&quot;: &quot;rust&quot;, &quot;model&quot;: &quot;opus&quot;, &quot;tooling&quot;: &quot;beads&quot;}</code>

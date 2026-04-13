@@ -23,17 +23,20 @@
 
 <h2>Runs</h2>
 <table>
-  <thead><tr><th class="numeric">Run</th><th>Rep</th><th>Status</th><th class="numeric">build_time</th><th class="numeric">code_quality</th><th class="numeric">cost ($)</th><th class="numeric">duration (s)</th><th class="numeric">tokens</th><th>Code review</th></tr></thead>
-  <tbody><tr><td>7</td><td>rep 1</td><td>completed</td><td class="numeric">1.000</td><td class="numeric">0.733</td><td class="numeric muted">—</td><td class="numeric muted">—</td><td class="numeric muted">—</td><td class="muted">—</td></tr>
-<tr><td>25</td><td>rep 2</td><td>completed</td><td class="numeric">1.000</td><td class="numeric">0.733</td><td class="numeric">$0.5314</td><td class="numeric">281.1s</td><td class="numeric">835,319</td><td class="muted">—</td></tr>
-<tr><td>26</td><td>rep 3</td><td>failed</td><td class="numeric">0.000</td><td class="numeric">0.000</td><td class="numeric muted">—</td><td class="numeric muted">—</td><td class="numeric muted">—</td><td class="muted">—</td></tr></tbody>
+  <thead><tr><th class="numeric">Run</th><th>Rep</th><th>Status</th><th class="numeric">build_time</th><th class="numeric">code_quality</th><th class="numeric">cost ($)</th><th class="numeric">duration (s)</th><th class="numeric">tokens</th><th class="numeric">Files</th><th class="numeric">LOC</th></tr></thead>
+  <tbody><tr><td>7</td><td>rep 1</td><td>completed</td><td class="numeric">1.000</td><td class="numeric">0.733</td><td class="numeric muted">—</td><td class="numeric muted">—</td><td class="numeric muted">—</td><td class="numeric muted">—</td><td class="numeric muted">—</td></tr>
+<tr><td>25</td><td>rep 2</td><td>completed</td><td class="numeric">1.000</td><td class="numeric">0.733</td><td class="numeric">$0.5314</td><td class="numeric">281.1s</td><td class="numeric">835,319</td><td class="numeric">4</td><td class="numeric">265</td></tr>
+<tr><td>26</td><td>rep 3</td><td>failed</td><td class="numeric">0.000</td><td class="numeric">0.000</td><td class="numeric muted">—</td><td class="numeric muted">—</td><td class="numeric muted">—</td><td class="numeric">4</td><td class="numeric">268</td></tr></tbody>
 </table>
 
+<h2>Code review</h2>
 <p class="muted">
-  Code review summaries are produced by the <code>run-summary</code> skill
-  in each run's archive directory. The dash means the skill hasn't been
-  run on that replicate yet (or the experiment is private).
+  Per-replicate file listing extracted from the archived workspace.
+  For semantic analysis (architecture, interfaces, control flow), invoke
+  the <code>run-summary</code> skill via <code>retort evaluate &lt;run_dir&gt;</code>.
 </p>
+<details class="code-summary"><summary>rep 2 — 4 file(s), 265 loc (1 test file(s), 118 test loc)</summary><div class="code-files"><div class="file"><span class="file-name">src/app.ts</span> <span class="muted">(111 loc)</span><div class="symbols">function createApp</div></div><div class="file"><span class="file-name">src/db.ts</span> <span class="muted">(27 loc)</span><div class="symbols">function createDb</div></div><div class="file"><span class="file-name">src/index.ts</span> <span class="muted">(9 loc)</span></div><div class="file test"><span class="file-name">tests/books.test.ts</span> <span class="muted">(118 loc, test)</span><div class="symbols">function makeApp</div></div></div></details>
+<details class="code-summary"><summary>rep 3 — 4 file(s), 268 loc (1 test file(s), 131 test loc)</summary><div class="code-files"><div class="file"><span class="file-name">src/app.ts</span> <span class="muted">(100 loc)</span><div class="symbols">function createApp</div></div><div class="file"><span class="file-name">src/db.ts</span> <span class="muted">(31 loc)</span><div class="symbols">function getDb, function closeDb, function initSchema</div></div><div class="file"><span class="file-name">src/index.ts</span> <span class="muted">(6 loc)</span></div><div class="file test"><span class="file-name">tests/books.test.ts</span> <span class="muted">(131 loc, test)</span></div></div></details>
 
 <p class="muted">
   Stack signature (sorted JSON): <code>{&quot;language&quot;: &quot;typescript&quot;, &quot;model&quot;: &quot;sonnet&quot;, &quot;tooling&quot;: &quot;none&quot;}</code>

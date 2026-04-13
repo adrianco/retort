@@ -23,17 +23,20 @@
 
 <h2>Runs</h2>
 <table>
-  <thead><tr><th class="numeric">Run</th><th>Rep</th><th>Status</th><th class="numeric">build_time</th><th class="numeric">code_quality</th><th class="numeric">cost ($)</th><th class="numeric">duration (s)</th><th class="numeric">tokens</th><th>Code review</th></tr></thead>
-  <tbody><tr><td>4</td><td>rep 1</td><td>completed</td><td class="numeric">1.000</td><td class="numeric">0.622</td><td class="numeric muted">—</td><td class="numeric muted">—</td><td class="numeric muted">—</td><td class="muted">—</td></tr>
-<tr><td>19</td><td>rep 2</td><td>completed</td><td class="numeric">1.000</td><td class="numeric">0.800</td><td class="numeric">$0.2995</td><td class="numeric">129.0s</td><td class="numeric">493,328</td><td class="muted">—</td></tr>
-<tr><td>20</td><td>rep 3</td><td>completed</td><td class="numeric">1.000</td><td class="numeric">0.667</td><td class="numeric">$0.2239</td><td class="numeric">91.3s</td><td class="numeric">380,179</td><td class="muted">—</td></tr></tbody>
+  <thead><tr><th class="numeric">Run</th><th>Rep</th><th>Status</th><th class="numeric">build_time</th><th class="numeric">code_quality</th><th class="numeric">cost ($)</th><th class="numeric">duration (s)</th><th class="numeric">tokens</th><th class="numeric">Files</th><th class="numeric">LOC</th></tr></thead>
+  <tbody><tr><td>4</td><td>rep 1</td><td>completed</td><td class="numeric">1.000</td><td class="numeric">0.622</td><td class="numeric muted">—</td><td class="numeric muted">—</td><td class="numeric muted">—</td><td class="numeric muted">—</td><td class="numeric muted">—</td></tr>
+<tr><td>19</td><td>rep 2</td><td>completed</td><td class="numeric">1.000</td><td class="numeric">0.800</td><td class="numeric">$0.2995</td><td class="numeric">129.0s</td><td class="numeric">493,328</td><td class="numeric">3</td><td class="numeric">204</td></tr>
+<tr><td>20</td><td>rep 3</td><td>completed</td><td class="numeric">1.000</td><td class="numeric">0.667</td><td class="numeric">$0.2239</td><td class="numeric">91.3s</td><td class="numeric">380,179</td><td class="numeric">5</td><td class="numeric">171</td></tr></tbody>
 </table>
 
+<h2>Code review</h2>
 <p class="muted">
-  Code review summaries are produced by the <code>run-summary</code> skill
-  in each run's archive directory. The dash means the skill hasn't been
-  run on that replicate yet (or the experiment is private).
+  Per-replicate file listing extracted from the archived workspace.
+  For semantic analysis (architecture, interfaces, control flow), invoke
+  the <code>run-summary</code> skill via <code>retort evaluate &lt;run_dir&gt;</code>.
 </p>
+<details class="code-summary"><summary>rep 2 — 3 file(s), 204 loc (1 test file(s), 91 test loc)</summary><div class="code-files"><div class="file"><span class="file-name">database.py</span> <span class="muted">(30 loc)</span><div class="symbols">def get_connection, def db, def init_db</div></div><div class="file"><span class="file-name">main.py</span> <span class="muted">(83 loc)</span><div class="symbols">class BookCreate, class BookUpdate, def not_empty, def not_empty, def row_to_dict, def health, def create_book, def list_books, def get_book, def update_book, def delete_book</div></div><div class="file test"><span class="file-name">test_books.py</span> <span class="muted">(91 loc, test)</span><div class="symbols">def tmp_db, def reset_db, def client, def test_health, def test_create_book, def test_create_book_missing_required_fields, def test_create_book_blank_fields, def test_list_books, def test_list_books_filter_by_author, def test_get_book, def test_get_book_not_found, def test_update_book, def test_update_book_not_found, def test_delete_book, def test_delete_book_not_found</div></div></div></details>
+<details class="code-summary"><summary>rep 3 — 5 file(s), 171 loc (1 test file(s), 83 test loc)</summary><div class="code-files"><div class="file"><span class="file-name">database.py</span> <span class="muted">(13 loc)</span><div class="symbols">class Base, def get_db</div></div><div class="file"><span class="file-name">main.py</span> <span class="muted">(47 loc)</span><div class="symbols">def health_check, def create_book, def list_books, def get_book, def update_book, def delete_book</div></div><div class="file"><span class="file-name">models.py</span> <span class="muted">(9 loc)</span><div class="symbols">class Book</div></div><div class="file"><span class="file-name">schemas.py</span> <span class="muted">(19 loc)</span><div class="symbols">class BookCreate, class BookUpdate, class BookResponse</div></div><div class="file test"><span class="file-name">test_books.py</span> <span class="muted">(83 loc, test)</span><div class="symbols">def override_get_db, def clear_db, def test_health_check, def test_create_book, def test_create_book_missing_required_fields, def test_create_book_missing_title, def test_list_books, def test_list_books_filter_by_author, def test_get_book, def test_get_book_not_found, def test_update_book, def test_update_book_not_found, def test_delete_book, def test_delete_book_not_found</div></div></div></details>
 
 <p class="muted">
   Stack signature (sorted JSON): <code>{&quot;language&quot;: &quot;python&quot;, &quot;model&quot;: &quot;sonnet&quot;, &quot;tooling&quot;: &quot;beads&quot;}</code>

@@ -23,17 +23,20 @@
 
 <h2>Runs</h2>
 <table>
-  <thead><tr><th class="numeric">Run</th><th>Rep</th><th>Status</th><th class="numeric">build_time</th><th class="numeric">code_quality</th><th class="numeric">cost ($)</th><th class="numeric">duration (s)</th><th class="numeric">tokens</th><th>Code review</th></tr></thead>
-  <tbody><tr><td>12</td><td>rep 1</td><td>completed</td><td class="numeric">1.000</td><td class="numeric">1.000</td><td class="numeric muted">—</td><td class="numeric muted">—</td><td class="numeric muted">—</td><td class="muted">—</td></tr>
-<tr><td>36</td><td>rep 2</td><td>completed</td><td class="numeric">1.000</td><td class="numeric">1.000</td><td class="numeric">$0.2936</td><td class="numeric">128.0s</td><td class="numeric">408,786</td><td class="muted">—</td></tr>
-<tr><td>37</td><td>rep 3</td><td>completed</td><td class="numeric">1.000</td><td class="numeric">1.000</td><td class="numeric">$0.3284</td><td class="numeric">165.2s</td><td class="numeric">545,124</td><td class="muted">—</td></tr></tbody>
+  <thead><tr><th class="numeric">Run</th><th>Rep</th><th>Status</th><th class="numeric">build_time</th><th class="numeric">code_quality</th><th class="numeric">cost ($)</th><th class="numeric">duration (s)</th><th class="numeric">tokens</th><th class="numeric">Files</th><th class="numeric">LOC</th></tr></thead>
+  <tbody><tr><td>12</td><td>rep 1</td><td>completed</td><td class="numeric">1.000</td><td class="numeric">1.000</td><td class="numeric muted">—</td><td class="numeric muted">—</td><td class="numeric muted">—</td><td class="numeric muted">—</td><td class="numeric muted">—</td></tr>
+<tr><td>36</td><td>rep 2</td><td>completed</td><td class="numeric">1.000</td><td class="numeric">1.000</td><td class="numeric">$0.2936</td><td class="numeric">128.0s</td><td class="numeric">408,786</td><td class="numeric">3</td><td class="numeric">437</td></tr>
+<tr><td>37</td><td>rep 3</td><td>completed</td><td class="numeric">1.000</td><td class="numeric">1.000</td><td class="numeric">$0.3284</td><td class="numeric">165.2s</td><td class="numeric">545,124</td><td class="numeric">4</td><td class="numeric">426</td></tr></tbody>
 </table>
 
+<h2>Code review</h2>
 <p class="muted">
-  Code review summaries are produced by the <code>run-summary</code> skill
-  in each run's archive directory. The dash means the skill hasn't been
-  run on that replicate yet (or the experiment is private).
+  Per-replicate file listing extracted from the archived workspace.
+  For semantic analysis (architecture, interfaces, control flow), invoke
+  the <code>run-summary</code> skill via <code>retort evaluate &lt;run_dir&gt;</code>.
 </p>
+<details class="code-summary"><summary>rep 2 — 3 file(s), 437 loc (1 test file(s), 173 test loc)</summary><div class="code-files"><div class="file"><span class="file-name">db.go</span> <span class="muted">(106 loc)</span><div class="symbols">func initDB, func dbCreateBook, func dbListBooks, func dbGetBook, func dbUpdateBook, func dbDeleteBook</div></div><div class="file"><span class="file-name">main.go</span> <span class="muted">(158 loc)</span><div class="symbols">func writeJSON, func writeError, func handleHealth, func handleBooks, func handleBook, func createBook, func listBooks, func getBook, func updateBook, func deleteBook, func newMux, func main, type Book, type server</div></div><div class="file test"><span class="file-name">main_test.go</span> <span class="muted">(173 loc, test)</span><div class="symbols">func setupTestServer, func TestHealth, func TestCreateAndGetBook, func TestCreateBook_ValidationError, func TestListBooks_AuthorFilter, func TestUpdateBook, func TestDeleteBook, func TestGetBook_NotFound</div></div></div></details>
+<details class="code-summary"><summary>rep 3 — 4 file(s), 426 loc (1 test file(s), 158 test loc)</summary><div class="code-files"><div class="file test"><span class="file-name">api_test.go</span> <span class="muted">(158 loc, test)</span><div class="symbols">func setupTestServer, func TestHealth, func TestCreateAndGetBook, func TestCreateBookValidation, func TestListBooksWithAuthorFilter, func TestUpdateAndDeleteBook, func itoa</div></div><div class="file"><span class="file-name">db.go</span> <span class="muted">(104 loc)</span><div class="symbols">func initDB, func openDB, func dbCreateBook, func dbListBooks, func dbGetBook, func dbUpdateBook, func dbDeleteBook</div></div><div class="file"><span class="file-name">handlers.go</span> <span class="muted">(138 loc)</span><div class="symbols">func writeJSON, func writeError, func newRouter, func handleHealth, func handleCreateBook, func handleListBooks, func parseID, func handleGetBook, func handleUpdateBook, func handleDeleteBook, type Book, type errorResponse</div></div><div class="file"><span class="file-name">main.go</span> <span class="muted">(26 loc)</span><div class="symbols">func main</div></div></div></details>
 
 <p class="muted">
   Stack signature (sorted JSON): <code>{&quot;language&quot;: &quot;go&quot;, &quot;model&quot;: &quot;sonnet&quot;, &quot;tooling&quot;: &quot;beads&quot;}</code>

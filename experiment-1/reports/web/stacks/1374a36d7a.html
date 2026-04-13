@@ -23,17 +23,20 @@
 
 <h2>Runs</h2>
 <table>
-  <thead><tr><th class="numeric">Run</th><th>Rep</th><th>Status</th><th class="numeric">build_time</th><th class="numeric">code_quality</th><th class="numeric">cost ($)</th><th class="numeric">duration (s)</th><th class="numeric">tokens</th><th>Code review</th></tr></thead>
-  <tbody><tr><td>11</td><td>rep 1</td><td>completed</td><td class="numeric">1.000</td><td class="numeric">0.956</td><td class="numeric muted">—</td><td class="numeric muted">—</td><td class="numeric muted">—</td><td class="muted">—</td></tr>
-<tr><td>34</td><td>rep 2</td><td>completed</td><td class="numeric">1.000</td><td class="numeric">0.956</td><td class="numeric">$0.3104</td><td class="numeric">121.9s</td><td class="numeric">448,470</td><td class="muted">—</td></tr>
-<tr><td>35</td><td>rep 3</td><td>completed</td><td class="numeric">1.000</td><td class="numeric">0.956</td><td class="numeric">$0.2953</td><td class="numeric">124.9s</td><td class="numeric">422,277</td><td class="muted">—</td></tr></tbody>
+  <thead><tr><th class="numeric">Run</th><th>Rep</th><th>Status</th><th class="numeric">build_time</th><th class="numeric">code_quality</th><th class="numeric">cost ($)</th><th class="numeric">duration (s)</th><th class="numeric">tokens</th><th class="numeric">Files</th><th class="numeric">LOC</th></tr></thead>
+  <tbody><tr><td>11</td><td>rep 1</td><td>completed</td><td class="numeric">1.000</td><td class="numeric">0.956</td><td class="numeric muted">—</td><td class="numeric muted">—</td><td class="numeric muted">—</td><td class="numeric muted">—</td><td class="numeric muted">—</td></tr>
+<tr><td>34</td><td>rep 2</td><td>completed</td><td class="numeric">1.000</td><td class="numeric">0.956</td><td class="numeric">$0.3104</td><td class="numeric">121.9s</td><td class="numeric">448,470</td><td class="numeric">2</td><td class="numeric">382</td></tr>
+<tr><td>35</td><td>rep 3</td><td>completed</td><td class="numeric">1.000</td><td class="numeric">0.956</td><td class="numeric">$0.2953</td><td class="numeric">124.9s</td><td class="numeric">422,277</td><td class="numeric">2</td><td class="numeric">380</td></tr></tbody>
 </table>
 
+<h2>Code review</h2>
 <p class="muted">
-  Code review summaries are produced by the <code>run-summary</code> skill
-  in each run's archive directory. The dash means the skill hasn't been
-  run on that replicate yet (or the experiment is private).
+  Per-replicate file listing extracted from the archived workspace.
+  For semantic analysis (architecture, interfaces, control flow), invoke
+  the <code>run-summary</code> skill via <code>retort evaluate &lt;run_dir&gt;</code>.
 </p>
+<details class="code-summary"><summary>rep 2 — 2 file(s), 382 loc (1 test file(s), 176 test loc)</summary><div class="code-files"><div class="file"><span class="file-name">main.go</span> <span class="muted">(206 loc)</span><div class="symbols">func NewApp, func Routes, func writeJSON, func writeError, func handleHealth, func handleCreateBook, func handleListBooks, func handleGetBook, func handleUpdateBook, func handleDeleteBook, func nullableInt, func nullableStr, func main, type Book, type App</div></div><div class="file test"><span class="file-name">main_test.go</span> <span class="muted">(176 loc, test)</span><div class="symbols">func newTestApp, func TestHealth, func TestCreateBook, func TestCreateBookValidation, func TestListBooks, func TestListBooksFilterByAuthor, func TestGetBookNotFound, func TestUpdateAndDeleteBook, func itoa</div></div></div></details>
+<details class="code-summary"><summary>rep 3 — 2 file(s), 380 loc (1 test file(s), 160 test loc)</summary><div class="code-files"><div class="file"><span class="file-name">main.go</span> <span class="muted">(220 loc)</span><div class="symbols">func NewApp, func initDB, func Close, func writeJSON, func writeError, func ServeHTTP, func handleHealth, func listBooks, func createBook, func getBook, func updateBook, func deleteBook, func main, type Book, type App</div></div><div class="file test"><span class="file-name">main_test.go</span> <span class="muted">(160 loc, test)</span><div class="symbols">func newTestApp, func do, func decodeBook, func decodeBooks, func TestHealth, func TestCreateAndGetBook, func TestCreateBookValidation, func TestListAndFilterBooks, func TestUpdateBook, func TestDeleteBook, func TestNotFound, func itoa</div></div></div></details>
 
 <p class="muted">
   Stack signature (sorted JSON): <code>{&quot;language&quot;: &quot;go&quot;, &quot;model&quot;: &quot;sonnet&quot;, &quot;tooling&quot;: &quot;none&quot;}</code>

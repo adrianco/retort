@@ -29,6 +29,7 @@ from retort.analysis.maturity import (
     classify_phase,
     compute_stack_maturity,
 )
+from retort.reporting.code_summary import CodeSummary, summarize_archive
 from retort.storage.database import get_engine, get_session_factory
 from retort.storage.models import ExperimentRun, RunResult, RunStatus
 
@@ -77,6 +78,17 @@ a { color: var(--accent); text-decoration: none; }
 a:hover { text-decoration: underline; }
 .notice { background: #fef3c7; border: 1px solid #fcd34d; border-radius: 6px;
           padding: 0.75rem 1rem; margin: 1rem 0; }
+details.code-summary { background: #fafbfc; border: 1px solid var(--border);
+                       border-radius: 6px; padding: 0.5rem 0.75rem; margin: 0.4rem 0; }
+details.code-summary > summary { cursor: pointer; user-select: none;
+                                 font-family: ui-monospace, monospace; font-size: 0.9rem; }
+details.code-summary > summary::marker { color: var(--muted); }
+.code-files { font-family: ui-monospace, SFMono-Regular, monospace; font-size: 0.85rem;
+              margin: 0.5rem 0; }
+.code-files .file { margin: 0.25rem 0 0.25rem 1rem; }
+.code-files .file-name { font-weight: 600; }
+.code-files .symbols { color: var(--muted); margin-left: 1.5rem; word-spacing: 0.5em; }
+.code-files .test { color: #166534; }
 """
 
 _SORT_SCRIPT = """\
@@ -218,6 +230,52 @@ def _summary_link(experiment_dir: Path, factors: dict[str, str], replicate: int)
     if abs_target.exists():
         return rel
     return None
+
+
+def _archive_dir(
+    experiment_dir: Path,
+    factors: dict[str, str],
+    replicate: int,
+    status_label: str,
+) -> Path:
+    """Mirror cli._archive_run_workspace's path layout."""
+    cell = _cell_dir_name(factors)
+    suffix = "" if status_label == "completed" else "-failed"
+    return experiment_dir / "runs" / cell / f"rep{replicate}{suffix}"
+
+
+def _render_code_summary_block(replicate: int, code: CodeSummary) -> str:
+    """Render a <details> block listing files + symbols for one replicate."""
+    items: list[str] = []
+    for f in code.files:
+        cls = "file test" if f.is_test else "file"
+        symbols = ""
+        if f.symbols:
+            symbols = (
+                '<div class="symbols">'
+                + html.escape(", ".join(f.symbols[:30]))
+                + ("…" if len(f.symbols) > 30 else "")
+                + "</div>"
+            )
+        items.append(
+            f'<div class="{cls}">'
+            f'<span class="file-name">{html.escape(f.relpath)}</span>'
+            f' <span class="muted">({f.loc} loc{", test" if f.is_test else ""})</span>'
+            f'{symbols}</div>'
+        )
+
+    summary_line = (
+        f"rep {replicate} — {code.n_files} file(s), {code.total_loc} loc"
+    )
+    if code.n_test_files:
+        summary_line += f" ({code.n_test_files} test file(s), {code.test_loc} test loc)"
+
+    return (
+        f'<details class="code-summary">'
+        f'<summary>{html.escape(summary_line)}</summary>'
+        f'<div class="code-files">{"".join(items)}</div>'
+        f'</details>'
+    )
 
 
 def _infer_title(db_path: Path) -> str:
@@ -384,10 +442,12 @@ def _render_stack_page(
     headers = (
         '<th class="numeric">Run</th><th>Rep</th><th>Status</th>'
         + headers
-        + '<th>Code review</th>'
+        + '<th class="numeric">Files</th><th class="numeric">LOC</th>'
     )
 
+    language = stack.factors.get("language", "")
     rows = []
+    code_blocks: list[str] = []
     total_cost = 0.0
     total_tokens = 0
     for run in stack_runs:
@@ -402,16 +462,27 @@ def _render_stack_page(
             for m in response_metrics + telemetry_metrics
         )
         status_label = run.status.value if hasattr(run.status, "value") else str(run.status)
-        summary_url = _summary_link(experiment_dir, stack.factors, run.replicate)
-        if summary_url:
-            review_cell = f'<td><a href="{html.escape(summary_url)}">summary</a></td>'
+
+        archive_dir = _archive_dir(experiment_dir, stack.factors, run.replicate, status_label)
+        code = summarize_archive(archive_dir, language)
+        if code is not None:
+            files_cell = f'<td class="numeric">{code.n_files}</td>'
+            loc_cell = f'<td class="numeric">{code.total_loc}</td>'
+            code_blocks.append(_render_code_summary_block(run.replicate, code))
         else:
-            review_cell = '<td class="muted">—</td>'
+            files_cell = '<td class="numeric muted">—</td>'
+            loc_cell = '<td class="numeric muted">—</td>'
+
         rows.append(
             f"<tr><td>{run.id}</td><td>rep {run.replicate}</td>"
-            f"<td>{html.escape(status_label)}</td>{cells}{review_cell}</tr>"
+            f"<td>{html.escape(status_label)}</td>{cells}{files_cell}{loc_cell}</tr>"
         )
     rows_html = "\n".join(rows) or '<tr><td colspan="99" class="muted">No runs.</td></tr>'
+    code_html = "\n".join(code_blocks) if code_blocks else (
+        '<p class="muted">No archived workspaces found for this stack — '
+        'either the runs predate the archival fix or the runs/ directory '
+        'is gitignored in this view.</p>'
+    )
 
     # Aggregate summary cards.
     cards = [
@@ -449,11 +520,13 @@ def _render_stack_page(
   <tbody>{rows_html}</tbody>
 </table>
 
+<h2>Code review</h2>
 <p class="muted">
-  Code review summaries are produced by the <code>run-summary</code> skill
-  in each run's archive directory. The dash means the skill hasn't been
-  run on that replicate yet (or the experiment is private).
+  Per-replicate file listing extracted from the archived workspace.
+  For semantic analysis (architecture, interfaces, control flow), invoke
+  the <code>run-summary</code> skill via <code>retort evaluate &lt;run_dir&gt;</code>.
 </p>
+{code_html}
 
 <p class="muted">
   Stack signature (sorted JSON): <code>{html.escape(stack.stack_signature)}</code>

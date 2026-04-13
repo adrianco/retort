@@ -23,17 +23,20 @@
 
 <h2>Runs</h2>
 <table>
-  <thead><tr><th class="numeric">Run</th><th>Rep</th><th>Status</th><th class="numeric">build_time</th><th class="numeric">code_quality</th><th class="numeric">cost ($)</th><th class="numeric">duration (s)</th><th class="numeric">tokens</th><th>Code review</th></tr></thead>
-  <tbody><tr><td>1</td><td>rep 1</td><td>completed</td><td class="numeric">1.000</td><td class="numeric">0.789</td><td class="numeric muted">—</td><td class="numeric muted">—</td><td class="numeric muted">—</td><td class="muted">—</td></tr>
-<tr><td>13</td><td>rep 2</td><td>completed</td><td class="numeric">1.000</td><td class="numeric">0.622</td><td class="numeric">$0.2077</td><td class="numeric">45.3s</td><td class="numeric">105,212</td><td class="muted">—</td></tr>
-<tr><td>14</td><td>rep 3</td><td>completed</td><td class="numeric">1.000</td><td class="numeric">0.956</td><td class="numeric">$0.1992</td><td class="numeric">42.6s</td><td class="numeric">78,185</td><td class="muted">—</td></tr></tbody>
+  <thead><tr><th class="numeric">Run</th><th>Rep</th><th>Status</th><th class="numeric">build_time</th><th class="numeric">code_quality</th><th class="numeric">cost ($)</th><th class="numeric">duration (s)</th><th class="numeric">tokens</th><th class="numeric">Files</th><th class="numeric">LOC</th></tr></thead>
+  <tbody><tr><td>1</td><td>rep 1</td><td>completed</td><td class="numeric">1.000</td><td class="numeric">0.789</td><td class="numeric muted">—</td><td class="numeric muted">—</td><td class="numeric muted">—</td><td class="numeric muted">—</td><td class="numeric muted">—</td></tr>
+<tr><td>13</td><td>rep 2</td><td>completed</td><td class="numeric">1.000</td><td class="numeric">0.622</td><td class="numeric">$0.2077</td><td class="numeric">45.3s</td><td class="numeric">105,212</td><td class="numeric">2</td><td class="numeric">166</td></tr>
+<tr><td>14</td><td>rep 3</td><td>completed</td><td class="numeric">1.000</td><td class="numeric">0.956</td><td class="numeric">$0.1992</td><td class="numeric">42.6s</td><td class="numeric">78,185</td><td class="numeric">2</td><td class="numeric">184</td></tr></tbody>
 </table>
 
+<h2>Code review</h2>
 <p class="muted">
-  Code review summaries are produced by the <code>run-summary</code> skill
-  in each run's archive directory. The dash means the skill hasn't been
-  run on that replicate yet (or the experiment is private).
+  Per-replicate file listing extracted from the archived workspace.
+  For semantic analysis (architecture, interfaces, control flow), invoke
+  the <code>run-summary</code> skill via <code>retort evaluate &lt;run_dir&gt;</code>.
 </p>
+<details class="code-summary"><summary>rep 2 — 2 file(s), 166 loc (1 test file(s), 62 test loc)</summary><div class="code-files"><div class="file"><span class="file-name">app.py</span> <span class="muted">(104 loc)</span><div class="symbols">class BookIn, class BookOut, def init_db, def get_conn, def row_to_book, def create_app, def health, def create_book, def list_books, def get_book, def update_book, def delete_book</div></div><div class="file test"><span class="file-name">test_app.py</span> <span class="muted">(62 loc, test)</span><div class="symbols">def client, def test_health, def test_create_and_get_book, def test_create_validation, def test_list_and_filter, def test_update_and_delete, def test_not_found</div></div></div></details>
+<details class="code-summary"><summary>rep 3 — 2 file(s), 184 loc (1 test file(s), 59 test loc)</summary><div class="code-files"><div class="file"><span class="file-name">app.py</span> <span class="muted">(125 loc)</span><div class="symbols">def get_db, def init_db, def row_to_dict, def create_app, def _connect, def _close, def health, def create_book, def list_books, def get_book, def update_book, def delete_book</div></div><div class="file test"><span class="file-name">test_app.py</span> <span class="muted">(59 loc, test)</span><div class="symbols">def client, def test_health, def test_create_and_get_book, def test_create_validation, def test_list_and_filter, def test_update_and_delete, def test_update_missing</div></div></div></details>
 
 <p class="muted">
   Stack signature (sorted JSON): <code>{&quot;language&quot;: &quot;python&quot;, &quot;model&quot;: &quot;opus&quot;, &quot;tooling&quot;: &quot;none&quot;}</code>
