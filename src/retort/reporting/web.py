@@ -122,18 +122,26 @@ def generate_web_report(
     title: str | None = None,
     visibility: str = "public",
     experiment_dir: Path | None = None,
+    anova_path: Path | None = None,
 ) -> int:
     """Render the experiment as static HTML. Returns number of pages written.
 
     experiment_dir is used to locate per-run archives at
     ``<experiment_dir>/runs/<cell>/rep<N>/summary/index.md``. Defaults to
     the database's parent directory.
+
+    anova_path optionally points at a pre-rendered ANOVA text file (the
+    output of ``retort analyze``) to inline on the index. Defaults to
+    ``<experiment_dir>/reports/anova.txt`` if it exists.
     """
     output_dir.mkdir(parents=True, exist_ok=True)
     (output_dir / "style.css").write_text(_STYLE)
 
     if experiment_dir is None:
         experiment_dir = db_path.parent
+    if anova_path is None:
+        candidate = experiment_dir / "reports" / "anova.txt"
+        anova_path = candidate if candidate.exists() else None
 
     engine = get_engine(db_path)
     session = get_session_factory(engine)()
@@ -150,12 +158,14 @@ def generate_web_report(
     page_title = title or _infer_title(db_path)
 
     # index.html
+    anova_text = anova_path.read_text() if anova_path else None
     index_html = _render_index(
         page_title=page_title,
         stacks=stacks,
         runs=runs,
         results_by_run=results_by_run,
         visibility=visibility,
+        anova_text=anova_text,
     )
     (output_dir / "index.html").write_text(index_html)
     n_pages = 1
@@ -297,6 +307,7 @@ def _render_index(
     runs: list,
     results_by_run: dict[int, list],
     visibility: str,
+    anova_text: str | None = None,
 ) -> str:
     n_runs = len(runs)
     n_completed = sum(1 for r in runs if r.status == RunStatus.completed)
@@ -341,6 +352,18 @@ def _render_index(
     else:
         rows_html = "\n".join(_render_stack_row(s, visibility) for s in stacks)
 
+    if anova_text:
+        anova_section = (
+            '<h2>ANOVA</h2>'
+            '<p class="muted">From <code>retort analyze</code> on the exported CSV. '
+            'Significant factors are flagged at the bottom of each response section.</p>'
+            f'<pre style="background:white;border:1px solid var(--border);'
+            f'border-radius:6px;padding:0.75rem 1rem;overflow:auto;font-size:0.85rem;">'
+            f'{html.escape(anova_text)}</pre>'
+        )
+    else:
+        anova_section = ""
+
     notice = ""
     if visibility == "private":
         notice = (
@@ -371,6 +394,7 @@ def _render_index(
 </table>
 
 <p class="muted">Click a column header to sort. <a href="https://github.com/adrianco/retort">retort</a> · maturity = 0.30·agreement + 0.30·completion + 0.25·score + 0.15·coverage</p>
+{anova_section}
 <script>
 {_SORT_SCRIPT}
 </script>

@@ -8,7 +8,7 @@
 </head>
 <body>
 <h1>Experiment 1 — Final Results</h1>
-<p class="subtitle">Generated 2026-04-13T19:37:51+00:00</p>
+<p class="subtitle">Generated 2026-04-13T19:39:24+00:00</p>
 
 <div class="summary"><div class="summary-item"><div class="label">Stacks</div><div class="value">16</div></div>
 <div class="summary-item"><div class="label">Runs</div><div class="value">49</div></div>
@@ -159,6 +159,19 @@
 </table>
 
 <p class="muted">Click a column header to sort. <a href="https://github.com/adrianco/retort">retort</a> · maturity = 0.30·agreement + 0.30·completion + 0.25·score + 0.15·coverage</p>
+<h2>ANOVA</h2><p class="muted">From <code>retort analyze</code> on the exported CSV. Significant factors are flagged at the bottom of each response section.</p><pre style="background:white;border:1px solid var(--border);border-radius:6px;padding:0.75rem 1rem;overflow:auto;font-size:0.85rem;">
+============================================================
+Response: code_quality
+R² = 0.8009  Adj R² = 0.7761
+============================================================
+               sum_sq    df          F        PR(&gt;F)
+C(language)  0.550537   3.0  53.443482  4.692809e-14
+C(model)     0.002846   1.0   0.828845  3.680605e-01
+C(tooling)   0.000017   1.0   0.004904  9.445176e-01
+Residual     0.137351  40.0        NaN           NaN
+
+Significant (p &lt; 0.1): language
+</pre>
 <script>
 document.querySelectorAll('table.sortable').forEach(t => {
   const headers = t.querySelectorAll('thead th');
