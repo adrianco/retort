@@ -7,18 +7,19 @@
 # actually run.
 #
 # Why this works:
-#   - Experiment 1 has the full 16-cell language × model × tooling cube
-#     covered for task=rest-api-crud (with replicates).
-#   - Experiment 2 covers a Resolution III fraction of the same cube
-#     for task=brazil-bench (singletons — characterization adds reps
-#     later if needed).
-#   - The combined CSV gives the ANOVA enough degrees of freedom to
-#     estimate the (task) main effect and identify which cells, if any,
-#     change ranking when the task gets harder.
+#   - Experiment 1 has the full 24-cell (6 lang × 2 model × 2 tooling)
+#     cube covered for task=rest-api-crud with 3 replicates each.
+#   - Experiment 2 covers the same factor cube for task=brazil-bench
+#     at 1 replicate (24 cells). The combined CSV gives the ANOVA
+#     enough degrees of freedom to estimate the (task) main effect
+#     and any task:* interactions.
+#   - For unmeasured cells (e.g. brazil-bench cells that fail or you
+#     deliberately skip), `retort analyze --predict` projects values
+#     + 95% CI from the fitted multiplicative model.
 #
 # Cost model: brazil-bench runs ~5–10× longer per cell than rest-api-crud.
-# A R3 fraction of 4 × 2 × 2 = 16 cells lands at ~6–8 cells. 6 cells × 1
-# replicate × ~10 min/cell ≈ 1 hour. Cheap enough to iterate.
+# 24 cells × 1 replicate × ~10 min/cell ≈ 4 hours sequential, ~1 hour
+# wall-clock when slung as 4 parallel --shard 0/4..3/4 polecats.
 #
 # To use:
 #   retort design generate --phase screening --config experiment-2/workspace.yaml
@@ -41,17 +42,17 @@ experiment:
 # `task`, added at merge time (see experiment-2/README.md).
 factors:
   language:
-    levels: [python, typescript, go, rust]
+    levels: [python, typescript, go, rust, java, clojure]
   model:
     levels: [opus, sonnet]
   tooling:
     levels: [none, beads]
 
 # All scorers including idiomatic — experiment-2 is where we validate
-# the new ones against a non-trivial task.
+# the new ones against a non-trivial task. Timing comes from the
+# auto-persisted `_duration_seconds` telemetry, not a normalized score.
 responses:
   - code_quality
-  - build_time
   - token_efficiency
   - test_coverage
   - defect_rate
