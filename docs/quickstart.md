@@ -4,9 +4,14 @@ Get a Retort experiment running in 10 minutes.
 
 ## Prerequisites
 
-- Python 3.12+
-- Docker (for playpen containers)
-- `pip install retort` (or `pip install -e ".[dev]"` from source)
+> See the [README](../README.md#prerequisites) for the full table. In short:
+
+- **Python 3.11+** with a C/C++ toolchain + cmake (for the `OApackage` extension)
+- **`claude` CLI**, authenticated — required by `LocalRunner`
+- **`bd` (beads) CLI** — required only if your workspace uses `tooling: beads`
+- **Per-language toolchains** for every language you list as a factor (e.g. `node`+`npm` for typescript, `go` for go, `rustup` for rust)
+- ~~Docker~~ — `DockerRunner` is a skeleton; use `runner: local` in `workspace.yaml`. Docker is only needed if you plan to develop the Docker path.
+- `pip install -e ".[dev,test]"` from a clone of https://github.com/adrianco/retort
 
 ## 1. Initialize a workspace
 
@@ -40,7 +45,7 @@ tasks:
   - source: bundled://rest-api-crud
 
 playpen:
-  runner: docker
+  runner: local            # 'local' is supported; 'docker' is a skeleton
   replicates: 3
   timeout_minutes: 30
 

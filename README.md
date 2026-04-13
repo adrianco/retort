@@ -4,9 +4,19 @@
 
 Retort applies statistical Design of Experiments (DoE) to systematically evaluate AI-assisted development tooling stacks. It generates fractional factorial designs across languages, coding agents, and frameworks, executes experiments in isolated playpens, scores the results, and promotes or retires stacks based on measured confidence.
 
-## Early Results: Experiment 1
+## Status: Active Development (Alpha)
 
-> **Caveat:** These are single runs on a small task (REST API CRUD). No replicates — treat as directional, not statistically significant. The purpose is to validate that the pipeline works end-to-end with real agent execution.
+> Retort is **pre-1.0 and under active development**. The CLI surface, scoring metrics, and storage schema may change between commits. The code is published so others can read it, fork it, and reproduce experiments — not yet as a stable tool to depend on.
+>
+> **What works today:** `LocalRunner` (executes the `claude` CLI on the host), 3 built-in scorers (`code_quality`, `build_time`, token/cost capture), fractional-factorial design generation, ANOVA + effects reporting, SQLite storage, and resumable runs (`retort run --resume`) with per-run workspace archival.
+>
+> **What does not yet work end-to-end:** `DockerRunner` (skeleton only — `LocalRunner` is the supported path), agents other than `claude-code`, the `intake`/`scheduler` paths, and the `bundled://` task sources beyond `rest-api-crud`. See [Implementation Status](#implementation-status) for details.
+>
+> **Currently in flight:** Experiment 1 is being re-run with `replicates: 3` to get past the n=1 results below. Rust was added as a fourth language. Results will replace the table when the run completes.
+
+## Early Results: Experiment 1 (in progress)
+
+> **Caveat:** The table below is from a single replicate of each cell on a small task (REST API CRUD) — directional, not statistically significant. Replicates and a Rust column are being added now; results will be revised.
 
 **Task:** Build a REST API with CRUD operations for a book collection (Flask/Express/net-http + SQLite)
 **Factors:** Language (python, typescript, go) x Model (opus, sonnet) x Tooling (none, beads)
@@ -39,10 +49,37 @@ These results will be refined with replicates and more complex tasks (brazil-ben
 
 ## Installation
 
-Requires Python 3.11+.
+### Prerequisites
+
+`pip install` only fetches the Python deps. To actually run experiments you also need:
+
+| Requirement | Why | Install |
+|---|---|---|
+| **Python 3.11+** | Runtime | https://www.python.org/downloads/ |
+| **C/C++ toolchain + cmake** | `OApackage` (orthogonal arrays) is a C++ extension; no manylinux wheel on every platform | `apt install build-essential cmake` (Debian/Ubuntu) / `xcode-select --install` (macOS) |
+| **`claude` CLI, authenticated** | The only currently-implemented agent runner shells out to `claude -p ...` | https://docs.claude.com/claude-code · run `claude` once to log in |
+| **`bd` (beads) CLI** | Required only if any factor uses `tooling: beads` (the bundled examples do). The agent runs `bd init`/`bd create` inside its playpen | https://github.com/steveyegge/beads |
+| **Per-language toolchains** | The scorer builds and tests the generated code. Install the toolchain for every language you list as a factor level. | `python` (already), `node` ≥ 20 + `npm` for typescript, `go` ≥ 1.22, `rustup` for rust |
+| **Docker** *(optional, future)* | `DockerRunner` is a skeleton; `LocalRunner` is the supported path today. Only install if you plan to develop the Docker path. | https://docs.docker.com/get-docker/ |
+
+### Install retort
 
 ```bash
+git clone https://github.com/adrianco/retort.git
+cd retort
 pip install -e ".[dev,test]"
+```
+
+### Devcontainer / Codespaces
+
+`.devcontainer/` provisions Python 3.12 + the C++ toolchain + Node + Go + Rust + the `claude` and `bd` CLIs via `post-create.sh`. Open the repo in GitHub Codespaces or VS Code "Dev Containers: Reopen in Container" and the prereqs are handled automatically. You'll still need to authenticate `claude` interactively the first time.
+
+### Verify
+
+```bash
+retort --help                # CLI loads → Python deps OK
+claude --version             # Claude CLI present
+bd --version                 # Beads present (only needed for tooling=beads)
 ```
 
 ## Quick Start
@@ -105,7 +142,7 @@ tasks:
   - source: bundled://rest-api-crud
 
 playpen:
-  runner: docker
+  runner: local            # 'local' is the supported path; 'docker' is a skeleton
   replicates: 3
   timeout_minutes: 30
 
@@ -145,13 +182,24 @@ src/retort/
 
 ## Implementation Status
 
-| Phase | Status | Scope |
+Honest accounting. "Code exists" ≠ "tested end-to-end against real data."
+
+| Phase | Status | Notes |
 |-------|--------|-------|
-| **Phase 0: Skeleton** | COMPLETE | Project structure, config schema, design generation, storage layer, `retort init`, `retort design generate` |
-| **Phase 1: Playpen + Scoring** | COMPLETE | DockerRunner, scoring framework (3 built-in scorers), bundled task specs, `retort run` |
-| **Phase 2: Promotion + Reporting** | COMPLETE | Lifecycle state machine, promotion gates, changelog, effects computation, multi-format export, `retort promote`, `retort report effects` |
-| **Phase 3: Analysis** | COMPLETE | ANOVA with residual diagnostics (statsmodels), Bayesian updating with conjugate NIG priors (scipy), Pareto frontier ranking, `retort analyze` |
-| **Phase 4: Polish** | COMPLETE | D-optimal augmentation, candidate intake, scheduler (budget & queue), pluggy-based plugin system, status dashboard, CLI refinements |
+| **Phase 0: Skeleton** | ✅ Working | Project structure, Pydantic config schema, factor registry, fractional-factorial design generation, SQLite/SQLAlchemy storage, `retort init`, `retort design generate`. Covered by unit tests. |
+| **Phase 1: Playpen + Scoring** | 🟡 Partial | `LocalRunner` (claude CLI on host) is the supported path and has been exercised end-to-end against `bundled://rest-api-crud`. **`DockerRunner` is a skeleton — not exercised.** Scoring framework with 3 scorers (`code_quality`, `build_time`, plus token/cost capture) works; the other scorers listed in the plan (`token_efficiency`, `test_coverage`, `defect_rate`, `maintainability`, `idiomatic`) are not yet implemented. Only one bundled task (`rest-api-crud`) ships. |
+| **Phase 2: Promotion + Reporting** | 🟡 Code present, lightly exercised | Lifecycle state machine, promotion gates, changelog, multi-format export, `retort promote`, `retort report effects` exist and unit-test. Not yet run on a real promotion decision. |
+| **Phase 3: Analysis** | 🟡 Code present, lightly exercised | ANOVA + residual diagnostics (statsmodels), Bayesian conjugate-NIG updating (scipy), Pareto frontier, `retort analyze`. Verified on synthetic data; not yet on a complete experiment-1 dataset with replicates. |
+| **Phase 4: Polish** | 🔴 Code present, untested | D-optimal augmentation (OApackage), candidate intake, scheduler, pluggy plugin system, status dashboard. Almost none of this has been exercised against real workloads yet. |
+| **Resume / archive** | ✅ Working | `retort run --resume` skips already-recorded `(config, replicate)` pairs; `--retry-failed` retries failed ones. Each run's `/tmp` workspace is copied to `<workspace>/runs/<cell>/rep<N>/` before teardown so artifacts survive interrupts and `/tmp` cleanup. Per-run DB commit means an interrupt loses at most one run. |
+
+### Known gaps and bugs
+
+- `DockerRunner` not validated — use `runner: local` in `workspace.yaml` for now
+- Only `claude-code` is wired up as an agent
+- Scorers beyond the three above need to be ported from the plan
+- `retort intake` / D-optimal augmentation untested against a real candidate
+- Bundled tasks: just `rest-api-crud`; `brazil-bench` integration is aspirational
 
 ## Development
 
@@ -171,4 +219,4 @@ mypy src/retort/
 
 ## License
 
-MIT
+Apache-2.0 — see [LICENSE](LICENSE).
