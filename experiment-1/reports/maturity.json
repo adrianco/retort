@@ -1,0 +1,418 @@
+[
+  {
+    "stack_signature": "{\"language\": \"go\", \"model\": \"sonnet\", \"tooling\": \"beads\"}",
+    "factors": {
+      "language": "go",
+      "model": "sonnet",
+      "tooling": "beads"
+    },
+    "n_replicates": 3,
+    "n_completed": 3,
+    "n_failed": 0,
+    "headline_metric": "code_quality",
+    "headline_mean": 1.0,
+    "headline_stdev": 0.0,
+    "headline_cv": 0.0,
+    "completion_rate": 1.0,
+    "replicate_agreement": 1.0,
+    "score_level": 1.0,
+    "coverage": 1.0,
+    "maturity": 1.0,
+    "components": {
+      "replicate_agreement": 1.0,
+      "completion_rate": 1.0,
+      "score_level": 1.0,
+      "coverage": 1.0
+    }
+  },
+  {
+    "stack_signature": "{\"language\": \"go\", \"model\": \"sonnet\", \"tooling\": \"none\"}",
+    "factors": {
+      "language": "go",
+      "model": "sonnet",
+      "tooling": "none"
+    },
+    "n_replicates": 3,
+    "n_completed": 3,
+    "n_failed": 0,
+    "headline_metric": "code_quality",
+    "headline_mean": 0.9555555555555556,
+    "headline_stdev": 0.0,
+    "headline_cv": 0.0,
+    "completion_rate": 1.0,
+    "replicate_agreement": 1.0,
+    "score_level": 0.9555555555555556,
+    "coverage": 1.0,
+    "maturity": 0.9888888888888889,
+    "components": {
+      "replicate_agreement": 1.0,
+      "completion_rate": 1.0,
+      "score_level": 0.9555555555555556,
+      "coverage": 1.0
+    }
+  },
+  {
+    "stack_signature": "{\"language\": \"go\", \"model\": \"opus\", \"tooling\": \"beads\"}",
+    "factors": {
+      "language": "go",
+      "model": "opus",
+      "tooling": "beads"
+    },
+    "n_replicates": 3,
+    "n_completed": 3,
+    "n_failed": 0,
+    "headline_metric": "code_quality",
+    "headline_mean": 0.9851851851851852,
+    "headline_stdev": 0.02566001196398334,
+    "headline_cv": 0.026045876805547,
+    "completion_rate": 1.0,
+    "replicate_agreement": 0.9131804106481767,
+    "score_level": 0.9851851851851852,
+    "coverage": 1.0,
+    "maturity": 0.9702504194907493,
+    "components": {
+      "replicate_agreement": 0.9131804106481767,
+      "completion_rate": 1.0,
+      "score_level": 0.9851851851851852,
+      "coverage": 1.0
+    }
+  },
+  {
+    "stack_signature": "{\"language\": \"rust\", \"model\": \"opus\", \"tooling\": \"none\"}",
+    "factors": {
+      "language": "rust",
+      "model": "opus",
+      "tooling": "none"
+    },
+    "n_replicates": 3,
+    "n_completed": 3,
+    "n_failed": 0,
+    "headline_metric": "code_quality",
+    "headline_mean": 0.8333333333333334,
+    "headline_stdev": 0.0,
+    "headline_cv": 0.0,
+    "completion_rate": 1.0,
+    "replicate_agreement": 1.0,
+    "score_level": 0.8333333333333334,
+    "coverage": 1.0,
+    "maturity": 0.9583333333333333,
+    "components": {
+      "replicate_agreement": 1.0,
+      "completion_rate": 1.0,
+      "score_level": 0.8333333333333334,
+      "coverage": 1.0
+    }
+  },
+  {
+    "stack_signature": "{\"language\": \"rust\", \"model\": \"opus\", \"tooling\": \"beads\"}",
+    "factors": {
+      "language": "rust",
+      "model": "opus",
+      "tooling": "beads"
+    },
+    "n_replicates": 3,
+    "n_completed": 3,
+    "n_failed": 0,
+    "headline_metric": "code_quality",
+    "headline_mean": 0.8333333333333334,
+    "headline_stdev": 0.0,
+    "headline_cv": 0.0,
+    "completion_rate": 1.0,
+    "replicate_agreement": 1.0,
+    "score_level": 0.8333333333333334,
+    "coverage": 1.0,
+    "maturity": 0.9583333333333333,
+    "components": {
+      "replicate_agreement": 1.0,
+      "completion_rate": 1.0,
+      "score_level": 0.8333333333333334,
+      "coverage": 1.0
+    }
+  },
+  {
+    "stack_signature": "{\"language\": \"rust\", \"model\": \"sonnet\", \"tooling\": \"none\"}",
+    "factors": {
+      "language": "rust",
+      "model": "sonnet",
+      "tooling": "none"
+    },
+    "n_replicates": 3,
+    "n_completed": 3,
+    "n_failed": 0,
+    "headline_metric": "code_quality",
+    "headline_mean": 0.8333333333333334,
+    "headline_stdev": 0.0,
+    "headline_cv": 0.0,
+    "completion_rate": 1.0,
+    "replicate_agreement": 1.0,
+    "score_level": 0.8333333333333334,
+    "coverage": 1.0,
+    "maturity": 0.9583333333333333,
+    "components": {
+      "replicate_agreement": 1.0,
+      "completion_rate": 1.0,
+      "score_level": 0.8333333333333334,
+      "coverage": 1.0
+    }
+  },
+  {
+    "stack_signature": "{\"language\": \"typescript\", \"model\": \"opus\", \"tooling\": \"none\"}",
+    "factors": {
+      "language": "typescript",
+      "model": "opus",
+      "tooling": "none"
+    },
+    "n_replicates": 3,
+    "n_completed": 3,
+    "n_failed": 0,
+    "headline_metric": "code_quality",
+    "headline_mean": 0.7333333333333334,
+    "headline_stdev": 0.0,
+    "headline_cv": 0.0,
+    "completion_rate": 1.0,
+    "replicate_agreement": 1.0,
+    "score_level": 0.7333333333333334,
+    "coverage": 1.0,
+    "maturity": 0.9333333333333333,
+    "components": {
+      "replicate_agreement": 1.0,
+      "completion_rate": 1.0,
+      "score_level": 0.7333333333333334,
+      "coverage": 1.0
+    }
+  },
+  {
+    "stack_signature": "{\"language\": \"typescript\", \"model\": \"opus\", \"tooling\": \"beads\"}",
+    "factors": {
+      "language": "typescript",
+      "model": "opus",
+      "tooling": "beads"
+    },
+    "n_replicates": 3,
+    "n_completed": 3,
+    "n_failed": 0,
+    "headline_metric": "code_quality",
+    "headline_mean": 0.7333333333333334,
+    "headline_stdev": 0.0,
+    "headline_cv": 0.0,
+    "completion_rate": 1.0,
+    "replicate_agreement": 1.0,
+    "score_level": 0.7333333333333334,
+    "coverage": 1.0,
+    "maturity": 0.9333333333333333,
+    "components": {
+      "replicate_agreement": 1.0,
+      "completion_rate": 1.0,
+      "score_level": 0.7333333333333334,
+      "coverage": 1.0
+    }
+  },
+  {
+    "stack_signature": "{\"language\": \"go\", \"model\": \"opus\", \"tooling\": \"none\"}",
+    "factors": {
+      "language": "go",
+      "model": "opus",
+      "tooling": "none"
+    },
+    "n_replicates": 3,
+    "n_completed": 3,
+    "n_failed": 0,
+    "headline_metric": "code_quality",
+    "headline_mean": 0.962962962962963,
+    "headline_stdev": 0.06415002990995838,
+    "headline_cv": 0.06661733875264908,
+    "completion_rate": 1.0,
+    "replicate_agreement": 0.7779422041578363,
+    "score_level": 0.962962962962963,
+    "coverage": 1.0,
+    "maturity": 0.9241234019880916,
+    "components": {
+      "replicate_agreement": 0.7779422041578363,
+      "completion_rate": 1.0,
+      "score_level": 0.962962962962963,
+      "coverage": 1.0
+    }
+  },
+  {
+    "stack_signature": "{\"language\": \"python\", \"model\": \"sonnet\", \"tooling\": \"none\"}",
+    "factors": {
+      "language": "python",
+      "model": "sonnet",
+      "tooling": "none"
+    },
+    "n_replicates": 3,
+    "n_completed": 3,
+    "n_failed": 0,
+    "headline_metric": "code_quality",
+    "headline_mean": 0.6370370370370371,
+    "headline_stdev": 0.02566001196398334,
+    "headline_cv": 0.04028025133881106,
+    "completion_rate": 1.0,
+    "replicate_agreement": 0.8657324955372965,
+    "score_level": 0.6370370370370371,
+    "coverage": 1.0,
+    "maturity": 0.8689790079204481,
+    "components": {
+      "replicate_agreement": 0.8657324955372965,
+      "completion_rate": 1.0,
+      "score_level": 0.6370370370370371,
+      "coverage": 1.0
+    }
+  },
+  {
+    "stack_signature": "{\"language\": \"typescript\", \"model\": \"sonnet\", \"tooling\": \"beads\"}",
+    "factors": {
+      "language": "typescript",
+      "model": "sonnet",
+      "tooling": "beads"
+    },
+    "n_replicates": 4,
+    "n_completed": 3,
+    "n_failed": 1,
+    "headline_metric": "code_quality",
+    "headline_mean": 0.7333333333333334,
+    "headline_stdev": 0.0,
+    "headline_cv": 0.0,
+    "completion_rate": 0.75,
+    "replicate_agreement": 1.0,
+    "score_level": 0.7333333333333334,
+    "coverage": 1.0,
+    "maturity": 0.8583333333333333,
+    "components": {
+      "replicate_agreement": 1.0,
+      "completion_rate": 0.75,
+      "score_level": 0.7333333333333334,
+      "coverage": 1.0
+    }
+  },
+  {
+    "stack_signature": "{\"language\": \"rust\", \"model\": \"sonnet\", \"tooling\": \"beads\"}",
+    "factors": {
+      "language": "rust",
+      "model": "sonnet",
+      "tooling": "beads"
+    },
+    "n_replicates": 3,
+    "n_completed": 2,
+    "n_failed": 1,
+    "headline_metric": "code_quality",
+    "headline_mean": 0.8333333333333334,
+    "headline_stdev": 0.0,
+    "headline_cv": 0.0,
+    "completion_rate": 0.6666666666666666,
+    "replicate_agreement": 1.0,
+    "score_level": 0.8333333333333334,
+    "coverage": 0.6666666666666666,
+    "maturity": 0.8083333333333333,
+    "components": {
+      "replicate_agreement": 1.0,
+      "completion_rate": 0.6666666666666666,
+      "score_level": 0.8333333333333334,
+      "coverage": 0.6666666666666666
+    }
+  },
+  {
+    "stack_signature": "{\"language\": \"python\", \"model\": \"sonnet\", \"tooling\": \"beads\"}",
+    "factors": {
+      "language": "python",
+      "model": "sonnet",
+      "tooling": "beads"
+    },
+    "n_replicates": 3,
+    "n_completed": 3,
+    "n_failed": 0,
+    "headline_metric": "code_quality",
+    "headline_mean": 0.6962962962962963,
+    "headline_stdev": 0.09251848886516142,
+    "headline_cv": 0.13287229783826374,
+    "completion_rate": 1.0,
+    "replicate_agreement": 0.5570923405391208,
+    "score_level": 0.6962962962962963,
+    "coverage": 1.0,
+    "maturity": 0.7912017762358103,
+    "components": {
+      "replicate_agreement": 0.5570923405391208,
+      "completion_rate": 1.0,
+      "score_level": 0.6962962962962963,
+      "coverage": 1.0
+    }
+  },
+  {
+    "stack_signature": "{\"language\": \"python\", \"model\": \"opus\", \"tooling\": \"beads\"}",
+    "factors": {
+      "language": "python",
+      "model": "opus",
+      "tooling": "beads"
+    },
+    "n_replicates": 3,
+    "n_completed": 3,
+    "n_failed": 0,
+    "headline_metric": "code_quality",
+    "headline_mean": 0.6722222222222222,
+    "headline_stdev": 0.08660254037844381,
+    "headline_cv": 0.1288302253563627,
+    "completion_rate": 1.0,
+    "replicate_agreement": 0.570565915478791,
+    "score_level": 0.6722222222222222,
+    "coverage": 1.0,
+    "maturity": 0.7892253301991928,
+    "components": {
+      "replicate_agreement": 0.570565915478791,
+      "completion_rate": 1.0,
+      "score_level": 0.6722222222222222,
+      "coverage": 1.0
+    }
+  },
+  {
+    "stack_signature": "{\"language\": \"typescript\", \"model\": \"sonnet\", \"tooling\": \"none\"}",
+    "factors": {
+      "language": "typescript",
+      "model": "sonnet",
+      "tooling": "none"
+    },
+    "n_replicates": 3,
+    "n_completed": 2,
+    "n_failed": 1,
+    "headline_metric": "code_quality",
+    "headline_mean": 0.7333333333333334,
+    "headline_stdev": 0.0,
+    "headline_cv": 0.0,
+    "completion_rate": 0.6666666666666666,
+    "replicate_agreement": 1.0,
+    "score_level": 0.7333333333333334,
+    "coverage": 0.6666666666666666,
+    "maturity": 0.7833333333333333,
+    "components": {
+      "replicate_agreement": 1.0,
+      "completion_rate": 0.6666666666666666,
+      "score_level": 0.7333333333333334,
+      "coverage": 0.6666666666666666
+    }
+  },
+  {
+    "stack_signature": "{\"language\": \"python\", \"model\": \"opus\", \"tooling\": \"none\"}",
+    "factors": {
+      "language": "python",
+      "model": "opus",
+      "tooling": "none"
+    },
+    "n_replicates": 3,
+    "n_completed": 3,
+    "n_failed": 0,
+    "headline_metric": "code_quality",
+    "headline_mean": 0.7888888888888889,
+    "headline_stdev": 0.16666666666666669,
+    "headline_cv": 0.21126760563380284,
+    "completion_rate": 1.0,
+    "replicate_agreement": 0.2957746478873239,
+    "score_level": 0.7888888888888889,
+    "coverage": 1.0,
+    "maturity": 0.7359546165884193,
+    "components": {
+      "replicate_agreement": 0.2957746478873239,
+      "completion_rate": 1.0,
+      "score_level": 0.7888888888888889,
+      "coverage": 1.0
+    }
+  }
+]
