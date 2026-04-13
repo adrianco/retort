@@ -68,12 +68,18 @@ def create_default_registry() -> ScorerRegistry:
     """
     from retort.scoring.scorers.build_time import BuildTimeScorer
     from retort.scoring.scorers.code_quality import CodeQualityScorer
+    from retort.scoring.scorers.defect_rate import DefectRateScorer
+    from retort.scoring.scorers.maintainability import MaintainabilityScorer
+    from retort.scoring.scorers.test_coverage import TestCoverageScorer
     from retort.scoring.scorers.token_efficiency import TokenEfficiencyScorer
 
     registry = ScorerRegistry()
     registry.register(CodeQualityScorer())
     registry.register(TokenEfficiencyScorer())
     registry.register(BuildTimeScorer())
+    registry.register(TestCoverageScorer())
+    registry.register(DefectRateScorer())
+    registry.register(MaintainabilityScorer())
 
     # Discover and register plugin scorers
     from retort.plugins import discover_scorers

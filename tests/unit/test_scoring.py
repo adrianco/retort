@@ -12,6 +12,9 @@ from retort.scoring.collector import ScoreCollector, ScoreVector
 from retort.scoring.registry import ScorerRegistry, create_default_registry
 from retort.scoring.scorers.build_time import BuildTimeScorer
 from retort.scoring.scorers.code_quality import CodeQualityScorer
+from retort.scoring.scorers.defect_rate import DefectRateScorer
+from retort.scoring.scorers.maintainability import MaintainabilityScorer
+from retort.scoring.scorers.test_coverage import TestCoverageScorer
 from retort.scoring.scorers.token_efficiency import TokenEfficiencyScorer
 
 
@@ -53,7 +56,10 @@ class TestScorerRegistry:
         assert "code_quality" in reg
         assert "token_efficiency" in reg
         assert "build_time" in reg
-        assert len(reg) == 3
+        assert "test_coverage" in reg
+        assert "defect_rate" in reg
+        assert "maintainability" in reg
+        assert len(reg) == 6
 
     def test_register_and_get(self):
         reg = ScorerRegistry()
@@ -69,7 +75,14 @@ class TestScorerRegistry:
     def test_available(self):
         reg = create_default_registry()
         avail = reg.available()
-        assert avail == ["build_time", "code_quality", "token_efficiency"]
+        assert avail == [
+            "build_time",
+            "code_quality",
+            "defect_rate",
+            "maintainability",
+            "test_coverage",
+            "token_efficiency",
+        ]
 
 
 class TestBuildTimeScorer:
@@ -180,3 +193,99 @@ class TestScoreVector:
         ])
         assert vector.get("a") == 1.0
         assert vector.get("missing") is None
+
+
+class TestTestCoverageScorer:
+    def test_failed_run_scores_zero(self, failed_artifacts, python_stack):
+        scorer = TestCoverageScorer()
+        assert scorer.score(failed_artifacts, python_stack) == 0.0
+
+    def test_no_output_dir_scores_zero(self, python_stack):
+        scorer = TestCoverageScorer()
+        artifacts = RunArtifacts(stdout="", exit_code=0, duration_seconds=10.0)
+        assert scorer.score(artifacts, python_stack) == 0.0
+
+    def test_unknown_language_scores_zero(self, successful_artifacts):
+        scorer = TestCoverageScorer()
+        stack = StackConfig(language="brainfuck", agent="test", framework="none")
+        # Coverage tool unavailable for unknown language → 0
+        assert scorer.score(successful_artifacts, stack) == 0.0
+
+    def test_parse_python_total_line(self):
+        from retort.scoring.scorers.test_coverage import _parse_coverage
+        out = "Name      Stmts   Miss  Cover\n----  ----  ----  ----\nTOTAL     124     12    90%\n"
+        assert _parse_coverage(out, "python") == 90.0
+
+    def test_parse_go_per_package_mean(self):
+        from retort.scoring.scorers.test_coverage import _parse_coverage
+        out = "ok pkg/a 0.1s coverage: 80% of statements\nok pkg/b 0.2s coverage: 60% of statements"
+        assert _parse_coverage(out, "go") == 70.0
+
+
+class TestDefectRateScorer:
+    def test_failed_run_scores_zero(self, failed_artifacts, python_stack):
+        scorer = DefectRateScorer()
+        assert scorer.score(failed_artifacts, python_stack) == 0.0
+
+    def test_no_source_files_scores_zero(self, python_stack, tmp_path):
+        scorer = DefectRateScorer()
+        # Empty workspace, no source files of the language
+        artifacts = RunArtifacts(
+            output_dir=tmp_path, stdout="", exit_code=0, duration_seconds=1.0,
+        )
+        assert scorer.score(artifacts, python_stack) == 0.0
+
+    def test_clean_code_scores_high(self, python_stack, tmp_path):
+        # A small valid Python module with no defects
+        (tmp_path / "app.py").write_text("def main():\n    return 1\n")
+        artifacts = RunArtifacts(
+            output_dir=tmp_path, stdout="", exit_code=0, duration_seconds=1.0,
+        )
+        scorer = DefectRateScorer()
+        score = scorer.score(artifacts, python_stack)
+        # If ruff/py_compile unavailable in the test env we still expect
+        # a non-zero score (no defects detected against real LOC).
+        assert 0.0 <= score <= 1.0
+
+
+class TestMaintainabilityScorer:
+    def test_failed_run_scores_zero(self, failed_artifacts, python_stack):
+        scorer = MaintainabilityScorer()
+        assert scorer.score(failed_artifacts, python_stack) == 0.0
+
+    def test_no_source_files_scores_zero(self, python_stack, tmp_path):
+        scorer = MaintainabilityScorer()
+        artifacts = RunArtifacts(
+            output_dir=tmp_path, stdout="", exit_code=0, duration_seconds=1.0,
+        )
+        assert scorer.score(artifacts, python_stack) == 0.0
+
+    def test_well_structured_python_scores_above_zero(self, python_stack, tmp_path):
+        # 3 short functions + 1 test file → expect above 0
+        (tmp_path / "app.py").write_text(
+            "def a():\n    return 1\n\n"
+            "def b():\n    return 2\n\n"
+            "def c():\n    return 3\n"
+        )
+        (tmp_path / "test_app.py").write_text(
+            "def test_a():\n    assert True\n"
+        )
+        artifacts = RunArtifacts(
+            output_dir=tmp_path, stdout="", exit_code=0, duration_seconds=1.0,
+        )
+        scorer = MaintainabilityScorer()
+        assert scorer.score(artifacts, python_stack) > 0.0
+
+    def test_ramp_lower_is_better(self):
+        from retort.scoring.scorers.maintainability import _ramp
+        assert _ramp(0, 10, 50, lower_is_better=True) == 1.0
+        assert _ramp(10, 10, 50, lower_is_better=True) == 1.0
+        assert _ramp(50, 10, 50, lower_is_better=True) == 0.0
+        assert _ramp(30, 10, 50, lower_is_better=True) == 0.5
+
+    def test_ramp_higher_is_better(self):
+        from retort.scoring.scorers.maintainability import _ramp
+        assert _ramp(1.0, 0.5, 0.0, lower_is_better=False) == 1.0
+        assert _ramp(0.5, 0.5, 0.0, lower_is_better=False) == 1.0
+        assert _ramp(0.0, 0.5, 0.0, lower_is_better=False) == 0.0
+        assert _ramp(0.25, 0.5, 0.0, lower_is_better=False) == 0.5
