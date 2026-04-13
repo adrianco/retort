@@ -1624,6 +1624,83 @@ def export_csv(db: str, output: str | None, include_failed: bool) -> None:
         sys.stdout.write(rendered)
 
 
+@main.command("maturity")
+@click.option(
+    "--db",
+    type=click.Path(exists=True),
+    required=True,
+    help="Path to the retort SQLite database.",
+)
+@click.option(
+    "--metric",
+    type=str,
+    default="code_quality",
+    show_default=True,
+    help="Headline metric whose level/variance dominates score components.",
+)
+@click.option(
+    "--format",
+    "fmt",
+    type=click.Choice(["text", "json"]),
+    default="text",
+    show_default=True,
+)
+@click.option(
+    "--output",
+    "-o",
+    type=click.Path(),
+    default=None,
+    help="Output file path. Defaults to stdout.",
+)
+@click.option(
+    "--stack",
+    type=str,
+    default=None,
+    help="Filter to a specific stack signature (sorted-json) or substring.",
+)
+def maturity(db: str, metric: str, fmt: str, output: str | None, stack: str | None) -> None:
+    """Score each stack's maturity from the run database.
+
+    A *stack* is a unique factor combination. Maturity is a composite of
+    replicate agreement, completion rate, headline-metric level, and
+    replicate coverage. Use to find candidates for promotion to the next
+    lifecycle phase (see retort promote).
+    """
+    from retort.analysis.maturity import (
+        compute_stack_maturity, render_json, render_text,
+    )
+    from retort.storage.database import get_engine, get_session_factory
+
+    engine = get_engine(Path(db))
+    session = get_session_factory(engine)()
+    try:
+        report = compute_stack_maturity(session, headline_metric=metric)
+    finally:
+        session.close()
+        engine.dispose()
+
+    if stack:
+        # Match against either the raw signature (sorted-json) or the
+        # human-friendly "factor=value" representation.
+        def _matches(r):
+            human = ", ".join(f"{k}={v}" for k, v in r.factors.items())
+            return stack in r.stack_signature or stack in human
+        report = [r for r in report if _matches(r)]
+
+    if not report:
+        raise click.ClickException(
+            "No stacks matched. Check --db points at a populated retort.db, "
+            "and that --stack filter (if any) matches an actual signature."
+        )
+
+    rendered = render_json(report) if fmt == "json" else render_text(report)
+    if output:
+        Path(output).write_text(rendered)
+        click.echo(f"Wrote maturity report ({len(report)} stacks) to {output}", err=True)
+    else:
+        click.echo(rendered)
+
+
 @main.command("evaluate")
 @click.argument("run_dir", type=click.Path(exists=True, file_okay=False))
 @click.option(
