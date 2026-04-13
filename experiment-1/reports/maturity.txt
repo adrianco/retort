@@ -8,6 +8,8 @@
                        n=3 (✓3/✗0)  code_quality: 1.000±0.000  agreement=1.00  completion=1.00  coverage=1.00
     1.000  production  language=java, model=sonnet, tooling=none
                        n=3 (✓3/✗0)  code_quality: 1.000±0.000  agreement=1.00  completion=1.00  coverage=1.00
+    1.000  production  language=java, model=sonnet, tooling=beads
+                       n=3 (✓3/✗0)  code_quality: 1.000±0.000  agreement=1.00  completion=1.00  coverage=1.00
     0.989  production  language=go, model=sonnet, tooling=none
                        n=3 (✓3/✗0)  code_quality: 0.956±0.000  agreement=1.00  completion=1.00  coverage=1.00
     0.970  production  language=go, model=opus, tooling=beads
@@ -18,21 +20,25 @@
                        n=3 (✓3/✗0)  code_quality: 0.833±0.000  agreement=1.00  completion=1.00  coverage=1.00
     0.958  production  language=rust, model=sonnet, tooling=none
                        n=3 (✓3/✗0)  code_quality: 0.833±0.000  agreement=1.00  completion=1.00  coverage=1.00
-    0.950  production  language=java, model=sonnet, tooling=beads
-                       n=2 (✓2/✗0)  code_quality: 1.000±0.000  agreement=1.00  completion=1.00  coverage=0.67
+    0.958  production  language=clojure, model=opus, tooling=none
+                       n=3 (✓3/✗0)  code_quality: 0.833±0.000  agreement=1.00  completion=1.00  coverage=1.00
     0.933  production  language=typescript, model=opus, tooling=none
                        n=3 (✓3/✗0)  code_quality: 0.733±0.000  agreement=1.00  completion=1.00  coverage=1.00
     0.933  production  language=typescript, model=opus, tooling=beads
                        n=3 (✓3/✗0)  code_quality: 0.733±0.000  agreement=1.00  completion=1.00  coverage=1.00
     0.924  production  language=go, model=opus, tooling=none
                        n=3 (✓3/✗0)  code_quality: 0.963±0.064  agreement=0.78  completion=1.00  coverage=1.00
-    0.908  production  language=clojure, model=opus, tooling=none
+    0.908  production  language=clojure, model=sonnet, tooling=beads
                        n=2 (✓2/✗0)  code_quality: 0.833±0.000  agreement=1.00  completion=1.00  coverage=0.67
     0.869  production  language=python, model=sonnet, tooling=none
                        n=3 (✓3/✗0)  code_quality: 0.637±0.026  agreement=0.87  completion=1.00  coverage=1.00
     0.858  production  language=typescript, model=sonnet, tooling=beads
                        n=4 (✓3/✗1)  code_quality: 0.733±0.000  agreement=1.00  completion=0.75  coverage=1.00
     0.808       trial  language=rust, model=sonnet, tooling=beads
+                       n=3 (✓2/✗1)  code_quality: 0.833±0.000  agreement=1.00  completion=0.67  coverage=0.67
+    0.808       trial  language=clojure, model=opus, tooling=beads
+                       n=3 (✓2/✗1)  code_quality: 0.833±0.000  agreement=1.00  completion=0.67  coverage=0.67
+    0.808       trial  language=clojure, model=sonnet, tooling=none
                        n=3 (✓2/✗1)  code_quality: 0.833±0.000  agreement=1.00  completion=0.67  coverage=0.67
     0.791       trial  language=python, model=sonnet, tooling=beads
                        n=3 (✓3/✗0)  code_quality: 0.696±0.093  agreement=0.56  completion=1.00  coverage=1.00
@@ -42,9 +48,3 @@
                        n=3 (✓2/✗1)  code_quality: 0.733±0.000  agreement=1.00  completion=0.67  coverage=0.67
     0.736       trial  language=python, model=opus, tooling=none
                        n=3 (✓3/✗0)  code_quality: 0.789±0.167  agreement=0.30  completion=1.00  coverage=1.00
-    0.708       trial  language=clojure, model=sonnet, tooling=beads
-                       n=1 (✓1/✗0)  code_quality: 0.833  agreement=0.50  completion=1.00  coverage=0.33
-    0.708       trial  language=clojure, model=sonnet, tooling=none
-                       n=1 (✓1/✗0)  code_quality: 0.833  agreement=0.50  completion=1.00  coverage=0.33
-    0.558   screening  language=clojure, model=opus, tooling=beads
-                       n=2 (✓1/✗1)  code_quality: 0.833  agreement=0.50  completion=0.50  coverage=0.33

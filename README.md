@@ -20,24 +20,39 @@ Retort applies statistical Design of Experiments (DoE) to systematically evaluat
 
 Full data is also in [`experiment-1/reports/`](experiment-1/reports/) — ANOVA, per-stack maturity, full CSV, and the same static-HTML web report. Below is the headline.
 
-**Setup:** 4 languages (python, typescript, go, rust) × 2 models (opus, sonnet) × 2 tooling (none, beads) × 3 replicates = 48 runs against the bundled `rest-api-crud` task. **46 completed, 3 failed.** Total cost ≈ $12.73, ≈ 13.2M tokens (token/cost data only available for the 35 resumed runs — the original 11 predate the persistence fix).
+**Setup:** 6 languages (python, typescript, go, rust, java, clojure) × 2 models (opus, sonnet) × 2 tooling (none, beads) × 3 replicates = 72 runs against the bundled `rest-api-crud` task. Java + clojure added in a follow-up extension; first 4 languages still have their original replicates.
 
-**ANOVA on `code_quality`:** R² = 0.80, language is highly significant (p < 5e-14); model and tooling are not significant on their own.
+**Multiplicative ANOVA** (default: log10 transform, since cost/tokens/duration scale by ratios not constants):
 
-**Top stack by maturity:** `go / sonnet / beads` — maturity 1.000 (3/3 completed, perfect agreement, code_quality 1.000). Generate the maturity report yourself with `retort maturity --db experiment-1/retort.db`.
+| Response | Significant factors |
+|---|---|
+| `code_quality` | language only (p < 1e-18) |
+| `_tokens` | language + model + tooling |
+| `_cost_usd` | language + model + tooling |
+| `_duration_seconds` | language + model + tooling |
 
-**Failed cells:** `typescript / sonnet / beads` (1 of 3), `rust / sonnet / beads` (2 of 3) — likely the 15-minute timeout on slower toolchains, not a true language-stack issue.
+Switching from additive to multiplicative ANOVA surfaced model + tooling effects on the cost-like metrics that the additive model treated as noise. See [`reports/anova.txt`](experiment-1/reports/anova.txt).
 
-### Per-stack means (live data, all 49 runs)
+**Top stacks by maturity:** **Java sweeps quality 1.000** in all four model/tooling combinations. Go's `sonnet/beads` ties at quality 1.000 too. Generate the full maturity report with `retort maturity --db experiment-1/retort.db`.
 
-Sortable equivalent in the [web report](https://rawcdn.githack.com/adrianco/retort/main/experiment-1/reports/web/index.html). Token / Cost / Duration columns are means across replicates; the original 11 first-pass runs predate the persistence fix and don't contribute to those columns (their quality scores still do).
+### Per-stack means (live data)
+
+Sortable + drill-downable in the [web report](https://rawcdn.githack.com/adrianco/retort/main/experiment-1/reports/web/index.html). Bold quality means perfect 1.000.
 
 | Language | Model | Tooling | n | Quality (mean) | Tokens (mean) | Cost (mean) | Duration (mean) |
 |---|---|---|---|---|---|---|---|
+| clojure | opus | beads | 2/3 | 0.556 | 723,724 | $0.762 | 201s |
+| clojure | opus | none | 3/3 | 0.833 | 409,366 | $0.579 | 179s |
+| clojure | sonnet | beads | 2/2 | 0.833 | 679,966 | $0.477 | 230s |
+| clojure | sonnet | none | 2/3 | 0.556 | 665,636 | $0.575 | 310s |
 | go | opus | beads | 3/3 | 0.985 | 346,215 | $0.491 | 117s |
 | go | opus | none | 3/3 | 0.963 | 230,498 | $0.361 | 94s |
 | go | sonnet | beads | 3/3 | **1.000** | 476,955 | $0.311 | 147s |
 | go | sonnet | none | 3/3 | 0.956 | 435,373 | $0.303 | 123s |
+| java | opus | beads | 3/3 | **1.000** | 325,112 | $0.552 | 150s |
+| java | opus | none | 3/3 | **1.000** | 217,162 | $0.436 | 131s |
+| java | sonnet | beads | 3/3 | **1.000** | 611,395 | $0.365 | 182s |
+| java | sonnet | none | 3/3 | **1.000** | 494,115 | $0.326 | 152s |
 | python | opus | beads | 3/3 | 0.672 | 280,359 | $0.373 | 79s |
 | python | opus | none | 3/3 | 0.789 | 91,698 | $0.203 | 44s |
 | python | sonnet | beads | 3/3 | 0.696 | 436,753 | $0.262 | 110s |
@@ -51,7 +66,11 @@ Sortable equivalent in the [web report](https://rawcdn.githack.com/adrianco/reto
 | typescript | sonnet | beads | 3/4 | 0.550 | 637,682 | $0.381 | 168s |
 | typescript | sonnet | none | 2/3 | 0.489 | 835,319 | $0.531 | 281s |
 
-**Headline:** `go / sonnet / beads` is the only stack at quality 1.000 across all replicates, **and** is among the cheapest at $0.31/run. Go dominates on quality. Python is cheapest overall but trades off ~25% quality. Rust and TypeScript are the most expensive, with TS/sonnet/none the only stack with sub-$0.50 mean cost AND under 0.5 quality — i.e., poor value.
+**Headline:**
+- **Java is the surprise winner** — perfect 1.000 quality across every (model, tooling) combination, and `java/sonnet/none` does it for $0.33/run.
+- **Best value:** `go/sonnet/none` at $0.303 quality 0.956, or `java/sonnet/none` at $0.326 quality 1.000.
+- **Worst value:** `clojure/opus/beads` at $0.762 quality 0.556 (paying the most for the worst output).
+- **Beads helps only for Go.** Python, typescript, rust, java, clojure all score lower (or no different) with beads enabled — beads' overhead isn't recouped on this small task.
 
 ## Installation
 
