@@ -16,7 +16,7 @@ Retort applies statistical Design of Experiments (DoE) to systematically evaluat
 
 ## Experiment 1 Results
 
-📊 **[Browse the live web report →](https://raw.githack.com/adrianco/retort/main/experiment-1/reports/web/index.html)** (sortable leaderboard with per-stack drill-downs, token/cost data, and links to per-run code reviews)
+📊 **[Browse the live web report →](https://rawcdn.githack.com/adrianco/retort/main/experiment-1/reports/web/index.html)** (sortable leaderboard with per-stack drill-downs, token/cost data, and links to per-run code reviews)
 
 Full data is also in [`experiment-1/reports/`](experiment-1/reports/) — ANOVA, per-stack maturity, full CSV, and the same static-HTML web report. Below is the headline.
 
@@ -30,7 +30,7 @@ Full data is also in [`experiment-1/reports/`](experiment-1/reports/) — ANOVA,
 
 ### Per-stack means (live data, all 49 runs)
 
-Sortable equivalent in the [web report](https://raw.githack.com/adrianco/retort/main/experiment-1/reports/web/index.html). Token / Cost / Duration columns are means across replicates; the original 11 first-pass runs predate the persistence fix and don't contribute to those columns (their quality scores still do).
+Sortable equivalent in the [web report](https://rawcdn.githack.com/adrianco/retort/main/experiment-1/reports/web/index.html). Token / Cost / Duration columns are means across replicates; the original 11 first-pass runs predate the persistence fix and don't contribute to those columns (their quality scores still do).
 
 | Language | Model | Tooling | n | Quality (mean) | Tokens (mean) | Cost (mean) | Duration (mean) |
 |---|---|---|---|---|---|---|---|
