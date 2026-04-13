@@ -364,32 +364,6 @@
     }
   },
   {
-    "stack_signature": "{\"language\": \"clojure\", \"model\": \"sonnet\", \"tooling\": \"beads\"}",
-    "factors": {
-      "language": "clojure",
-      "model": "sonnet",
-      "tooling": "beads"
-    },
-    "n_replicates": 2,
-    "n_completed": 2,
-    "n_failed": 0,
-    "headline_metric": "code_quality",
-    "headline_mean": 0.8333333333333334,
-    "headline_stdev": 0.0,
-    "headline_cv": 0.0,
-    "completion_rate": 1.0,
-    "replicate_agreement": 1.0,
-    "score_level": 0.8333333333333334,
-    "coverage": 0.6666666666666666,
-    "maturity": 0.9083333333333333,
-    "components": {
-      "replicate_agreement": 1.0,
-      "completion_rate": 1.0,
-      "score_level": 0.8333333333333334,
-      "coverage": 0.6666666666666666
-    }
-  },
-  {
     "stack_signature": "{\"language\": \"python\", \"model\": \"sonnet\", \"tooling\": \"none\"}",
     "factors": {
       "language": "python",
@@ -472,6 +446,32 @@
     "factors": {
       "language": "clojure",
       "model": "opus",
+      "tooling": "beads"
+    },
+    "n_replicates": 3,
+    "n_completed": 2,
+    "n_failed": 1,
+    "headline_metric": "code_quality",
+    "headline_mean": 0.8333333333333334,
+    "headline_stdev": 0.0,
+    "headline_cv": 0.0,
+    "completion_rate": 0.6666666666666666,
+    "replicate_agreement": 1.0,
+    "score_level": 0.8333333333333334,
+    "coverage": 0.6666666666666666,
+    "maturity": 0.8083333333333333,
+    "components": {
+      "replicate_agreement": 1.0,
+      "completion_rate": 0.6666666666666666,
+      "score_level": 0.8333333333333334,
+      "coverage": 0.6666666666666666
+    }
+  },
+  {
+    "stack_signature": "{\"language\": \"clojure\", \"model\": \"sonnet\", \"tooling\": \"beads\"}",
+    "factors": {
+      "language": "clojure",
+      "model": "sonnet",
       "tooling": "beads"
     },
     "n_replicates": 3,

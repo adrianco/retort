@@ -20,7 +20,7 @@ Retort applies statistical Design of Experiments (DoE) to systematically evaluat
 
 Full data is also in [`experiment-1/reports/`](experiment-1/reports/) — ANOVA, per-stack maturity, full CSV, and the same static-HTML web report. Below is the headline.
 
-**Setup:** 6 languages (python, typescript, go, rust, java, clojure) × 2 models (opus, sonnet) × 2 tooling (none, beads) × 3 replicates = 72 runs against the bundled `rest-api-crud` task. Java + clojure added in a follow-up extension; first 4 languages still have their original replicates.
+**Setup:** 6 languages (python, typescript, go, rust, java, clojure) × 2 models (opus, sonnet) × 2 tooling (none, beads) × 3 replicates = 72 runs against the bundled `rest-api-crud` task. Java + clojure added in a follow-up extension run as 4 parallel `--shard 0/4..3/4` shards. **Final tally: 67 of 73 runs completed, 6 failed. Total cost ≈ $25, ≈ 25.8M tokens.**
 
 **Multiplicative ANOVA** (default: log10 transform, since cost/tokens/duration scale by ratios not constants):
 
@@ -43,7 +43,7 @@ Sortable + drill-downable in the [web report](https://rawcdn.githack.com/adrianc
 |---|---|---|---|---|---|---|---|
 | clojure | opus | beads | 2/3 | 0.556 | 723,724 | $0.762 | 201s |
 | clojure | opus | none | 3/3 | 0.833 | 409,366 | $0.579 | 179s |
-| clojure | sonnet | beads | 2/2 | 0.833 | 679,966 | $0.477 | 230s |
+| clojure | sonnet | beads | 2/3 | 0.556 | 722,939 | $0.520 | 259s |
 | clojure | sonnet | none | 2/3 | 0.556 | 665,636 | $0.575 | 310s |
 | go | opus | beads | 3/3 | 0.985 | 346,215 | $0.491 | 117s |
 | go | opus | none | 3/3 | 0.963 | 230,498 | $0.361 | 94s |

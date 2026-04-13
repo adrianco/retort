@@ -28,8 +28,6 @@
                        n=3 (✓3/✗0)  code_quality: 0.733±0.000  agreement=1.00  completion=1.00  coverage=1.00
     0.924  production  language=go, model=opus, tooling=none
                        n=3 (✓3/✗0)  code_quality: 0.963±0.064  agreement=0.78  completion=1.00  coverage=1.00
-    0.908  production  language=clojure, model=sonnet, tooling=beads
-                       n=2 (✓2/✗0)  code_quality: 0.833±0.000  agreement=1.00  completion=1.00  coverage=0.67
     0.869  production  language=python, model=sonnet, tooling=none
                        n=3 (✓3/✗0)  code_quality: 0.637±0.026  agreement=0.87  completion=1.00  coverage=1.00
     0.858  production  language=typescript, model=sonnet, tooling=beads
@@ -37,6 +35,8 @@
     0.808       trial  language=rust, model=sonnet, tooling=beads
                        n=3 (✓2/✗1)  code_quality: 0.833±0.000  agreement=1.00  completion=0.67  coverage=0.67
     0.808       trial  language=clojure, model=opus, tooling=beads
+                       n=3 (✓2/✗1)  code_quality: 0.833±0.000  agreement=1.00  completion=0.67  coverage=0.67
+    0.808       trial  language=clojure, model=sonnet, tooling=beads
                        n=3 (✓2/✗1)  code_quality: 0.833±0.000  agreement=1.00  completion=0.67  coverage=0.67
     0.808       trial  language=clojure, model=sonnet, tooling=none
                        n=3 (✓2/✗1)  code_quality: 0.833±0.000  agreement=1.00  completion=0.67  coverage=0.67
