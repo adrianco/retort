@@ -300,6 +300,39 @@ def _fmt_optional(v: float | None) -> str:
     return f"{v:.3f}" if v is not None else "n/a"
 
 
+def _stack_telemetry(
+    stack: StackMaturity,
+    runs: list,
+    results_by_run: dict[int, list],
+) -> dict[str, float | None]:
+    """Per-stack mean tokens/cost/duration. None when no data."""
+    sig = stack.stack_signature
+    tokens: list[float] = []
+    cost: list[float] = []
+    duration: list[float] = []
+    for run in runs:
+        try:
+            run_sig = json.dumps(json.loads(run.run_config_json or "{}"), sort_keys=True)
+        except (TypeError, ValueError):
+            continue
+        if run_sig != sig:
+            continue
+        for res in results_by_run.get(run.id, []):
+            if res.value is None:
+                continue
+            if res.metric_name == "_tokens":
+                tokens.append(float(res.value))
+            elif res.metric_name == "_cost_usd":
+                cost.append(float(res.value))
+            elif res.metric_name == "_duration_seconds":
+                duration.append(float(res.value))
+    return {
+        "tokens_mean": (sum(tokens) / len(tokens)) if tokens else None,
+        "cost_mean": (sum(cost) / len(cost)) if cost else None,
+        "duration_mean": (sum(duration) / len(duration)) if duration else None,
+    }
+
+
 def _render_index(
     *,
     page_title: str,
@@ -348,9 +381,12 @@ def _render_index(
     )
 
     if not stacks:
-        rows_html = '<tr><td colspan="6" class="muted">No stacks yet.</td></tr>'
+        rows_html = '<tr><td colspan="9" class="muted">No stacks yet.</td></tr>'
     else:
-        rows_html = "\n".join(_render_stack_row(s, visibility) for s in stacks)
+        rows_html = "\n".join(
+            _render_stack_row(s, visibility, _stack_telemetry(s, runs, results_by_run))
+            for s in stacks
+        )
 
     if anova_text:
         anova_section = (
@@ -381,14 +417,22 @@ def _render_index(
 <div class="summary">{summary_html}</div>
 
 <h2>Stack maturity</h2>
+<p class="muted">
+  Click any column header to sort. Tokens / Cost / Duration are
+  per-replicate means — sort ascending to find the most efficient stacks
+  at a given quality level.
+</p>
 <table class="sortable">
   <thead><tr>
     <th class="numeric" data-dir="desc">Maturity</th>
     <th>Phase</th>
     <th>Stack</th>
-    <th class="numeric">Replicates</th>
-    <th class="numeric">Completion</th>
+    <th class="numeric">n</th>
     <th class="numeric">code_quality</th>
+    <th class="numeric">tokens (mean)</th>
+    <th class="numeric">cost (mean)</th>
+    <th class="numeric">duration (mean)</th>
+    <th class="numeric">$/quality</th>
   </tr></thead>
   <tbody>{rows_html}</tbody>
 </table>
@@ -406,7 +450,11 @@ def _render_index(
     )
 
 
-def _render_stack_row(stack: StackMaturity, visibility: str) -> str:
+def _render_stack_row(
+    stack: StackMaturity,
+    visibility: str,
+    telemetry: dict[str, float | None],
+) -> str:
     factors_str = ", ".join(f"{k}={v}" for k, v in stack.factors.items())
     phase = classify_phase(stack.maturity)
     if visibility == "public":
@@ -418,14 +466,38 @@ def _render_stack_row(stack: StackMaturity, visibility: str) -> str:
         if stack.headline_mean is not None
         else '<span class="muted" data-sort-key="0">n/a</span>'
     )
+
+    def _num_cell(value: float | None, fmt: str, sort_key: float | None = None) -> str:
+        if value is None:
+            return '<td class="numeric muted" data-sort-key="999999999">—</td>'
+        key = sort_key if sort_key is not None else value
+        return f'<td class="numeric" data-sort-key="{key}">{fmt.format(value)}</td>'
+
+    tokens_cell = _num_cell(telemetry["tokens_mean"], "{:,.0f}")
+    cost_cell = _num_cell(telemetry["cost_mean"], "${:.4f}")
+    duration_cell = _num_cell(telemetry["duration_mean"], "{:.1f}s")
+
+    # $/quality — lower is better (more quality per dollar).
+    if telemetry["cost_mean"] and stack.headline_mean and stack.headline_mean > 0:
+        cost_per_quality = telemetry["cost_mean"] / stack.headline_mean
+        cpq_cell = (
+            f'<td class="numeric" data-sort-key="{cost_per_quality:.4f}">'
+            f'${cost_per_quality:.4f}</td>'
+        )
+    else:
+        cpq_cell = '<td class="numeric muted" data-sort-key="999999999">—</td>'
+
     return f"""\
 <tr>
   <td class="numeric" data-sort-key="{stack.maturity:.4f}">{stack.maturity:.3f}</td>
   <td><span class="phase phase-{phase}">{phase}</span></td>
   <td class="factors">{link}</td>
   <td class="numeric" data-sort-key="{stack.n_replicates}">{stack.n_completed}/{stack.n_replicates}</td>
-  <td class="numeric" data-sort-key="{stack.completion_rate:.3f}">{stack.completion_rate * 100:.0f}%</td>
   <td class="numeric">{score_cell}</td>
+  {tokens_cell}
+  {cost_cell}
+  {duration_cell}
+  {cpq_cell}
 </tr>"""
 
 
