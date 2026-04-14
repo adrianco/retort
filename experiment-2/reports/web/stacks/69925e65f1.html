@@ -1,0 +1,42 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Experiment 2 — brazil-bench (24 cells) · language=rust, model=sonnet, tooling=beads</title>
+  <link rel="stylesheet" href="../style.css">
+</head>
+<body>
+<p class="muted"><a href="../index.html">&larr; index</a></p>
+<h1>language=rust, model=sonnet, tooling=beads</h1>
+<p class="subtitle">
+  <span class="phase phase-trial">trial</span>
+  &nbsp;maturity 0.708
+</p>
+
+<div class="summary"><div class="summary-item"><div class="label">Replicates</div><div class="value">1/1</div></div>
+<div class="summary-item"><div class="label">Completion</div><div class="value">100%</div></div>
+<div class="summary-item"><div class="label">Replicate agreement</div><div class="value">0.50</div></div>
+<div class="summary-item"><div class="label">code_quality</div><div class="value">0.833</div></div>
+<div class="summary-item"><div class="label">Tokens (total)</div><div class="value">491,969</div></div>
+<div class="summary-item"><div class="label">Cost (total)</div><div class="value">$1.1087</div></div></div>
+
+<h2>Runs</h2>
+<table>
+  <thead><tr><th class="numeric">Run</th><th>Rep</th><th>Status</th><th class="numeric">code_quality</th><th class="numeric">defect_rate</th><th class="numeric">idiomatic</th><th class="numeric">maintainability</th><th class="numeric">test_coverage</th><th class="numeric">token_efficiency</th><th class="numeric">cost ($)</th><th class="numeric">duration (s)</th><th class="numeric">tokens</th><th class="numeric">turns</th><th class="numeric">Files</th><th class="numeric">LOC</th></tr></thead>
+  <tbody><tr><td>18</td><td>rep 1</td><td>completed</td><td class="numeric">0.833</td><td class="numeric">0.874</td><td class="numeric">0.770</td><td class="numeric">0.183</td><td class="numeric">0.000</td><td class="numeric">0.056</td><td class="numeric">$1.1087</td><td class="numeric">532.5s</td><td class="numeric">491,969</td><td class="numeric">17</td><td class="numeric">5</td><td class="numeric">1429</td></tr></tbody>
+</table>
+
+<h2>Code review</h2>
+<p class="muted">
+  Per-replicate file listing extracted from the archived workspace.
+  For semantic analysis (architecture, interfaces, control flow), invoke
+  the <code>run-summary</code> skill via <code>retort evaluate &lt;run_dir&gt;</code>.
+</p>
+<details class="code-summary"><summary>rep 1 — 5 file(s), 1429 loc (1 test file(s), 93 test loc)</summary><div class="code-files"><div class="file"><span class="file-name">src/data.rs</span> <span class="muted">(467 loc)</span><div class="symbols">fn normalize_team, fn regex_remove_state_space, fn regex_remove_state_dash, fn team_matches_query, fn normalize_date, fn parse_goals, fn parse_season, fn col_index, fn get_field, fn load, struct Match, struct Player, struct DataStore</div></div><div class="file"><span class="file-name">src/lib.rs</span> <span class="muted">(2 loc)</span></div><div class="file"><span class="file-name">src/main.rs</span> <span class="muted">(227 loc)</span><div class="symbols">fn make_error, fn make_result, fn make_tool_error, fn make_tool_result, fn tools_list, fn handle_request, fn main</div></div><div class="file"><span class="file-name">src/tools.rs</span> <span class="muted">(640 loc)</span><div class="symbols">fn new, fn search_matches, fn get_team_stats, fn head_to_head, fn search_players, fn get_standings, fn get_biggest_wins, fn competition_stats, struct Tools</div></div><div class="file test"><span class="file-name">tests/integration_test.rs</span> <span class="muted">(93 loc, test)</span><div class="symbols">fn get_data_dir, fn load_store, fn test_load_datastore, fn test_search_matches_flamengo, fn test_head_to_head_flamengo_fluminense, fn test_search_players_brazil, fn test_get_standings_2019, fn test_get_team_stats_palmeiras_2023, fn test_normalize_team_palmeiras_sp, fn test_normalize_team_flamengo_rj, fn test_normalize_date</div></div></div></details>
+
+<p class="muted">
+  Stack signature (sorted JSON): <code>{&quot;language&quot;: &quot;rust&quot;, &quot;model&quot;: &quot;sonnet&quot;, &quot;tooling&quot;: &quot;beads&quot;}</code>
+</p>
+</body>
+</html>

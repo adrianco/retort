@@ -1,0 +1,42 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Experiment 2 — brazil-bench (24 cells) · language=java, model=opus, tooling=beads</title>
+  <link rel="stylesheet" href="../style.css">
+</head>
+<body>
+<p class="muted"><a href="../index.html">&larr; index</a></p>
+<h1>language=java, model=opus, tooling=beads</h1>
+<p class="subtitle">
+  <span class="phase phase-trial">trial</span>
+  &nbsp;maturity 0.750
+</p>
+
+<div class="summary"><div class="summary-item"><div class="label">Replicates</div><div class="value">1/1</div></div>
+<div class="summary-item"><div class="label">Completion</div><div class="value">100%</div></div>
+<div class="summary-item"><div class="label">Replicate agreement</div><div class="value">0.50</div></div>
+<div class="summary-item"><div class="label">code_quality</div><div class="value">1.000</div></div>
+<div class="summary-item"><div class="label">Tokens (total)</div><div class="value">1,669,932</div></div>
+<div class="summary-item"><div class="label">Cost (total)</div><div class="value">$1.7526</div></div></div>
+
+<h2>Runs</h2>
+<table>
+  <thead><tr><th class="numeric">Run</th><th>Rep</th><th>Status</th><th class="numeric">code_quality</th><th class="numeric">defect_rate</th><th class="numeric">idiomatic</th><th class="numeric">maintainability</th><th class="numeric">test_coverage</th><th class="numeric">token_efficiency</th><th class="numeric">cost ($)</th><th class="numeric">duration (s)</th><th class="numeric">tokens</th><th class="numeric">turns</th><th class="numeric">Files</th><th class="numeric">LOC</th></tr></thead>
+  <tbody><tr><td>22</td><td>rep 1</td><td>completed</td><td class="numeric">1.000</td><td class="numeric">1.000</td><td class="numeric">0.580</td><td class="numeric">0.689</td><td class="numeric">0.000</td><td class="numeric">0.011</td><td class="numeric">$1.7526</td><td class="numeric">340.6s</td><td class="numeric">1,669,932</td><td class="numeric">39</td><td class="numeric">13</td><td class="numeric">936</td></tr></tbody>
+</table>
+
+<h2>Code review</h2>
+<p class="muted">
+  Per-replicate file listing extracted from the archived workspace.
+  For semantic analysis (architecture, interfaces, control flow), invoke
+  the <code>run-summary</code> skill via <code>retort evaluate &lt;run_dir&gt;</code>.
+</p>
+<details class="code-summary"><summary>rep 1 — 13 file(s), 936 loc (4 test file(s), 168 test loc)</summary><div class="code-files"><div class="file"><span class="file-name">src/main/java/com/example/soccer/data/CsvLoader.java</span> <span class="muted">(186 loc)</span><div class="symbols">class CsvLoader, method parseDate, method parseIntSafe, method open, method get, method loadBrasileirao, method loadCopaDoBrasil, method loadLibertadores, method loadBrFootballDataset, method loadHistoricalBrasileirao, method loadFifaPlayers, method loadAll, method defaultDataDir</div></div><div class="file"><span class="file-name">src/main/java/com/example/soccer/data/TeamNames.java</span> <span class="muted">(31 loc)</span><div class="symbols">class TeamNames, method normalize, method matches</div></div><div class="file"><span class="file-name">src/main/java/com/example/soccer/mcp/McpServer.java</span> <span class="muted">(110 loc)</span><div class="symbols">class McpServer, method main, method run, method dispatch, method initialize, method errorResponse, method getTools</div></div><div class="file"><span class="file-name">src/main/java/com/example/soccer/mcp/McpTools.java</span> <span class="muted">(173 loc)</span><div class="symbols">class McpTools, method list, method tool, method call, method s, method i, method d, method findMatches, method teamStats, method headToHead, method standings, method findPlayers, method biggestWins, method aggregateStats</div></div><div class="file"><span class="file-name">src/main/java/com/example/soccer/model/Match.java</span> <span class="muted">(38 loc)</span><div class="symbols">class Match, method winner, method toString</div></div><div class="file"><span class="file-name">src/main/java/com/example/soccer/model/Player.java</span> <span class="muted">(34 loc)</span><div class="symbols">class Player, method toString</div></div><div class="file"><span class="file-name">src/main/java/com/example/soccer/query/HeadToHead.java</span> <span class="muted">(16 loc)</span><div class="symbols">class HeadToHead, method toString</div></div><div class="file"><span class="file-name">src/main/java/com/example/soccer/query/QueryEngine.java</span> <span class="muted">(158 loc)</span><div class="symbols">class QueryEngine, method allMatches, method allPlayers, method findMatches, method teamStats, method headToHead, method standings, method findPlayers, method biggestWins</div></div><div class="file"><span class="file-name">src/main/java/com/example/soccer/query/TeamStats.java</span> <span class="muted">(22 loc)</span><div class="symbols">class TeamStats, method winRate, method goalDiff, method toString</div></div><div class="file test"><span class="file-name">src/test/java/com/example/soccer/CsvLoaderTest.java</span> <span class="muted">(26 loc, test)</span><div class="symbols">class CsvLoaderTest</div></div><div class="file test"><span class="file-name">src/test/java/com/example/soccer/McpToolsTest.java</span> <span class="muted">(54 loc, test)</span><div class="symbols">class McpToolsTest</div></div><div class="file test"><span class="file-name">src/test/java/com/example/soccer/QueryEngineTest.java</span> <span class="muted">(70 loc, test)</span><div class="symbols">class QueryEngineTest</div></div><div class="file test"><span class="file-name">src/test/java/com/example/soccer/TeamNamesTest.java</span> <span class="muted">(18 loc, test)</span><div class="symbols">class TeamNamesTest</div></div></div></details>
+
+<p class="muted">
+  Stack signature (sorted JSON): <code>{&quot;language&quot;: &quot;java&quot;, &quot;model&quot;: &quot;opus&quot;, &quot;tooling&quot;: &quot;beads&quot;}</code>
+</p>
+</body>
+</html>

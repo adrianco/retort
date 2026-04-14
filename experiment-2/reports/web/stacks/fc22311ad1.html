@@ -1,0 +1,42 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Experiment 2 — brazil-bench (24 cells) · language=clojure, model=opus, tooling=none</title>
+  <link rel="stylesheet" href="../style.css">
+</head>
+<body>
+<p class="muted"><a href="../index.html">&larr; index</a></p>
+<h1>language=clojure, model=opus, tooling=none</h1>
+<p class="subtitle">
+  <span class="phase phase-trial">trial</span>
+  &nbsp;maturity 0.708
+</p>
+
+<div class="summary"><div class="summary-item"><div class="label">Replicates</div><div class="value">1/1</div></div>
+<div class="summary-item"><div class="label">Completion</div><div class="value">100%</div></div>
+<div class="summary-item"><div class="label">Replicate agreement</div><div class="value">0.50</div></div>
+<div class="summary-item"><div class="label">code_quality</div><div class="value">0.833</div></div>
+<div class="summary-item"><div class="label">Tokens (total)</div><div class="value">630,222</div></div>
+<div class="summary-item"><div class="label">Cost (total)</div><div class="value">$0.8090</div></div></div>
+
+<h2>Runs</h2>
+<table>
+  <thead><tr><th class="numeric">Run</th><th>Rep</th><th>Status</th><th class="numeric">code_quality</th><th class="numeric">defect_rate</th><th class="numeric">idiomatic</th><th class="numeric">maintainability</th><th class="numeric">test_coverage</th><th class="numeric">token_efficiency</th><th class="numeric">cost ($)</th><th class="numeric">duration (s)</th><th class="numeric">tokens</th><th class="numeric">turns</th><th class="numeric">Files</th><th class="numeric">LOC</th></tr></thead>
+  <tbody><tr><td>10</td><td>rep 1</td><td>completed</td><td class="numeric">0.833</td><td class="numeric">1.000</td><td class="numeric">0.780</td><td class="numeric">0.768</td><td class="numeric">0.000</td><td class="numeric">0.019</td><td class="numeric">$0.8090</td><td class="numeric">178.2s</td><td class="numeric">630,222</td><td class="numeric">17</td><td class="numeric">6</td><td class="numeric">588</td></tr></tbody>
+</table>
+
+<h2>Code review</h2>
+<p class="muted">
+  Per-replicate file listing extracted from the archived workspace.
+  For semantic analysis (architecture, interfaces, control flow), invoke
+  the <code>run-summary</code> skill via <code>retort evaluate &lt;run_dir&gt;</code>.
+</p>
+<details class="code-summary"><summary>rep 1 — 6 file(s), 588 loc (3 test file(s), 100 test loc)</summary><div class="code-files"><div class="file"><span class="file-name">src/br_soccer/data.clj</span> <span class="muted">(166 loc)</span><div class="symbols">defn read-csv, defn rows-&gt;maps, defn load-csv, defn normalize-team, defn team-matches?, defn parse-int, defn parse-double*, defn parse-br-date, defn season-of, defn norm-brasileirao, defn norm-cup, defn norm-lib, defn norm-ext, defn norm-novo, defn norm-player, defn all-matches, defn all-players, def matches, def players, ns br</div></div><div class="file"><span class="file-name">src/br_soccer/mcp.clj</span> <span class="muted">(140 loc)</span><div class="symbols">defn k, defn limit*, defn dispatch, defn response, defn error-response, defn handle-request, defn -main, def tools, ns br</div></div><div class="file"><span class="file-name">src/br_soccer/query.clj</span> <span class="muted">(182 loc)</span><div class="symbols">defn matches-by-team, defn matches-between, defn matches-by-season, defn matches-by-competition, defn matches-in-date-range, defn result-for, defn team-stats, defn head-to-head, defn standings, defn biggest-wins, defn avg-goals-per-match, defn players-by-name, defn players-by-nationality, defn players-by-club, defn top-players, ns br</div></div><div class="file test"><span class="file-name">test/br_soccer/data_test.clj</span> <span class="muted">(22 loc, test)</span><div class="symbols">ns br</div></div><div class="file test"><span class="file-name">test/br_soccer/mcp_test.clj</span> <span class="muted">(28 loc, test)</span><div class="symbols">ns br</div></div><div class="file test"><span class="file-name">test/br_soccer/query_test.clj</span> <span class="muted">(50 loc, test)</span><div class="symbols">ns br</div></div></div></details>
+
+<p class="muted">
+  Stack signature (sorted JSON): <code>{&quot;language&quot;: &quot;clojure&quot;, &quot;model&quot;: &quot;opus&quot;, &quot;tooling&quot;: &quot;none&quot;}</code>
+</p>
+</body>
+</html>

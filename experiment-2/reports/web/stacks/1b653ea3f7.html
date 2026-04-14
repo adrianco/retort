@@ -1,0 +1,42 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Experiment 2 — brazil-bench (24 cells) · language=python, model=sonnet, tooling=none</title>
+  <link rel="stylesheet" href="../style.css">
+</head>
+<body>
+<p class="muted"><a href="../index.html">&larr; index</a></p>
+<h1>language=python, model=sonnet, tooling=none</h1>
+<p class="subtitle">
+  <span class="phase phase-trial">trial</span>
+  &nbsp;maturity 0.667
+</p>
+
+<div class="summary"><div class="summary-item"><div class="label">Replicates</div><div class="value">1/1</div></div>
+<div class="summary-item"><div class="label">Completion</div><div class="value">100%</div></div>
+<div class="summary-item"><div class="label">Replicate agreement</div><div class="value">0.50</div></div>
+<div class="summary-item"><div class="label">code_quality</div><div class="value">0.667</div></div>
+<div class="summary-item"><div class="label">Tokens (total)</div><div class="value">879,497</div></div>
+<div class="summary-item"><div class="label">Cost (total)</div><div class="value">$0.7158</div></div></div>
+
+<h2>Runs</h2>
+<table>
+  <thead><tr><th class="numeric">Run</th><th>Rep</th><th>Status</th><th class="numeric">code_quality</th><th class="numeric">defect_rate</th><th class="numeric">idiomatic</th><th class="numeric">maintainability</th><th class="numeric">test_coverage</th><th class="numeric">token_efficiency</th><th class="numeric">cost ($)</th><th class="numeric">duration (s)</th><th class="numeric">tokens</th><th class="numeric">Files</th><th class="numeric">LOC</th></tr></thead>
+  <tbody><tr><td>1</td><td>rep 1</td><td>completed</td><td class="numeric">0.667</td><td class="numeric">0.905</td><td class="numeric">0.770</td><td class="numeric">0.566</td><td class="numeric">0.960</td><td class="numeric">0.028</td><td class="numeric">$0.7158</td><td class="numeric">328.9s</td><td class="numeric">879,497</td><td class="numeric">4</td><td class="numeric">1267</td></tr></tbody>
+</table>
+
+<h2>Code review</h2>
+<p class="muted">
+  Per-replicate file listing extracted from the archived workspace.
+  For semantic analysis (architecture, interfaces, control flow), invoke
+  the <code>run-summary</code> skill via <code>retort evaluate &lt;run_dir&gt;</code>.
+</p>
+<details class="code-summary"><summary>rep 1 — 4 file(s), 1267 loc (2 test file(s), 506 test loc)</summary><div class="code-files"><div class="file"><span class="file-name">data_loader.py</span> <span class="muted">(175 loc)</span><div class="symbols">def normalize_team_name, def team_matches, def load_brasileirao, def load_copa_brasil, def load_libertadores, def load_br_football, def load_historico, def load_fifa, def load_all_matches, def filter_by_team</div></div><div class="file"><span class="file-name">server.py</span> <span class="muted">(586 loc)</span><div class="symbols">def _format_match, def search_matches, def get_team_stats, def head_to_head, def search_players, def get_standings, def ensure_team, def get_biggest_wins, def get_competition_stats, def list_teams, def get_player_details, def get_team_seasons</div></div><div class="file test"><span class="file-name">tests/__init__.py</span> <span class="muted">(0 loc, test)</span></div><div class="file test"><span class="file-name">tests/test_server.py</span> <span class="muted">(506 loc, test)</span><div class="symbols">class TestDataLoading, class TestTeamNormalization, class TestMatchQueries, class TestTeamStats, class TestHeadToHead, class TestPlayerQueries, class TestStandings, class TestStatisticalAnalysis, class TestUtilityTools, class TestCrossFileQueries, class TestSampleQuestions, def test_brasileirao_loads, def test_copa_brasil_loads, def test_libertadores_loads, def test_br_football_loads, def test_historico_loads, def test_fifa_loads, def test_all_matches_loads, def test_removes_state_suffix, def test_handles_plain_names, def test_handles_empty_string, def test_normalized_teams_in_df, def test_find_matches_by_team, def test_find_matches_between_two_teams, def test_filter_by_season, def test_filter_by_competition_brasileirao, def test_filter_by_competition_copa_brasil, def test_filter_by_competition_libertadores, def test_home_role_filter, def test_away_role_filter…</div></div></div></details>
+
+<p class="muted">
+  Stack signature (sorted JSON): <code>{&quot;language&quot;: &quot;python&quot;, &quot;model&quot;: &quot;sonnet&quot;, &quot;tooling&quot;: &quot;none&quot;}</code>
+</p>
+</body>
+</html>

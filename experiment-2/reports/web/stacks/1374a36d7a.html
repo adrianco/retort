@@ -1,0 +1,42 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Experiment 2 — brazil-bench (24 cells) · language=go, model=sonnet, tooling=none</title>
+  <link rel="stylesheet" href="../style.css">
+</head>
+<body>
+<p class="muted"><a href="../index.html">&larr; index</a></p>
+<h1>language=go, model=sonnet, tooling=none</h1>
+<p class="subtitle">
+  <span class="phase phase-trial">trial</span>
+  &nbsp;maturity 0.750
+</p>
+
+<div class="summary"><div class="summary-item"><div class="label">Replicates</div><div class="value">1/1</div></div>
+<div class="summary-item"><div class="label">Completion</div><div class="value">100%</div></div>
+<div class="summary-item"><div class="label">Replicate agreement</div><div class="value">0.50</div></div>
+<div class="summary-item"><div class="label">code_quality</div><div class="value">1.000</div></div>
+<div class="summary-item"><div class="label">Tokens (total)</div><div class="value">1,540,294</div></div>
+<div class="summary-item"><div class="label">Cost (total)</div><div class="value">$1.1782</div></div></div>
+
+<h2>Runs</h2>
+<table>
+  <thead><tr><th class="numeric">Run</th><th>Rep</th><th>Status</th><th class="numeric">code_quality</th><th class="numeric">defect_rate</th><th class="numeric">idiomatic</th><th class="numeric">maintainability</th><th class="numeric">test_coverage</th><th class="numeric">token_efficiency</th><th class="numeric">cost ($)</th><th class="numeric">duration (s)</th><th class="numeric">tokens</th><th class="numeric">turns</th><th class="numeric">Files</th><th class="numeric">LOC</th></tr></thead>
+  <tbody><tr><td>16</td><td>rep 1</td><td>completed</td><td class="numeric">1.000</td><td class="numeric">1.000</td><td class="numeric">0.550</td><td class="numeric">0.472</td><td class="numeric">0.769</td><td class="numeric">0.022</td><td class="numeric">$1.1782</td><td class="numeric">425.7s</td><td class="numeric">1,540,294</td><td class="numeric">30</td><td class="numeric">6</td><td class="numeric">1861</td></tr></tbody>
+</table>
+
+<h2>Code review</h2>
+<p class="muted">
+  Per-replicate file listing extracted from the archived workspace.
+  For semantic analysis (architecture, interfaces, control flow), invoke
+  the <code>run-summary</code> skill via <code>retort evaluate &lt;run_dir&gt;</code>.
+</p>
+<details class="code-summary"><summary>rep 1 — 6 file(s), 1861 loc (1 test file(s), 478 test loc)</summary><div class="code-files"><div class="file"><span class="file-name">data.go</span> <span class="muted">(295 loc)</span><div class="symbols">func NewDatabase, func readCSV, func getField, func parseFloat, func LoadBrasileiraoMatches, func LoadCupMatches, func LoadLibertadoresMatches, func LoadBRFootballDataset, func LoadHistoricalBrasileirao, func LoadFIFAPlayers, func LoadAll, type Match, type Player, type Database</div></div><div class="file"><span class="file-name">main.go</span> <span class="muted">(30 loc)</span><div class="symbols">func main</div></div><div class="file test"><span class="file-name">mcp_test.go</span> <span class="muted">(478 loc, test)</span><div class="symbols">func loadTestDB, func TestNormalizeTeamName, func TestTeamMatches, func TestParseDate, func TestParseGoals, func TestDataLoading_AllCSVsLoad, func TestDataLoading_MatchCount, func TestDataLoading_PlayerCount, func TestDataLoading_MatchHasRequiredFields, func TestDataLoading_PlayerHasRequiredFields, func TestSearchMatches_TwoTeams, func TestSearchMatches_TeamAndSeason, func TestSearchMatches_ByCompetition, func TestSearchMatches_CopaDoBrasil, func TestSearchMatches_Libertadores, func TestGetTeamStats_Basic, func TestGetTeamStats_HomeRecord, func TestSearchPlayers_ByNationality, func TestSearchPlayers_ByClub, func TestSearchPlayers_ByName, func TestSearchPlayers_MinOverall, func TestGetStandings_2019, func TestGetStandings_MissingSeasonReturnsError, func TestGetHeadToHead_FlamengoCorinthians, func TestGetHeadToHead_MissingTeamReturnsError, func TestGetBiggestWins_TopTen, func TestGetBiggestWins_ByCompetition, func TestDispatchTool_ValidTools, func TestDispatchTool_UnknownToolReturnsError, func TestSearchMatches_FlamengoAllCompetitions…</div></div><div class="file"><span class="file-name">normalize.go</span> <span class="muted">(101 loc)</span><div class="symbols">func normalizeTeamName, func teamMatches, func parseGoals, func parseDate, func parseSeason, func formatDate, func goalDiff, func clampInt</div></div><div class="file"><span class="file-name">server.go</span> <span class="muted">(242 loc)</span><div class="symbols">func NewMCPServer, func Serve, func readMessage, func writeMessage, func handleRequest, func handleInitialize, func handleToolsList, func handleToolsCall, type MCPServer, type jsonRPCRequest, type jsonRPCResponse, type rpcError</div></div><div class="file"><span class="file-name">tools.go</span> <span class="muted">(715 loc)</span><div class="symbols">func GetToolDefinitions, func getIntParam, func getStringParam, func getBoolParam, func SearchMatches, func Points, func GoalDiff, func WinRate, func GetTeamStats, func SearchPlayers, func GetStandings, func GetHeadToHead, func GetBiggestWins, func DispatchTool, type ToolDefinition, type teamStatsRecord</div></div></div></details>
+
+<p class="muted">
+  Stack signature (sorted JSON): <code>{&quot;language&quot;: &quot;go&quot;, &quot;model&quot;: &quot;sonnet&quot;, &quot;tooling&quot;: &quot;none&quot;}</code>
+</p>
+</body>
+</html>

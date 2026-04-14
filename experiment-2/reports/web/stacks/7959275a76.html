@@ -1,0 +1,42 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Experiment 2 — brazil-bench (24 cells) · language=clojure, model=sonnet, tooling=beads</title>
+  <link rel="stylesheet" href="../style.css">
+</head>
+<body>
+<p class="muted"><a href="../index.html">&larr; index</a></p>
+<h1>language=clojure, model=sonnet, tooling=beads</h1>
+<p class="subtitle">
+  <span class="phase phase-trial">trial</span>
+  &nbsp;maturity 0.708
+</p>
+
+<div class="summary"><div class="summary-item"><div class="label">Replicates</div><div class="value">1/1</div></div>
+<div class="summary-item"><div class="label">Completion</div><div class="value">100%</div></div>
+<div class="summary-item"><div class="label">Replicate agreement</div><div class="value">0.50</div></div>
+<div class="summary-item"><div class="label">code_quality</div><div class="value">0.833</div></div>
+<div class="summary-item"><div class="label">Tokens (total)</div><div class="value">1,811,932</div></div>
+<div class="summary-item"><div class="label">Cost (total)</div><div class="value">$1.0288</div></div></div>
+
+<h2>Runs</h2>
+<table>
+  <thead><tr><th class="numeric">Run</th><th>Rep</th><th>Status</th><th class="numeric">code_quality</th><th class="numeric">defect_rate</th><th class="numeric">idiomatic</th><th class="numeric">maintainability</th><th class="numeric">test_coverage</th><th class="numeric">token_efficiency</th><th class="numeric">cost ($)</th><th class="numeric">duration (s)</th><th class="numeric">tokens</th><th class="numeric">turns</th><th class="numeric">Files</th><th class="numeric">LOC</th></tr></thead>
+  <tbody><tr><td>21</td><td>rep 1</td><td>completed</td><td class="numeric">0.833</td><td class="numeric">1.000</td><td class="numeric">0.650</td><td class="numeric">0.706</td><td class="numeric">1.000</td><td class="numeric">0.011</td><td class="numeric">$1.0288</td><td class="numeric">410.3s</td><td class="numeric">1,811,932</td><td class="numeric">49</td><td class="numeric">5</td><td class="numeric">977</td></tr></tbody>
+</table>
+
+<h2>Code review</h2>
+<p class="muted">
+  Per-replicate file listing extracted from the archived workspace.
+  For semantic analysis (architecture, interfaces, control flow), invoke
+  the <code>run-summary</code> skill via <code>retort evaluate &lt;run_dir&gt;</code>.
+</p>
+<details class="code-summary"><summary>rep 1 — 5 file(s), 977 loc (2 test file(s), 222 test loc)</summary><div class="code-files"><div class="file"><span class="file-name">src/brazilian_soccer_mcp/data.clj</span> <span class="muted">(197 loc)</span><div class="symbols">defn strip-bom, defn read-csv-file, defn normalize-team-name, defn team-matches?, defn parse-int, defn parse-double-as-int, defn parse-date, defn data-path, defn load-brasileirao-matches, defn load-cup-matches, defn load-libertadores-matches, defn load-br-football-dataset, defn load-historico-brasileirao, defn load-fifa-players, defn load-all!, defn db, defn reset-db!, ns brazilian</div></div><div class="file"><span class="file-name">src/brazilian_soccer_mcp/server.clj</span> <span class="muted">(203 loc)</span><div class="symbols">defn call-tool, defn success-response, defn error-response, defn write-response!, defn handle-initialize, defn handle-tools-list, defn handle-tools-call, defn handle-request, defn -main, def tool-definitions, ns brazilian</div></div><div class="file"><span class="file-name">src/brazilian_soccer_mcp/tools.clj</span> <span class="muted">(355 loc)</span><div class="symbols">defn involves-team?, defn match-result, defn format-date, defn format-match, defn find-matches-by-teams, defn find-matches-by-team, defn find-matches-by-date-range, defn find-matches-by-season, defn team-record, defn get-team-stats, defn compare-teams-head-to-head, defn find-players, defn top-players-at-club, defn find-brazilian-players, defn calculate-standings, defn get-season-winner, defn goals-per-match-avg, defn biggest-wins, defn home-vs-away-stats, defn best-home-records, defn top-scoring-teams, ns brazilian</div></div><div class="file test"><span class="file-name">test/brazilian_soccer_mcp/data_test.clj</span> <span class="muted">(85 loc, test)</span><div class="symbols">ns brazilian</div></div><div class="file test"><span class="file-name">test/brazilian_soccer_mcp/tools_test.clj</span> <span class="muted">(137 loc, test)</span><div class="symbols">ns brazilian</div></div></div></details>
+
+<p class="muted">
+  Stack signature (sorted JSON): <code>{&quot;language&quot;: &quot;clojure&quot;, &quot;model&quot;: &quot;sonnet&quot;, &quot;tooling&quot;: &quot;beads&quot;}</code>
+</p>
+</body>
+</html>

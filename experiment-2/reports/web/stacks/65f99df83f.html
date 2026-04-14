@@ -1,0 +1,42 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Experiment 2 — brazil-bench (24 cells) · language=rust, model=sonnet, tooling=none</title>
+  <link rel="stylesheet" href="../style.css">
+</head>
+<body>
+<p class="muted"><a href="../index.html">&larr; index</a></p>
+<h1>language=rust, model=sonnet, tooling=none</h1>
+<p class="subtitle">
+  <span class="phase phase-trial">trial</span>
+  &nbsp;maturity 0.708
+</p>
+
+<div class="summary"><div class="summary-item"><div class="label">Replicates</div><div class="value">1/1</div></div>
+<div class="summary-item"><div class="label">Completion</div><div class="value">100%</div></div>
+<div class="summary-item"><div class="label">Replicate agreement</div><div class="value">0.50</div></div>
+<div class="summary-item"><div class="label">code_quality</div><div class="value">0.833</div></div>
+<div class="summary-item"><div class="label">Tokens (total)</div><div class="value">209,825</div></div>
+<div class="summary-item"><div class="label">Cost (total)</div><div class="value">$1.1439</div></div></div>
+
+<h2>Runs</h2>
+<table>
+  <thead><tr><th class="numeric">Run</th><th>Rep</th><th>Status</th><th class="numeric">code_quality</th><th class="numeric">defect_rate</th><th class="numeric">idiomatic</th><th class="numeric">maintainability</th><th class="numeric">test_coverage</th><th class="numeric">token_efficiency</th><th class="numeric">cost ($)</th><th class="numeric">duration (s)</th><th class="numeric">tokens</th><th class="numeric">turns</th><th class="numeric">Files</th><th class="numeric">LOC</th></tr></thead>
+  <tbody><tr><td>17</td><td>rep 1</td><td>completed</td><td class="numeric">0.833</td><td class="numeric">0.989</td><td class="numeric">0.780</td><td class="numeric">0.219</td><td class="numeric">0.000</td><td class="numeric">0.162</td><td class="numeric">$1.1439</td><td class="numeric">471.0s</td><td class="numeric">209,825</td><td class="numeric">9</td><td class="numeric">5</td><td class="numeric">1862</td></tr></tbody>
+</table>
+
+<h2>Code review</h2>
+<p class="muted">
+  Per-replicate file listing extracted from the archived workspace.
+  For semantic analysis (architecture, interfaces, control flow), invoke
+  the <code>run-summary</code> skill via <code>retort evaluate &lt;run_dir&gt;</code>.
+</p>
+<details class="code-summary"><summary>rep 1 — 5 file(s), 1862 loc</summary><div class="code-files"><div class="file"><span class="file-name">src/data.rs</span> <span class="muted">(547 loc)</span><div class="symbols">fn label, fn from_str, fn parse_int, fn normalize_date, fn normalize_team_name, fn team_matches, fn load, fn col_idx, fn bom_strip_reader, fn read, fn test_normalize_team_name_with_state_suffix, fn test_normalize_date, fn test_team_matches, struct Match, struct Player, struct DataStore, struct BrasileiraoRow, struct CupRow, struct LibertadoresRow, struct BrFootballRow, struct HistoricoRow, struct FifaRow, struct BomReader, enum Competition</div></div><div class="file"><span class="file-name">src/main.rs</span> <span class="muted">(73 loc)</span><div class="symbols">fn main</div></div><div class="file"><span class="file-name">src/mcp.rs</span> <span class="muted">(260 loc)</span><div class="symbols">fn handle_message, fn json_response, fn dispatch_tool, fn tools_schema</div></div><div class="file"><span class="file-name">src/tests.rs</span> <span class="muted">(352 loc)</span><div class="symbols">fn load_store, fn test_data_loads, fn test_search_matches_flamengo, fn test_search_matches_by_season, fn test_search_matches_competition_filter, fn test_get_team_stats_palmeiras, fn test_search_players_brazil, fn test_search_players_by_name, fn test_search_players_min_overall, fn test_get_standings_2019, fn test_get_standings_requires_season, fn test_head_to_head_flamengo_fluminense, fn test_head_to_head_no_results, fn test_normalize_team_name, fn test_global_stats_brasileirao</div></div><div class="file"><span class="file-name">src/tools.rs</span> <span class="muted">(630 loc)</span><div class="symbols">fn from_json, fn match_competition_filter, fn search_matches, fn from_json, fn add_result, fn get_team_stats, fn from_json, fn player_field_matches, fn search_players, fn from_json, fn points, fn gd, fn get_standings, fn from_json, fn get_head_to_head, fn from_json, fn get_global_stats, struct SearchMatchesArgs, struct TeamStatsArgs, struct Record, struct SearchPlayersArgs, struct StandingsArgs, struct StandingsEntry, struct HeadToHeadArgs, struct GlobalStatsArgs</div></div></div></details>
+
+<p class="muted">
+  Stack signature (sorted JSON): <code>{&quot;language&quot;: &quot;rust&quot;, &quot;model&quot;: &quot;sonnet&quot;, &quot;tooling&quot;: &quot;none&quot;}</code>
+</p>
+</body>
+</html>

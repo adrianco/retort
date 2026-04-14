@@ -1,0 +1,42 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Experiment 2 — brazil-bench (24 cells) · language=go, model=sonnet, tooling=beads</title>
+  <link rel="stylesheet" href="../style.css">
+</head>
+<body>
+<p class="muted"><a href="../index.html">&larr; index</a></p>
+<h1>language=go, model=sonnet, tooling=beads</h1>
+<p class="subtitle">
+  <span class="phase phase-candidate">candidate</span>
+  &nbsp;maturity 0.150
+</p>
+
+<div class="summary"><div class="summary-item"><div class="label">Replicates</div><div class="value">0/1</div></div>
+<div class="summary-item"><div class="label">Completion</div><div class="value">0%</div></div>
+<div class="summary-item"><div class="label">Replicate agreement</div><div class="value">0.50</div></div>
+<div class="summary-item"><div class="label">code_quality</div><div class="value">n/a</div></div>
+<div class="summary-item"><div class="label">Tokens (total)</div><div class="value">3,180,387</div></div>
+<div class="summary-item"><div class="label">Cost (total)</div><div class="value">$1.7240</div></div></div>
+
+<h2>Runs</h2>
+<table>
+  <thead><tr><th class="numeric">Run</th><th>Rep</th><th>Status</th><th class="numeric">code_quality</th><th class="numeric">defect_rate</th><th class="numeric">idiomatic</th><th class="numeric">maintainability</th><th class="numeric">test_coverage</th><th class="numeric">token_efficiency</th><th class="numeric">cost ($)</th><th class="numeric">duration (s)</th><th class="numeric">tokens</th><th class="numeric">turns</th><th class="numeric">Files</th><th class="numeric">LOC</th></tr></thead>
+  <tbody><tr><td>11</td><td>rep 1</td><td>failed</td><td class="numeric">1.000</td><td class="numeric">1.000</td><td class="numeric">0.720</td><td class="numeric">0.508</td><td class="numeric">0.579</td><td class="numeric">0.012</td><td class="numeric">$1.7240</td><td class="numeric">506.8s</td><td class="numeric">3,180,387</td><td class="numeric">61</td><td class="numeric">8</td><td class="numeric">1891</td></tr></tbody>
+</table>
+
+<h2>Code review</h2>
+<p class="muted">
+  Per-replicate file listing extracted from the archived workspace.
+  For semantic analysis (architecture, interfaces, control flow), invoke
+  the <code>run-summary</code> skill via <code>retort evaluate &lt;run_dir&gt;</code>.
+</p>
+<details class="code-summary"><summary>rep 1 — 8 file(s), 1891 loc (2 test file(s), 378 test loc)</summary><div class="code-files"><div class="file"><span class="file-name">data/data.go</span> <span class="muted">(429 loc)</span><div class="symbols">func NormalizeTeam, func isUpper, func RemoveAccents, func TeamMatches, func ParseDate, func parseInt, func parseFloat, func openCSV, func readHeader, func col, func LoadStore, func loadBrasileirao, func loadCup, func loadLibertadores, func loadBRFootball, func loadHistorical, func loadPlayers, type Store, type Match, type BRMatch, type HistoricalMatch, type Player</div></div><div class="file test"><span class="file-name">data/data_test.go</span> <span class="muted">(112 loc, test)</span><div class="symbols">func TestLoadStore, func TestNormalizeTeam, func TestTeamMatches, func TestParseDate, func TestRemoveAccents</div></div><div class="file"><span class="file-name">main.go</span> <span class="muted">(83 loc)</span><div class="symbols">func main</div></div><div class="file"><span class="file-name">tools/competitions.go</span> <span class="muted">(217 loc)</span><div class="symbols">func RegisterCompetitionTools, func standings, func listSeasons, func matchStatsSummary, func pct</div></div><div class="file"><span class="file-name">tools/matches.go</span> <span class="muted">(347 loc)</span><div class="symbols">func RegisterMatchTools, func searchMatches, func headToHead, func biggestWins, func compLabel, func min</div></div><div class="file"><span class="file-name">tools/players.go</span> <span class="muted">(187 loc)</span><div class="symbols">func RegisterPlayerTools, func playerMatches, func searchPlayers, func clubPlayers</div></div><div class="file"><span class="file-name">tools/teams.go</span> <span class="muted">(250 loc)</span><div class="symbols">func RegisterTeamTools, func points, func buildRecord, func teamStats, func topTeams, func truncate, type teamRecord</div></div><div class="file test"><span class="file-name">tools/tools_test.go</span> <span class="muted">(266 loc, test)</span><div class="symbols">func loadStore, func newServer, func callTool, func TestSearchMatches_Flamengo, func TestSearchMatches_BySeason, func TestHeadToHead, func TestBiggestWins, func TestTeamStats, func TestTopTeams, func TestSearchPlayers_Brazilian, func TestSearchPlayers_ByName, func TestClubPlayers_Barcelona, func TestStandings, func TestListSeasons, func TestMatchStatsSummary, func TestSearchMatches_Copa, func TestSearchMatches_Libertadores, func minLen</div></div></div></details>
+
+<p class="muted">
+  Stack signature (sorted JSON): <code>{&quot;language&quot;: &quot;go&quot;, &quot;model&quot;: &quot;sonnet&quot;, &quot;tooling&quot;: &quot;beads&quot;}</code>
+</p>
+</body>
+</html>

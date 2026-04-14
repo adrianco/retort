@@ -1,0 +1,428 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Experiment 2 — brazil-bench (24 cells)</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+<h1>Experiment 2 — brazil-bench (24 cells)</h1>
+<p class="subtitle">Generated 2026-04-14T00:18:52+00:00</p>
+
+<div class="summary"><div class="summary-item"><div class="label">Stacks</div><div class="value">24</div></div>
+<div class="summary-item"><div class="label">Runs</div><div class="value">24</div></div>
+<div class="summary-item"><div class="label">Completed</div><div class="value">22</div></div>
+<div class="summary-item"><div class="label">Failed</div><div class="value">2</div></div>
+<div class="summary-item"><div class="label">Metrics</div><div class="value">10</div></div>
+<div class="summary-item"><div class="label">Tokens (total)</div><div class="value">33,586,214</div></div>
+<div class="summary-item"><div class="label">Cost (total)</div><div class="value">$29.85</div></div></div>
+
+<h2>Stack maturity</h2>
+<p class="muted">
+  Click any column header to sort. Tokens / Cost / Duration are
+  per-replicate means — sort ascending to find the most efficient stacks
+  at a given quality level.
+</p>
+<table class="sortable">
+  <thead><tr>
+    <th class="numeric" data-dir="desc">Maturity</th>
+    <th>Phase</th>
+    <th>Stack</th>
+    <th class="numeric">n</th>
+    <th class="numeric">code_quality</th>
+    <th class="numeric">tokens (mean)</th>
+    <th class="numeric">cost (mean)</th>
+    <th class="numeric">duration (mean)</th>
+    <th class="numeric">turns (mean)</th>
+    <th class="numeric">$/quality</th>
+  </tr></thead>
+  <tbody><tr>
+  <td class="numeric" data-sort-key="0.7500">0.750</td>
+  <td><span class="phase phase-trial">trial</span></td>
+  <td class="factors"><a href="stacks/967d4902bb.html">language=go, model=opus, tooling=none</a></td>
+  <td class="numeric" data-sort-key="1">1/1</td>
+  <td class="numeric"><span data-sort-key="1.000">1.000</span></td>
+  <td class="numeric" data-sort-key="1098817.0">1,098,817</td>
+  <td class="numeric" data-sort-key="1.3871597500000001">$1.3872</td>
+  <td class="numeric" data-sort-key="273.5446939090034">273.5s</td>
+  <td class="numeric" data-sort-key="24.0">24.0</td>
+  <td class="numeric" data-sort-key="1.3872">$1.3872</td>
+</tr>
+<tr>
+  <td class="numeric" data-sort-key="0.7500">0.750</td>
+  <td><span class="phase phase-trial">trial</span></td>
+  <td class="factors"><a href="stacks/303459d803.html">language=go, model=opus, tooling=beads</a></td>
+  <td class="numeric" data-sort-key="1">1/1</td>
+  <td class="numeric"><span data-sort-key="1.000">1.000</span></td>
+  <td class="numeric" data-sort-key="683860.0">683,860</td>
+  <td class="numeric" data-sort-key="1.2266922500000002">$1.2267</td>
+  <td class="numeric" data-sort-key="268.72250457000337">268.7s</td>
+  <td class="numeric" data-sort-key="28.0">28.0</td>
+  <td class="numeric" data-sort-key="1.2267">$1.2267</td>
+</tr>
+<tr>
+  <td class="numeric" data-sort-key="0.7500">0.750</td>
+  <td><span class="phase phase-trial">trial</span></td>
+  <td class="factors"><a href="stacks/1374a36d7a.html">language=go, model=sonnet, tooling=none</a></td>
+  <td class="numeric" data-sort-key="1">1/1</td>
+  <td class="numeric"><span data-sort-key="1.000">1.000</span></td>
+  <td class="numeric" data-sort-key="1540294.0">1,540,294</td>
+  <td class="numeric" data-sort-key="1.1781928">$1.1782</td>
+  <td class="numeric" data-sort-key="425.70404746400163">425.7s</td>
+  <td class="numeric" data-sort-key="30.0">30.0</td>
+  <td class="numeric" data-sort-key="1.1782">$1.1782</td>
+</tr>
+<tr>
+  <td class="numeric" data-sort-key="0.7500">0.750</td>
+  <td><span class="phase phase-trial">trial</span></td>
+  <td class="factors"><a href="stacks/034a404141.html">language=java, model=opus, tooling=none</a></td>
+  <td class="numeric" data-sort-key="1">1/1</td>
+  <td class="numeric"><span data-sort-key="1.000">1.000</span></td>
+  <td class="numeric" data-sort-key="965345.0">965,345</td>
+  <td class="numeric" data-sort-key="1.256035">$1.2560</td>
+  <td class="numeric" data-sort-key="218.0492779870001">218.0s</td>
+  <td class="numeric" data-sort-key="24.0">24.0</td>
+  <td class="numeric" data-sort-key="1.2560">$1.2560</td>
+</tr>
+<tr>
+  <td class="numeric" data-sort-key="0.7500">0.750</td>
+  <td><span class="phase phase-trial">trial</span></td>
+  <td class="factors"><a href="stacks/f4671e7e08.html">language=java, model=opus, tooling=beads</a></td>
+  <td class="numeric" data-sort-key="1">1/1</td>
+  <td class="numeric"><span data-sort-key="1.000">1.000</span></td>
+  <td class="numeric" data-sort-key="1669932.0">1,669,932</td>
+  <td class="numeric" data-sort-key="1.7525562500000005">$1.7526</td>
+  <td class="numeric" data-sort-key="340.6408734700017">340.6s</td>
+  <td class="numeric" data-sort-key="39.0">39.0</td>
+  <td class="numeric" data-sort-key="1.7526">$1.7526</td>
+</tr>
+<tr>
+  <td class="numeric" data-sort-key="0.7500">0.750</td>
+  <td><span class="phase phase-trial">trial</span></td>
+  <td class="factors"><a href="stacks/04628f3ca3.html">language=java, model=sonnet, tooling=beads</a></td>
+  <td class="numeric" data-sort-key="1">1/1</td>
+  <td class="numeric"><span data-sort-key="1.000">1.000</span></td>
+  <td class="numeric" data-sort-key="2779597.0">2,779,597</td>
+  <td class="numeric" data-sort-key="1.83553625">$1.8355</td>
+  <td class="numeric" data-sort-key="673.9992432500003">674.0s</td>
+  <td class="numeric" data-sort-key="57.0">57.0</td>
+  <td class="numeric" data-sort-key="1.8355">$1.8355</td>
+</tr>
+<tr>
+  <td class="numeric" data-sort-key="0.7083">0.708</td>
+  <td><span class="phase phase-trial">trial</span></td>
+  <td class="factors"><a href="stacks/3aa0d373c5.html">language=rust, model=opus, tooling=none</a></td>
+  <td class="numeric" data-sort-key="1">1/1</td>
+  <td class="numeric"><span data-sort-key="0.833">0.833</span></td>
+  <td class="numeric" data-sort-key="593895.0">593,895</td>
+  <td class="numeric" data-sort-key="0.8660215000000001">$0.8660</td>
+  <td class="numeric" data-sort-key="174.66953853800078">174.7s</td>
+  <td class="numeric" data-sort-key="16.0">16.0</td>
+  <td class="numeric" data-sort-key="1.0392">$1.0392</td>
+</tr>
+<tr>
+  <td class="numeric" data-sort-key="0.7083">0.708</td>
+  <td><span class="phase phase-trial">trial</span></td>
+  <td class="factors"><a href="stacks/fc22311ad1.html">language=clojure, model=opus, tooling=none</a></td>
+  <td class="numeric" data-sort-key="1">1/1</td>
+  <td class="numeric"><span data-sort-key="0.833">0.833</span></td>
+  <td class="numeric" data-sort-key="630222.0">630,222</td>
+  <td class="numeric" data-sort-key="0.80904525">$0.8090</td>
+  <td class="numeric" data-sort-key="178.23385336900174">178.2s</td>
+  <td class="numeric" data-sort-key="17.0">17.0</td>
+  <td class="numeric" data-sort-key="0.9709">$0.9709</td>
+</tr>
+<tr>
+  <td class="numeric" data-sort-key="0.7083">0.708</td>
+  <td><span class="phase phase-trial">trial</span></td>
+  <td class="factors"><a href="stacks/e894113a57.html">language=rust, model=opus, tooling=beads</a></td>
+  <td class="numeric" data-sort-key="1">1/1</td>
+  <td class="numeric"><span data-sort-key="0.833">0.833</span></td>
+  <td class="numeric" data-sort-key="1108771.0">1,108,771</td>
+  <td class="numeric" data-sort-key="1.5749187499999997">$1.5749</td>
+  <td class="numeric" data-sort-key="350.3147270110021">350.3s</td>
+  <td class="numeric" data-sort-key="32.0">32.0</td>
+  <td class="numeric" data-sort-key="1.8899">$1.8899</td>
+</tr>
+<tr>
+  <td class="numeric" data-sort-key="0.7083">0.708</td>
+  <td><span class="phase phase-trial">trial</span></td>
+  <td class="factors"><a href="stacks/65f99df83f.html">language=rust, model=sonnet, tooling=none</a></td>
+  <td class="numeric" data-sort-key="1">1/1</td>
+  <td class="numeric"><span data-sort-key="0.833">0.833</span></td>
+  <td class="numeric" data-sort-key="209825.0">209,825</td>
+  <td class="numeric" data-sort-key="1.14389055">$1.1439</td>
+  <td class="numeric" data-sort-key="471.0110405960004">471.0s</td>
+  <td class="numeric" data-sort-key="9.0">9.0</td>
+  <td class="numeric" data-sort-key="1.3727">$1.3727</td>
+</tr>
+<tr>
+  <td class="numeric" data-sort-key="0.7083">0.708</td>
+  <td><span class="phase phase-trial">trial</span></td>
+  <td class="factors"><a href="stacks/69925e65f1.html">language=rust, model=sonnet, tooling=beads</a></td>
+  <td class="numeric" data-sort-key="1">1/1</td>
+  <td class="numeric"><span data-sort-key="0.833">0.833</span></td>
+  <td class="numeric" data-sort-key="491969.0">491,969</td>
+  <td class="numeric" data-sort-key="1.1086549">$1.1087</td>
+  <td class="numeric" data-sort-key="532.5035404339978">532.5s</td>
+  <td class="numeric" data-sort-key="17.0">17.0</td>
+  <td class="numeric" data-sort-key="1.3304">$1.3304</td>
+</tr>
+<tr>
+  <td class="numeric" data-sort-key="0.7083">0.708</td>
+  <td><span class="phase phase-trial">trial</span></td>
+  <td class="factors"><a href="stacks/7e4ed7ff9b.html">language=clojure, model=opus, tooling=beads</a></td>
+  <td class="numeric" data-sort-key="1">1/1</td>
+  <td class="numeric"><span data-sort-key="0.833">0.833</span></td>
+  <td class="numeric" data-sort-key="1391321.0">1,391,321</td>
+  <td class="numeric" data-sort-key="1.3911665">$1.3912</td>
+  <td class="numeric" data-sort-key="342.5264769259993">342.5s</td>
+  <td class="numeric" data-sort-key="34.0">34.0</td>
+  <td class="numeric" data-sort-key="1.6694">$1.6694</td>
+</tr>
+<tr>
+  <td class="numeric" data-sort-key="0.7083">0.708</td>
+  <td><span class="phase phase-trial">trial</span></td>
+  <td class="factors"><a href="stacks/7959275a76.html">language=clojure, model=sonnet, tooling=beads</a></td>
+  <td class="numeric" data-sort-key="1">1/1</td>
+  <td class="numeric"><span data-sort-key="0.833">0.833</span></td>
+  <td class="numeric" data-sort-key="1811932.0">1,811,932</td>
+  <td class="numeric" data-sort-key="1.02884335">$1.0288</td>
+  <td class="numeric" data-sort-key="410.30929307800034">410.3s</td>
+  <td class="numeric" data-sort-key="49.0">49.0</td>
+  <td class="numeric" data-sort-key="1.2346">$1.2346</td>
+</tr>
+<tr>
+  <td class="numeric" data-sort-key="0.7083">0.708</td>
+  <td><span class="phase phase-trial">trial</span></td>
+  <td class="factors"><a href="stacks/b0bed15638.html">language=clojure, model=sonnet, tooling=none</a></td>
+  <td class="numeric" data-sort-key="1">1/1</td>
+  <td class="numeric"><span data-sort-key="0.833">0.833</span></td>
+  <td class="numeric" data-sort-key="1920625.0">1,920,625</td>
+  <td class="numeric" data-sort-key="1.1248502999999999">$1.1249</td>
+  <td class="numeric" data-sort-key="436.5858163369994">436.6s</td>
+  <td class="numeric" data-sort-key="45.0">45.0</td>
+  <td class="numeric" data-sort-key="1.3498">$1.3498</td>
+</tr>
+<tr>
+  <td class="numeric" data-sort-key="0.6833">0.683</td>
+  <td><span class="phase phase-trial">trial</span></td>
+  <td class="factors"><a href="stacks/5242b0beaa.html">language=typescript, model=sonnet, tooling=beads</a></td>
+  <td class="numeric" data-sort-key="1">1/1</td>
+  <td class="numeric"><span data-sort-key="0.733">0.733</span></td>
+  <td class="numeric" data-sort-key="1556688.0">1,556,688</td>
+  <td class="numeric" data-sort-key="0.9246295499999999">$0.9246</td>
+  <td class="numeric" data-sort-key="361.8989301319998">361.9s</td>
+  <td class="numeric" data-sort-key="43.0">43.0</td>
+  <td class="numeric" data-sort-key="1.2609">$1.2609</td>
+</tr>
+<tr>
+  <td class="numeric" data-sort-key="0.6833">0.683</td>
+  <td><span class="phase phase-trial">trial</span></td>
+  <td class="factors"><a href="stacks/4c3ccf3283.html">language=typescript, model=opus, tooling=none</a></td>
+  <td class="numeric" data-sort-key="1">1/1</td>
+  <td class="numeric"><span data-sort-key="0.733">0.733</span></td>
+  <td class="numeric" data-sort-key="919663.0">919,663</td>
+  <td class="numeric" data-sort-key="1.0130405">$1.0130</td>
+  <td class="numeric" data-sort-key="187.52346417399895">187.5s</td>
+  <td class="numeric" data-sort-key="23.0">23.0</td>
+  <td class="numeric" data-sort-key="1.3814">$1.3814</td>
+</tr>
+<tr>
+  <td class="numeric" data-sort-key="0.6833">0.683</td>
+  <td><span class="phase phase-trial">trial</span></td>
+  <td class="factors"><a href="stacks/7a4f613a75.html">language=typescript, model=opus, tooling=beads</a></td>
+  <td class="numeric" data-sort-key="1">1/1</td>
+  <td class="numeric"><span data-sort-key="0.733">0.733</span></td>
+  <td class="numeric" data-sort-key="1022265.0">1,022,265</td>
+  <td class="numeric" data-sort-key="1.0674709999999998">$1.0675</td>
+  <td class="numeric" data-sort-key="204.78332309899997">204.8s</td>
+  <td class="numeric" data-sort-key="27.0">27.0</td>
+  <td class="numeric" data-sort-key="1.4556">$1.4556</td>
+</tr>
+<tr>
+  <td class="numeric" data-sort-key="0.6833">0.683</td>
+  <td><span class="phase phase-trial">trial</span></td>
+  <td class="factors"><a href="stacks/ff894a2835.html">language=typescript, model=sonnet, tooling=none</a></td>
+  <td class="numeric" data-sort-key="1">1/1</td>
+  <td class="numeric"><span data-sort-key="0.733">0.733</span></td>
+  <td class="numeric" data-sort-key="797512.0">797,512</td>
+  <td class="numeric" data-sort-key="0.7091845499999998">$0.7092</td>
+  <td class="numeric" data-sort-key="274.4852746800025">274.5s</td>
+  <td class="numeric" data-sort-key="24.0">24.0</td>
+  <td class="numeric" data-sort-key="0.9671">$0.9671</td>
+</tr>
+<tr>
+  <td class="numeric" data-sort-key="0.6667">0.667</td>
+  <td><span class="phase phase-trial">trial</span></td>
+  <td class="factors"><a href="stacks/1b653ea3f7.html">language=python, model=sonnet, tooling=none</a></td>
+  <td class="numeric" data-sort-key="1">1/1</td>
+  <td class="numeric"><span data-sort-key="0.667">0.667</span></td>
+  <td class="numeric" data-sort-key="879497.0">879,497</td>
+  <td class="numeric" data-sort-key="0.7158078">$0.7158</td>
+  <td class="numeric" data-sort-key="328.88201376800134">328.9s</td>
+  <td class="numeric muted" data-sort-key="999999999">—</td>
+  <td class="numeric" data-sort-key="1.0737">$1.0737</td>
+</tr>
+<tr>
+  <td class="numeric" data-sort-key="0.6667">0.667</td>
+  <td><span class="phase phase-trial">trial</span></td>
+  <td class="factors"><a href="stacks/50e152d5ee.html">language=python, model=opus, tooling=none</a></td>
+  <td class="numeric" data-sort-key="1">1/1</td>
+  <td class="numeric"><span data-sort-key="0.667">0.667</span></td>
+  <td class="numeric" data-sort-key="580884.0">580,884</td>
+  <td class="numeric" data-sort-key="0.7255997500000001">$0.7256</td>
+  <td class="numeric" data-sort-key="149.28589630200076">149.3s</td>
+  <td class="numeric" data-sort-key="16.0">16.0</td>
+  <td class="numeric" data-sort-key="1.0884">$1.0884</td>
+</tr>
+<tr>
+  <td class="numeric" data-sort-key="0.6667">0.667</td>
+  <td><span class="phase phase-trial">trial</span></td>
+  <td class="factors"><a href="stacks/8ab30fefde.html">language=python, model=opus, tooling=beads</a></td>
+  <td class="numeric" data-sort-key="1">1/1</td>
+  <td class="numeric"><span data-sort-key="0.667">0.667</span></td>
+  <td class="numeric" data-sort-key="1625376.0">1,625,376</td>
+  <td class="numeric" data-sort-key="1.7258697499999998">$1.7259</td>
+  <td class="numeric" data-sort-key="348.7832363519992">348.8s</td>
+  <td class="numeric" data-sort-key="44.0">44.0</td>
+  <td class="numeric" data-sort-key="2.5888">$2.5888</td>
+</tr>
+<tr>
+  <td class="numeric" data-sort-key="0.6667">0.667</td>
+  <td><span class="phase phase-trial">trial</span></td>
+  <td class="factors"><a href="stacks/4ea094ad6e.html">language=python, model=sonnet, tooling=beads</a></td>
+  <td class="numeric" data-sort-key="1">1/1</td>
+  <td class="numeric"><span data-sort-key="0.667">0.667</span></td>
+  <td class="numeric" data-sort-key="2113900.0">2,113,900</td>
+  <td class="numeric" data-sort-key="1.2469279500000001">$1.2469</td>
+  <td class="numeric" data-sort-key="482.76138146499943">482.8s</td>
+  <td class="numeric" data-sort-key="49.0">49.0</td>
+  <td class="numeric" data-sort-key="1.8704">$1.8704</td>
+</tr>
+<tr>
+  <td class="numeric" data-sort-key="0.1500">0.150</td>
+  <td><span class="phase phase-candidate">candidate</span></td>
+  <td class="factors"><a href="stacks/54004fbe27.html">language=java, model=sonnet, tooling=none</a></td>
+  <td class="numeric" data-sort-key="1">0/1</td>
+  <td class="numeric"><span class="muted" data-sort-key="0">n/a</span></td>
+  <td class="numeric" data-sort-key="4013637.0">4,013,637</td>
+  <td class="numeric" data-sort-key="2.3117434">$2.3117</td>
+  <td class="numeric" data-sort-key="779.6715932029983">779.7s</td>
+  <td class="numeric" data-sort-key="61.0">61.0</td>
+  <td class="numeric muted" data-sort-key="999999999">—</td>
+</tr>
+<tr>
+  <td class="numeric" data-sort-key="0.1500">0.150</td>
+  <td><span class="phase phase-candidate">candidate</span></td>
+  <td class="factors"><a href="stacks/6968536904.html">language=go, model=sonnet, tooling=beads</a></td>
+  <td class="numeric" data-sort-key="1">0/1</td>
+  <td class="numeric"><span class="muted" data-sort-key="0">n/a</span></td>
+  <td class="numeric" data-sort-key="3180387.0">3,180,387</td>
+  <td class="numeric" data-sort-key="1.7239623499999999">$1.7240</td>
+  <td class="numeric" data-sort-key="506.8378137590007">506.8s</td>
+  <td class="numeric" data-sort-key="61.0">61.0</td>
+  <td class="numeric muted" data-sort-key="999999999">—</td>
+</tr></tbody>
+</table>
+
+<p class="muted">Click a column header to sort. <a href="https://github.com/adrianco/retort">retort</a> · maturity = 0.30·agreement + 0.30·completion + 0.25·score + 0.15·coverage</p>
+<h2>ANOVA</h2><p class="muted">From <code>retort analyze</code> on the exported CSV. Significant factors are flagged at the bottom of each response section.</p><pre style="background:white;border:1px solid var(--border);border-radius:6px;padding:0.75rem 1rem;overflow:auto;font-size:0.85rem;">
+============================================================
+Response: code_quality    transform: log10(y)
+R² = 1.0000  Adj R² = 1.0000
+============================================================
+                   sum_sq    df             F         PR(&gt;F)
+C(language)  8.535518e-02   5.0  9.957970e+29  2.474325e-206
+C(model)     2.831117e-32   1.0  1.651463e+00   2.196141e-01
+C(tooling)   1.966053e-34   1.0  1.146849e-02   9.162363e-01
+Residual     2.400032e-31  14.0           NaN            NaN
+
+Significant (p &lt; 0.1): language
+
+============================================================
+Response: _tokens    transform: log10(y)
+R² = 0.6020  Adj R² = 0.4029
+============================================================
+               sum_sq    df         F    PR(&gt;F)
+C(language)  0.536723   5.0  2.739070  0.062773
+C(model)     0.046457   1.0  1.185415  0.294644
+C(tooling)   0.230278   1.0  5.875925  0.029479
+Residual     0.548662  14.0       NaN       NaN
+
+Significant (p &lt; 0.1): language, tooling
+
+============================================================
+Response: _cost_usd    transform: log10(y)
+R² = 0.6531  Adj R² = 0.4796
+============================================================
+               sum_sq    df          F    PR(&gt;F)
+C(language)  0.097462   5.0   2.451931  0.085321
+C(model)     0.004787   1.0   0.602110  0.450685
+C(tooling)   0.089329   1.0  11.236655  0.004744
+Residual     0.111298  14.0        NaN       NaN
+
+Significant (p &lt; 0.1): language, tooling
+
+============================================================
+Response: _duration_seconds    transform: log10(y)
+R² = 0.8547  Adj R² = 0.7820
+============================================================
+               sum_sq    df          F    PR(&gt;F)
+C(language)  0.087041   5.0   2.611892  0.071824
+C(model)     0.357773   1.0  53.679806  0.000004
+C(tooling)   0.123530   1.0  18.534238  0.000726
+Residual     0.093309  14.0        NaN       NaN
+
+Significant (p &lt; 0.1): language, model, tooling
+
+============================================================
+Response: _turns    transform: log10(y)
+R² = 0.7036  Adj R² = 0.5439
+============================================================
+               sum_sq    df          F    PR(&gt;F)
+C(language)  0.267959   5.0   2.807060  0.062101
+C(model)     0.043085   1.0   2.256755  0.156929
+C(tooling)   0.242839   1.0  12.719571  0.003446
+Residual     0.248193  13.0        NaN       NaN
+
+Significant (p &lt; 0.1): language, tooling
+
+============================================================
+Response: test_coverage    transform: log10(y+1)
+R² = 0.6104  Adj R² = 0.4157
+============================================================
+               sum_sq    df         F    PR(&gt;F)
+C(language)  0.220742   5.0  4.120960  0.016429
+C(model)     0.011791   1.0  1.100608  0.311907
+C(tooling)   0.002332   1.0  0.217711  0.647968
+Residual     0.149984  14.0       NaN       NaN
+
+Significant (p &lt; 0.1): language
+</pre>
+<script>
+document.querySelectorAll('table.sortable').forEach(t => {
+  const headers = t.querySelectorAll('thead th');
+  headers.forEach((h, idx) => {
+    h.addEventListener('click', () => {
+      const tbody = t.tBodies[0];
+      const rows = Array.from(tbody.rows);
+      const numeric = h.classList.contains('numeric');
+      const dir = h.dataset.dir === 'asc' ? 'desc' : 'asc';
+      rows.sort((a, b) => {
+        let av = a.cells[idx].dataset.sortKey ?? a.cells[idx].textContent;
+        let bv = b.cells[idx].dataset.sortKey ?? b.cells[idx].textContent;
+        if (numeric) { av = parseFloat(av) || 0; bv = parseFloat(bv) || 0; }
+        return (av < bv ? -1 : av > bv ? 1 : 0) * (dir === 'asc' ? 1 : -1);
+      });
+      headers.forEach(x => delete x.dataset.dir);
+      h.dataset.dir = dir;
+      rows.forEach(r => tbody.appendChild(r));
+    });
+  });
+});
+
+</script>
+</body>
+</html>

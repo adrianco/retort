@@ -1,0 +1,170 @@
+/usr/local/python/3.12.1/lib/python3.12/site-packages/statsmodels/base/model.py:1894: ValueWarning: covariance of constraints does not have full rank. The number of constraints is 5, but rank is 0
+  warnings.warn('covariance of constraints does not have full '
+/usr/local/python/3.12.1/lib/python3.12/site-packages/statsmodels/base/model.py:1923: RuntimeWarning: invalid value encountered in divide
+  F /= J
+/usr/local/python/3.12.1/lib/python3.12/site-packages/statsmodels/base/model.py:1894: ValueWarning: covariance of constraints does not have full rank. The number of constraints is 1, but rank is 0
+  warnings.warn('covariance of constraints does not have full '
+/usr/local/python/3.12.1/lib/python3.12/site-packages/statsmodels/base/model.py:1923: RuntimeWarning: invalid value encountered in divide
+  F /= J
+/usr/local/python/3.12.1/lib/python3.12/site-packages/statsmodels/base/model.py:1894: ValueWarning: covariance of constraints does not have full rank. The number of constraints is 1, but rank is 0
+  warnings.warn('covariance of constraints does not have full '
+/usr/local/python/3.12.1/lib/python3.12/site-packages/statsmodels/base/model.py:1923: RuntimeWarning: invalid value encountered in divide
+  F /= J
+/usr/local/python/3.12.1/lib/python3.12/site-packages/statsmodels/base/model.py:1894: ValueWarning: covariance of constraints does not have full rank. The number of constraints is 1, but rank is 0
+  warnings.warn('covariance of constraints does not have full '
+/usr/local/python/3.12.1/lib/python3.12/site-packages/statsmodels/base/model.py:1923: RuntimeWarning: invalid value encountered in divide
+  F /= J
+/usr/local/python/3.12.1/lib/python3.12/site-packages/statsmodels/base/model.py:1894: ValueWarning: covariance of constraints does not have full rank. The number of constraints is 5, but rank is 0
+  warnings.warn('covariance of constraints does not have full '
+/usr/local/python/3.12.1/lib/python3.12/site-packages/statsmodels/base/model.py:1923: RuntimeWarning: invalid value encountered in divide
+  F /= J
+/usr/local/python/3.12.1/lib/python3.12/site-packages/statsmodels/base/model.py:1894: ValueWarning: covariance of constraints does not have full rank. The number of constraints is 1, but rank is 0
+  warnings.warn('covariance of constraints does not have full '
+/usr/local/python/3.12.1/lib/python3.12/site-packages/statsmodels/base/model.py:1923: RuntimeWarning: invalid value encountered in divide
+  F /= J
+/usr/local/python/3.12.1/lib/python3.12/site-packages/statsmodels/base/model.py:1894: ValueWarning: covariance of constraints does not have full rank. The number of constraints is 1, but rank is 0
+  warnings.warn('covariance of constraints does not have full '
+/usr/local/python/3.12.1/lib/python3.12/site-packages/statsmodels/base/model.py:1923: RuntimeWarning: invalid value encountered in divide
+  F /= J
+/usr/local/python/3.12.1/lib/python3.12/site-packages/statsmodels/base/model.py:1894: ValueWarning: covariance of constraints does not have full rank. The number of constraints is 5, but rank is 0
+  warnings.warn('covariance of constraints does not have full '
+/usr/local/python/3.12.1/lib/python3.12/site-packages/statsmodels/base/model.py:1923: RuntimeWarning: invalid value encountered in divide
+  F /= J
+/usr/local/python/3.12.1/lib/python3.12/site-packages/statsmodels/base/model.py:1894: ValueWarning: covariance of constraints does not have full rank. The number of constraints is 1, but rank is 0
+  warnings.warn('covariance of constraints does not have full '
+/usr/local/python/3.12.1/lib/python3.12/site-packages/statsmodels/base/model.py:1923: RuntimeWarning: invalid value encountered in divide
+  F /= J
+/usr/local/python/3.12.1/lib/python3.12/site-packages/statsmodels/base/model.py:1894: ValueWarning: covariance of constraints does not have full rank. The number of constraints is 1, but rank is 0
+  warnings.warn('covariance of constraints does not have full '
+/usr/local/python/3.12.1/lib/python3.12/site-packages/statsmodels/base/model.py:1923: RuntimeWarning: invalid value encountered in divide
+  F /= J
+/usr/local/python/3.12.1/lib/python3.12/site-packages/statsmodels/base/model.py:1894: ValueWarning: covariance of constraints does not have full rank. The number of constraints is 1, but rank is 0
+  warnings.warn('covariance of constraints does not have full '
+/usr/local/python/3.12.1/lib/python3.12/site-packages/statsmodels/base/model.py:1923: RuntimeWarning: invalid value encountered in divide
+  F /= J
+/usr/local/python/3.12.1/lib/python3.12/site-packages/statsmodels/base/model.py:1894: ValueWarning: covariance of constraints does not have full rank. The number of constraints is 5, but rank is 0
+  warnings.warn('covariance of constraints does not have full '
+/usr/local/python/3.12.1/lib/python3.12/site-packages/statsmodels/base/model.py:1923: RuntimeWarning: invalid value encountered in divide
+  F /= J
+/usr/local/python/3.12.1/lib/python3.12/site-packages/statsmodels/base/model.py:1894: ValueWarning: covariance of constraints does not have full rank. The number of constraints is 1, but rank is 0
+  warnings.warn('covariance of constraints does not have full '
+/usr/local/python/3.12.1/lib/python3.12/site-packages/statsmodels/base/model.py:1923: RuntimeWarning: invalid value encountered in divide
+  F /= J
+/usr/local/python/3.12.1/lib/python3.12/site-packages/statsmodels/base/model.py:1894: ValueWarning: covariance of constraints does not have full rank. The number of constraints is 1, but rank is 0
+  warnings.warn('covariance of constraints does not have full '
+/usr/local/python/3.12.1/lib/python3.12/site-packages/statsmodels/base/model.py:1923: RuntimeWarning: invalid value encountered in divide
+  F /= J
+
+============================================================
+Response: code_quality    transform: log10(y)
+R² = 0.8945  Adj R² = 0.8502
+============================================================
+                              sum_sq    df           F        PR(>F)
+C(language)             3.280552e-01   5.0  102.454127  1.255131e-28
+C(model)                4.302741e-04   1.0    0.671889  4.155337e-01
+C(tooling)              4.317859e-07   1.0    0.000674  9.793676e-01
+C(task)                 1.626939e-05   1.0    0.025405  8.738795e-01
+C(language):C(model)    2.527391e-03   5.0    0.789324  5.613781e-01
+C(language):C(tooling)  1.171083e-03   5.0    0.365738  8.701047e-01
+C(language):C(task)     1.362397e-03   5.0    0.425487  8.292041e-01
+C(model):C(tooling)     1.349394e-03   1.0    2.107131  1.516555e-01
+C(model):C(task)        2.071278e-04   1.0    0.323438  5.716032e-01
+C(tooling):C(task)      9.504484e-06   1.0    0.014842  9.034307e-01
+Residual                3.970444e-02  62.0         NaN           NaN
+
+Significant (p < 0.1): language
+
+============================================================
+Response: _tokens    transform: log10(y)
+R² = 0.8757  Adj R² = 0.8123
+============================================================
+                          sum_sq    df           F        PR(>F)
+C(language)             0.703230   5.0    7.534603  2.327158e-05
+C(model)                1.000980   1.0   53.623916  1.683173e-09
+C(tooling)              0.748937   1.0   40.121581  6.123082e-08
+C(task)                 3.251791   1.0  174.202967  4.485565e-18
+C(language):C(model)    0.091728   5.0    0.982803  4.373746e-01
+C(language):C(tooling)  0.199915   5.0    2.141949  7.524552e-02
+C(language):C(task)     0.449324   5.0    4.814187  1.111116e-03
+C(model):C(tooling)     0.098639   1.0    5.284224  2.565123e-02
+C(model):C(task)        0.148579   1.0    7.959570  6.799955e-03
+C(tooling):C(task)      0.000243   1.0    0.013004  9.096580e-01
+Residual                0.952001  51.0         NaN           NaN
+
+Significant (p < 0.1): language, model, tooling, task, language:tooling, language:task, model:tooling, model:task
+
+============================================================
+Response: _cost_usd    transform: log10(y)
+R² = 0.9457  Adj R² = 0.9181
+============================================================
+                          sum_sq    df           F        PR(>F)
+C(language)             0.394946   5.0   15.930966  1.960685e-09
+C(model)                0.082149   1.0   16.568277  1.634737e-04
+C(tooling)              0.180221   1.0   36.347917  1.847851e-07
+C(task)                 3.234214   1.0  652.294422  1.006413e-30
+C(language):C(model)    0.024607   5.0    0.992573  4.316168e-01
+C(language):C(tooling)  0.064948   5.0    2.619804  3.490661e-02
+C(language):C(task)     0.215827   5.0    8.705840  5.089581e-06
+C(model):C(tooling)     0.070238   1.0   14.165898  4.336793e-04
+C(model):C(task)        0.005182   1.0    1.045200  3.114403e-01
+C(tooling):C(task)      0.005458   1.0    1.100802  2.990369e-01
+Residual                0.252869  51.0         NaN           NaN
+
+Significant (p < 0.1): language, model, tooling, task, language:tooling, language:task, model:tooling
+
+============================================================
+Response: _duration_seconds    transform: log10(y)
+R² = 0.9337  Adj R² = 0.8998
+============================================================
+                          sum_sq    df           F        PR(>F)
+C(language)             0.823479   5.0   29.373632  6.562805e-14
+C(model)                0.506190   1.0   90.279428  7.157836e-13
+C(tooling)              0.133800   1.0   23.863338  1.065117e-05
+C(task)                 1.791338   1.0  319.486623  1.306855e-23
+C(language):C(model)    0.060837   5.0    2.170065  7.193409e-02
+C(language):C(tooling)  0.120874   5.0    4.311611  2.392987e-03
+C(language):C(task)     0.493680   5.0   17.609659  4.227702e-10
+C(model):C(tooling)     0.043532   1.0    7.763898  7.466613e-03
+C(model):C(task)        0.062983   1.0   11.233052  1.519595e-03
+C(tooling):C(task)      0.034748   1.0    6.197363  1.609669e-02
+Residual                0.285953  51.0         NaN           NaN
+
+Significant (p < 0.1): language, model, tooling, task, language:model, language:tooling, language:task, model:tooling, model:task, tooling:task
+
+============================================================
+Response: _turns    transform: log10(y)
+R² = 0.9700  Adj R² = 0.7003
+============================================================
+                          sum_sq   df         F    PR(>F)
+C(language)                  NaN  5.0       NaN       NaN
+C(model)                     NaN  1.0       NaN       NaN
+C(tooling)                   NaN  1.0       NaN       NaN
+C(task)                      NaN  1.0       NaN       NaN
+C(language):C(model)    0.166534  5.0  2.654955  0.295906
+C(language):C(tooling)  0.045615  5.0  0.727211  0.665699
+C(language):C(task)          NaN  5.0       NaN       NaN
+C(model):C(tooling)     0.000923  1.0  0.073583  0.811623
+C(model):C(task)             NaN  1.0       NaN       NaN
+C(tooling):C(task)           NaN  1.0       NaN       NaN
+Residual                0.025090  2.0       NaN       NaN
+
+No factors significant at p < 0.1
+
+============================================================
+Response: test_coverage    transform: log10(y+1)
+R² = 0.9592  Adj R² = 0.7147
+============================================================
+                          sum_sq   df         F    PR(>F)
+C(language)                  NaN  5.0       NaN       NaN
+C(model)                     NaN  1.0       NaN       NaN
+C(tooling)                   NaN  1.0       NaN       NaN
+C(task)                      NaN  1.0       NaN       NaN
+C(language):C(model)    0.014531  5.0  0.555646  0.736165
+C(language):C(tooling)  0.111375  5.0  4.258884  0.131326
+C(language):C(task)          NaN  5.0       NaN       NaN
+C(model):C(tooling)     0.005702  1.0  1.090269  0.373143
+C(model):C(task)             NaN  1.0       NaN       NaN
+C(tooling):C(task)           NaN  1.0       NaN       NaN
+Residual                0.015691  3.0       NaN       NaN
+
+No factors significant at p < 0.1

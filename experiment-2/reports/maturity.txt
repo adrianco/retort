@@ -1,0 +1,50 @@
+ Maturity       Phase  Stack
+--------------------------------------------------------------------------------
+    0.750       trial  language=go, model=opus, tooling=none
+                       n=1 (✓1/✗0)  code_quality: 1.000  agreement=0.50  completion=1.00  coverage=0.33
+    0.750       trial  language=go, model=opus, tooling=beads
+                       n=1 (✓1/✗0)  code_quality: 1.000  agreement=0.50  completion=1.00  coverage=0.33
+    0.750       trial  language=go, model=sonnet, tooling=none
+                       n=1 (✓1/✗0)  code_quality: 1.000  agreement=0.50  completion=1.00  coverage=0.33
+    0.750       trial  language=java, model=opus, tooling=none
+                       n=1 (✓1/✗0)  code_quality: 1.000  agreement=0.50  completion=1.00  coverage=0.33
+    0.750       trial  language=java, model=opus, tooling=beads
+                       n=1 (✓1/✗0)  code_quality: 1.000  agreement=0.50  completion=1.00  coverage=0.33
+    0.750       trial  language=java, model=sonnet, tooling=beads
+                       n=1 (✓1/✗0)  code_quality: 1.000  agreement=0.50  completion=1.00  coverage=0.33
+    0.708       trial  language=rust, model=opus, tooling=none
+                       n=1 (✓1/✗0)  code_quality: 0.833  agreement=0.50  completion=1.00  coverage=0.33
+    0.708       trial  language=clojure, model=opus, tooling=none
+                       n=1 (✓1/✗0)  code_quality: 0.833  agreement=0.50  completion=1.00  coverage=0.33
+    0.708       trial  language=rust, model=opus, tooling=beads
+                       n=1 (✓1/✗0)  code_quality: 0.833  agreement=0.50  completion=1.00  coverage=0.33
+    0.708       trial  language=rust, model=sonnet, tooling=none
+                       n=1 (✓1/✗0)  code_quality: 0.833  agreement=0.50  completion=1.00  coverage=0.33
+    0.708       trial  language=rust, model=sonnet, tooling=beads
+                       n=1 (✓1/✗0)  code_quality: 0.833  agreement=0.50  completion=1.00  coverage=0.33
+    0.708       trial  language=clojure, model=opus, tooling=beads
+                       n=1 (✓1/✗0)  code_quality: 0.833  agreement=0.50  completion=1.00  coverage=0.33
+    0.708       trial  language=clojure, model=sonnet, tooling=beads
+                       n=1 (✓1/✗0)  code_quality: 0.833  agreement=0.50  completion=1.00  coverage=0.33
+    0.708       trial  language=clojure, model=sonnet, tooling=none
+                       n=1 (✓1/✗0)  code_quality: 0.833  agreement=0.50  completion=1.00  coverage=0.33
+    0.683       trial  language=typescript, model=sonnet, tooling=beads
+                       n=1 (✓1/✗0)  code_quality: 0.733  agreement=0.50  completion=1.00  coverage=0.33
+    0.683       trial  language=typescript, model=opus, tooling=none
+                       n=1 (✓1/✗0)  code_quality: 0.733  agreement=0.50  completion=1.00  coverage=0.33
+    0.683       trial  language=typescript, model=opus, tooling=beads
+                       n=1 (✓1/✗0)  code_quality: 0.733  agreement=0.50  completion=1.00  coverage=0.33
+    0.683       trial  language=typescript, model=sonnet, tooling=none
+                       n=1 (✓1/✗0)  code_quality: 0.733  agreement=0.50  completion=1.00  coverage=0.33
+    0.667       trial  language=python, model=sonnet, tooling=none
+                       n=1 (✓1/✗0)  code_quality: 0.667  agreement=0.50  completion=1.00  coverage=0.33
+    0.667       trial  language=python, model=opus, tooling=none
+                       n=1 (✓1/✗0)  code_quality: 0.667  agreement=0.50  completion=1.00  coverage=0.33
+    0.667       trial  language=python, model=opus, tooling=beads
+                       n=1 (✓1/✗0)  code_quality: 0.667  agreement=0.50  completion=1.00  coverage=0.33
+    0.667       trial  language=python, model=sonnet, tooling=beads
+                       n=1 (✓1/✗0)  code_quality: 0.667  agreement=0.50  completion=1.00  coverage=0.33
+    0.150   candidate  language=java, model=sonnet, tooling=none
+                       n=1 (✓0/✗1)  code_quality: n/a  agreement=0.50  completion=0.00  coverage=0.00
+    0.150   candidate  language=go, model=sonnet, tooling=beads
+                       n=1 (✓0/✗1)  code_quality: n/a  agreement=0.50  completion=0.00  coverage=0.00

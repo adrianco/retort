@@ -1,0 +1,42 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Experiment 2 — brazil-bench (24 cells) · language=python, model=opus, tooling=none</title>
+  <link rel="stylesheet" href="../style.css">
+</head>
+<body>
+<p class="muted"><a href="../index.html">&larr; index</a></p>
+<h1>language=python, model=opus, tooling=none</h1>
+<p class="subtitle">
+  <span class="phase phase-trial">trial</span>
+  &nbsp;maturity 0.667
+</p>
+
+<div class="summary"><div class="summary-item"><div class="label">Replicates</div><div class="value">1/1</div></div>
+<div class="summary-item"><div class="label">Completion</div><div class="value">100%</div></div>
+<div class="summary-item"><div class="label">Replicate agreement</div><div class="value">0.50</div></div>
+<div class="summary-item"><div class="label">code_quality</div><div class="value">0.667</div></div>
+<div class="summary-item"><div class="label">Tokens (total)</div><div class="value">580,884</div></div>
+<div class="summary-item"><div class="label">Cost (total)</div><div class="value">$0.7256</div></div></div>
+
+<h2>Runs</h2>
+<table>
+  <thead><tr><th class="numeric">Run</th><th>Rep</th><th>Status</th><th class="numeric">code_quality</th><th class="numeric">defect_rate</th><th class="numeric">idiomatic</th><th class="numeric">maintainability</th><th class="numeric">test_coverage</th><th class="numeric">token_efficiency</th><th class="numeric">cost ($)</th><th class="numeric">duration (s)</th><th class="numeric">tokens</th><th class="numeric">turns</th><th class="numeric">Files</th><th class="numeric">LOC</th></tr></thead>
+  <tbody><tr><td>3</td><td>rep 1</td><td>completed</td><td class="numeric">0.667</td><td class="numeric">0.964</td><td class="numeric">0.790</td><td class="numeric">0.466</td><td class="numeric">0.800</td><td class="numeric">0.019</td><td class="numeric">$0.7256</td><td class="numeric">149.3s</td><td class="numeric">580,884</td><td class="numeric">16</td><td class="numeric">5</td><td class="numeric">562</td></tr></tbody>
+</table>
+
+<h2>Code review</h2>
+<p class="muted">
+  Per-replicate file listing extracted from the archived workspace.
+  For semantic analysis (architecture, interfaces, control flow), invoke
+  the <code>run-summary</code> skill via <code>retort evaluate &lt;run_dir&gt;</code>.
+</p>
+<details class="code-summary"><summary>rep 1 — 5 file(s), 562 loc (2 test file(s), 102 test loc)</summary><div class="code-files"><div class="file"><span class="file-name">brazilian_soccer/__init__.py</span> <span class="muted">(3 loc)</span></div><div class="file"><span class="file-name">brazilian_soccer/data.py</span> <span class="muted">(372 loc)</span><div class="symbols">class SoccerData, def _strip_accents, def normalize_team, def _parse_date, def __post_init__, def load, def _load_matches, def find_matches, def head_to_head, def team_stats, def standings, def biggest_wins, def average_goals, def search_players, def get_data</div></div><div class="file"><span class="file-name">brazilian_soccer/server.py</span> <span class="muted">(85 loc)</span><div class="symbols">def _df_to_records, def find_matches, def head_to_head, def team_stats, def standings, def biggest_wins, def average_goals, def search_players, def main</div></div><div class="file test"><span class="file-name">tests/__init__.py</span> <span class="muted">(0 loc, test)</span></div><div class="file test"><span class="file-name">tests/test_data.py</span> <span class="muted">(102 loc, test)</span><div class="symbols">class TestNormalization, class TestLoading, class TestMatchQueries, class TestHeadToHead, class TestTeamStats, class TestStandings, class TestAggregates, class TestPlayers, def data, def test_strips_state_suffix, def test_strips_country_code, def test_strips_accents, def test_handles_none, def test_all_frames_loaded, def test_unified_matches, def test_find_matches_by_team, def test_find_matches_between_teams, def test_find_matches_by_season, def test_find_matches_by_competition, def test_returns_counts, def test_stats_structure, def test_home_only_filter, def test_standings_ordered, def test_biggest_wins, def test_average_goals, def test_find_brazilians, def test_search_by_name, def test_filter_by_min_overall</div></div></div></details>
+
+<p class="muted">
+  Stack signature (sorted JSON): <code>{&quot;language&quot;: &quot;python&quot;, &quot;model&quot;: &quot;opus&quot;, &quot;tooling&quot;: &quot;none&quot;}</code>
+</p>
+</body>
+</html>
