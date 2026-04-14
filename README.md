@@ -72,6 +72,37 @@ Sortable + drill-downable in the [web report](https://rawcdn.githack.com/adrianc
 - **Worst value:** `clojure/opus/beads` at $0.762 quality 0.556 (paying the most for the worst output).
 - **Beads helps only for Go.** Python, typescript, rust, java, clojure all score lower (or no different) with beads enabled — beads' overhead isn't recouped on this small task.
 
+## Experiment 2 Results — brazil-bench (cross-task)
+
+📊 **[Web report →](https://rawcdn.githack.com/adrianco/retort/main/experiment-2/reports/web/index.html)**
+
+A second experiment run against [`brazil-bench/benchmark-template`](https://github.com/brazil-bench/benchmark-template) — a much harder task: MCP server, CSV ingest of Kaggle data, BDD tests with 16 canonical requirements. **24 cells, 1 replicate each, screening pass.** Results combine with experiment-1 to give cross-task ANOVA insights.
+
+**Single-task ANOVA on `code_quality`:** only language significant (consistent with experiment-1).
+
+**Cross-task ANOVA** (89 rows = experiment-1's 67 + experiment-2's 22, `task` as a factor):
+
+| Response | Significant factors |
+|---|---|
+| `code_quality` | language |
+| `_tokens` | language + model + tooling + **task** + language:tooling + **language:task** + model:tooling + **model:task** |
+| `_cost_usd` | similar + model:tooling |
+| `_duration_seconds` | every main effect + 5 interactions (incl. **model:task**, **tooling:task**) |
+
+**The `model:task` interaction is the headline finding.** Opus vs sonnet behaves *differently* on hard (brazil-bench) vs easy (rest-api-crud) tasks. The simple "best stack on rest-api-crud is best everywhere" assumption from experiment-1 doesn't fully generalize for the resource-cost dimensions.
+
+**Pareto frontier across both tasks** (`retort report pareto --data combined.csv --metric code_quality --metric -_cost_usd`):
+
+| | |
+|---|---|
+| **Rank 0 (Pareto-optimal)** | `go / sonnet / beads` — quality 1.000, cost $0.311 |
+| Rank 1 | `java / sonnet / none` — quality 1.000, cost $0.326 |
+| Rank 2 | `go / sonnet / none`, `java / opus / none`, `python / opus / none`, `rust / opus / none` |
+
+Every other stack is dominated. **`go / sonnet / beads` is the only stack that no other stack beats on both quality AND cost simultaneously.**
+
+For prediction of unmeasured cells (when running fewer cells of a fractional design), use `retort analyze --predict` — emits 95% CIs for cells you didn't run, fitted from cells you did.
+
 ## Installation
 
 ### Prerequisites
@@ -176,6 +207,7 @@ wait
 | `retort maturity` | Score each stack's maturity (replicate agreement, completion rate, score level, coverage) and suggest a lifecycle phase |
 | `retort report web` | Generate static HTML reports (sortable leaderboard + per-stack drill-downs); respects experiment.visibility for private experiments |
 | `retort export merge` | Combine multiple experiment CSVs into one with an experiment-tag column, for cross-experiment ANOVA |
+| `retort report pareto` | Identify Pareto-optimal stacks across multiple objectives; minimize cost-like metrics with `-` prefix |
 | `retort run --shard N/M` | Run only the slice of cells owned by shard N (of M); deterministic partition for parallel polecats sharing one retort.db |
 | `retort analyze` | Run ANOVA analysis on experiment data with optional residual diagnostics |
 | `retort intake` | Ingest a new candidate (factor level) and generate D-optimal augmentation runs |
@@ -254,7 +286,7 @@ Honest accounting. "Code exists" ≠ "tested end-to-end against real data."
 | **Phase 1: Playpen + Scoring** | 🟡 Partial | `LocalRunner` (claude CLI on host) is the supported path and has been exercised end-to-end against `bundled://rest-api-crud`. **`DockerRunner` is a skeleton — not exercised.** All 7 scorers from the plan are implemented (`code_quality`, `build_time`, `token_efficiency`, `test_coverage`, `defect_rate`, `maintainability`, `idiomatic`); the four added scorers are wired but not yet exercised against an experiment with replicates. Three bundled tasks ship (`rest-api-crud`, `cli-data-pipeline`, `react-dashboard`) but only `rest-api-crud` has been exercised end-to-end. Task source schemes `bundled://`, `local://`, `git://`, and `github://owner/repo[/path/to/spec]` work; the github shorthand makes it easy to pull task specs from public benchmarks like `github://brazil-bench/benchmark-template/brazilian-soccer-mcp-guide.md`. |
 | **Phase 2: Promotion + Reporting** | 🟡 Code present, lightly exercised | Lifecycle state machine, promotion gates, changelog, multi-format export, `retort promote`, `retort report effects` exist and unit-test. Not yet run on a real promotion decision. |
 | **Phase 3: Analysis** | 🟡 Code present, lightly exercised | ANOVA + residual diagnostics (statsmodels), Bayesian conjugate-NIG updating (scipy), Pareto frontier, `retort analyze`. Verified on synthetic data; not yet on a complete experiment-1 dataset with replicates. |
-| **Phase 4: Polish** | 🔴 Code present, untested | D-optimal augmentation (OApackage), candidate intake, scheduler, pluggy plugin system, status dashboard. Almost none of this has been exercised against real workloads yet. |
+| **Phase 4: Polish** | 🟡 Mostly working | D-optimal augmentation + candidate intake (`retort intake`), pluggy plugin system, status dashboard, Pareto frontier (`retort report pareto`), promotion gates (`retort promote`) all exercised against real data. Scheduler/budget tracking still inert (no `cost_limit_usd` enforcement); Wardley overlay + aliasing reports exist but minimally verified. |
 | **Resume / archive** | ✅ Working | `retort run --resume` skips already-recorded `(config, replicate)` pairs; `--retry-failed` retries failed ones. Each run's `/tmp` workspace is copied to `<workspace>/runs/<cell>/rep<N>/` before teardown so artifacts survive interrupts and `/tmp` cleanup. Per-run DB commit means an interrupt loses at most one run. |
 
 ### Known gaps and bugs

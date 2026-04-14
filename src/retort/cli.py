@@ -1295,6 +1295,144 @@ def report_wardley(db: str, fmt: str, output: str | None) -> None:
         click.echo(rendered)
 
 
+@report.command("pareto")
+@click.option(
+    "--data",
+    type=click.Path(exists=True),
+    required=True,
+    help="CSV file with factor + response columns (output of `retort export csv`).",
+)
+@click.option(
+    "--metric",
+    "metrics",
+    multiple=True,
+    required=True,
+    help=(
+        "Response metric(s) to optimize. Repeat for multi-objective. Prefix "
+        "with '-' to minimize (e.g. -_cost_usd). Default direction: maximize."
+    ),
+)
+@click.option(
+    "--group-by",
+    "group_by",
+    multiple=True,
+    default=("language", "model", "tooling"),
+    show_default=True,
+    help=(
+        "Factor columns identifying a stack. Rows with the same group_by "
+        "values are aggregated by mean before Pareto ranking."
+    ),
+)
+@click.option(
+    "--format",
+    "fmt",
+    type=click.Choice(["text", "json"]),
+    default="text",
+    show_default=True,
+)
+def report_pareto(
+    data: str,
+    metrics: tuple[str, ...],
+    group_by: tuple[str, ...],
+    fmt: str,
+) -> None:
+    """Compute Pareto-optimal stacks across multiple objectives.
+
+    Identifies stacks that aren't dominated on any combination of the
+    requested metrics. Useful when picking a stack involves trade-offs
+    (high quality vs low cost vs fast). Cost-like metrics should be
+    minimized — prefix with '-' to flip their direction.
+
+    \b
+    Example: highest quality at lowest cost across all stacks
+        retort report pareto --data combined.csv \\
+            --metric code_quality --metric -_cost_usd
+
+    \b
+    Multi-objective with all telemetry:
+        retort report pareto --data combined.csv \\
+            --metric code_quality --metric -_cost_usd \\
+            --metric -_duration_seconds --metric -_tokens
+    """
+    import json as _json
+    import pandas as pd
+
+    from retort.analysis.pareto import pareto_analysis
+
+    df = pd.read_csv(data)
+
+    # Parse metric directions: '-name' = minimize → flip sign
+    metric_specs = []
+    for m in metrics:
+        if m.startswith("-"):
+            metric_specs.append((m[1:], -1.0))
+        else:
+            metric_specs.append((m, +1.0))
+
+    missing = [m for m, _ in metric_specs if m not in df.columns]
+    if missing:
+        raise click.ClickException(f"Metrics not in data: {missing}")
+    missing_g = [g for g in group_by if g not in df.columns]
+    if missing_g:
+        raise click.ClickException(f"Group_by columns not in data: {missing_g}")
+
+    # Aggregate to one row per stack (mean of each metric)
+    metric_cols = [m for m, _ in metric_specs]
+    agg = df.groupby(list(group_by), dropna=False)[metric_cols].mean().reset_index()
+    # Drop stacks with NaN in any metric (incomplete data)
+    agg = agg.dropna(subset=metric_cols)
+    if agg.empty:
+        raise click.ClickException("No stacks have data for all requested metrics.")
+
+    # Apply direction flips for minimization
+    values = agg[metric_cols].to_numpy(dtype=float)
+    signs = [s for _, s in metric_specs]
+    for i, s in enumerate(signs):
+        values[:, i] = values[:, i] * s
+
+    labels = [
+        " · ".join(f"{g}={agg.iloc[i][g]}" for g in group_by)
+        for i in range(len(agg))
+    ]
+    result = pareto_analysis(labels, values, [m for m, _ in metric_specs])
+
+    if fmt == "json":
+        out = {
+            "frontier": [
+                {
+                    "label": result.labels[i],
+                    "rank": int(result.ranks[i]),
+                    "values": {
+                        m: float(agg.iloc[i][m])  # original-direction values
+                        for m, _ in metric_specs
+                    },
+                }
+                for i in range(len(result.labels))
+            ],
+            "metrics": [{"name": m, "minimize": s < 0} for m, s in metric_specs],
+        }
+        click.echo(_json.dumps(out, indent=2))
+        return
+
+    # Text rendering: rank-sorted with frontier highlighted
+    click.echo(f"Pareto analysis on {len(agg)} stacks:")
+    click.echo("Objectives:")
+    for m, s in metric_specs:
+        click.echo(f"  {'minimize' if s < 0 else 'maximize'} {m}")
+    click.echo("")
+    header = f"{'rank':>4}  " + "  ".join(f"{m:>14}" for m, _ in metric_specs) + "  stack"
+    click.echo(header)
+    click.echo("-" * (len(header) + 30))
+
+    order = sorted(range(len(result.labels)), key=lambda i: (result.ranks[i], result.labels[i]))
+    for i in order:
+        marker = "★" if result.ranks[i] == 0 else " "
+        vals = "  ".join(f"{agg.iloc[i][m]:>14.4f}" for m, _ in metric_specs)
+        click.echo(f"{marker} {int(result.ranks[i]):>2}  {vals}  {result.labels[i]}")
+    click.echo("")
+    click.echo(f"Pareto frontier (★, rank 0): {int((result.ranks == 0).sum())} stack(s)")
+
+
 @report.command("aliasing")
 @click.option(
     "--config",
