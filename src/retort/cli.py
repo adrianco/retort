@@ -759,7 +759,12 @@ def _invoke_claude_skill(
     """
     param_str = " ".join(f"{k}={v}" for k, v in params.items())
     prompt = f"Follow skill at {skill_path} for {param_str}"
-    cmd = ["claude", "-p", prompt, "--model", model]
+    cmd = [
+        "claude", "-p", prompt,
+        "--model", model,
+        "--output-format", "text",
+        "--dangerously-skip-permissions",
+    ]
     try:
         proc = subprocess.run(
             cmd, capture_output=True, text=True, timeout=timeout, check=False
