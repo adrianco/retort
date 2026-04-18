@@ -16,6 +16,7 @@ from retort.scoring.scorers.defect_rate import DefectRateScorer
 from retort.scoring.scorers.idiomatic import IdiomaticScorer
 from retort.scoring.scorers.maintainability import MaintainabilityScorer
 from retort.scoring.scorers.test_coverage import TestCoverageScorer
+from retort.scoring.scorers.test_quality import TestQualityScorer
 from retort.scoring.scorers.token_efficiency import TokenEfficiencyScorer
 
 
@@ -58,10 +59,11 @@ class TestScorerRegistry:
         assert "token_efficiency" in reg
         assert "build_time" in reg
         assert "test_coverage" in reg
+        assert "test_quality" in reg
         assert "defect_rate" in reg
         assert "maintainability" in reg
         assert "idiomatic" in reg
-        assert len(reg) == 7
+        assert len(reg) == 8
 
     def test_register_and_get(self):
         reg = ScorerRegistry()
@@ -84,6 +86,7 @@ class TestScorerRegistry:
             "idiomatic",
             "maintainability",
             "test_coverage",
+            "test_quality",
             "token_efficiency",
         ]
 
@@ -355,3 +358,70 @@ class TestIdiomaticScorer:
         sample = _representative_sample(tmp_path, "typescript")
         assert "real.ts" in sample
         assert "huge.ts" not in sample
+
+
+class TestTestQualityScorer:
+    def test_failed_run_scores_zero(self, failed_artifacts, python_stack):
+        scorer = TestQualityScorer()
+        assert scorer.score(failed_artifacts, python_stack) == 0.0
+
+    def test_no_output_dir_scores_zero(self, python_stack):
+        scorer = TestQualityScorer()
+        artifacts = RunArtifacts(stdout="", exit_code=0, duration_seconds=10.0)
+        assert scorer.score(artifacts, python_stack) == 0.0
+
+    def test_no_tests_returns_base_coverage(self, python_stack, tmp_path):
+        # No BDD signals → falls through to base coverage score (0.0 here)
+        (tmp_path / "app.py").write_text("def main():\n    return 1\n")
+        artifacts = RunArtifacts(
+            output_dir=tmp_path, stdout="", exit_code=0, duration_seconds=1.0,
+        )
+        scorer = TestQualityScorer()
+        score = scorer.score(artifacts, python_stack)
+        assert 0.0 <= score <= 1.0
+
+    def test_bdd_prompted_gives_015_bonus(self, python_stack, tmp_path):
+        # Feature file present + TASK.md mentions BDD → 0.15 bonus
+        (tmp_path / "features").mkdir()
+        (tmp_path / "features" / "login.feature").write_text(
+            "Feature: login\n  Scenario: valid user\n    Given a user\n"
+        )
+        (tmp_path / "TASK.md").write_text("Use BDD with behave for all tests.\n")
+        artifacts = RunArtifacts(
+            output_dir=tmp_path, stdout="", exit_code=0, duration_seconds=1.0,
+        )
+        scorer = TestQualityScorer()
+        score = scorer.score(artifacts, python_stack)
+        assert score == pytest.approx(0.15, abs=1e-6)
+
+    def test_bdd_unprompted_gives_025_bonus(self, python_stack, tmp_path):
+        # Feature file present, TASK.md has no BDD keywords → 0.25 bonus
+        (tmp_path / "features").mkdir()
+        (tmp_path / "features" / "checkout.feature").write_text(
+            "Feature: checkout\n  Scenario: add to cart\n    Given a product\n"
+        )
+        (tmp_path / "TASK.md").write_text("Build a shopping cart REST API.\n")
+        artifacts = RunArtifacts(
+            output_dir=tmp_path, stdout="", exit_code=0, duration_seconds=1.0,
+        )
+        scorer = TestQualityScorer()
+        score = scorer.score(artifacts, python_stack)
+        assert score == pytest.approx(0.25, abs=1e-6)
+
+    def test_bdd_score_capped_at_1(self, python_stack, tmp_path):
+        # Even with a high base score + bonus the result must not exceed 1.0
+        (tmp_path / "features").mkdir()
+        (tmp_path / "features" / "foo.feature").write_text("Feature: foo\n")
+        (tmp_path / "TASK.md").write_text("No BDD hints here.\n")
+        # Patch TestCoverageScorer to return 0.9 so base + bonus > 1
+        import unittest.mock as mock
+        artifacts = RunArtifacts(
+            output_dir=tmp_path, stdout="", exit_code=0, duration_seconds=1.0,
+        )
+        with mock.patch(
+            "retort.scoring.scorers.test_coverage.TestCoverageScorer.score",
+            return_value=0.9,
+        ):
+            scorer = TestQualityScorer()
+            score = scorer.score(artifacts, python_stack)
+        assert score == 1.0

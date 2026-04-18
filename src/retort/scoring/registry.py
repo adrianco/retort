@@ -72,6 +72,7 @@ def create_default_registry() -> ScorerRegistry:
     from retort.scoring.scorers.idiomatic import IdiomaticScorer
     from retort.scoring.scorers.maintainability import MaintainabilityScorer
     from retort.scoring.scorers.test_coverage import TestCoverageScorer
+    from retort.scoring.scorers.test_quality import TestQualityScorer
     from retort.scoring.scorers.token_efficiency import TokenEfficiencyScorer
 
     registry = ScorerRegistry()
@@ -79,6 +80,7 @@ def create_default_registry() -> ScorerRegistry:
     registry.register(TokenEfficiencyScorer())
     registry.register(BuildTimeScorer())
     registry.register(TestCoverageScorer())
+    registry.register(TestQualityScorer())
     registry.register(DefectRateScorer())
     registry.register(MaintainabilityScorer())
     # Opt-in via responses: list — every invocation makes an LLM call.
