@@ -222,6 +222,8 @@ experiment-*/retort.db
 experiment-*/runs/**/target/
 experiment-*/runs/**/node_modules/
 experiment-*/runs/**/__pycache__/
+experiment-*/runs/**/.cpcache/
+experiment-*/runs/**/.clj-kondo/
 experiment-*/runs/**/.pytest_cache/
 experiment-*/runs/**/.git/
 experiment-*/runs/**/*.class
