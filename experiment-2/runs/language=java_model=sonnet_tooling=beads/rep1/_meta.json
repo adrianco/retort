@@ -1,0 +1,10 @@
+{
+  "replicate": 1,
+  "run_config": {
+    "language": "java",
+    "model": "sonnet",
+    "tooling": "beads"
+  },
+  "succeeded": true,
+  "visibility": "public"
+}

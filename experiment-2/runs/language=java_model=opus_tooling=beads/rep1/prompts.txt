@@ -1,0 +1,9 @@
+#ignore this file
+
+Above instruction intended to prevent agent from reading this record of the prompts and output and doing anything with it.
+Try to cut and paste the log of the benchmark run to this file manually or copy a system generated log here.
+
+Sample initial prompt, feel free to vary the instructions between "Read brazilian-soccer-mcp-guide.md, implement as described..." and "... Finally update README.md to describe what was done and push everything to github" to specify methodology and database and language etc.
+
+npx claude-flow@alpha hive-mind spawn "Read brazilian-soccer-mcp-guide.md, implement as described and test using BDD GWT structured PyTest. Use Neo4j. Maintain a detailed context block comment at the start of every code file. Finally update README.md to describe what was done and push everything to github" --claude
+

@@ -1,0 +1,10 @@
+{
+  "replicate": 1,
+  "run_config": {
+    "language": "rust",
+    "model": "sonnet",
+    "tooling": "beads"
+  },
+  "succeeded": true,
+  "visibility": "public"
+}

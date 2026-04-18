@@ -213,7 +213,29 @@ __marimo__/
 .beads/
 state.json
 
-# Experiment workspace databases (sqlite shadow files) and per-run archives
+# Experiment workspace databases (sqlite shadow files)
 *.db-shm
 *.db-wal
-experiment-*/runs/
+experiment-*/retort.db
+
+# Per-run build artifacts, binaries, and large data (regenerable)
+experiment-*/runs/**/target/
+experiment-*/runs/**/node_modules/
+experiment-*/runs/**/__pycache__/
+experiment-*/runs/**/.pytest_cache/
+experiment-*/runs/**/.git/
+experiment-*/runs/**/*.class
+experiment-*/runs/**/*.pyc
+experiment-*/runs/**/data/
+experiment-*/runs/**/*.csv
+experiment-*/runs/**/*.parquet
+experiment-*/runs/**/*.db
+experiment-*/runs/**/*.sqlite
+experiment-*/runs/**/package-lock.json
+experiment-*/runs/**/yarn.lock
+experiment-*/runs/**/go.sum
+# Compiled Go/Rust binaries (no extension, executable) — exclude by common names
+experiment-*/runs/**/brazilian-soccer-mcp
+experiment-*/runs/**/books_api
+experiment-*/runs/**/server
+experiment-*/runs/**/main

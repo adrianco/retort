@@ -1,0 +1,96 @@
+
+> brazilian-soccer-mcp@1.0.0 test
+> jest --forceExit
+
+ts-jest[ts-jest-transformer] (WARN) Define `ts-jest` config under `globals` is deprecated. Please do
+transform: {
+    <transform_regex>: ['ts-jest', { /* ts-jest config goes here in Jest */ }],
+},
+See more at https://kulshekhar.github.io/ts-jest/docs/getting-started/presets#advanced
+PASS src/queries.test.ts (8.994 s)
+  Feature: Data Loading
+    Scenario: Load all CSV datasets
+      ✓ should load Brasileirao matches (212 ms)
+      ✓ should load Copa do Brasil matches (51 ms)
+      ✓ should load Libertadores matches (41 ms)
+      ✓ should load historical Brasileirao matches (302 ms)
+      ✓ should load BR Football extended dataset (648 ms)
+      ✓ should load FIFA player data (4766 ms)
+    Scenario: Date normalization
+      ✓ should normalize Brazilian format DD/MM/YYYY (1 ms)
+      ✓ should normalize ISO format YYYY-MM-DD
+      ✓ should normalize datetime with time component (1 ms)
+      ✓ should handle empty string
+    Scenario: Team name normalization
+      ✓ should strip state suffix (1 ms)
+      ✓ should leave names without suffix unchanged
+      ✓ should match teams with and without suffix (1 ms)
+      ✓ should match partial names
+  Feature: Match Queries
+    Scenario: Find matches between two teams
+      ✓ Given the match data is loaded, When I search for matches between Flamengo and Fluminense, Then I should receive a list of matches with date, scores, and competition (50 ms)
+      ✓ should find Palmeiras matches (26 ms)
+      ✓ should filter by competition (3 ms)
+      ✓ should filter by season (8 ms)
+      ✓ should filter by date range (1 ms)
+      ✓ should respect limit parameter (6 ms)
+      ✓ should return results sorted by date descending (6 ms)
+      ✓ should find Libertadores matches (2 ms)
+    Scenario: Find matches for specific team in season
+      ✓ should find Flamengo matches in 2019 (11 ms)
+      ✓ should find Corinthians Brasileirao matches (9 ms)
+  Feature: Team Queries
+    Scenario: Get team statistics
+      ✓ Given the match data is loaded, When I request statistics for Palmeiras in season 2023, Then I should receive wins, losses, draws, and goals (2 ms)
+      ✓ should calculate points correctly (3 per win, 1 per draw) (4 ms)
+      ✓ should support home_only filter (37 ms)
+      ✓ should handle unknown team gracefully (12 ms)
+    Scenario: Get best teams
+      ✓ should return teams ranked by win rate (12 ms)
+      ✓ should support home performance mode (5 ms)
+      ✓ should support away performance mode (1 ms)
+  Feature: Head-to-Head Queries
+    ✓ should return correct aggregate stats (11 ms)
+    ✓ should return recent matches sorted by date (10 ms)
+    ✓ should handle teams with no matches (8 ms)
+    ✓ should find Flamengo vs Corinthians matches (7 ms)
+  Feature: Competition Queries
+    Scenario: Get standings
+      ✓ should calculate 2019 Brasileirao standings (4 ms)
+      ✓ should include top teams in 2019 standings (3 ms)
+      ✓ should return empty array for non-existent season (1 ms)
+      ✓ should calculate correct match counts (1 ms)
+  Feature: Statistical Analysis
+    Scenario: Competition statistics
+      ✓ should calculate average goals per match for Brasileirao (4 ms)
+      ✓ should verify home_wins + away_wins + draws = total_matches (4 ms)
+      ✓ should work for Libertadores (2 ms)
+      ✓ should work for a specific season (2 ms)
+    Scenario: Biggest wins
+      ✓ should return matches sorted by goal margin (12 ms)
+      ✓ should filter by competition (3 ms)
+      ✓ should have valid goal counts (9 ms)
+    Scenario: Extended match statistics
+      ✓ should return matches with corner and shot data (1 ms)
+      ✓ should filter by team (6 ms)
+  Feature: Player Queries
+    Scenario: Search by nationality
+      ✓ should find Brazilian players (13 ms)
+      ✓ should return players sorted by overall rating descending (5 ms)
+    Scenario: Search by name
+      ✓ should find player by partial name (4 ms)
+    Scenario: Search by club
+      ✓ should find players at Flamengo (5 ms)
+    Scenario: Filter by minimum overall rating
+      ✓ should only return players above minimum rating (2 ms)
+    Scenario: Filter by position
+      ✓ should find goalkeeper players (5 ms)
+    Scenario: Find top-rated Brazilian players
+      ✓ should return top Brazilian players with valid data (4 ms)
+
+Test Suites: 1 passed, 1 total
+Tests:       55 passed, 55 total
+Snapshots:   0 total
+Time:        9.304 s
+Ran all test suites.
+Force exiting Jest: Have you considered using `--detectOpenHandles` to detect async operations that kept running after all tests finished?

@@ -1,0 +1,23 @@
+{
+  "severity_counts": {
+    "critical": 0,
+    "high": 1,
+    "medium": 0,
+    "low": 0,
+    "info": 0
+  },
+  "penalty_score": 0.9,
+  "top_findings": [
+    {
+      "id": "R2",
+      "kind": "requirement_partial",
+      "severity": "high",
+      "title": "Match date range filtering not fully implemented",
+      "evidence": "tools.go:23-49 search_matches tool schema has no date_start/date_end parameters; SearchMatches function (tools.go:224-299) filters by season/competition/team but not by date range",
+      "suggestion": "Add date_start and date_end parameters to search_matches tool schema and implement date-based filtering in SearchMatches function"
+    }
+  ],
+  "requirement_coverage": 0.5,
+  "model": "unknown",
+  "evaluated_at": "2026-04-18T22:08:45Z"
+}

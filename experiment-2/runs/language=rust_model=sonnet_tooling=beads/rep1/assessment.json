@@ -1,0 +1,55 @@
+{
+  "severity_counts": {
+    "critical": 0,
+    "high": 6,
+    "medium": 0,
+    "low": 0,
+    "info": 0
+  },
+  "penalty_score": 0.4,
+  "top_findings": [
+    {
+      "id": "R01",
+      "kind": "requirement_partial",
+      "severity": "high",
+      "title": "Search match data from CSV files",
+      "evidence": "src/data.rs:DataStore implements CSV loading; src/tools.rs:search_matches implements search. Tests fail at tests/integration_test.rs:11 due to hardcoded /tmp path.",
+      "suggestion": "Fix test data path to use relative paths or environment variables"
+    },
+    {
+      "id": "R02",
+      "kind": "requirement_partial",
+      "severity": "high",
+      "title": "Search player data",
+      "evidence": "src/tools.rs implements search_players method; Player struct defined in src/data.rs. Test fails due to data path issue.",
+      "suggestion": "Fix test data initialization path"
+    },
+    {
+      "id": "R03",
+      "kind": "requirement_partial",
+      "severity": "high",
+      "title": "Calculate basic statistics",
+      "evidence": "src/tools.rs:get_team_stats calculates wins/losses/draws. Test fails due to missing data.",
+      "suggestion": "Ensure data files are accessible during tests"
+    },
+    {
+      "id": "R04",
+      "kind": "requirement_partial",
+      "severity": "high",
+      "title": "Compare teams head-to-head",
+      "evidence": "src/tools.rs:head_to_head implements comparison logic. Test fails due to data path.",
+      "suggestion": "Fix data path in test setup"
+    },
+    {
+      "id": "test-001",
+      "kind": "test_failure",
+      "severity": "high",
+      "title": "Test data path hardcoded to temporary directory",
+      "evidence": "tests/integration_test.rs:7 uses hardcoded /tmp path that no longer exists; 6 of 9 tests fail with 'No such file or directory'",
+      "suggestion": "Use relative path to data/ directory or environment variable for test data location"
+    }
+  ],
+  "requirement_coverage": 0.14285714285714285,
+  "model": "unknown",
+  "evaluated_at": "2026-04-18T22:28:48.943002Z"
+}

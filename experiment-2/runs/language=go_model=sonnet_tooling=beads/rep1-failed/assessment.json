@@ -1,0 +1,31 @@
+{
+  "severity_counts": {
+    "critical": 1,
+    "high": 1,
+    "medium": 0,
+    "low": 0,
+    "info": 0
+  },
+  "penalty_score": 0.65,
+  "top_findings": [
+    {
+      "id": "R1",
+      "kind": "requirement_missing",
+      "severity": "critical",
+      "title": "MCP server not executable as standalone tool",
+      "evidence": "main.go:89 calls server.ServeStdio(s) requiring stdin/stdout transport; no HTTP server or daemon mode available",
+      "suggestion": "The implementation follows MCP stdio transport correctly, but verify integration with actual LLM clients"
+    },
+    {
+      "id": "R2",
+      "kind": "requirement_partial",
+      "severity": "high",
+      "title": "Data source integration incomplete",
+      "evidence": "main.go:21-28 defaults to relative 'data/kaggle' path; no support for configuring alternative data sources or optional APIs (API-Football, TheSportsDB)",
+      "suggestion": "Add environment variables or config file for external API integration"
+    }
+  ],
+  "requirement_coverage": 0.0,
+  "model": "unknown",
+  "evaluated_at": "2026-04-18T22:23:15Z"
+}

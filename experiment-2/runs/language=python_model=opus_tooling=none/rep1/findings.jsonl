@@ -1,0 +1,3 @@
+{"id": "lint-imports", "kind": "lint_warning", "severity": "low", "title": "Import blocks need sorting (ruff I001)", "evidence": "brazilian_soccer/data.py:2, server.py:2, tests/test_data.py:2", "suggestion": "Run ruff check --fix to auto-sort imports"}
+{"id": "lint-line-length", "kind": "lint_warning", "severity": "low", "title": "8 lines exceed 88 character limit", "evidence": "brazilian_soccer/data.py:205,348,351,353,355,358,389 and server.py:101", "suggestion": "Refactor long signatures or add line breaks"}
+{"id": "unused-import", "kind": "lint_warning", "severity": "low", "title": "Unused import: typing.Iterable", "evidence": "brazilian_soccer/data.py:10", "suggestion": "Remove unused import"}

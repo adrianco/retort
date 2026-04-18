@@ -1,0 +1,52 @@
+{
+  "severity_counts": {
+    "critical": 0,
+    "high": 2,
+    "medium": 6,
+    "low": 0,
+    "info": 11
+  },
+  "penalty_score": 0.62,
+  "top_findings": [
+    {
+      "id": "missing-integration",
+      "kind": "missing_test",
+      "severity": "high",
+      "title": "No MCP protocol integration tests",
+      "evidence": "No tests of main.go RPC handler or tool invocations against schema",
+      "suggestion": "Add integration tests for initialize, tools/list, tools/call RPC methods"
+    },
+    {
+      "id": "sample-questions",
+      "kind": "missing_test",
+      "severity": "high",
+      "title": "No sample question tests (target: 20+)",
+      "evidence": "TASK.md requires 'at least 20 sample questions can be answered'; no test coverage",
+      "suggestion": "Add test file with 20+ example queries from each requirement category"
+    },
+    {
+      "id": "R7",
+      "kind": "requirement_unverified",
+      "severity": "medium",
+      "title": "\u26a0 Simple lookups respond in < 2 seconds \u2014 cannot verify",
+      "evidence": "Performance tests not in test suite"
+    },
+    {
+      "id": "R8",
+      "kind": "requirement_unverified",
+      "severity": "medium",
+      "title": "\u26a0 Aggregate queries respond in < 5 seconds \u2014 cannot verify",
+      "evidence": "Performance tests not in test suite"
+    },
+    {
+      "id": "R9",
+      "kind": "requirement_unverified",
+      "severity": "medium",
+      "title": "\u26a0 No timeout errors \u2014 cannot verify",
+      "evidence": "No timeout handling or stress tests"
+    }
+  ],
+  "requirement_coverage": 0.6666666666666666,
+  "model": "unknown",
+  "evaluated_at": "2026-04-18T22:24:01Z"
+}

@@ -1,0 +1,67 @@
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+
+running 9 tests
+. 1/9
+test_load_datastore --- FAILED
+test_head_to_head_flamengo_fluminense --- FAILED
+test_get_team_stats_palmeiras_2023 --- FAILED
+test_search_matches_flamengo --- FAILED
+. 6/9
+test_get_standings_2019 --- FAILED
+. 8/9
+test_search_players_brazil --- FAILED
+
+failures:
+
+---- test_load_datastore stdout ----
+
+thread 'test_load_datastore' (2788346) panicked at tests/integration_test.rs:11:38:
+Failed to load DataStore: No such file or directory (os error 2)
+
+---- test_head_to_head_flamengo_fluminense stdout ----
+
+thread 'test_head_to_head_flamengo_fluminense' (2788345) panicked at tests/integration_test.rs:11:38:
+Failed to load DataStore: No such file or directory (os error 2)
+
+---- test_get_team_stats_palmeiras_2023 stdout ----
+
+thread 'test_get_team_stats_palmeiras_2023' (2788344) panicked at tests/integration_test.rs:11:38:
+Failed to load DataStore: No such file or directory (os error 2)
+note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
+
+---- test_search_matches_flamengo stdout ----
+
+thread 'test_search_matches_flamengo' (2788350) panicked at tests/integration_test.rs:11:38:
+Failed to load DataStore: No such file or directory (os error 2)
+
+---- test_get_standings_2019 stdout ----
+
+thread 'test_get_standings_2019' (2788343) panicked at tests/integration_test.rs:11:38:
+Failed to load DataStore: No such file or directory (os error 2)
+
+---- test_search_players_brazil stdout ----
+
+thread 'test_search_players_brazil' (2788351) panicked at tests/integration_test.rs:11:38:
+Failed to load DataStore: No such file or directory (os error 2)
+
+
+failures:
+    test_get_standings_2019
+    test_get_team_stats_palmeiras_2023
+    test_head_to_head_flamengo_fluminense
+    test_load_datastore
+    test_search_matches_flamengo
+    test_search_players_brazil
+
+test result: FAILED. 3 passed; 6 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+error: test failed, to rerun pass `--test integration_test`

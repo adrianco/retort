@@ -1,0 +1,14 @@
+{
+  "severity_counts": {
+    "critical": 0,
+    "high": 0,
+    "medium": 2,
+    "low": 0,
+    "info": 3
+  },
+  "penalty_score": 0.94,
+  "top_findings": [],
+  "requirement_coverage": 0.9,
+  "model": "unknown",
+  "evaluated_at": "2026-04-18T22:25:21.989476Z"
+}

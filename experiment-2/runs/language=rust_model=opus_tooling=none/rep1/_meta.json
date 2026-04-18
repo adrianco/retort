@@ -1,0 +1,10 @@
+{
+  "replicate": 1,
+  "run_config": {
+    "language": "rust",
+    "model": "opus",
+    "tooling": "none"
+  },
+  "succeeded": true,
+  "visibility": "public"
+}

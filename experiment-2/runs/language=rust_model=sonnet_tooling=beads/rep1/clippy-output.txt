@@ -1,0 +1,174 @@
+error: this `if` statement can be collapsed
+  --> src/tools.rs:44:17
+   |
+44 | /                 if let Some(s) = season {
+45 | |                     if m.season != s as i32 {
+46 | |                         return false;
+47 | |                     }
+48 | |                 }
+   | |_________________^
+   |
+   = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.94.0/index.html#collapsible_if
+   = note: `-D clippy::collapsible-if` implied by `-D warnings`
+   = help: to override `-D warnings` add `#[allow(clippy::collapsible_if)]`
+help: collapse nested if block
+   |
+44 ~                 if let Some(s) = season
+45 ~                     && m.season != s as i32 {
+46 |                         return false;
+47 ~                     }
+   |
+
+error: this `if` statement can be collapsed
+  --> src/tools.rs:50:17
+   |
+50 | /                 if !competition.is_empty() {
+51 | |                     if !m.competition.to_lowercase().contains(&competition.to_lowercase()) {
+52 | |                         return false;
+53 | |                     }
+54 | |                 }
+   | |_________________^
+   |
+   = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.94.0/index.html#collapsible_if
+help: collapse nested if block
+   |
+50 ~                 if !competition.is_empty()
+51 ~                     && !m.competition.to_lowercase().contains(&competition.to_lowercase()) {
+52 |                         return false;
+53 ~                     }
+   |
+
+error: this `if` statement can be collapsed
+   --> src/tools.rs:153:17
+    |
+153 | /                 if let Some(s) = season {
+154 | |                     if m.season != s as i32 {
+155 | |                         return false;
+156 | |                     }
+157 | |                 }
+    | |_________________^
+    |
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.94.0/index.html#collapsible_if
+help: collapse nested if block
+    |
+153 ~                 if let Some(s) = season
+154 ~                     && m.season != s as i32 {
+155 |                         return false;
+156 ~                     }
+    |
+
+error: this `if` statement can be collapsed
+   --> src/tools.rs:158:17
+    |
+158 | /                 if !competition.is_empty() {
+159 | |                     if !m.competition.to_lowercase().contains(&competition.to_lowercase()) {
+160 | |                         return false;
+161 | |                     }
+162 | |                 }
+    | |_________________^
+    |
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.94.0/index.html#collapsible_if
+help: collapse nested if block
+    |
+158 ~                 if !competition.is_empty()
+159 ~                     && !m.competition.to_lowercase().contains(&competition.to_lowercase()) {
+160 |                         return false;
+161 ~                     }
+    |
+
+error: this `if` statement can be collapsed
+   --> src/tools.rs:283:17
+    |
+283 | /                 if !competition.is_empty() {
+284 | |                     if !m.competition.to_lowercase().contains(&competition.to_lowercase()) {
+285 | |                         return false;
+286 | |                     }
+287 | |                 }
+    | |_________________^
+    |
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.94.0/index.html#collapsible_if
+help: collapse nested if block
+    |
+283 ~                 if !competition.is_empty()
+284 ~                     && !m.competition.to_lowercase().contains(&competition.to_lowercase()) {
+285 |                         return false;
+286 ~                     }
+    |
+
+error: this `if` statement can be collapsed
+   --> src/tools.rs:565:17
+    |
+565 | /                 if !competition.is_empty() {
+566 | |                     if !m.competition.to_lowercase().contains(&competition.to_lowercase()) {
+567 | |                         return false;
+568 | |                     }
+569 | |                 }
+    | |_________________^
+    |
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.94.0/index.html#collapsible_if
+help: collapse nested if block
+    |
+565 ~                 if !competition.is_empty()
+566 ~                     && !m.competition.to_lowercase().contains(&competition.to_lowercase()) {
+567 |                         return false;
+568 ~                     }
+    |
+
+error: this `if` statement can be collapsed
+   --> src/tools.rs:570:17
+    |
+570 | /                 if let Some(s) = season {
+571 | |                     if m.season != s as i32 {
+572 | |                         return false;
+573 | |                     }
+574 | |                 }
+    | |_________________^
+    |
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.94.0/index.html#collapsible_if
+help: collapse nested if block
+    |
+570 ~                 if let Some(s) = season
+571 ~                     && m.season != s as i32 {
+572 |                         return false;
+573 ~                     }
+    |
+
+error: this `if` statement can be collapsed
+   --> src/tools.rs:624:17
+    |
+624 | /                 if !competition.is_empty() {
+625 | |                     if !m.competition.to_lowercase().contains(&competition.to_lowercase()) {
+626 | |                         return false;
+627 | |                     }
+628 | |                 }
+    | |_________________^
+    |
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.94.0/index.html#collapsible_if
+help: collapse nested if block
+    |
+624 ~                 if !competition.is_empty()
+625 ~                     && !m.competition.to_lowercase().contains(&competition.to_lowercase()) {
+626 |                         return false;
+627 ~                     }
+    |
+
+error: this `if` statement can be collapsed
+   --> src/tools.rs:629:17
+    |
+629 | /                 if let Some(s) = season {
+630 | |                     if m.season != s as i32 {
+631 | |                         return false;
+632 | |                     }
+633 | |                 }
+    | |_________________^
+    |
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.94.0/index.html#collapsible_if
+help: collapse nested if block
+    |
+629 ~                 if let Some(s) = season
+630 ~                     && m.season != s as i32 {
+631 |                         return false;
+632 ~                     }
+    |
+
+error: could not compile `brazilian_soccer_mcp` (lib) due to 9 previous errors

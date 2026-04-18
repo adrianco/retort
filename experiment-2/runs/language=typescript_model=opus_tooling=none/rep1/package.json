@@ -1,0 +1,22 @@
+{
+  "name": "brazilian-soccer-mcp",
+  "version": "1.0.0",
+  "description": "MCP server providing a knowledge graph interface for Brazilian soccer data",
+  "type": "module",
+  "main": "dist/index.js",
+  "bin": {
+    "brazilian-soccer-mcp": "dist/server.js"
+  },
+  "scripts": {
+    "build": "tsc",
+    "start": "node dist/server.js",
+    "test": "tsc -p tsconfig.test.json && node --test dist-test/test/*.test.js"
+  },
+  "dependencies": {
+    "@modelcontextprotocol/sdk": "^1.0.4"
+  },
+  "devDependencies": {
+    "@types/node": "^22.0.0",
+    "typescript": "^5.5.0"
+  }
+}

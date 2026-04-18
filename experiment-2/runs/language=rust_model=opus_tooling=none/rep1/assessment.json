@@ -1,0 +1,23 @@
+{
+  "severity_counts": {
+    "critical": 1,
+    "high": 0,
+    "medium": 0,
+    "low": 0,
+    "info": 0
+  },
+  "penalty_score": 0.75,
+  "top_findings": [
+    {
+      "id": "lint-1",
+      "kind": "lint_warning",
+      "severity": "critical",
+      "title": "Clippy: to_string applied to Display type in writeln! args",
+      "evidence": "src/main.rs:30 \u2014 error: `to_string` applied to a type that implements `Display` in `writeln!` args (clippy::to-string-in-format-args)",
+      "suggestion": "Remove .to_string() \u2014 writeln! macro implements Display natively. Change line 30 to: writeln!(out, \"{}\", resp)?"
+    }
+  ],
+  "requirement_coverage": null,
+  "model": "unknown",
+  "evaluated_at": "2026-04-18T22:29:59Z"
+}

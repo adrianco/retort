@@ -1,0 +1,22 @@
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "soccer-mcp"
+version = "0.1.0"
+description = "MCP server exposing a knowledge-graph view over Brazilian soccer datasets."
+requires-python = ">=3.10"
+dependencies = [
+    "pandas>=2.0",
+    "mcp>=1.0",
+]
+
+[project.scripts]
+soccer-mcp = "soccer_mcp.server:main"
+
+[tool.setuptools.packages.find]
+include = ["soccer_mcp*"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]

@@ -1,0 +1,10 @@
+{
+  "replicate": 1,
+  "run_config": {
+    "language": "typescript",
+    "model": "sonnet",
+    "tooling": "beads"
+  },
+  "succeeded": true,
+  "visibility": "public"
+}

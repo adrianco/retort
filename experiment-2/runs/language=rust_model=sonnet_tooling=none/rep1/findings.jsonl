@@ -1,0 +1,1 @@
+{"id": "lint-1", "kind": "lint_warning", "severity": "low", "title": "Unnecessary use of splitn", "evidence": "src/data.rs:390:36 — splitn with 2 parts and dash delimiter could use simpler split()", "suggestion": "Replace splitn(2, '-') with split('-') for code clarity"}
