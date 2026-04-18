@@ -29,6 +29,15 @@ AGENT_COMMANDS: dict[str, list[str]] = {
     ],
 }
 
+# Short model aliases → versioned API IDs. Workspace configs may use either
+# form; the aliases here pin experiments to specific versions for reproducibility.
+# Update when retiring a model generation.
+MODEL_ALIASES: dict[str, str] = {
+    "opus": "claude-opus-4-6",
+    "sonnet": "claude-sonnet-4-5",
+    "haiku": "claude-haiku-4-5",
+}
+
 
 class LocalRunner:
     """Executes experiment runs in local temp directories.
@@ -44,11 +53,14 @@ class LocalRunner:
         timeout_minutes: int = 30,
         max_turns: int = 30,
         work_dir: Path | None = None,
+        eval_model: str | None = None,
     ) -> None:
         self.timeout_minutes = timeout_minutes
         self.max_turns = max_turns
         self.work_dir = work_dir or Path(tempfile.mkdtemp(prefix="retort-local-"))
         self._envs: dict[str, _EnvInfo] = {}
+        # When set, invoke evaluate-run skill after each successful run.
+        self.eval_model = eval_model
 
     def provision(self, stack: StackConfig, task: TaskSpec) -> str:
         """Create a workspace directory with the task spec."""
@@ -136,8 +148,7 @@ class LocalRunner:
             metadata = {}
             stdout_text = result.stdout or ""
             try:
-                import json as _json
-                data = _json.loads(stdout_text)
+                data = json.loads(stdout_text)
                 usage = data.get("usage", {})
                 token_count = (
                     usage.get("input_tokens", 0)
@@ -159,7 +170,7 @@ class LocalRunner:
             except (ValueError, KeyError):
                 pass  # Not JSON or missing fields
 
-            return RunArtifacts(
+            artifacts = RunArtifacts(
                 output_dir=info.workspace,
                 stdout=stdout_text[-10000:],
                 stderr=result.stderr[-5000:] if result.stderr else "",
@@ -168,6 +179,9 @@ class LocalRunner:
                 token_count=token_count,
                 metadata=metadata,
             )
+            if self.eval_model is not None and artifacts.succeeded:
+                self._post_run_evaluate(info.workspace)
+            return artifacts
         except subprocess.TimeoutExpired:
             elapsed = time.monotonic() - start
             return RunArtifacts(
@@ -224,11 +238,10 @@ class LocalRunner:
                 "--dangerously-skip-permissions",
             ]
 
-            # Check for model factor — pass any non-empty value directly so
-            # full versioned IDs (e.g. claude-opus-4-6) work alongside aliases.
+            # Resolve model alias → versioned ID; full versioned IDs pass through.
             model = stack.extra.get("model", "")
             if model:
-                cmd.extend(["--model", model])
+                cmd.extend(["--model", MODEL_ALIASES.get(model, model)])
 
             return cmd
 
@@ -243,6 +256,47 @@ class LocalRunner:
         # Disable interactive features
         env["CLAUDE_CODE_NON_INTERACTIVE"] = "1"
         return env
+
+    def _post_run_evaluate(self, run_dir: Path) -> None:
+        """Invoke the evaluate-run skill on a completed workspace.
+
+        Produces evaluation.md and findings.jsonl in run_dir. Never raises;
+        failures are logged and skipped. Does NOT call file-run-issues —
+        findings.jsonl is consumed by the scorer, not the issue tracker.
+        """
+        skill = _find_skill_path("evaluate-run", start=run_dir)
+        if skill is None:
+            logger.debug("evaluate-run skill not found, skipping post-run evaluation")
+            return
+
+        model = MODEL_ALIASES.get(self.eval_model, self.eval_model)  # type: ignore[arg-type]
+        prompt = f"Follow skill at {skill} for run_dir={run_dir}"
+        try:
+            proc = subprocess.run(
+                ["claude", "-p", prompt, "--model", model,
+                 "--output-format", "text", "--dangerously-skip-permissions"],
+                cwd=run_dir,
+                capture_output=True,
+                text=True,
+                timeout=300,
+            )
+            if proc.returncode != 0:
+                logger.warning("evaluate-run exited %d: %s", proc.returncode, proc.stderr[:200])
+        except FileNotFoundError:
+            logger.warning("claude CLI not found, skipping evaluate-run")
+        except subprocess.TimeoutExpired:
+            logger.warning("evaluate-run timed out after 300s for %s", run_dir.name)
+        except Exception as exc:
+            logger.warning("evaluate-run error for %s: %s", run_dir.name, exc)
+
+
+def _find_skill_path(skill_name: str, start: Path) -> Path | None:
+    """Walk upward from start to locate skills/<name>/SKILL.md."""
+    for base in [start, *start.parents]:
+        candidate = base / "skills" / skill_name / "SKILL.md"
+        if candidate.is_file():
+            return candidate
+    return None
 
 
 def _copy_support_files(src: Path, dst: Path) -> None:
