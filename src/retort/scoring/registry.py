@@ -68,6 +68,7 @@ def create_default_registry() -> ScorerRegistry:
     """
     from retort.scoring.scorers.code_quality import CodeQualityScorer
     from retort.scoring.scorers.defect_rate import DefectRateScorer
+    from retort.scoring.scorers.findings import FindingsScorer
     from retort.scoring.scorers.idiomatic import IdiomaticScorer
     from retort.scoring.scorers.maintainability import MaintainabilityScorer
     from retort.scoring.scorers.test_coverage import TestCoverageScorer
@@ -81,6 +82,7 @@ def create_default_registry() -> ScorerRegistry:
     registry.register(TestQualityScorer())
     registry.register(DefectRateScorer())
     registry.register(MaintainabilityScorer())
+    registry.register(FindingsScorer())
     # Opt-in via responses: list — every invocation makes an LLM call.
     registry.register(IdiomaticScorer())
     # build_time was removed in favor of the raw `_duration_seconds`

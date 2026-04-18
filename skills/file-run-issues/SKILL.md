@@ -1,25 +1,21 @@
 ---
 name: file-run-issues
-description: Turn a retort run's findings.jsonl into tracked issues. By default files beads issues under the retort project; with --github mirrors each finding as a GitHub issue on the retort repo.
+description: Aggregate a retort run's findings.jsonl into a machine-readable assessment.json summary with severity counts, penalty score, requirement coverage, and top findings.
 type: anthropic-skill
-version: "1.0"
+version: "2.0"
 ---
 
 # File Run Issues
 
 ## Overview
 
-`evaluate-run` produces a `findings.jsonl` per run — one JSON object per observation. On its own that file isn't actionable. This skill turns findings into tracked work items so regressions and patterns across runs become visible in whatever issue tracker you use.
-
-Retort's canonical tracker is **beads** (the `re` project). GitHub issues are an optional mirror for items worth surfacing to external contributors — most findings are experimental noise and shouldn't pollute the GitHub tracker.
+`evaluate-run` produces a `findings.jsonl` per run — one JSON object per observation. This skill aggregates those findings into `assessment.json`, a compact machine-readable summary used by `FindingsScorer` and downstream reporting. It does **not** create beads issues or GitHub issues.
 
 ## Parameters
 
 - **run_dir** (required): Same path `evaluate-run` used, e.g. `experiment-1/runs/language=rust_model=opus_tooling=beads/rep2/`
-- **tracker** (optional, default: `beads`): `beads` | `github` | `both`
-- **github_repo** (optional, default: `adrianco/retort`): Only used when tracker includes `github`
-- **dry_run** (optional, default: `false`): Print what would be filed without creating anything
-- **min_severity** (optional, default: `medium`): Skip findings below this severity. Options: `critical`, `high`, `medium`, `low`, `info`
+- **min_severity** (optional, default: `info`): Skip findings below this severity when computing counts. Options: `critical`, `high`, `medium`, `low`, `info`
+- **dry_run** (optional, default: `false`): Print the assessment JSON without writing assessment.json
 
 ## Steps
 
@@ -29,171 +25,113 @@ Retort's canonical tracker is **beads** (the `re` project). GitHub issues are an
 test -f {run_dir}/findings.jsonl || { echo "no findings.jsonl — run evaluate-run first"; exit 1; }
 ```
 
-Read the file line-by-line. Each line is one finding. Extract the cell and replicate from the directory path for use in issue titles.
+Read the file line-by-line. Each line is one finding with at minimum these fields:
+
+```json
+{"id": "R3", "kind": "requirement_missing", "severity": "high", "title": "...", "evidence": "...", "suggestion": "..."}
+```
 
 ### 2. Filter by severity
 
-Drop findings whose `severity` is below `min_severity`. Report the count dropped so the user knows the filter applied.
+Drop findings whose `severity` is below `min_severity`. The severity ordering from highest to lowest is: `critical`, `high`, `medium`, `low`, `info`.
 
-### 3. De-duplicate against existing tracker state
+### 3. Count severities
 
-Existing issues from prior runs of the same cell MUST NOT be re-filed.
-
-For beads (default tracker), match on a stable key: `<cell>#<rep>#<finding.id>`. Stored in the issue body as a footer:
-
-```
-retort-finding: language=rust_model=opus_tooling=beads#rep2#R5
-```
-
-Before filing, grep the open issues for that footer:
-
-```bash
-bd list --json | jq -r '.[] | select(.body | contains("retort-finding: {key}"))'
-```
-
-For GitHub, use the same key in the body and check:
-
-```bash
-gh issue list -R {github_repo} --state all --search "retort-finding: {key}" --json number,title
-```
-
-Constraints:
-- You MUST NOT file a duplicate. If the issue exists, log `skip: already tracked as <id>`.
-- You MUST match on the exact stable key, not on title similarity. Agents produce slightly different titles on re-evaluation.
-- You MUST check closed issues too — a closed issue with the same key means the problem was explicitly resolved; re-filing would be noise.
-
-### 4. Map finding → tracker record
-
-For each surviving finding, construct:
-
-| Field | Beads | GitHub |
-|-------|-------|--------|
-| Title | `[{cell}#rep{N}] {finding.title}` (≤80 chars) | same |
-| Type | `bug` for `*_failure`/`test_failure`, `task` for `skipped_test`, `enhancement` for `requirement_missing`/`enhancement`, `chore` otherwise | label instead (see below) |
-| Priority | `1` (critical) / `2` (high) / `3` (medium) / `4` (low) / `5` (info) | no priority field — rely on label |
-| Labels | `retort`, `auto-filed`, `severity:{sev}`, `kind:{kind}` | `retort`, `severity-{sev}`, `kind-{kind}` |
-| Body | See template below | same |
-
-Body template:
-
-```markdown
-## Finding
-
-{finding.title}
-
-**Severity:** {severity}
-**Kind:** {kind}
-
-## Evidence
-
-{finding.evidence}
-
-## Suggestion
-
-{finding.suggestion}
-
-## Context
-
-- **Run:** {run_dir}
-- **Cell:** {cell_name}
-- **Replicate:** {replicate}
-- **Factors:** {factors dict}
-- **Evaluation:** See `{run_dir}/evaluation.md`
-- **Summary:** See `{run_dir}/summary/index.md`
-
----
-
-retort-finding: {stable_key}
-```
-
-### 5. File into beads
-
-```bash
-bd create "{title}" \
-  --type={type} \
-  --priority={priority} \
-  --labels=retort,auto-filed,severity:{sev},kind:{kind} \
-  --description="{body}" \
-  --json
-```
-
-Capture the returned bead ID. On failure, log and continue — do not abort the whole batch on a single file failure.
-
-### 6. File into GitHub (if enabled)
-
-Use `gh` CLI. Labels are GitHub-flat (use `severity-high` not `severity:high`) since colons in labels are awkward:
-
-```bash
-gh issue create \
-  -R {github_repo} \
-  --title "{title}" \
-  --body "{body}" \
-  --label retort \
-  --label severity-{sev} \
-  --label kind-{kind}
-```
-
-Constraints:
-- You SHOULD only enable GitHub for high/critical findings by default. The full firehose would spam the repo.
-- You MUST verify the labels exist before filing (`gh label list`) and create missing ones once if needed. A single label-creation failure MUST NOT block issue creation — fall back to filing without the missing label.
-- You SHOULD rate-limit to ≤5 GitHub issues per minute to stay well under the API quota.
-
-### 7. Update the run's findings.jsonl
-
-After filing, annotate each finding with the issue references:
+Count how many findings fall into each severity bucket:
 
 ```json
-{"id": "R5", "kind": "requirement_missing", "severity": "high", "title": "...", "evidence": "...", "suggestion": "...",
- "filed": {"beads": "re-a1b", "github": "https://github.com/adrianco/retort/issues/42"}}
+{"critical": 0, "high": 2, "medium": 5, "low": 3, "info": 1}
+```
+
+### 4. Compute penalty_score
+
+```
+start = 1.0
+subtract: critical * 0.25 + high * 0.10 + medium * 0.03 + low * 0.01
+clamp result to [0.0, 1.0]
+```
+
+A run with no findings scores 1.0. A run with one critical finding scores 0.75. A run with four critical findings scores 0.0 (clamped).
+
+### 5. Collect top findings
+
+Select the top 5 findings by severity (critical first, then high, medium, low, info). Within the same severity level, preserve the original order from findings.jsonl. Include all fields from the original finding object.
+
+### 6. Compute requirement_coverage
+
+Count findings with `kind` in `requirement_missing` or `requirement_partial` — these represent requirements the agent did not fully implement. Estimate total requirements from `R<N>` IDs present in findings plus any implemented ones (inferred from `evaluation.md` if available, otherwise estimate from the highest R-number seen).
+
+```
+requirement_coverage = implemented_count / total_requirements
+```
+
+If total requirements cannot be determined, set `requirement_coverage` to `null`.
+
+### 7. Read model from stack.json
+
+```bash
+cat {run_dir}/stack.json | jq -r '.model // .agent // "unknown"'
+```
+
+If `stack.json` is absent or has no model/agent field, use `"unknown"`.
+
+### 8. Write assessment.json
+
+Write atomically (via `.tmp` rename):
+
+```json
+{
+  "severity_counts": {"critical": 0, "high": 2, "medium": 5, "low": 3, "info": 1},
+  "penalty_score": 0.67,
+  "top_findings": [...],
+  "requirement_coverage": 0.75,
+  "model": "haiku",
+  "evaluated_at": "2026-04-18T21:00:00Z"
+}
 ```
 
 Constraints:
-- You MUST write the annotated file atomically — write to `findings.jsonl.tmp` and rename.
-- If the skill is re-invoked, the `filed` fields are used by Step 3 as a second source of dedup truth.
+- You MUST write atomically — write to `{run_dir}/assessment.json.tmp` then rename to `{run_dir}/assessment.json`.
+- `evaluated_at` MUST be an ISO 8601 UTC timestamp.
+- `penalty_score` MUST be rounded to 4 decimal places.
+- `requirement_coverage` MAY be `null` if total requirements cannot be determined.
 
-### 8. Emit a summary
+### 9. Emit a summary
 
 Print a terminal-readable summary:
 
 ```
-Filed from {run_dir}:
-  beads:  3 new, 2 skipped (already tracked)
-  github: 1 new (high/critical only), 4 below threshold
-Dropped 6 findings below min_severity=medium.
-See runs/.../findings.jsonl for filed issue links.
+Assessment written to {run_dir}/assessment.json
+  Severity counts: critical=0 high=2 medium=5 low=3 info=1
+  Penalty score:   0.6700  (1.0 = clean, 0.0 = critical failures)
+  Req coverage:    75.0%
+  Model:           haiku
+  Top finding:     [high] No pagination support on GET /books
 ```
+
+If `--dry-run` was specified, print the JSON to stdout and skip the file write.
 
 ## Constraints Summary
 
-- You MUST NOT file duplicates. Stable-key dedup is required.
-- You MUST NOT file `info` severity findings to GitHub under any default.
-- You MUST NOT abort on a single file-create failure. Log and continue.
-- You MUST annotate the findings.jsonl with filed issue references for audit.
-- You MUST be safe to re-run repeatedly. Step 3 dedup + Step 7 annotations guarantee idempotence.
-- You MUST respect `--dry-run` by only *printing* what would be filed.
+- You MUST NOT create beads issues, GitHub issues, or any external tracker records.
+- You MUST write assessment.json atomically.
+- You MUST be safe to re-run repeatedly — re-running overwrites assessment.json with fresh aggregation.
+- You MUST respect `--dry-run` by only printing what would be written.
+- You MUST finish quickly — this is aggregation only, no LLM calls, no network calls.
 
 ## Interaction with retort
 
-- The retort CLI MAY invoke this skill automatically after `evaluate-run` completes. Policy (which findings auto-file) is set in `workspace.yaml`:
-  ```yaml
-  evaluation:
-    auto_file_issues: true
-    issue_tracker: beads        # beads | github | both
-    min_severity: high          # auto-file only high+critical; lower severities stay in findings.jsonl
-  ```
-- Manual invocation SHOULD work on any `run_dir` regardless of whether the CLI invoked `evaluate-run` automatically.
+- `FindingsScorer` in `src/retort/scoring/scorers/findings.py` reads `{run_dir}/assessment.json` and returns `penalty_score` directly.
+- The retort CLI MAY invoke this skill automatically after `evaluate-run` completes.
+- If `assessment.json` is absent, `FindingsScorer` returns 0.5 (neutral) rather than failing.
 
 ## Troubleshooting
 
-**Beads is unreachable**
-- If `bd` returns an error, retry up to 3 times with 1s backoff.
-- If all retries fail, skip beads, proceed with GitHub (if enabled), and exit non-zero so the CLI knows.
+**findings.jsonl is empty**
+- Write assessment.json with all-zero severity counts, penalty_score 1.0, empty top_findings.
 
-**GitHub issues disabled on the repo**
-- Detect via `gh repo view --json hasIssuesEnabled`. Skip GitHub filing and log a single warning.
+**stack.json is missing**
+- Use `model: "unknown"`. Do not abort.
 
-**Label creation fails**
-- File the issue without the missing label. The tracker-level automation (saved searches, filters) will still work based on the body footer.
-
-**Issue already exists with slightly different body**
-- Do NOT update the existing issue. Filed issues are append-only from this skill's perspective — human curation is for humans.
+**assessment.json.tmp rename fails (permissions)**
+- Fall back to direct write. Log a warning.
