@@ -268,3 +268,127 @@ def test_export_csv_excludes_failed_by_default(tmp_path: Path):
     assert result.exit_code == 0
     assert "python" in result.output
     assert "rust" in result.output
+
+
+class TestEvaluateCommand:
+    """Tests for `retort evaluate` bulk evaluation."""
+
+    def _make_workspace(self, tmp_path: Path) -> Path:
+        """Create a minimal workspace.yaml."""
+        cfg = tmp_path / "workspace.yaml"
+        cfg.write_text(
+            "experiment:\n"
+            "  name: test\n"
+            "  visibility: private\n"
+            "factors:\n"
+            "  language:\n"
+            "    levels: [python]\n"
+            "responses:\n"
+            "  - code_quality\n"
+            "tasks:\n"
+            "  - source: bundled://hello\n"
+            "evaluation:\n"
+            "  enabled: true\n"
+            "  model: claude-haiku-4-5\n"
+        )
+        return cfg
+
+    def test_no_args_error(self, tmp_path: Path):
+        cfg = self._make_workspace(tmp_path)
+        runner = CliRunner()
+        result = runner.invoke(cli, ["evaluate", "--config", str(cfg)])
+        assert result.exit_code != 0
+        assert "Provide at least one RUN_DIR" in result.output
+
+    def test_both_run_dirs_and_experiment_dir_error(self, tmp_path: Path):
+        cfg = self._make_workspace(tmp_path)
+        run_a = tmp_path / "run-a"
+        run_a.mkdir()
+        runner = CliRunner()
+        result = runner.invoke(
+            cli,
+            ["evaluate", str(run_a), "--experiment-dir", str(tmp_path), "--config", str(cfg)],
+        )
+        assert result.exit_code != 0
+        assert "not both" in result.output
+
+    def test_experiment_dir_no_runs_folder(self, tmp_path: Path):
+        cfg = self._make_workspace(tmp_path)
+        runner = CliRunner()
+        result = runner.invoke(
+            cli, ["evaluate", "--experiment-dir", str(tmp_path), "--config", str(cfg)]
+        )
+        assert result.exit_code != 0
+        assert "No runs/ directory" in result.output
+
+    def test_experiment_dir_empty_runs(self, tmp_path: Path):
+        cfg = self._make_workspace(tmp_path)
+        (tmp_path / "runs").mkdir()
+        runner = CliRunner()
+        result = runner.invoke(
+            cli, ["evaluate", "--experiment-dir", str(tmp_path), "--config", str(cfg)]
+        )
+        assert result.exit_code != 0
+        assert "No run directories" in result.output
+
+    def test_experiment_dir_calls_evaluation_for_each_run(self, tmp_path: Path, monkeypatch):
+        cfg = self._make_workspace(tmp_path)
+        runs_root = tmp_path / "runs"
+        runs_root.mkdir()
+        run_a = runs_root / "run-a"
+        run_b = runs_root / "run-b"
+        run_a.mkdir()
+        run_b.mkdir()
+
+        called = []
+
+        def _fake_eval(run_dir, eval_config, visibility, *, force=False):
+            called.append(run_dir)
+
+        monkeypatch.setattr("retort.cli._run_auto_evaluation", _fake_eval)
+
+        runner = CliRunner()
+        result = runner.invoke(
+            cli, ["evaluate", "--experiment-dir", str(tmp_path), "--config", str(cfg)]
+        )
+        assert result.exit_code == 0, result.output
+        assert set(called) == {run_a, run_b}
+
+    def test_multiple_run_dirs_calls_evaluation_for_each(self, tmp_path: Path, monkeypatch):
+        cfg = self._make_workspace(tmp_path)
+        run_a = tmp_path / "run-a"
+        run_b = tmp_path / "run-b"
+        run_a.mkdir()
+        run_b.mkdir()
+
+        called = []
+
+        def _fake_eval(run_dir, eval_config, visibility, *, force=False):
+            called.append(run_dir)
+
+        monkeypatch.setattr("retort.cli._run_auto_evaluation", _fake_eval)
+
+        runner = CliRunner()
+        result = runner.invoke(
+            cli,
+            ["evaluate", str(run_a), str(run_b), "--config", str(cfg)],
+        )
+        assert result.exit_code == 0, result.output
+        assert set(called) == {run_a, run_b}
+
+    def test_single_run_dir_still_works(self, tmp_path: Path, monkeypatch):
+        cfg = self._make_workspace(tmp_path)
+        run_a = tmp_path / "run-a"
+        run_a.mkdir()
+
+        called = []
+
+        def _fake_eval(run_dir, eval_config, visibility, *, force=False):
+            called.append(run_dir)
+
+        monkeypatch.setattr("retort.cli._run_auto_evaluation", _fake_eval)
+
+        runner = CliRunner()
+        result = runner.invoke(cli, ["evaluate", str(run_a), "--config", str(cfg)])
+        assert result.exit_code == 0, result.output
+        assert called == [run_a]

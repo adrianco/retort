@@ -2089,7 +2089,14 @@ def maturity(db: str, metric: str, fmt: str, output: str | None, stack: str | No
 
 
 @main.command("evaluate")
-@click.argument("run_dir", type=click.Path(exists=True, file_okay=False))
+@click.argument("run_dirs", nargs=-1, type=click.Path(exists=True, file_okay=False))
+@click.option(
+    "--experiment-dir",
+    "experiment_dir",
+    type=click.Path(exists=True, file_okay=False),
+    default=None,
+    help="Evaluate all runs in <EXPERIMENT_DIR>/runs/.",
+)
 @click.option(
     "--config",
     type=click.Path(exists=True),
@@ -2102,25 +2109,52 @@ def maturity(db: str, metric: str, fmt: str, output: str | None, stack: str | No
     is_flag=True,
     help="Re-run evaluation even if evaluation.md is up-to-date.",
 )
-def evaluate(run_dir: str, config: str, force: bool) -> None:
-    """Evaluate a single run archive via the evaluate-run skill.
+def evaluate(
+    run_dirs: tuple[str, ...],
+    experiment_dir: str | None,
+    config: str,
+    force: bool,
+) -> None:
+    """Evaluate run archives via the evaluate-run skill.
+
+    Pass one or more RUN_DIRS, or use --experiment-dir to bulk-evaluate
+    all runs in <EXPERIMENT_DIR>/runs/.  Use --force to re-run evaluations
+    whose evaluation.md is already up-to-date.
 
     Use this for manual or retroactive evaluation of runs that predate
     auto-evaluation, or to re-evaluate after updating the skill.
     """
     from retort.config.loader import load_workspace
 
+    if experiment_dir and run_dirs:
+        raise click.UsageError("Pass either RUN_DIRS or --experiment-dir, not both.")
+    if not experiment_dir and not run_dirs:
+        raise click.UsageError("Provide at least one RUN_DIR or use --experiment-dir.")
+
     workspace_config = load_workspace(config)
     eval_cfg = workspace_config.evaluation
-    # For manual invocation, always run regardless of the enabled flag.
     if not eval_cfg.enabled:
         click.echo("evaluation.enabled=false in config, but running on manual request.")
-    _run_auto_evaluation(
-        Path(run_dir),
-        eval_cfg,
-        workspace_config.experiment.visibility,
-        force=force,
-    )
+
+    targets: list[Path]
+    if experiment_dir:
+        runs_root = Path(experiment_dir) / "runs"
+        if not runs_root.is_dir():
+            raise click.ClickException(f"No runs/ directory found in {experiment_dir}")
+        targets = sorted(p for p in runs_root.iterdir() if p.is_dir())
+        if not targets:
+            raise click.ClickException(f"No run directories found in {runs_root}")
+        click.echo(f"Evaluating {len(targets)} run(s) in {runs_root}", err=True)
+    else:
+        targets = [Path(d) for d in run_dirs]
+
+    for run_dir in targets:
+        _run_auto_evaluation(
+            run_dir,
+            eval_cfg,
+            workspace_config.experiment.visibility,
+            force=force,
+        )
 
 
 @report.command("compare")
