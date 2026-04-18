@@ -7,6 +7,7 @@ is collected for scoring.
 
 from __future__ import annotations
 
+import json
 import logging
 import shutil
 import subprocess
@@ -67,12 +68,15 @@ class LocalRunner:
         # the support dir — the loader-extracted prompt wins).
         (env_dir / "TASK.md").write_text(task.prompt)
 
-        # Write stack metadata
-        (env_dir / "stack.json").write_text(
-            f'{{"language": "{stack.language}", '
-            f'"agent": "{stack.agent}", '
-            f'"framework": "{stack.framework}"}}'
-        )
+        # Write stack metadata — include all factor levels so evaluate-run
+        # has full context (model, tooling, etc. alongside language/agent).
+        stack_data: dict[str, str] = {
+            "language": stack.language,
+            "agent": stack.agent,
+            "framework": stack.framework,
+            **stack.extra,
+        }
+        (env_dir / "stack.json").write_text(json.dumps(stack_data))
 
         # Init git repo — many agents expect it. Skip if the support
         # files already brought a .git dir along.
@@ -220,12 +224,11 @@ class LocalRunner:
                 "--dangerously-skip-permissions",
             ]
 
-            # Check for model factor
+            # Check for model factor — pass any non-empty value directly so
+            # full versioned IDs (e.g. claude-opus-4-6) work alongside aliases.
             model = stack.extra.get("model", "")
-            if model == "sonnet":
-                cmd.extend(["--model", "sonnet"])
-            elif model == "opus":
-                cmd.extend(["--model", "opus"])
+            if model:
+                cmd.extend(["--model", model])
 
             return cmd
 

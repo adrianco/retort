@@ -1,0 +1,59 @@
+# Experiment 3 — Model version comparison: claude-opus-4-6 vs claude-opus-4-7
+#
+# Primary question: does claude-opus-4-7 outperform claude-opus-4-6 on the
+# brazil-bench workload, and does the answer depend on language?
+#
+# Design: 2 model versions × 6 languages = 12 cells × 2 replicates = 24 runs
+# Reuses brazil-bench (same task as experiment-2) so results are directly
+# comparable across experiments.
+#
+# Cost model: ~10 min/cell × 24 cells × 2 reps ≈ ~8 hours sequential,
+# ~2 hours wall-clock when split across 4 parallel --shard 0/4..3/4 polecats.
+#
+# To run:
+#   retort design generate --phase screening --config experiment-3/workspace.yaml
+#   retort run --phase screening --config experiment-3/workspace.yaml --dry-run
+#   retort run --phase screening --config experiment-3/workspace.yaml
+
+experiment:
+  name: experiment-3-opus-version-comparison
+  visibility: public
+
+# model uses full versioned IDs so runs pin to a specific API version.
+# language matches experiment-2 for cross-experiment ANOVA comparability.
+factors:
+  model:
+    levels: [claude-opus-4-6, claude-opus-4-7]
+  language:
+    levels: [python, typescript, go, rust, java, clojure]
+
+responses:
+  - code_quality
+  - token_efficiency
+  - test_coverage
+  - defect_rate
+  - maintainability
+  - idiomatic
+
+tasks:
+  - source: github://brazil-bench/benchmark-template/brazilian-soccer-mcp-guide.md
+
+playpen:
+  runner: local
+  replicates: 2
+  timeout_minutes: 25
+  max_turns: 200
+
+design:
+  screening_resolution: 3
+  significance_threshold: 0.10
+
+promotion:
+  screening_to_trial: { p_value: 0.10 }
+  trial_to_production: { posterior_confidence: 0.80 }
+
+evaluation:
+  enabled: true
+  model: haiku
+  min_severity_to_file: high
+  issue_tracker: beads

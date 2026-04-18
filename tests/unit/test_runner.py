@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import json
 import tempfile
 from pathlib import Path
 
@@ -164,4 +165,67 @@ class TestLocalRunnerSupportFiles:
         names = {p.name for p in env_dir.iterdir()}
         assert names == {"TASK.md", "stack.json", ".git"}
 
+        runner.teardown(env_id)
+
+
+class TestLocalRunnerModelVersioning:
+    """Versioned model IDs pass through to the --model flag unchanged."""
+
+    def _cmd(self, model: str) -> list[str]:
+        from retort.playpen.local_runner import LocalRunner
+        runner = LocalRunner()
+        stack = StackConfig(
+            language="python",
+            agent="claude-code",
+            framework="fastapi",
+            extra={"model": model},
+        )
+        task = TaskSpec(name="t", description="d", prompt="p")
+        return runner._build_agent_command(stack, task)
+
+    def test_alias_opus(self):
+        cmd = self._cmd("opus")
+        assert "--model" in cmd
+        idx = cmd.index("--model")
+        assert cmd[idx + 1] == "opus"
+
+    def test_alias_sonnet(self):
+        cmd = self._cmd("sonnet")
+        idx = cmd.index("--model")
+        assert cmd[idx + 1] == "sonnet"
+
+    def test_versioned_opus_46(self):
+        cmd = self._cmd("claude-opus-4-6")
+        idx = cmd.index("--model")
+        assert cmd[idx + 1] == "claude-opus-4-6"
+
+    def test_versioned_opus_47(self):
+        cmd = self._cmd("claude-opus-4-7")
+        idx = cmd.index("--model")
+        assert cmd[idx + 1] == "claude-opus-4-7"
+
+    def test_no_model_flag_when_absent(self):
+        from retort.playpen.local_runner import LocalRunner
+        runner = LocalRunner()
+        stack = StackConfig(language="python", agent="claude-code", framework="fastapi")
+        task = TaskSpec(name="t", description="d", prompt="p")
+        cmd = runner._build_agent_command(stack, task)
+        assert "--model" not in cmd
+
+    def test_stack_json_includes_extra_factors(self, tmp_path):
+        from retort.playpen.local_runner import LocalRunner
+        runner = LocalRunner(work_dir=tmp_path)
+        stack = StackConfig(
+            language="python",
+            agent="claude-code",
+            framework="fastapi",
+            extra={"model": "claude-opus-4-7", "tooling": "none"},
+        )
+        task = TaskSpec(name="t", description="d", prompt="hi")
+        env_id = runner.provision(stack, task)
+        env_dir = tmp_path / env_id
+        data = json.loads((env_dir / "stack.json").read_text())
+        assert data["language"] == "python"
+        assert data["model"] == "claude-opus-4-7"
+        assert data["tooling"] == "none"
         runner.teardown(env_id)
