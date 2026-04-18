@@ -746,6 +746,35 @@ def _evaluation_is_current(run_dir: Path) -> bool:
     return True
 
 
+def _invoke_claude_skill_prompt(
+    prompt: str,
+    model: str,
+    timeout: int = 600,
+) -> tuple[int, str]:
+    """Invoke claude with a pre-built prompt. Returns (exit_code, combined_output).
+
+    Timeout defaults to 600s to accommodate chained skills (evaluate-run +
+    file-run-issues) in a single call.
+    """
+    cmd = [
+        "claude", "-p", prompt,
+        "--model", model,
+        "--output-format", "text",
+        "--dangerously-skip-permissions",
+    ]
+    try:
+        proc = subprocess.run(
+            cmd, capture_output=True, text=True, timeout=timeout, check=False
+        )
+        return proc.returncode, (proc.stdout or "") + (proc.stderr or "")
+    except FileNotFoundError:
+        return 127, "claude CLI not found on PATH"
+    except subprocess.TimeoutExpired:
+        return 124, f"skill invocation timed out after {timeout}s"
+    except Exception as exc:
+        return 1, f"skill invocation failed: {exc}"
+
+
 def _invoke_claude_skill(
     skill_path: Path,
     params: dict[str, str],
@@ -785,12 +814,12 @@ def _run_auto_evaluation(
     *,
     force: bool = False,
 ) -> None:
-    """Invoke evaluate-run and optionally file-run-issues for a completed run.
+    """Invoke evaluate-run + file-run-issues in a single claude call per run.
 
-    Never raises. Skips when ``evaluation.md`` is already current (idempotent
-    on ``retort run --resume``) unless ``force`` is set. Private experiments
-    are clamped to the beads tracker regardless of config, to avoid leaking
-    findings to GitHub.
+    Both skills are chained into one prompt so the subprocess starts once,
+    reads context once, and writes all outputs in a single session. Never
+    raises. Skips when evaluation.md is already current unless force is set.
+    Private experiments are clamped to the beads tracker.
     """
     if not eval_config.enabled:
         return
@@ -801,39 +830,36 @@ def _run_auto_evaluation(
         click.echo(f"  (evaluate: {run_dir.name} up-to-date, skipping)")
         return
 
-    skill = _find_skill("evaluate-run", start=run_dir)
-    if skill is None:
+    eval_skill = _find_skill("evaluate-run", start=run_dir)
+    if eval_skill is None:
         click.echo("  (evaluate: skills/evaluate-run not found, skipping)", err=True)
         return
 
-    click.echo(f"  evaluating {run_dir.name} (model={eval_config.model})...")
-    rc, output = _invoke_claude_skill(
-        skill, {"run_dir": str(run_dir)}, eval_config.model
-    )
-    if rc != 0:
-        click.echo(f"  (evaluate failed rc={rc}; continuing) {output[:200]}", err=True)
-        return
-
-    # File findings if requested. Private experiments never reach GitHub.
+    # Private experiments never reach GitHub.
     tracker = eval_config.issue_tracker
     if visibility == "private" and tracker != "beads":
-        click.echo(f"  (file-run-issues: visibility=private, forcing tracker=beads)")
         tracker = "beads"
 
     file_skill = _find_skill("file-run-issues", start=run_dir)
-    if file_skill is None:
-        return
-    rc, output = _invoke_claude_skill(
-        file_skill,
-        {
-            "run_dir": str(run_dir),
-            "tracker": tracker,
-            "min_severity": eval_config.min_severity_to_file,
-        },
-        eval_config.model,
-    )
+
+    click.echo(f"  evaluating {run_dir.name} (model={eval_config.model})...")
+
+    if file_skill is not None:
+        # Chain both skills into one subprocess: one cold-start, one context load.
+        prompt = (
+            f"Follow skill at {eval_skill} for run_dir={run_dir}. "
+            f"Then follow skill at {file_skill} for "
+            f"run_dir={run_dir} tracker={tracker} "
+            f"min_severity={eval_config.min_severity_to_file}."
+        )
+        rc, output = _invoke_claude_skill_prompt(prompt, eval_config.model)
+    else:
+        rc, output = _invoke_claude_skill(
+            eval_skill, {"run_dir": str(run_dir)}, eval_config.model
+        )
+
     if rc != 0:
-        click.echo(f"  (file-run-issues failed rc={rc}; continuing) {output[:200]}", err=True)
+        click.echo(f"  (evaluate failed rc={rc}; continuing) {output[:200]}", err=True)
 
 
 def _persist_design_matrix(
@@ -2114,11 +2140,19 @@ def maturity(db: str, metric: str, fmt: str, output: str | None, stack: str | No
     is_flag=True,
     help="Re-run evaluation even if evaluation.md is up-to-date.",
 )
+@click.option(
+    "--workers",
+    default=4,
+    show_default=True,
+    type=int,
+    help="Parallel evaluation workers.",
+)
 def evaluate(
     run_dirs: tuple[str, ...],
     experiment_dir: str | None,
     config: str,
     force: bool,
+    workers: int,
 ) -> None:
     """Evaluate run archives via the evaluate-run skill.
 
@@ -2129,6 +2163,7 @@ def evaluate(
     Use this for manual or retroactive evaluation of runs that predate
     auto-evaluation, or to re-evaluate after updating the skill.
     """
+    import concurrent.futures
     from retort.config.loader import load_workspace
 
     if experiment_dir and run_dirs:
@@ -2146,20 +2181,34 @@ def evaluate(
         runs_root = Path(experiment_dir) / "runs"
         if not runs_root.is_dir():
             raise click.ClickException(f"No runs/ directory found in {experiment_dir}")
-        targets = sorted(p for p in runs_root.iterdir() if p.is_dir())
+        # Walk two levels: runs/<cell>/<rep> — rep dirs contain the actual code.
+        # A rep dir is any subdir whose name starts with "rep".
+        targets = sorted(
+            rep
+            for cell in runs_root.iterdir() if cell.is_dir()
+            for rep in cell.iterdir() if rep.is_dir() and rep.name.startswith("rep")
+        )
         if not targets:
-            raise click.ClickException(f"No run directories found in {runs_root}")
-        click.echo(f"Evaluating {len(targets)} run(s) in {runs_root}", err=True)
+            raise click.ClickException(f"No rep directories found under {runs_root}")
+        click.echo(f"Evaluating {len(targets)} run(s) in {runs_root} with {workers} workers", err=True)
     else:
         targets = [Path(d) for d in run_dirs]
 
-    for run_dir in targets:
-        _run_auto_evaluation(
-            run_dir,
-            eval_cfg,
-            workspace_config.experiment.visibility,
-            force=force,
-        )
+    visibility = workspace_config.experiment.visibility
+
+    def _eval_one(run_dir: Path) -> None:
+        _run_auto_evaluation(run_dir, eval_cfg, visibility, force=force)
+
+    if workers <= 1 or len(targets) == 1:
+        for t in targets:
+            _eval_one(t)
+    else:
+        with concurrent.futures.ThreadPoolExecutor(max_workers=workers) as pool:
+            futures = {pool.submit(_eval_one, t): t for t in targets}
+            for fut in concurrent.futures.as_completed(futures):
+                exc = fut.exception()
+                if exc:
+                    click.echo(f"  (worker error for {futures[fut].name}: {exc})", err=True)
 
 
 @report.command("compare")
