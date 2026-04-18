@@ -1,0 +1,55 @@
+{
+  "severity_counts": {
+    "critical": 0,
+    "high": 0,
+    "medium": 0,
+    "low": 0,
+    "info": 12
+  },
+  "penalty_score": 1.0,
+  "top_findings": [
+    {
+      "id": "R1",
+      "kind": "requirement_implemented",
+      "severity": "info",
+      "title": "POST /books \u2014 Create a new book",
+      "evidence": "src/books/handler.clj:26-31 implements POST endpoint; src/books/db.clj:20-28 implements create-book!",
+      "suggestion": "Requirement met"
+    },
+    {
+      "id": "R2",
+      "kind": "requirement_implemented",
+      "severity": "info",
+      "title": "GET /books \u2014 List all books with author filter",
+      "evidence": "src/books/handler.clj:33-36 implements GET /books with author parameter; src/books/db.clj:30-39 implements list-books with optional author filter",
+      "suggestion": "Requirement met"
+    },
+    {
+      "id": "R3",
+      "kind": "requirement_implemented",
+      "severity": "info",
+      "title": "GET /books/{id} \u2014 Get single book by ID",
+      "evidence": "src/books/handler.clj:38-41 implements GET /books/:id endpoint; src/books/db.clj:41-44 implements get-book function",
+      "suggestion": "Requirement met"
+    },
+    {
+      "id": "R4",
+      "kind": "requirement_implemented",
+      "severity": "info",
+      "title": "PUT /books/{id} \u2014 Update a book",
+      "evidence": "src/books/handler.clj:43-51 implements PUT /books/:id endpoint; src/books/db.clj:46-50 implements update-book! function",
+      "suggestion": "Requirement met"
+    },
+    {
+      "id": "R5",
+      "kind": "requirement_implemented",
+      "severity": "info",
+      "title": "DELETE /books/{id} \u2014 Delete a book",
+      "evidence": "src/books/handler.clj:53-56 implements DELETE /books/:id endpoint; src/books/db.clj:52-57 implements delete-book! function",
+      "suggestion": "Requirement met"
+    }
+  ],
+  "requirement_coverage": 1.0,
+  "model": "unknown",
+  "evaluated_at": "2026-04-18T22:23:01.873953Z"
+}

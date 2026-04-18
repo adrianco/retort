@@ -1,0 +1,15 @@
+{"id": "R1", "kind": "requirement", "severity": "info", "title": "POST /books endpoint implemented", "evidence": "src/lib.rs:113-137 create_book function", "status": "implemented"}
+{"id": "R2", "kind": "requirement", "severity": "info", "title": "GET /books endpoint with author filter", "evidence": "src/lib.rs:86-111 list_books function with ?author= support", "status": "implemented"}
+{"id": "R3", "kind": "requirement", "severity": "info", "title": "GET /books/{id} endpoint", "evidence": "src/lib.rs:139-151 get_book function", "status": "implemented"}
+{"id": "R4", "kind": "requirement", "severity": "info", "title": "PUT /books/{id} endpoint", "evidence": "src/lib.rs:153-185 update_book function", "status": "implemented"}
+{"id": "R5", "kind": "requirement", "severity": "info", "title": "DELETE /books/{id} endpoint", "evidence": "src/lib.rs:187-197 delete_book function", "status": "implemented"}
+{"id": "R6", "kind": "requirement", "severity": "info", "title": "SQLite database storage", "evidence": "src/lib.rs:42-59 init_db function using rusqlite", "status": "implemented"}
+{"id": "R7", "kind": "requirement", "severity": "info", "title": "Input validation (title and author required)", "evidence": "src/lib.rs:114-121 validation in create_book, 158-165 in update_book", "status": "implemented"}
+{"id": "R8", "kind": "requirement", "severity": "info", "title": "Health check endpoint GET /health", "evidence": "src/lib.rs:72-74 health function", "status": "implemented"}
+{"id": "R9", "kind": "requirement", "severity": "info", "title": "JSON responses with appropriate HTTP status codes", "evidence": "src/lib.rs throughout: StatusCode::CREATED (136), OK (108), NOT_FOUND (148), BAD_REQUEST (116)", "status": "implemented"}
+{"id": "R10", "kind": "requirement", "severity": "info", "title": "README.md with setup and run instructions", "evidence": "README.md lines 1-25 contain setup, run, and test instructions", "status": "implemented"}
+{"id": "test-1", "kind": "test", "severity": "info", "title": "health_returns_ok test passes", "evidence": "tests/api.rs:18-26", "status": "passed"}
+{"id": "test-2", "kind": "test", "severity": "info", "title": "create_and_get_book test passes", "evidence": "tests/api.rs:28-65", "status": "passed"}
+{"id": "test-3", "kind": "test", "severity": "info", "title": "create_without_title_rejected test passes", "evidence": "tests/api.rs:67-83", "status": "passed"}
+{"id": "test-4", "kind": "test", "severity": "info", "title": "list_filter_by_author_and_update_delete test passes", "evidence": "tests/api.rs:85-159", "status": "passed"}
+{"id": "enhancement-1", "kind": "enhancement", "severity": "info", "title": "Additional test coverage beyond minimum (4 vs 3 required)", "evidence": "tests/api.rs contains 4 comprehensive integration tests", "suggestion": "None — exceeds requirement"}

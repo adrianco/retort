@@ -1,0 +1,55 @@
+{
+  "severity_counts": {
+    "critical": 1,
+    "high": 9,
+    "medium": 0,
+    "low": 0,
+    "info": 0
+  },
+  "penalty_score": 0.0,
+  "top_findings": [
+    {
+      "id": "build-fail",
+      "kind": "build_failure",
+      "severity": "critical",
+      "title": "npm run build fails with C++ compilation error",
+      "evidence": "better-sqlite3 native module compilation fails: C++20 compiler required. Error from /home/codespace/gt/retort/refinery/rig/experiment-1/runs/language=typescript_model=sonnet_tooling=none/rep3-failed/node_modules/better-sqlite3/build \u2014 v8config.h requires C++20",
+      "suggestion": "better-sqlite3 requires a C++20-capable compiler. The environment appears to lack proper C++20 support. Consider using prebuilt binaries or a different SQLite library compatible with the available toolchain."
+    },
+    {
+      "id": "R1",
+      "kind": "requirement_partial",
+      "severity": "high",
+      "title": "POST /books endpoint cannot be verified due to build failure",
+      "evidence": "src/app.ts:14-32 implements POST /books with title/author validation, but build failure prevents runtime testing",
+      "suggestion": "Resolve build failure to verify endpoint works correctly"
+    },
+    {
+      "id": "R2",
+      "kind": "requirement_partial",
+      "severity": "high",
+      "title": "GET /books with author filter cannot be verified due to build failure",
+      "evidence": "src/app.ts:36-46 implements GET /books with LIKE-based author filtering, but build failure prevents runtime testing",
+      "suggestion": "Resolve build failure to verify endpoint works correctly"
+    },
+    {
+      "id": "R3",
+      "kind": "requirement_partial",
+      "severity": "high",
+      "title": "GET /books/:id endpoint cannot be verified due to build failure",
+      "evidence": "src/app.ts:50-57 implements endpoint, but build failure prevents runtime testing",
+      "suggestion": "Resolve build failure to verify endpoint works correctly"
+    },
+    {
+      "id": "R4",
+      "kind": "requirement_partial",
+      "severity": "high",
+      "title": "PUT /books/:id endpoint cannot be verified due to build failure",
+      "evidence": "src/app.ts:61-91 implements update with partial field support, but build failure prevents runtime testing",
+      "suggestion": "Resolve build failure to verify endpoint works correctly"
+    }
+  ],
+  "requirement_coverage": 0.18181818181818182,
+  "model": "unknown",
+  "evaluated_at": "2026-04-18T22:54:19.715492Z"
+}

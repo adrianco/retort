@@ -1,0 +1,1 @@
+{"id": "test-count", "kind": "info", "severity": "info", "title": "4 tests included, exceeding minimum of 3", "evidence": "tests/integration.rs tests: health_ok, create_get_update_delete_book, validation_requires_title_and_author, list_and_filter_by_author", "suggestion": "Good test coverage"}

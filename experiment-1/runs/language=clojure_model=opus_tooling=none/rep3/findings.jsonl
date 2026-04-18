@@ -1,0 +1,1 @@
+{"id": "info-1", "kind": "info", "severity": "info", "title": "Excellent test coverage", "evidence": "4 tests running successfully, covering all CRUD operations and validation", "suggestion": "Consider additional edge case tests (e.g. invalid JSON, missing Content-Type headers)"}

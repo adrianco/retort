@@ -1,0 +1,1 @@
+{"id": "framework-detection", "kind": "info", "severity": "info", "title": "Framework field not populated in stack.json", "evidence": "stack.json: framework=unknown, but Flask is clearly being used (import at app.py:3)", "suggestion": "This is expected for retort runs where framework detection is post-hoc; Flask implementation confirmed"}

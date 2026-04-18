@@ -1,0 +1,10 @@
+{
+  "replicate": 3,
+  "run_config": {
+    "language": "java",
+    "model": "opus",
+    "tooling": "none"
+  },
+  "succeeded": true,
+  "visibility": "private"
+}

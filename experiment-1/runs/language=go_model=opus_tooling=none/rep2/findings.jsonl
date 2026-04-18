@@ -1,0 +1,1 @@
+{"id": "enhancement-1", "kind": "enhancement", "severity": "info", "title": "Pure Go SQLite driver", "evidence": "go.mod: modernc.org/sqlite — no CGO dependency", "suggestion": "Good choice for portability; enables easy cross-platform builds"}

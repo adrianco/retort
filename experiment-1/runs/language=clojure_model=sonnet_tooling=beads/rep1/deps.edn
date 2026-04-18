@@ -1,0 +1,16 @@
+{:paths ["src" "resources"]
+ :deps {org.clojure/clojure {:mvn/version "1.11.1"}
+        ring/ring-core {:mvn/version "1.10.0"}
+        ring/ring-jetty-adapter {:mvn/version "1.10.0"}
+        compojure/compojure {:mvn/version "1.7.0"}
+        cheshire/cheshire {:mvn/version "5.12.0"}
+        com.github.seancorfield/next.jdbc {:mvn/version "1.3.909"}
+        org.xerial/sqlite-jdbc {:mvn/version "3.45.1.0"}
+        ring/ring-json {:mvn/version "0.5.1"}
+        metosin/ring-http-response {:mvn/version "0.9.3"}}
+ :aliases
+ {:test {:extra-paths ["test"]
+         :extra-deps {lambdaisland/kaocha {:mvn/version "1.87.1366"}
+                      ring/ring-mock {:mvn/version "0.4.0"}}
+         :main-opts ["-m" "kaocha.runner"]}
+  :run {:main-opts ["-m" "books.core"]}}}

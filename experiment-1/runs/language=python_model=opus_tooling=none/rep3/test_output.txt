@@ -1,0 +1,15 @@
+/usr/local/python/3.12.1/lib/python3.12/site-packages/pytest_asyncio/plugin.py:208: PytestDeprecationWarning: The configuration option "asyncio_default_fixture_loop_scope" is unset.
+The event loop scope for asynchronous fixtures will default to the fixture caching scope. Future versions of pytest-asyncio will default the loop scope for asynchronous fixtures to function scope. Set the default fixture loop scope explicitly in order to avoid unexpected behavior in the future. Valid fixture loop scopes are: "function", "class", "module", "package", "session"
+
+  warnings.warn(PytestDeprecationWarning(_DEFAULT_FIXTURE_LOOP_SCOPE_UNSET))
+============================= test session starts ==============================
+platform linux -- Python 3.12.1, pytest-8.3.3, pluggy-1.6.0
+rootdir: /home/codespace/gt/retort/refinery/rig
+configfile: pyproject.toml
+plugins: anyio-4.11.0, cov-7.1.0, asyncio-0.24.0
+asyncio: mode=Mode.STRICT, default_loop_scope=None
+collected 6 items
+
+test_app.py ......                                                       [100%]
+
+============================== 6 passed in 0.20s ===============================

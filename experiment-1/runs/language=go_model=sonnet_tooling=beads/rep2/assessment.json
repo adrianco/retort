@@ -1,0 +1,55 @@
+{
+  "severity_counts": {
+    "critical": 0,
+    "high": 0,
+    "medium": 0,
+    "low": 0,
+    "info": 0
+  },
+  "penalty_score": 1.0,
+  "top_findings": [
+    {
+      "id": "R1",
+      "kind": "requirement_implemented",
+      "severity": "info",
+      "title": "POST /books creates books with all fields",
+      "evidence": "main.go:71-88 createBook handler; db.go:31-45 dbCreateBook",
+      "suggestion": "N/A"
+    },
+    {
+      "id": "R2",
+      "kind": "requirement_implemented",
+      "severity": "info",
+      "title": "GET /books lists books with author filter",
+      "evidence": "main.go:91-103 listBooks; db.go:47-72 dbListBooks with author query param",
+      "suggestion": "N/A"
+    },
+    {
+      "id": "R3",
+      "kind": "requirement_implemented",
+      "severity": "info",
+      "title": "GET /books/{id} retrieves single book",
+      "evidence": "main.go:105-117 getBook; db.go:74-83 dbGetBook",
+      "suggestion": "N/A"
+    },
+    {
+      "id": "R4",
+      "kind": "requirement_implemented",
+      "severity": "info",
+      "title": "PUT /books/{id} updates book",
+      "evidence": "main.go:119-140 updateBook; db.go:85-102 dbUpdateBook",
+      "suggestion": "N/A"
+    },
+    {
+      "id": "R5",
+      "kind": "requirement_implemented",
+      "severity": "info",
+      "title": "DELETE /books/{id} deletes book",
+      "evidence": "main.go:142-152 deleteBook; db.go:104-117 dbDeleteBook",
+      "suggestion": "N/A"
+    }
+  ],
+  "requirement_coverage": 1.0,
+  "model": "unknown",
+  "evaluated_at": "2026-04-18T22:27:28.984039Z"
+}

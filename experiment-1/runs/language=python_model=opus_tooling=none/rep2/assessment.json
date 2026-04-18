@@ -1,0 +1,55 @@
+{
+  "severity_counts": {
+    "critical": 2,
+    "high": 6,
+    "medium": 0,
+    "low": 0,
+    "info": 0
+  },
+  "penalty_score": 0.0,
+  "top_findings": [
+    {
+      "id": "build-fail",
+      "kind": "build_failure",
+      "severity": "critical",
+      "title": "Build failure: FastAPI module import incompatibility",
+      "evidence": "app.py:127 instantiation fails: TypeError: Router.__init__() got an unexpected keyword argument 'on_startup'. This suggests Starlette 1.0 removed on_startup parameter.",
+      "suggestion": "Pin FastAPI version (e.g., fastapi<0.100) or update to use lifespan parameter instead"
+    },
+    {
+      "id": "test-fail-blocked",
+      "kind": "test_failure",
+      "severity": "critical",
+      "title": "Tests cannot execute due to build failure",
+      "evidence": "pytest collection fails when importing test_app.py:7 \u2014 app.py:127 fails to instantiate. No tests can run.",
+      "suggestion": "Fix FastAPI compatibility first; 5 tests written but cannot verify execution"
+    },
+    {
+      "id": "R1",
+      "kind": "requirement_partial",
+      "severity": "high",
+      "title": "POST /books endpoint",
+      "evidence": "app.py:68-77 \u2014 implements POST with 201 status, accepts title/author/year/isbn, validates via Pydantic. Code correct but untested.",
+      "suggestion": "Fix build to verify test execution"
+    },
+    {
+      "id": "R2",
+      "kind": "requirement_partial",
+      "severity": "high",
+      "title": "GET /books with ?author= filter",
+      "evidence": "app.py:79-88 \u2014 accepts optional author Query param, filters SQL WHERE. Code correct but untested.",
+      "suggestion": "Fix build to verify test execution"
+    },
+    {
+      "id": "R3",
+      "kind": "requirement_partial",
+      "severity": "high",
+      "title": "GET /books/{id} endpoint",
+      "evidence": "app.py:90-96 \u2014 returns 404 if not found. Code correct but untested.",
+      "suggestion": "Fix build to verify test execution"
+    }
+  ],
+  "requirement_coverage": 0.45454545454545453,
+  "model": "unknown",
+  "evaluated_at": "2026-04-18T22:37:29.990663Z"
+}

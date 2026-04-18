@@ -1,0 +1,1 @@
+{"id": "lint-1", "kind": "lint_warning", "severity": "medium", "title": "Clippy: needless_question_mark in src/db.rs:44", "evidence": "src/db.rs:44: Ok(rows.next().transpose()?) can be simplified to rows.next().transpose()", "suggestion": "Remove the enclosing Ok() wrapper and ? operator per clippy suggestion"}

@@ -1,0 +1,10 @@
+{
+  "replicate": 2,
+  "run_config": {
+    "language": "java",
+    "model": "sonnet",
+    "tooling": "none"
+  },
+  "succeeded": true,
+  "visibility": "private"
+}

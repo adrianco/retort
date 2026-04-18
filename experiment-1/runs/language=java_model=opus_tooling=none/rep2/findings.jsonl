@@ -1,0 +1,13 @@
+{"id": "build", "kind": "build_success", "severity": "info", "title": "Maven build succeeds", "evidence": "mvn compile completed successfully with no errors", "suggestion": "All source code compiles cleanly"}
+{"id": "R1", "kind": "requirement_implemented", "severity": "info", "title": "POST /books endpoint implemented", "evidence": "src/main/java/com/example/books/App.java, book creation handler", "suggestion": ""}
+{"id": "R2", "kind": "requirement_implemented", "severity": "info", "title": "GET /books with author filter implemented", "evidence": "src/main/java/com/example/books/App.java, findAll with author filter support", "suggestion": ""}
+{"id": "R3", "kind": "requirement_implemented", "severity": "info", "title": "GET /books/{id} endpoint implemented", "evidence": "src/main/java/com/example/books/App.java, findById endpoint", "suggestion": ""}
+{"id": "R4", "kind": "requirement_implemented", "severity": "info", "title": "PUT /books/{id} endpoint implemented", "evidence": "src/main/java/com/example/books/App.java, update endpoint", "suggestion": ""}
+{"id": "R5", "kind": "requirement_implemented", "severity": "info", "title": "DELETE /books/{id} endpoint implemented", "evidence": "src/main/java/com/example/books/App.java, delete endpoint", "suggestion": ""}
+{"id": "R6", "kind": "requirement_implemented", "severity": "info", "title": "SQLite database storage implemented", "evidence": "SQLite JDBC driver configured in pom.xml and BookRepository uses JDBC", "suggestion": ""}
+{"id": "R7", "kind": "requirement_implemented", "severity": "info", "title": "JSON responses with HTTP status codes", "evidence": "All endpoints return JSON with appropriate HTTP status codes", "suggestion": ""}
+{"id": "R8", "kind": "requirement_implemented", "severity": "info", "title": "Input validation for title and author", "evidence": "Request validation implemented for required fields", "suggestion": ""}
+{"id": "R9", "kind": "requirement_implemented", "severity": "info", "title": "Health check endpoint implemented", "evidence": "GET /health endpoint returns status ok", "suggestion": ""}
+{"id": "R10", "kind": "requirement_implemented", "severity": "info", "title": "Working source code", "evidence": "All source files compile without errors and tests pass", "suggestion": ""}
+{"id": "R11", "kind": "requirement_implemented", "severity": "info", "title": "README.md with setup instructions", "evidence": "README.md exists in workspace root", "suggestion": ""}
+{"id": "R12", "kind": "requirement_implemented", "severity": "info", "title": "At least 3 unit/integration tests", "evidence": "5 integration tests implemented and passing", "suggestion": ""}

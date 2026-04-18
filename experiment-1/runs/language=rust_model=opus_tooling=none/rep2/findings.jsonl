@@ -1,0 +1,1 @@
+{"id": "R1", "kind": "requirement_missing", "severity": "low", "title": "PUT /books/{id} not exercised in tests", "evidence": "tests/integration.rs has no test for update endpoint", "suggestion": "Add a test for PUT /books/{id} to fully exercise all endpoints"}

@@ -1,0 +1,39 @@
+{
+  "severity_counts": {
+    "critical": 2,
+    "high": 1,
+    "medium": 0,
+    "low": 3,
+    "info": 9
+  },
+  "penalty_score": 0.4,
+  "top_findings": [
+    {
+      "id": "build-fail",
+      "kind": "build_failure",
+      "severity": "critical",
+      "title": "Test suite fails to initialize: FastAPI lifespan + Starlette version mismatch",
+      "evidence": "pytest output: TypeError: Router.__init__() got an unexpected keyword argument 'on_startup' at main.py:14",
+      "suggestion": "Update Starlette version to >= 0.41.0 or use compatible FastAPI version"
+    },
+    {
+      "id": "security-sql-injection",
+      "kind": "security_concern",
+      "severity": "critical",
+      "title": "SQL injection vulnerability in update_book",
+      "evidence": "main.py:95 uses f-string for SQL construction: f\"UPDATE books SET {set_clause} WHERE id = ?\" without parameterization of column names",
+      "suggestion": "Use a SQL builder or validate column names against allowlist"
+    },
+    {
+      "id": "R13",
+      "kind": "requirement_partial",
+      "severity": "high",
+      "title": "At least 3 unit/integration tests defined but cannot execute",
+      "evidence": "test_books.py contains 12 test functions, but all fail at setup stage due to FastAPI version incompatibility",
+      "suggestion": "Resolve FastAPI/Starlette version conflict to enable test execution"
+    }
+  ],
+  "requirement_coverage": 0.8,
+  "model": "unknown",
+  "evaluated_at": "2026-04-18T22:38:00Z"
+}

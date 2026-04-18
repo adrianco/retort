@@ -1,0 +1,55 @@
+{
+  "severity_counts": {
+    "critical": 0,
+    "high": 5,
+    "medium": 0,
+    "low": 0,
+    "info": 0
+  },
+  "penalty_score": 0.5,
+  "top_findings": [
+    {
+      "id": "R10",
+      "kind": "doc_missing",
+      "severity": "high",
+      "title": "README.md is missing",
+      "evidence": "No README.md file found in run_dir root",
+      "suggestion": "Add README.md with setup, build, and run instructions"
+    },
+    {
+      "id": "test-1",
+      "kind": "test_failure",
+      "severity": "high",
+      "title": "POST /books body parsing fails",
+      "evidence": "test/book_api/core_test.clj:71 \u2014 create-and-get-book-test expects non-nil body but gets nil from CREATE response",
+      "suggestion": "Investigate response serialization with muuntaja middleware; body should be JSON-serialized map with ID"
+    },
+    {
+      "id": "test-2",
+      "kind": "test_failure",
+      "severity": "high",
+      "title": "PUT /books/:id returns 404 instead of 200",
+      "evidence": "test/book_api/core_test.clj:117 \u2014 update-book-test expects 200 but gets 404 (book not found)",
+      "suggestion": "Verify ID extraction from creation response and database persistence in tests"
+    },
+    {
+      "id": "test-3",
+      "kind": "test_failure",
+      "severity": "high",
+      "title": "DELETE /books/:id returns 404 instead of 204",
+      "evidence": "test/book_api/core_test.clj:133 \u2014 delete-book-test expects 204 but gets 404",
+      "suggestion": "Root cause same as PUT test failures \u2014 created book ID not available for subsequent operations"
+    },
+    {
+      "id": "R4-R5",
+      "kind": "requirement_partial",
+      "severity": "high",
+      "title": "PUT and DELETE endpoints implemented but tests fail",
+      "evidence": "handlers.clj defines update-book-handler (line 46) and delete-book-handler (line 63), but integration tests cannot verify functionality due to body parsing issues",
+      "suggestion": "Fix response serialization so tests can retrieve created book IDs and verify PUT/DELETE operations"
+    }
+  ],
+  "requirement_coverage": 0.8182,
+  "model": "unknown",
+  "evaluated_at": "2026-04-18T22:24:49.017555Z"
+}

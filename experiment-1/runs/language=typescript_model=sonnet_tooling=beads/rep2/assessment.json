@@ -1,0 +1,31 @@
+{
+  "severity_counts": {
+    "critical": 0,
+    "high": 2,
+    "medium": 0,
+    "low": 0,
+    "info": 0
+  },
+  "penalty_score": 0.8,
+  "top_findings": [
+    {
+      "id": "R10",
+      "kind": "requirement_partial",
+      "severity": "high",
+      "title": "Working source code in workspace",
+      "evidence": "Source exists and tests pass (17 tests), but npm run build fails: Cannot find module '../lib/tsc.js'",
+      "suggestion": "The runtime is broken; TypeScript must be regenerated or node_modules fixed. Tests pass but build cannot produce dist/"
+    },
+    {
+      "id": "build-fail",
+      "kind": "build_failure",
+      "severity": "high",
+      "title": "TypeScript build fails",
+      "evidence": "npm run build: Error Cannot find module '../lib/tsc.js' in node_modules/.bin/tsc",
+      "suggestion": "node_modules corruption; regenerate with npm install"
+    }
+  ],
+  "requirement_coverage": 0.9,
+  "model": "unknown",
+  "evaluated_at": "2026-04-18T22:49:29Z"
+}

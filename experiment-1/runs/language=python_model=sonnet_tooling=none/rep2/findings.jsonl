@@ -1,0 +1,2 @@
+{"id": "R1", "kind": "requirement_missing", "severity": "info", "title": "Framework auto-detected as FastAPI", "evidence": "main.py:4 imports fastapi.FastAPI", "suggestion": "stack.json has framework=unknown but FastAPI is clearly used"}
+{"id": "lint-1", "kind": "lint_warning", "severity": "low", "title": "Unused import in test_api.py", "evidence": "test_api.py:3 imports main.DATABASE but it is unused", "suggestion": "Remove unused import: from main import app, init_db (drop DATABASE)"}

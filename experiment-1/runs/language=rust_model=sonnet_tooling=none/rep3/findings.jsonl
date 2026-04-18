@@ -1,0 +1,2 @@
+{"id": "lint-1", "kind": "lint_warning", "severity": "medium", "title": "Unnecessary Ok and ? operator in db.rs", "evidence": "src/db.rs:57 — `Ok(rows.next().transpose()?)` can be simplified to `rows.next().transpose()`", "suggestion": "Remove the enclosing `Ok()` and `?` operator per clippy:needless-question-mark"}
+{"id": "R1", "kind": "requirement_missing", "severity": "low", "title": "README.md exists but content not verified", "evidence": "README.md found in workspace, not checked for completeness", "suggestion": "Verify README.md contains setup and run instructions"}

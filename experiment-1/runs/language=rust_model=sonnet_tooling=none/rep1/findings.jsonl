@@ -1,0 +1,1 @@
+{"id": "enhancement", "kind": "enhancement", "severity": "info", "title": "Comprehensive test coverage", "evidence": "src/main.rs:284-544 contains 7 tests covering health, CRUD ops, validation, filters", "suggestion": "Good test coverage for REST endpoints; no action needed"}

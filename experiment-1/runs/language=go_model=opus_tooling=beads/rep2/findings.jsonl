@@ -1,0 +1,1 @@
+{"id": "info-1", "kind": "enhancement", "severity": "info", "title": "Pure-Go SQLite via modernc.org/sqlite", "evidence": "go.mod imports modernc.org/sqlite, no CGO required", "suggestion": "Good practice for portability"}

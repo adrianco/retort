@@ -1,0 +1,2 @@
+{"id": "info-1", "kind": "info", "severity": "info", "title": "Excellent test coverage", "evidence": "test_app.py: 6 tests covering all endpoints and error cases", "suggestion": "None — this is exemplary"}
+{"id": "enhancement-1", "kind": "enhancement", "severity": "info", "title": "Partial updates on PUT", "evidence": "app.py:89-94 uses data.get() to fall back to existing values", "suggestion": "Already implemented; no action needed"}

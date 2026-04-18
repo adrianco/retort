@@ -1,0 +1,55 @@
+{
+  "severity_counts": {
+    "critical": 0,
+    "high": 0,
+    "medium": 0,
+    "low": 0,
+    "info": 0
+  },
+  "penalty_score": 1.0,
+  "top_findings": [
+    {
+      "id": "R1",
+      "kind": "requirement",
+      "severity": "info",
+      "title": "POST /books endpoint implemented",
+      "evidence": "handlers.go:63-79 createBook function handles POST /books with validation",
+      "suggestion": ""
+    },
+    {
+      "id": "R2",
+      "kind": "requirement",
+      "severity": "info",
+      "title": "GET /books endpoint with author filter implemented",
+      "evidence": "handlers.go:81-89 listBooks supports ?author= query parameter",
+      "suggestion": ""
+    },
+    {
+      "id": "R3",
+      "kind": "requirement",
+      "severity": "info",
+      "title": "GET /books/{id} endpoint implemented",
+      "evidence": "handlers.go:95-111 getBook function retrieves single book by ID",
+      "suggestion": ""
+    },
+    {
+      "id": "R4",
+      "kind": "requirement",
+      "severity": "info",
+      "title": "PUT /books/{id} endpoint implemented",
+      "evidence": "handlers.go:113-138 updateBook function replaces entire book record",
+      "suggestion": ""
+    },
+    {
+      "id": "R5",
+      "kind": "requirement",
+      "severity": "info",
+      "title": "DELETE /books/{id} endpoint implemented",
+      "evidence": "handlers.go:140-155 deleteBook function removes book by ID",
+      "suggestion": ""
+    }
+  ],
+  "requirement_coverage": 1.0,
+  "model": "unknown",
+  "evaluated_at": "2026-04-18T22:26:24.387712Z"
+}

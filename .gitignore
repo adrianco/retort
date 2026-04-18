@@ -233,11 +233,17 @@ experiment-*/runs/**/*.csv
 experiment-*/runs/**/*.parquet
 experiment-*/runs/**/*.db
 experiment-*/runs/**/*.sqlite
+experiment-*/runs/**/:memory*
 experiment-*/runs/**/package-lock.json
 experiment-*/runs/**/yarn.lock
 experiment-*/runs/**/go.sum
+experiment-*/runs/**/Cargo.lock
 # Compiled Go/Rust binaries (no extension, executable) — exclude by common names
 experiment-*/runs/**/brazilian-soccer-mcp
 experiment-*/runs/**/books_api
+experiment-*/runs/**/bookapi
+experiment-*/runs/**/books
 experiment-*/runs/**/server
 experiment-*/runs/**/main
+experiment-*/runs/**/app
+experiment-*/runs/**/api

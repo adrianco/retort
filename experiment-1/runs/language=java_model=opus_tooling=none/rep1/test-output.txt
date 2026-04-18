@@ -1,0 +1,74 @@
+[WARNING] Unable to find the root directory. Create a .mvn directory in the root directory or add the root="true" attribute on the root project's model to identify it.
+[INFO] Scanning for projects...
+[INFO] 
+[INFO] -----------------------< com.example:books-api >------------------------
+[INFO] Building books-api 1.0.0
+[INFO]   from pom.xml
+[INFO] --------------------------------[ jar ]---------------------------------
+[INFO] Loaded 22567 auto-discovered prefixes for remote repository central (prefixes-central.txt)
+[INFO] Loaded 74 auto-discovered prefixes for remote repository apache.snapshots (prefixes-apache.snapshots-c1d4c55f9308e5ac18a4069bed41dca64d85c515.txt)
+[WARNING] Version not locked for default bindings plugins [maven-resources-plugin], you should define versions in pluginManagement section of your pom.xml or parent
+[INFO] 
+[INFO] --- resources:3.3.1:resources (default-resources) @ books-api ---
+[INFO] skip non existing resourceDirectory /home/codespace/gt/retort/refinery/rig/experiment-1/runs/language=java_model=opus_tooling=none/rep1/src/main/resources
+[INFO] 
+[INFO] --- compiler:3.13.0:compile (default-compile) @ books-api ---
+[INFO] Nothing to compile - all classes are up to date.
+[INFO] 
+[INFO] --- resources:3.3.1:testResources (default-testResources) @ books-api ---
+[INFO] skip non existing resourceDirectory /home/codespace/gt/retort/refinery/rig/experiment-1/runs/language=java_model=opus_tooling=none/rep1/src/test/resources
+[INFO] 
+[INFO] --- compiler:3.13.0:testCompile (default-testCompile) @ books-api ---
+[INFO] Recompiling the module because of changed source code.
+[INFO] Compiling 1 source file with javac [debug target 21] to target/test-classes
+[WARNING] location of system modules is not set in conjunction with -source 21
+  not setting the location of system modules may lead to class files that cannot run on JDK 21
+    --release 21 is recommended instead of -source 21 -target 21 because it sets the location of system modules automatically
+[INFO] 
+[INFO] --- surefire:3.3.1:test (default-test) @ books-api ---
+[INFO] Using auto detected provider org.apache.maven.surefire.junitplatform.JUnitPlatformProvider
+[INFO] 
+[INFO] -------------------------------------------------------
+[INFO]  T E S T S
+[INFO] -------------------------------------------------------
+[INFO] Running com.example.books.BookApiTest
+[WARNING] [stderr] WARNING: A restricted method in java.lang.System has been called
+[WARNING] [stderr] WARNING: java.lang.System::load has been called by org.sqlite.SQLiteJDBCLoader in an unnamed module (file:/home/codespace/.m2/repository/org/xerial/sqlite-jdbc/3.46.1.0/sqlite-jdbc-3.46.1.0.jar)
+[WARNING] [stderr] WARNING: Use --enable-native-access=ALL-UNNAMED to avoid a warning for callers in this module
+[WARNING] [stderr] WARNING: Restricted methods will be blocked in a future release unless native access is enabled
+[WARNING] [stderr] 
+[WARNING] [stderr] [main] INFO io.javalin.Javalin - Starting Javalin ...
+[WARNING] [stderr] [main] INFO org.eclipse.jetty.server.Server - jetty-11.0.23; built: 2024-08-14T01:40:17.906Z; git: 6fcf5ccaebd7ca13a0cb96c96adca699a24080a0; jvm 25.0.1+8-LTS
+[WARNING] [stderr] [main] INFO org.eclipse.jetty.server.session.DefaultSessionIdManager - Session workerName=node0
+[WARNING] [stderr] [main] INFO org.eclipse.jetty.server.handler.ContextHandler - Started o.e.j.s.ServletContextHandler@160ac7fb{/,null,AVAILABLE}
+[WARNING] [stderr] [main] INFO org.eclipse.jetty.server.AbstractConnector - Started ServerConnector@2c5529ab{HTTP/1.1, (http/1.1)}{0.0.0.0:46593}
+[WARNING] [stderr] [main] INFO org.eclipse.jetty.server.Server - Started Server@37efd131{STARTING}[11.0.23,sto=0] @1031ms
+[WARNING] [stderr] [main] INFO io.javalin.Javalin - 
+[WARNING] [stderr]        __                  ___           _____
+[WARNING] [stderr]       / /___ __   ______ _/ (_)___      / ___/
+[WARNING] [stderr]  __  / / __ `/ | / / __ `/ / / __ \    / __ \
+[WARNING] [stderr] / /_/ / /_/ /| |/ / /_/ / / / / / /   / /_/ /
+[WARNING] [stderr] \____/\__,_/ |___/\__,_/_/_/_/ /_/    \____/
+[WARNING] [stderr] 
+[WARNING] [stderr]        https://javalin.io/documentation
+[WARNING] [stderr] 
+[WARNING] [stderr] [main] INFO io.javalin.Javalin - Javalin started in 145ms \o/
+[WARNING] [stderr] [main] INFO io.javalin.Javalin - Listening on http://localhost:46593/
+[WARNING] [stderr] [main] INFO io.javalin.Javalin - You are running Javalin 6.3.0 (released August 22, 2024. Your Javalin version is 604 days old. Consider checking for a newer version.).
+[WARNING] [stderr] [main] INFO io.javalin.Javalin - Stopping Javalin ...
+[WARNING] [stderr] [main] INFO org.eclipse.jetty.server.Server - Stopped Server@37efd131{STOPPING}[11.0.23,sto=0]
+[WARNING] [stderr] [main] INFO org.eclipse.jetty.server.AbstractConnector - Stopped ServerConnector@2c5529ab{HTTP/1.1, (http/1.1)}{0.0.0.0:0}
+[WARNING] [stderr] [main] INFO org.eclipse.jetty.server.handler.ContextHandler - Stopped o.e.j.s.ServletContextHandler@160ac7fb{/,null,STOPPED}
+[WARNING] [stderr] [main] INFO io.javalin.Javalin - Javalin has stopped
+[INFO] Tests run: 5, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 1.073 s -- in com.example.books.BookApiTest
+[INFO] 
+[INFO] Results:
+[INFO] 
+[INFO] Tests run: 5, Failures: 0, Errors: 0, Skipped: 0
+[INFO] 
+[INFO] ------------------------------------------------------------------------
+[INFO] BUILD SUCCESS
+[INFO] ------------------------------------------------------------------------
+[INFO] Total time:  4.354 s
+[INFO] Finished at: 2026-04-18T21:44:35Z
+[INFO] ------------------------------------------------------------------------

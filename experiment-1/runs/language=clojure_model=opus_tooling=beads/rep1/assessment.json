@@ -1,0 +1,55 @@
+{
+  "severity_counts": {
+    "critical": 0,
+    "high": 0,
+    "medium": 0,
+    "low": 0,
+    "info": 0
+  },
+  "penalty_score": 1.0,
+  "top_findings": [
+    {
+      "id": "R1",
+      "kind": "requirement_implemented",
+      "severity": "info",
+      "title": "POST /books endpoint for creating books",
+      "evidence": "src/books/handler.clj:35-43 create-book function, test/books/handler_test.clj:36-43 create-book-success test",
+      "suggestion": ""
+    },
+    {
+      "id": "R2",
+      "kind": "requirement_implemented",
+      "severity": "info",
+      "title": "GET /books endpoint with ?author= filter support",
+      "evidence": "src/books/handler.clj:45-48 list-books function, test/books/handler_test.clj:56-64 list-and-filter-books test",
+      "suggestion": ""
+    },
+    {
+      "id": "R3",
+      "kind": "requirement_implemented",
+      "severity": "info",
+      "title": "GET /books/{id} endpoint for retrieving single book",
+      "evidence": "src/books/handler.clj:50-55 get-book function, test/books/handler_test.clj:70-72 get by id test",
+      "suggestion": ""
+    },
+    {
+      "id": "R4",
+      "kind": "requirement_implemented",
+      "severity": "info",
+      "title": "PUT /books/{id} endpoint for updating books",
+      "evidence": "src/books/handler.clj:57-69 update-book function, test/books/handler_test.clj:76-81 update test",
+      "suggestion": ""
+    },
+    {
+      "id": "R5",
+      "kind": "requirement_implemented",
+      "severity": "info",
+      "title": "DELETE /books/{id} endpoint for deleting books",
+      "evidence": "src/books/handler.clj:71-76 delete-book function, test/books/handler_test.clj:82-85 delete test",
+      "suggestion": ""
+    }
+  ],
+  "requirement_coverage": 1.0,
+  "model": "unknown",
+  "evaluated_at": "2026-04-18T22:20:53.642646Z"
+}

@@ -1,0 +1,10 @@
+{
+  "replicate": 2,
+  "run_config": {
+    "language": "clojure",
+    "model": "sonnet",
+    "tooling": "none"
+  },
+  "succeeded": true,
+  "visibility": "private"
+}

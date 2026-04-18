@@ -1,0 +1,12 @@
+{"id": "R1", "kind": "requirement", "severity": "info", "title": "POST /books endpoint implemented", "evidence": "src/lib.rs create_book function", "status": "implemented"}
+{"id": "R2", "kind": "requirement", "severity": "info", "title": "GET /books endpoint with author filter", "evidence": "src/lib.rs list_books function with ?author= support", "status": "implemented"}
+{"id": "R3", "kind": "requirement", "severity": "info", "title": "GET /books/{id} endpoint", "evidence": "src/lib.rs get_book function", "status": "implemented"}
+{"id": "R4", "kind": "requirement", "severity": "info", "title": "PUT /books/{id} endpoint", "evidence": "src/lib.rs update_book function", "status": "implemented"}
+{"id": "R5", "kind": "requirement", "severity": "info", "title": "DELETE /books/{id} endpoint", "evidence": "src/lib.rs delete_book function", "status": "implemented"}
+{"id": "R6", "kind": "requirement", "severity": "info", "title": "SQLite database storage", "evidence": "Cargo.toml: tokio-rusqlite for async database operations", "status": "implemented"}
+{"id": "R7", "kind": "requirement", "severity": "info", "title": "Input validation (title and author required)", "evidence": "src/lib.rs validation in create_book and update_book", "status": "implemented"}
+{"id": "R8", "kind": "requirement", "severity": "info", "title": "Health check endpoint GET /health", "evidence": "src/lib.rs health function", "status": "implemented"}
+{"id": "R9", "kind": "requirement", "severity": "info", "title": "JSON responses with appropriate HTTP status codes", "evidence": "Proper status codes throughout: 201, 200, 204, 400, 404", "status": "implemented"}
+{"id": "R10", "kind": "requirement", "severity": "info", "title": "README.md with setup and run instructions", "evidence": "README.md present with complete documentation", "status": "implemented"}
+{"id": "test-1", "kind": "test", "severity": "info", "title": "5 integration tests implemented", "evidence": "tests/api.rs contains 5 comprehensive tests", "status": "passed"}
+{"id": "enhancement-1", "kind": "enhancement", "severity": "info", "title": "Async SQLite operations with tokio-rusqlite", "evidence": "Cargo.toml:14 adds tokio-rusqlite dependency, likely for non-blocking DB access", "suggestion": "Advanced pattern beyond basic requirements"}
