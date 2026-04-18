@@ -109,6 +109,11 @@ class TestQualityScorer:
         from retort.scoring.scorers.test_coverage import TestCoverageScorer
         base_score = TestCoverageScorer().score(artifacts, stack)
 
+        # No bonus if tests didn't execute — BDD files that can't run are not
+        # better than unit tests that can't run.
+        if base_score == 0.0:
+            return 0.0
+
         if not _has_bdd_tests(artifacts.output_dir, stack.language):
             return base_score
 
