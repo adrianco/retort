@@ -16,6 +16,7 @@ from retort.scoring.scorers.defect_rate import DefectRateScorer
 from retort.scoring.scorers.idiomatic import IdiomaticScorer
 from retort.scoring.scorers.maintainability import MaintainabilityScorer
 from retort.scoring.scorers.test_coverage import TestCoverageScorer
+from retort.scoring.scorers.test_quality import TestQualityScorer
 from retort.scoring.scorers.token_efficiency import TokenEfficiencyScorer
 
 
@@ -57,13 +58,14 @@ class TestScorerRegistry:
         assert "code_quality" in reg
         assert "token_efficiency" in reg
         assert "test_coverage" in reg
+        assert "test_quality" in reg
         assert "defect_rate" in reg
         assert "maintainability" in reg
         assert "idiomatic" in reg
         # build_time was removed — use the raw `_duration_seconds`
         # telemetry instead (auto-persisted from artifacts.duration_seconds).
         assert "build_time" not in reg
-        assert len(reg) == 6
+        assert len(reg) == 7
 
     def test_register_and_get(self):
         reg = ScorerRegistry()
@@ -85,6 +87,7 @@ class TestScorerRegistry:
             "idiomatic",
             "maintainability",
             "test_coverage",
+            "test_quality",
             "token_efficiency",
         ]
 
@@ -366,3 +369,107 @@ class TestIdiomaticScorer:
         sample = _representative_sample(tmp_path, "typescript")
         assert "real.ts" in sample
         assert "huge.ts" not in sample
+
+
+class TestTestQualityScorer:
+    def test_no_output_dir_scores_zero(self, python_stack):
+        scorer = TestQualityScorer()
+        artifacts = RunArtifacts(stdout="", exit_code=0, duration_seconds=1.0)
+        assert scorer.score(artifacts, python_stack) == 0.0
+
+    def test_no_tests_no_bdd_returns_base(self, python_stack, tmp_path):
+        # Empty workspace, no test files → base score = 0.0
+        (tmp_path / "app.py").write_text("def main(): return 1\n")
+        artifacts = RunArtifacts(
+            output_dir=tmp_path, stdout="", exit_code=0, duration_seconds=1.0,
+        )
+        scorer = TestQualityScorer()
+        assert scorer.score(artifacts, python_stack) == 0.0
+
+    def test_feature_file_unprompted_adds_bonus(self, python_stack, tmp_path):
+        # .feature file present, no BDD keywords in TASK.md → 0.25 bonus
+        (tmp_path / "login.feature").write_text(
+            "Feature: Login\n  Scenario: valid user\n    Given ...\n"
+        )
+        (tmp_path / "TASK.md").write_text("Build a login endpoint.\n")
+        artifacts = RunArtifacts(
+            output_dir=tmp_path, stdout="", exit_code=0, duration_seconds=1.0,
+        )
+        scorer = TestQualityScorer()
+        score = scorer.score(artifacts, python_stack)
+        # base=0.0 + unprompted bonus=0.25
+        assert score == pytest.approx(0.25)
+
+    def test_feature_file_prompted_adds_smaller_bonus(self, python_stack, tmp_path):
+        # .feature file + TASK.md mentions BDD → 0.15 bonus
+        (tmp_path / "login.feature").write_text(
+            "Feature: Login\n  Scenario: valid user\n    Given ...\n"
+        )
+        (tmp_path / "TASK.md").write_text(
+            "Use BDD with Given/When/Then scenarios.\n"
+        )
+        artifacts = RunArtifacts(
+            output_dir=tmp_path, stdout="", exit_code=0, duration_seconds=1.0,
+        )
+        scorer = TestQualityScorer()
+        score = scorer.score(artifacts, python_stack)
+        # base=0.0 + prompted bonus=0.15
+        assert score == pytest.approx(0.15)
+
+    def test_behave_import_detected(self, python_stack, tmp_path):
+        # Python file importing behave → BDD detected
+        steps = tmp_path / "steps"
+        steps.mkdir()
+        (steps / "login_steps.py").write_text(
+            "from behave import given, when, then\n\n"
+            "@given('a user exists')\ndef step_given(context):\n    pass\n"
+        )
+        (tmp_path / "TASK.md").write_text("Build a login flow.\n")
+        artifacts = RunArtifacts(
+            output_dir=tmp_path, stdout="", exit_code=0, duration_seconds=1.0,
+        )
+        scorer = TestQualityScorer()
+        score = scorer.score(artifacts, python_stack)
+        assert score == pytest.approx(0.25)
+
+    def test_pytest_bdd_decorator_detected(self, python_stack, tmp_path):
+        # conftest.py with @given/@when/@then → BDD detected
+        (tmp_path / "conftest.py").write_text(
+            "from pytest_bdd import given, when, then\n\n"
+            "@given('the system is ready')\ndef ready():\n    pass\n"
+        )
+        (tmp_path / "TASK.md").write_text("Implement using pytest-bdd.\n")
+        artifacts = RunArtifacts(
+            output_dir=tmp_path, stdout="", exit_code=0, duration_seconds=1.0,
+        )
+        scorer = TestQualityScorer()
+        score = scorer.score(artifacts, python_stack)
+        # TASK.md mentions "pytest-bdd" → prompted bonus
+        assert score == pytest.approx(0.15)
+
+    def test_no_task_md_treated_as_unprompted(self, python_stack, tmp_path):
+        # Feature file present, no TASK.md at all → treated as unprompted
+        (tmp_path / "signup.feature").write_text(
+            "Feature: Signup\n  Scenario: new user\n    Given ...\n"
+        )
+        artifacts = RunArtifacts(
+            output_dir=tmp_path, stdout="", exit_code=0, duration_seconds=1.0,
+        )
+        scorer = TestQualityScorer()
+        assert scorer.score(artifacts, python_stack) == pytest.approx(0.25)
+
+    def test_score_capped_at_one(self, python_stack, tmp_path):
+        from unittest.mock import patch
+        # Even if base_score + bonus > 1.0, result must be ≤ 1.0
+        (tmp_path / "tests.feature").write_text("Feature: f\n  Scenario: s\n")
+        (tmp_path / "TASK.md").write_text("Implement the feature.\n")
+        artifacts = RunArtifacts(
+            output_dir=tmp_path, stdout="", exit_code=0, duration_seconds=1.0,
+        )
+        scorer = TestQualityScorer()
+        with patch(
+            "retort.scoring.scorers.test_coverage.TestCoverageScorer.score",
+            return_value=0.9,
+        ):
+            score = scorer.score(artifacts, python_stack)
+        assert score <= 1.0
