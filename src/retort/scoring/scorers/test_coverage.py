@@ -13,7 +13,7 @@ import subprocess
 from pathlib import Path
 
 from retort.playpen.runner import RunArtifacts, StackConfig
-
+from retort.scoring.scorers._venv import ensure_test_deps, find_venv, make_venv_env
 
 COVERAGE_COMMANDS: dict[str, list[str]] = {
     "python": ["pytest", "--cov=.", "--cov-report=term", "-q", "--tb=no"],
@@ -80,6 +80,14 @@ class TestCoverageScorer:
         cmd = COVERAGE_COMMANDS.get(language)
         if cmd is None:
             return None
+
+        env = None
+        if language == "python":
+            venv = find_venv(output_dir)
+            if venv is not None:
+                ensure_test_deps(venv)
+                env = make_venv_env(venv)
+
         try:
             result = subprocess.run(
                 cmd,
@@ -87,6 +95,7 @@ class TestCoverageScorer:
                 capture_output=True,
                 text=True,
                 timeout=300,
+                env=env,
             )
         except (subprocess.TimeoutExpired, FileNotFoundError):
             return None
@@ -110,7 +119,7 @@ class TestCoverageScorer:
         try:
             result2 = subprocess.run(
                 tests_cmd, cwd=output_dir, capture_output=True,
-                text=True, timeout=300,
+                text=True, timeout=300, env=env,
             )
         except (subprocess.TimeoutExpired, FileNotFoundError):
             return None
@@ -127,6 +136,15 @@ class TestCoverageScorer:
             text = pkg.read_text()
         except OSError:
             return None
+
+        if not (output_dir / "node_modules").exists():
+            try:
+                subprocess.run(
+                    ["npm", "install", "--ignore-scripts"],
+                    cwd=output_dir, capture_output=True, timeout=120,
+                )
+            except (subprocess.TimeoutExpired, FileNotFoundError):
+                pass
 
         if "vitest" in text:
             cmd = ["npx", "vitest", "run", "--coverage", "--reporter=basic"]
@@ -272,3 +290,5 @@ def _to_int(s: str | None) -> int | None:
         return int(s)
     except (TypeError, ValueError):
         return None
+
+

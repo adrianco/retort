@@ -1,21 +1,20 @@
-# Minimal single-experiment test
-# Two factors with 2 levels each = small design matrix
+# Minimal single-run pipeline validation
+# 1 factor combo × 1 replicate = 1 run
 
 factors:
   language:
     levels: [python, typescript]
-  agent:
-    levels: [claude-code, copilot]
+  model:
+    levels: [opus, sonnet]
 
 responses:
   - code_quality
-  - build_time
 
 tasks:
   - source: bundled://rest-api-crud
 
 playpen:
-  runner: docker
+  runner: local
   replicates: 1
   timeout_minutes: 10
 
