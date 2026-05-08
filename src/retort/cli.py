@@ -581,6 +581,18 @@ def run_experiments(
                     # Commit per-run so an interrupt loses at most one run.
                     session.commit()
 
+                    if workspace_config.mlflow is not None:
+                        from retort.mlflow_sink import log_run_to_mlflow
+                        try:
+                            log_run_to_mlflow(
+                                workspace_config.mlflow,
+                                workspace_config.experiment.name or "retort",
+                                run_config, phase, run_idx, rep,
+                                artifacts, scores,
+                            )
+                        except Exception as exc:
+                            click.echo(f"  (mlflow log failed: {exc}; continuing)", err=True)
+
                     # Archive the workspace before teardown wipes it.
                     archived = _archive_run_workspace(
                         archive_root, run_config, rep, artifacts,
