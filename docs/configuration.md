@@ -72,6 +72,47 @@ playpen:
 | `replicates` | `3` | Number of times to repeat each design point. Higher = less noise, more cost |
 | `timeout_minutes` | `30` | Kill a run after this many minutes |
 | `cost_limit_usd` | none | Optional budget cap. Runs stop when limit is reached |
+| `local_inference_cost` | none | Cost model for local/offline models — see below |
+
+### local_inference_cost
+
+Enables the `_cost_usd` metric for runs where the agent doesn't report API spend (local models such as llama, mistral, etc.). Cost is computed from wall-clock run duration using electricity and amortized hardware costs.
+
+```yaml
+playpen:
+  local_inference_cost:
+    cost_per_kwh: 0.20           # USD per kWh — check your electricity bill
+    power_watts: 210             # GPU/system draw during inference
+    hardware_cost_usd: 550       # Purchase price in USD
+    amortization_months: 36      # Expected useful life
+    utilization_fraction: 0.25   # Fraction of time hardware runs inference
+```
+
+| Field | Description |
+|-------|-------------|
+| `cost_per_kwh` | Electricity rate in USD/kWh |
+| `power_watts` | GPU or system power draw during inference (watts) |
+| `hardware_cost_usd` | Hardware purchase price in USD |
+| `amortization_months` | Amortization period (months); longer = lower per-run cost |
+| `utilization_fraction` | Fraction of amortization window the hardware is actively running inference (0–1) |
+
+**Cost formula:**
+
+```
+electricity_per_s = (power_watts / 1000) × cost_per_kwh / 3600
+hardware_per_s    = hardware_cost_usd / (amortization_months × 30 × 24 × 3600 × utilization_fraction)
+run_cost          = (electricity_per_s + hardware_per_s) × duration_seconds
+cost_per_token    = run_cost / total_tokens
+```
+
+**Example — AMD Radeon RX 9700 XT at $0.20/kWh vs. cloud pricing:**
+
+With the settings above (210 W, $550, 36 months, 25% utilization):
+- Electricity: ~$0.0000117/s
+- Hardware amortization: ~$0.0000236/s
+- **Effective rate: ~$0.035/s ≈ $0.085/M tokens at 2 tok/s**
+
+Compare to Haiku 4.5 at $0.25/$1.25 per million input/output tokens — local hardware breaks even around 5–10 tokens/s depending on the mix.
 
 ## design
 

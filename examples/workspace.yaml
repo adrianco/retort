@@ -55,6 +55,24 @@ playpen:
   timeout_minutes: 15
   # cost_limit_usd: 50.00   # supported by scheduler/budget; not yet wired into retort run
 
+  # Local inference cost model — enables cost_usd metric for local/offline models.
+  # Without this block, cost_usd is only populated when the agent reports API spend.
+  # Example: AMD Radeon RX 9700 XT running a local model (llama3, mistral, etc.)
+  # at $0.20/kWh vs. cloud API pricing.
+  #
+  # Formula:
+  #   electricity_per_s  = (power_watts / 1000) * cost_per_kwh / 3600
+  #   hardware_per_s     = hardware_cost_usd / (amortization_months * 30 * 24 * 3600 * utilization_fraction)
+  #   run_cost           = (electricity_per_s + hardware_per_s) * duration_seconds
+  #   cost_per_token     = run_cost / total_tokens
+  #
+  # local_inference_cost:
+  #   cost_per_kwh: 0.20           # USD/kWh — check your electricity bill
+  #   power_watts: 210             # RX 9700 XT peak inference draw
+  #   hardware_cost_usd: 550       # Street price
+  #   amortization_months: 36      # 3-year useful life
+  #   utilization_fraction: 0.25   # GPU busy 25% of wall-clock time
+
 design:
   screening_resolution: 3
   significance_threshold: 0.10

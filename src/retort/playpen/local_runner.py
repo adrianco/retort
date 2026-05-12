@@ -16,6 +16,7 @@ import time
 import uuid
 from pathlib import Path
 
+from retort.config.schema import LocalInferenceCost
 from retort.playpen.runner import PlaypenRunner, RunArtifacts, StackConfig, TaskSpec
 
 logger = logging.getLogger(__name__)
@@ -54,6 +55,7 @@ class LocalRunner:
         max_turns: int = 30,
         work_dir: Path | None = None,
         eval_model: str | None = None,
+        local_inference_cost: LocalInferenceCost | None = None,
     ) -> None:
         self.timeout_minutes = timeout_minutes
         self.max_turns = max_turns
@@ -61,6 +63,8 @@ class LocalRunner:
         self._envs: dict[str, _EnvInfo] = {}
         # When set, invoke evaluate-run skill after each successful run.
         self.eval_model = eval_model
+        # When set, compute run cost from hardware model instead of agent-reported cost.
+        self.local_inference_cost = local_inference_cost
 
     def provision(self, stack: StackConfig, task: TaskSpec) -> str:
         """Create a workspace directory with the task spec."""
@@ -169,6 +173,14 @@ class LocalRunner:
                 }
             except (ValueError, KeyError):
                 pass  # Not JSON or missing fields
+
+            # For local models, compute hardware cost when agent doesn't report API cost.
+            if cost_usd == 0.0 and self.local_inference_cost is not None and elapsed > 0:
+                cost_usd = self.local_inference_cost.cost_for_run(elapsed)
+                metadata["total_cost_usd"] = str(cost_usd)
+                if token_count > 0:
+                    ept = self.local_inference_cost.effective_cost_per_token(token_count, elapsed)
+                    metadata["effective_cost_per_token"] = str(ept)
 
             artifacts = RunArtifacts(
                 output_dir=info.workspace,

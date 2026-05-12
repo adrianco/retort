@@ -264,3 +264,130 @@ class TestLocalRunnerModelVersioning:
     def test_find_skill_path_returns_none_when_missing(self, tmp_path):
         from retort.playpen.local_runner import _find_skill_path
         assert _find_skill_path("evaluate-run", start=tmp_path) is None
+
+
+class TestLocalInferenceCost:
+    """Tests for LocalInferenceCost cost model and LocalRunner integration."""
+
+    def _make_cost(self, **kwargs):
+        from retort.config.schema import LocalInferenceCost
+        defaults = dict(
+            cost_per_kwh=0.20,
+            power_watts=210.0,
+            hardware_cost_usd=550.0,
+            amortization_months=36,
+            utilization_fraction=0.25,
+        )
+        defaults.update(kwargs)
+        return LocalInferenceCost(**defaults)
+
+    def test_effective_cost_per_second_positive(self):
+        cost = self._make_cost()
+        assert cost.effective_cost_per_second() > 0
+
+    def test_effective_cost_per_second_components(self):
+        cost = self._make_cost(
+            cost_per_kwh=0.20,
+            power_watts=210.0,
+            hardware_cost_usd=0.0,  # no hardware → only electricity
+            amortization_months=36,
+            utilization_fraction=0.25,
+        )
+        expected = (210.0 / 1000.0) * 0.20 / 3600.0
+        assert abs(cost.effective_cost_per_second() - expected) < 1e-12
+
+    def test_cost_for_run_scales_with_duration(self):
+        cost = self._make_cost()
+        cost_60s = cost.cost_for_run(60.0)
+        cost_120s = cost.cost_for_run(120.0)
+        assert abs(cost_120s - 2 * cost_60s) < 1e-12
+
+    def test_effective_cost_per_token_zero_tokens(self):
+        cost = self._make_cost()
+        assert cost.effective_cost_per_token(0, 60.0) == 0.0
+
+    def test_effective_cost_per_token_formula(self):
+        cost = self._make_cost()
+        duration, tokens = 120.0, 50000
+        expected = cost.cost_for_run(duration) / tokens
+        assert abs(cost.effective_cost_per_token(tokens, duration) - expected) < 1e-15
+
+    def test_local_runner_computes_cost_when_no_api_cost(self, tmp_path):
+        """LocalRunner with local_inference_cost fills metadata when agent reports no cost."""
+        from unittest.mock import patch, MagicMock
+        from retort.playpen.local_runner import LocalRunner
+
+        lc = self._make_cost()
+        runner = LocalRunner(work_dir=tmp_path, local_inference_cost=lc)
+
+        stack = StackConfig(language="python", agent="claude-code", framework="fastapi")
+        task = TaskSpec(name="t", description="d", prompt="hi")
+        env_id = runner.provision(stack, task)
+
+        fake_result = MagicMock()
+        fake_result.returncode = 0
+        fake_result.stdout = "{}"   # agent reports no cost
+        fake_result.stderr = ""
+
+        with patch("retort.playpen.local_runner.subprocess.run", return_value=fake_result):
+            with patch("retort.playpen.local_runner.time.monotonic", side_effect=[0.0, 60.0]):
+                artifacts = runner.execute(env_id, stack, task)
+
+        assert "total_cost_usd" in artifacts.metadata
+        assert float(artifacts.metadata["total_cost_usd"]) > 0
+        expected = lc.cost_for_run(60.0)
+        assert abs(float(artifacts.metadata["total_cost_usd"]) - expected) < 1e-10
+
+    def test_local_runner_does_not_override_api_cost(self, tmp_path):
+        """When agent reports a non-zero cost, local_inference_cost is not applied."""
+        from unittest.mock import patch, MagicMock
+        import json as _json
+        from retort.playpen.local_runner import LocalRunner
+
+        lc = self._make_cost()
+        runner = LocalRunner(work_dir=tmp_path, local_inference_cost=lc)
+
+        stack = StackConfig(language="python", agent="claude-code", framework="fastapi")
+        task = TaskSpec(name="t", description="d", prompt="hi")
+        env_id = runner.provision(stack, task)
+
+        agent_payload = _json.dumps({"total_cost_usd": 0.042, "usage": {}})
+        fake_result = MagicMock()
+        fake_result.returncode = 0
+        fake_result.stdout = agent_payload
+        fake_result.stderr = ""
+
+        with patch("retort.playpen.local_runner.subprocess.run", return_value=fake_result):
+            artifacts = runner.execute(env_id, stack, task)
+
+        assert abs(float(artifacts.metadata["total_cost_usd"]) - 0.042) < 1e-10
+
+    def test_local_runner_stores_effective_cost_per_token(self, tmp_path):
+        """When tokens are reported and local cost computed, effective_cost_per_token is stored."""
+        from unittest.mock import patch, MagicMock
+        import json as _json
+        from retort.playpen.local_runner import LocalRunner
+
+        lc = self._make_cost()
+        runner = LocalRunner(work_dir=tmp_path, local_inference_cost=lc)
+
+        stack = StackConfig(language="python", agent="claude-code", framework="fastapi")
+        task = TaskSpec(name="t", description="d", prompt="hi")
+        env_id = runner.provision(stack, task)
+
+        # Agent reports token counts but no API cost (local model)
+        agent_payload = _json.dumps({"usage": {"output_tokens": 1000}})
+        fake_result = MagicMock()
+        fake_result.returncode = 0
+        fake_result.stdout = agent_payload
+        fake_result.stderr = ""
+
+        with patch("retort.playpen.local_runner.subprocess.run", return_value=fake_result):
+            with patch("retort.playpen.local_runner.time.monotonic", side_effect=[0.0, 60.0]):
+                artifacts = runner.execute(env_id, stack, task)
+
+        assert "effective_cost_per_token" in artifacts.metadata
+        ept = float(artifacts.metadata["effective_cost_per_token"])
+        assert ept > 0
+        expected = lc.effective_cost_per_token(1000, 60.0)
+        assert abs(ept - expected) < 1e-15

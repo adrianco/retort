@@ -110,6 +110,33 @@ class RunnerType(str, Enum):
     local = "local"
 
 
+class LocalInferenceCost(BaseModel):
+    """Cost model for local inference hardware (electricity + amortized hardware)."""
+
+    cost_per_kwh: Annotated[float, Field(gt=0, description="Electricity cost in USD per kWh")]
+    power_watts: Annotated[float, Field(gt=0, description="GPU/system power draw in watts during inference")]
+    hardware_cost_usd: Annotated[float, Field(ge=0, description="Hardware purchase price in USD")]
+    amortization_months: Annotated[int, Field(ge=1, description="Hardware amortization period in months")]
+    utilization_fraction: Annotated[float, Field(gt=0, le=1, description="Fraction of amortization period the hardware runs inference")]
+
+    def effective_cost_per_second(self) -> float:
+        """USD per second of inference (electricity + amortized hardware)."""
+        electricity = (self.power_watts / 1000.0) * self.cost_per_kwh / 3600.0
+        total_utilized_seconds = self.amortization_months * 30 * 24 * 3600 * self.utilization_fraction
+        hardware = self.hardware_cost_usd / total_utilized_seconds
+        return electricity + hardware
+
+    def cost_for_run(self, duration_seconds: float) -> float:
+        """Total USD cost for a run of the given duration."""
+        return self.effective_cost_per_second() * duration_seconds
+
+    def effective_cost_per_token(self, token_count: int, duration_seconds: float) -> float:
+        """USD per token, derived from run duration and total token count."""
+        if token_count <= 0:
+            return 0.0
+        return self.cost_for_run(duration_seconds) / token_count
+
+
 class PlaypenConfig(BaseModel):
     """Configuration for experiment execution environment."""
 
@@ -125,6 +152,7 @@ class PlaypenConfig(BaseModel):
         ),
     )]
     cost_limit_usd: Annotated[float | None, Field(default=None, ge=0, description="Spend cap per screening phase")]
+    local_inference_cost: Annotated[LocalInferenceCost | None, Field(default=None, description="Cost model for local inference hardware; enables cost_usd metric for local/offline models")]
 
 
 # ---------------------------------------------------------------------------

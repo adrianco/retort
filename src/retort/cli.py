@@ -527,6 +527,7 @@ def run_experiments(
         runner = LocalRunner(
             timeout_minutes=workspace_config.playpen.timeout_minutes,
             max_turns=workspace_config.playpen.max_turns,
+            local_inference_cost=workspace_config.playpen.local_inference_cost,
         )
     else:
         runner = DockerRunner(timeout_minutes=workspace_config.playpen.timeout_minutes)
