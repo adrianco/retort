@@ -64,8 +64,9 @@ class TestScorerRegistry:
         assert "idiomatic" in reg
         # build_time was removed — use the raw `_duration_seconds`
         # telemetry instead (auto-persisted from artifacts.duration_seconds).
+        assert "bead_usage_score" in reg
         assert "build_time" not in reg
-        assert len(reg) == 7
+        assert len(reg) == 9
 
     def test_register_and_get(self):
         reg = ScorerRegistry()
@@ -82,14 +83,98 @@ class TestScorerRegistry:
         reg = create_default_registry()
         avail = reg.available()
         assert avail == [
+            "bead_usage_score",
             "code_quality",
             "defect_rate",
+            "findings",
             "idiomatic",
             "maintainability",
             "test_coverage",
             "test_quality",
             "token_efficiency",
         ]
+
+
+class TestBeadUsageScorer:
+    def _beads_stack(self):
+        return StackConfig(language="python", agent="test", framework="none",
+                           extra={"tooling": "beads"})
+
+    def _no_beads_stack(self):
+        return StackConfig(language="python", agent="test", framework="none",
+                           extra={"tooling": "none"})
+
+    def test_not_applicable_returns_one(self, tmp_path):
+        from retort.scoring.scorers.bead_usage import BeadUsageScorer
+        scorer = BeadUsageScorer()
+        artifacts = RunArtifacts(output_dir=tmp_path, exit_code=0)
+        assert scorer.score(artifacts, self._no_beads_stack()) == 1.0
+
+    def test_no_beads_dir_scores_zero(self, tmp_path):
+        from retort.scoring.scorers.bead_usage import BeadUsageScorer
+        scorer = BeadUsageScorer()
+        artifacts = RunArtifacts(output_dir=tmp_path, exit_code=0)
+        assert scorer.score(artifacts, self._beads_stack()) == 0.0
+
+    def test_empty_beads_dir_scores_zero(self, tmp_path):
+        from retort.scoring.scorers.bead_usage import BeadUsageScorer
+        (tmp_path / ".beads").mkdir()
+        scorer = BeadUsageScorer()
+        artifacts = RunArtifacts(output_dir=tmp_path, exit_code=0)
+        assert scorer.score(artifacts, self._beads_stack()) == 0.0
+
+    def test_interactions_log_counts_ops(self, tmp_path):
+        from retort.scoring.scorers.bead_usage import BeadUsageScorer, EXPECTED_MIN_OPS
+        beads_dir = tmp_path / ".beads"
+        beads_dir.mkdir()
+        interactions = beads_dir / "interactions.jsonl"
+        interactions.write_text("\n".join(
+            '{"id":"int-%d","kind":"field_change"}' % i
+            for i in range(EXPECTED_MIN_OPS)
+        ) + "\n")
+        scorer = BeadUsageScorer()
+        artifacts = RunArtifacts(output_dir=tmp_path, exit_code=0)
+        assert scorer.score(artifacts, self._beads_stack()) == 1.0
+
+    def test_partial_ops_score_proportional(self, tmp_path):
+        from retort.scoring.scorers.bead_usage import BeadUsageScorer, EXPECTED_MIN_OPS
+        beads_dir = tmp_path / ".beads"
+        beads_dir.mkdir()
+        interactions = beads_dir / "interactions.jsonl"
+        half = EXPECTED_MIN_OPS // 2
+        interactions.write_text("\n".join(
+            '{"id":"int-%d","kind":"field_change"}' % i for i in range(half)
+        ) + "\n")
+        scorer = BeadUsageScorer()
+        artifacts = RunArtifacts(output_dir=tmp_path, exit_code=0)
+        score = scorer.score(artifacts, self._beads_stack())
+        assert 0.0 < score < 1.0
+
+    def test_many_ops_capped_at_one(self, tmp_path):
+        from retort.scoring.scorers.bead_usage import BeadUsageScorer, EXPECTED_MIN_OPS
+        beads_dir = tmp_path / ".beads"
+        beads_dir.mkdir()
+        interactions = beads_dir / "interactions.jsonl"
+        interactions.write_text("\n".join(
+            '{"id":"int-%d","kind":"field_change"}' % i
+            for i in range(EXPECTED_MIN_OPS * 10)
+        ) + "\n")
+        scorer = BeadUsageScorer()
+        artifacts = RunArtifacts(output_dir=tmp_path, exit_code=0)
+        assert scorer.score(artifacts, self._beads_stack()) == 1.0
+
+    def test_no_output_dir_scores_zero(self):
+        from retort.scoring.scorers.bead_usage import BeadUsageScorer
+        scorer = BeadUsageScorer()
+        artifacts = RunArtifacts(exit_code=0)
+        assert scorer.score(artifacts, self._beads_stack()) == 0.0
+
+    def test_tooling_not_set_defaults_to_not_applicable(self, tmp_path):
+        from retort.scoring.scorers.bead_usage import BeadUsageScorer
+        scorer = BeadUsageScorer()
+        stack = StackConfig(language="python", agent="test", framework="none")
+        artifacts = RunArtifacts(output_dir=tmp_path, exit_code=0)
+        assert scorer.score(artifacts, stack) == 1.0
 
 
 class TestBuildTimeScorer:

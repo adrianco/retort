@@ -66,6 +66,7 @@ def create_default_registry() -> ScorerRegistry:
     via the ``retort.plugins`` entry-point group are added.  Plugin
     scorers can override built-ins by using the same ``name``.
     """
+    from retort.scoring.scorers.bead_usage import BeadUsageScorer
     from retort.scoring.scorers.code_quality import CodeQualityScorer
     from retort.scoring.scorers.defect_rate import DefectRateScorer
     from retort.scoring.scorers.findings import FindingsScorer
@@ -76,6 +77,7 @@ def create_default_registry() -> ScorerRegistry:
     from retort.scoring.scorers.token_efficiency import TokenEfficiencyScorer
 
     registry = ScorerRegistry()
+    registry.register(BeadUsageScorer())
     registry.register(CodeQualityScorer())
     registry.register(TokenEfficiencyScorer())
     registry.register(TestCoverageScorer())
