@@ -265,6 +265,48 @@ class TestLocalRunnerModelVersioning:
         from retort.playpen.local_runner import _find_skill_path
         assert _find_skill_path("evaluate-run", start=tmp_path) is None
 
+    def test_versioned_alias_opus_46_resolves(self):
+        cmd = self._cmd("opus-4.6")
+        idx = cmd.index("--model")
+        assert cmd[idx + 1] == "claude-opus-4-6"
+
+    def test_versioned_alias_opus_47_resolves(self):
+        cmd = self._cmd("opus-4.7")
+        idx = cmd.index("--model")
+        assert cmd[idx + 1] == "claude-opus-4-7"
+
+    def test_versioned_alias_sonnet_45_resolves(self):
+        cmd = self._cmd("sonnet-4.5")
+        idx = cmd.index("--model")
+        assert cmd[idx + 1] == "claude-sonnet-4-5"
+
+    def test_versioned_alias_sonnet_46_resolves(self):
+        cmd = self._cmd("sonnet-4.6")
+        idx = cmd.index("--model")
+        assert cmd[idx + 1] == "claude-sonnet-4-6"
+
+    def test_versioned_alias_haiku_45_resolves(self):
+        cmd = self._cmd("haiku-4.5")
+        idx = cmd.index("--model")
+        assert cmd[idx + 1] == "claude-haiku-4-5"
+
+    def test_unknown_string_passes_through(self):
+        cmd = self._cmd("my-custom-model")
+        idx = cmd.index("--model")
+        assert cmd[idx + 1] == "my-custom-model"
+
+    def test_short_alias_opus_still_resolves(self):
+        from retort.playpen.local_runner import MODEL_ALIASES
+        cmd = self._cmd("opus")
+        idx = cmd.index("--model")
+        assert cmd[idx + 1] == MODEL_ALIASES["opus"]
+
+    def test_short_alias_haiku_still_resolves(self):
+        from retort.playpen.local_runner import MODEL_ALIASES
+        cmd = self._cmd("haiku")
+        idx = cmd.index("--model")
+        assert cmd[idx + 1] == MODEL_ALIASES["haiku"]
+
 
 class TestLocalInferenceCost:
     """Tests for LocalInferenceCost cost model and LocalRunner integration."""

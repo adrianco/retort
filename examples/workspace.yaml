@@ -26,6 +26,8 @@ factors:
   language:
     levels: [python, go]
   model:
+    # Use short aliases for "latest stable" or versioned aliases to pin cross-version comparisons.
+    # Example cross-version comparison: levels: [opus-4.6, opus-4.7]
     levels: [opus, sonnet]
   tooling:
     levels: [none, beads]

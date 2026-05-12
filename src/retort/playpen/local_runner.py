@@ -30,13 +30,18 @@ AGENT_COMMANDS: dict[str, list[str]] = {
     ],
 }
 
-# Short model aliases → versioned API IDs. Workspace configs may use either
-# form; the aliases here pin experiments to specific versions for reproducibility.
-# Update when retiring a model generation.
+# Short aliases track the latest stable release; versioned aliases (e.g. "opus-4.6") pin to a specific release.
 MODEL_ALIASES: dict[str, str] = {
-    "opus": "claude-opus-4-6",
-    "sonnet": "claude-sonnet-4-5",
+    # Short aliases — update when a new model generation ships
+    "opus": "claude-opus-4-7",
+    "sonnet": "claude-sonnet-4-6",
     "haiku": "claude-haiku-4-5",
+    # Versioned aliases — never change; enable cross-version comparisons
+    "opus-4.6": "claude-opus-4-6",
+    "opus-4.7": "claude-opus-4-7",
+    "sonnet-4.5": "claude-sonnet-4-5",
+    "sonnet-4.6": "claude-sonnet-4-6",
+    "haiku-4.5": "claude-haiku-4-5",
 }
 
 
