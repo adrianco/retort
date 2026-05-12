@@ -11,6 +11,7 @@ import subprocess
 from pathlib import Path
 
 from retort.playpen.runner import RunArtifacts, StackConfig
+from retort.scoring.scorers._venv import find_venv, make_venv_env
 
 # Lint commands per language
 LINT_COMMANDS: dict[str, list[str]] = {
@@ -72,6 +73,12 @@ class CodeQualityScorer:
         if cmd is None:
             return 0.5  # No linter available — neutral score
 
+        env = None
+        if language == "python":
+            venv = find_venv(output_dir)
+            if venv is not None:
+                env = make_venv_env(venv)
+
         try:
             result = subprocess.run(
                 cmd,
@@ -79,6 +86,7 @@ class CodeQualityScorer:
                 capture_output=True,
                 text=True,
                 timeout=60,
+                env=env,
             )
             if result.returncode == 0:
                 return 1.0

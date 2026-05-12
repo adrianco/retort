@@ -49,6 +49,19 @@ class EvaluationConfig(BaseModel):
     issue_tracker: Annotated[IssueTracker, Field(default="beads", description="Where file-run-issues mirrors findings")]
 
 
+class MLflowConfig(BaseModel):
+    """Optional MLflow result sink.
+
+    When present in workspace.yaml, each run's factor levels, scores,
+    and telemetry are logged to MLflow alongside the SQLite store.
+    """
+
+    experiment: Annotated[str | None, Field(default=None, description="MLflow experiment name; defaults to workspace experiment.name")]
+    tracking_uri: Annotated[str | None, Field(default=None, description="MLflow tracking URI; falls back to MLFLOW_TRACKING_URI env var")]
+    workspace: Annotated[str | None, Field(default=None, description="MLflow workspace (sets MLFLOW_WORKSPACE env var for multi-tenant servers)")]
+    tags: Annotated[dict[str, str], Field(default_factory=dict, description="Extra tags applied to every MLflow run")]
+
+
 # ---------------------------------------------------------------------------
 # Factors
 # ---------------------------------------------------------------------------
@@ -219,6 +232,7 @@ class WorkspaceConfig(BaseModel):
     design: Annotated[DesignConfig, Field(default_factory=DesignConfig)]
     promotion: Annotated[PromotionConfig, Field(default_factory=PromotionConfig)]
     evaluation: Annotated[EvaluationConfig, Field(default_factory=EvaluationConfig)]
+    mlflow: Annotated[MLflowConfig | None, Field(default=None, description="Optional MLflow result sink")] = None
 
     @model_validator(mode="before")
     @classmethod

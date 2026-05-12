@@ -97,11 +97,15 @@ class LocalRunner:
         # Init git repo — many agents expect it. Skip if the support
         # files already brought a .git dir along.
         if not (env_dir / ".git").exists():
-            subprocess.run(
-                ["git", "init", "-q"],
-                cwd=env_dir,
-                capture_output=True,
-            )
+            org_context = stack.extra.get("org_context", "none")
+            if org_context != "none":
+                _clone_org_repo(env_dir, org_context)
+            else:
+                subprocess.run(
+                    ["git", "init", "-q"],
+                    cwd=env_dir,
+                    capture_output=True,
+                )
 
         self._envs[env_id] = _EnvInfo(
             env_id=env_id,
@@ -309,6 +313,44 @@ def _find_skill_path(skill_name: str, start: Path) -> Path | None:
         if candidate.is_file():
             return candidate
     return None
+
+
+def _clone_org_repo(env_dir: Path, repo_url: str) -> None:
+    """Shallow-clone a repo into env_dir to establish org context.
+
+    The workspace gets a .git dir with a remote pointing to the given repo,
+    which causes SessionStart hooks that gate on org membership to fire.
+    Only the .git metadata is kept; the cloned working tree is discarded.
+    """
+    clone_dir = env_dir / ".org-clone-tmp"
+    try:
+        result = subprocess.run(
+            ["git", "clone", "--depth", "1", "--quiet", repo_url, str(clone_dir)],
+            capture_output=True,
+            text=True,
+            timeout=120,
+        )
+    except (subprocess.TimeoutExpired, FileNotFoundError, OSError) as exc:
+        logger.warning(
+            "Failed to clone %s for org_context (%s), falling back to git init",
+            repo_url, exc,
+        )
+        subprocess.run(["git", "init", "-q"], cwd=env_dir, capture_output=True)
+        return
+    if result.returncode != 0:
+        logger.warning(
+            "Failed to clone %s for org_context, falling back to git init: %s",
+            repo_url, result.stderr[:200],
+        )
+        subprocess.run(["git", "init", "-q"], cwd=env_dir, capture_output=True)
+        return
+
+    clone_git = clone_dir / ".git"
+    if clone_git.exists():
+        shutil.move(str(clone_git), str(env_dir / ".git"))
+    shutil.rmtree(clone_dir, ignore_errors=True)
+
+    logger.info("Cloned %s for org_context in %s", repo_url, env_dir)
 
 
 def _copy_support_files(src: Path, dst: Path) -> None:
