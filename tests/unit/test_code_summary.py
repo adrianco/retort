@@ -109,3 +109,59 @@ def test_typescript_summary(tmp_path):
     assert "const main" in syms
     assert "class Server" in syms
     assert "function listBooks" in syms
+
+
+def test_elixir_summary(tmp_path):
+    (tmp_path / "books.ex").write_text(
+        "defmodule Books do\n"
+        "  def list_books, do: []\n"
+        "  def create_book(title), do: {:ok, title}\n"
+        "  defp validate(book), do: book\n"
+        "end\n"
+    )
+    (tmp_path / "books_test.exs").write_text(
+        "defmodule BooksTest do\n"
+        "  use ExUnit.Case\n"
+        "  test 'list_books returns empty list' do\n"
+        "    assert Books.list_books() == []\n"
+        "  end\n"
+        "end\n"
+    )
+    summary = summarize_archive(tmp_path, "elixir")
+    assert summary is not None
+    assert summary.n_files == 2
+    assert summary.n_test_files == 1
+
+    src = next(f for f in summary.files if f.relpath == "books.ex")
+    assert "defmodule Books" in src.symbols
+    assert "def list_books" in src.symbols
+    assert "def create_book" in src.symbols
+    assert "defp validate" in src.symbols
+    assert src.is_test is False
+
+    test_file = next(f for f in summary.files if f.relpath == "books_test.exs")
+    assert test_file.is_test is True
+
+
+def test_erlang_summary(tmp_path):
+    (tmp_path / "books.erl").write_text(
+        "-module(books).\n"
+        "-export([list_books/0, create_book/1]).\n"
+        "list_books() -> [].\n"
+        "create_book(Title) -> {ok, Title}.\n"
+    )
+    (tmp_path / "books_tests.erl").write_text(
+        "-module(books_tests).\n"
+        "list_books_test() -> [] = books:list_books().\n"
+    )
+    summary = summarize_archive(tmp_path, "erlang")
+    assert summary is not None
+    assert summary.n_files == 2
+    assert summary.n_test_files == 1
+
+    src = next(f for f in summary.files if f.relpath == "books.erl")
+    assert "module books" in src.symbols
+    assert src.is_test is False
+
+    test_file = next(f for f in summary.files if f.relpath == "books_tests.erl")
+    assert test_file.is_test is True

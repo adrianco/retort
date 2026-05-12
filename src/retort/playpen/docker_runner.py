@@ -25,6 +25,8 @@ DEFAULT_IMAGES: dict[str, str] = {
     "typescript": "node:20-slim",
     "go": "golang:1.22-bookworm",
     "rust": "rust:1.78-slim",
+    "elixir": "elixir:1.16",
+    "erlang": "erlang:26",
 }
 
 DEFAULT_IMAGE = "python:3.12-slim"

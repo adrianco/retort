@@ -9,7 +9,7 @@ from pathlib import Path
 
 def check_structure(workspace: Path) -> list[str]:
     errors = []
-    source_exts = {".py", ".ts", ".go", ".rs", ".js"}
+    source_exts = {".py", ".ts", ".go", ".rs", ".js", ".ex", ".exs", ".erl"}
     source_files = [
         f for f in workspace.rglob("*")
         if f.suffix in source_exts and f.is_file()

@@ -25,6 +25,8 @@ _SOURCE_EXTENSIONS: dict[str, set[str]] = {
     "rust": {".rs"},
     "java": {".java"},
     "clojure": {".clj", ".cljc", ".cljs"},
+    "elixir": {".ex", ".exs"},
+    "erlang": {".erl", ".hrl"},
 }
 
 _SKIP_PARTS = {
@@ -65,6 +67,15 @@ _SYMBOL_PATTERNS: dict[str, list[tuple[str, re.Pattern[str]]]] = {
         ("defn", re.compile(r"^\s*\(defn-?\s+([\w?!*+/<=>-]+)", re.MULTILINE)),
         ("def",  re.compile(r"^\s*\(def\s+([\w?!*+/<=>-]+)", re.MULTILINE)),
         ("ns",   re.compile(r"^\s*\(ns\s+([\w.]+)", re.MULTILINE)),
+    ],
+    "elixir": [
+        ("defmodule", re.compile(r"^\s*defmodule\s+([\w.]+)", re.MULTILINE)),
+        ("def",       re.compile(r"^\s*def\s+([\w?!]+)", re.MULTILINE)),
+        ("defp",      re.compile(r"^\s*defp\s+([\w?!]+)", re.MULTILINE)),
+    ],
+    "erlang": [
+        ("module",   re.compile(r"^-module\((\w+)\)", re.MULTILINE)),
+        ("function", re.compile(r"^(\w+)\s*\(", re.MULTILINE)),
     ],
 }
 
@@ -158,5 +169,7 @@ def _looks_like_test(p: Path) -> bool:
         or name.endswith("_test.go")
         or name.endswith(".test.ts") or name.endswith(".test.tsx")
         or name.endswith(".spec.ts") or name.endswith(".spec.tsx")
+        or name.endswith("_test.exs")  # Elixir ExUnit
+        or name.endswith("_suite.erl") or name.endswith("_tests.erl")  # Erlang common_test / eunit
         or "test" in parts or "tests" in parts or "__tests__" in parts
     )

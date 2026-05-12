@@ -42,6 +42,8 @@ _LANGUAGE_EXTENSIONS: dict[str, set[str]] = {
     "rust": {".rs"},
     "java": {".java"},
     "clojure": {".clj", ".cljc", ".cljs"},
+    "elixir": {".ex", ".exs"},
+    "erlang": {".erl", ".hrl"},
 }
 
 _SKIP_PARTS = {"node_modules", "target", "__pycache__", ".git", "dist", "build"}

@@ -23,6 +23,12 @@ LINT_COMMANDS: dict[str, list[str]] = {
     # Clojure: clj-kondo is the de facto linter; skip if not installed
     # (the scorer returns a neutral 0.5 when the command is missing).
     "clojure": ["clj-kondo", "--lint", "."],
+    # Elixir: mix compile reports warnings-as-errors when the project is
+    # properly structured. Credo (optional dep) is not assumed present.
+    "elixir": ["mix", "compile", "--warnings-as-errors"],
+    # Erlang: rebar3 compile covers most project layouts; falls back to
+    # neutral 0.5 if rebar3 is not installed.
+    "erlang": ["rebar3", "compile"],
 }
 
 
@@ -91,6 +97,8 @@ class CodeQualityScorer:
             "rust": ".rs",
             "java": ".java",
             "clojure": ".clj",
+            "elixir": ".ex",
+            "erlang": ".erl",
         }
         ext = extensions.get(language, ".py")
         source_files = list(output_dir.rglob(f"*{ext}"))
