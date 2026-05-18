@@ -329,16 +329,21 @@ class TestEvaluateCommand:
             cli, ["evaluate", "--experiment-dir", str(tmp_path), "--config", str(cfg)]
         )
         assert result.exit_code != 0
-        assert "No run directories" in result.output
+        assert "No rep directories" in result.output
 
     def test_experiment_dir_calls_evaluation_for_each_run(self, tmp_path: Path, monkeypatch):
         cfg = self._make_workspace(tmp_path)
         runs_root = tmp_path / "runs"
         runs_root.mkdir()
-        run_a = runs_root / "run-a"
-        run_b = runs_root / "run-b"
-        run_a.mkdir()
-        run_b.mkdir()
+        # CLI walks two levels: runs/<cell>/<rep> — rep dirs start with "rep"
+        cell_a = runs_root / "cell-a"
+        cell_b = runs_root / "cell-b"
+        cell_a.mkdir()
+        cell_b.mkdir()
+        rep_a = cell_a / "rep-0"
+        rep_b = cell_b / "rep-0"
+        rep_a.mkdir()
+        rep_b.mkdir()
 
         called = []
 
@@ -352,7 +357,7 @@ class TestEvaluateCommand:
             cli, ["evaluate", "--experiment-dir", str(tmp_path), "--config", str(cfg)]
         )
         assert result.exit_code == 0, result.output
-        assert set(called) == {run_a, run_b}
+        assert set(called) == {rep_a, rep_b}
 
     def test_multiple_run_dirs_calls_evaluation_for_each(self, tmp_path: Path, monkeypatch):
         cfg = self._make_workspace(tmp_path)
