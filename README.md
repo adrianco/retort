@@ -329,24 +329,32 @@ src/retort/
 
 Honest accounting. "Code exists" ≠ "tested end-to-end against real data."
 
-| Phase | Status | Notes |
-|-------|--------|-------|
-| **Phase 0: Skeleton** | ✅ Working | Project structure, Pydantic config schema, factor registry, fractional-factorial design generation, SQLite/SQLAlchemy storage, `retort init`, `retort design generate`. Covered by unit tests. |
-| **Phase 1: Playpen + Scoring** | ✅ Working | `LocalRunner` exercised end-to-end against `rest-api-crud` and `brazil-bench`. All 8 scorers implemented and exercised: `code_quality`, `test_coverage`, `test_quality` (BDD bonus), `token_efficiency`, `defect_rate`, `maintainability`, `idiomatic`, `findings` (reads `assessment.json` from `evaluate-run` skill). **Scoring gate:** `test_coverage == 0` vetoes all scores. `evaluate-run` + `file-run-issues` skills wired into `retort run` and bulk `retort evaluate --workers N`. **`DockerRunner` is still a skeleton.** |
-| **Phase 2: Promotion + Reporting** | 🟡 Code present, lightly exercised | Lifecycle state machine, promotion gates, changelog, multi-format export, `retort promote`, `retort report effects` exist and unit-test. Not yet run on a real promotion decision. |
-| **Phase 3: Analysis** | 🟡 Code present, lightly exercised | ANOVA + residual diagnostics (statsmodels), Bayesian conjugate-NIG updating (scipy), Pareto frontier, `retort analyze`. Verified on synthetic data; not yet on a complete experiment-1 dataset with replicates. |
-| **Phase 4: Polish** | 🟡 Mostly working | D-optimal augmentation + candidate intake (`retort intake`), pluggy plugin system, status dashboard, Pareto frontier (`retort report pareto`), promotion gates (`retort promote`) all exercised against real data. Scheduler/budget tracking still inert (no `cost_limit_usd` enforcement); Wardley overlay + aliasing reports exist but minimally verified. |
-| **Resume / archive** | ✅ Working | `retort run --resume` skips already-recorded `(config, replicate)` pairs; `--retry-failed` retries failed ones. Each run's `/tmp` workspace is copied to `<workspace>/runs/<cell>/rep<N>/` before teardown so artifacts survive interrupts and `/tmp` cleanup. Per-run DB commit means an interrupt loses at most one run. |
+| Area | Status | Notes |
+|------|--------|-------|
+| **Design generation** | ✅ Working | Fractional factorial (pyDOE3), mixed-level support, `design.fraction` config, `--design <csv>` override, `DesignMatrix.from_csv()`, `retort analyze --predict` for unrun cells. Full unit test coverage. |
+| **LocalRunner + scoring** | ✅ Working | Exercised end-to-end against `rest-api-crud` and `brazil-bench`. 8 scorers: `code_quality`, `test_coverage`, `test_quality`, `token_efficiency`, `defect_rate`, `maintainability`, `idiomatic`, `findings`. Scoring gate: `test_coverage == 0` vetoes all scores. `evaluate-run` + `file-run-issues` skills auto-invoked after each run. `retort evaluate --workers N` for bulk re-evaluation. |
+| **Resume / sharding** | ✅ Working | `--resume` skips recorded `(config, replicate)` pairs; `--retry-failed` retries failures. `--shard N/M` deterministic partition for parallel polecats. Per-run DB commit = at most one lost run on interrupt. Run artifacts archived to `runs/<cell>/rep<N>/`. |
+| **Factor system** | ✅ Working | `language`, `model` (with alias table, versioned IDs), `tooling` (beads instructions), `prompt` (named `.md` files in `prompts/`), `org_context`. Any additional factor flows through `stack.extra` automatically. |
+| **MLflow sink** | ✅ Implemented | Logs factor levels, scores, and telemetry per run. Enabled by `mlflow:` block in `workspace.yaml`. Not covered by integration tests. |
+| **Local inference cost** | ✅ Working | `local_inference_cost` block computes `_cost_usd` from wall-clock duration × (electricity + amortized hardware) for local/offline models. |
+| **DockerRunner** | ✅ Implemented | `provision()` and `execute()` implemented with timeout and teardown. **Not validated end-to-end** — use `runner: local` for now. |
+| **Promotion + lifecycle** | 🟡 Code present | State machine, gates, changelog, `retort promote`. Exercised in unit tests; not yet driven by a real promotion decision. |
+| **ANOVA / analysis** | 🟡 Lightly exercised | `retort analyze` with additive and multiplicative transforms, residual diagnostics, `--predict` for fractional designs. Verified on real experiment-1/2 data for main effects; interaction + Bayesian paths lightly tested. |
+| **Reporting** | 🟡 Mostly working | `retort report effects`, `report web`, `report pareto`, `report wardley`, `report aliasing`, `report dashboard` all implemented. `wardley` and `aliasing` verified in code; not exercised against live experiment data. |
+| **Scheduler / budget** | 🔴 Stub | `cost_limit_usd` in config schema but **not enforced** during `retort run`. `retort intake` (D-optimal augmentation) implemented but untested against real candidates. |
+| **Multi-agent** | 🔴 Stub | Only `claude-code` is wired in `LocalRunner`. `cursor`, `copilot`, and other agents are valid config values but have no execution path — runs silently skip. |
+| **Elixir / Erlang** | ✅ Working | Mix project support, `_build`/`deps` exclusions in scorers, Hex/Rebar init guidance in prompts. |
 
 ### Known gaps and bugs
 
-- `DockerRunner` not validated — use `runner: local` in `workspace.yaml` for now
-- Only `claude-code` is wired up as an agent
-- `idiomatic` scorer makes a Claude haiku call per run (~$0.001/run); cached per workspace in `.idiomatic_cache.json`
+- `cost_limit_usd` field exists in config but is never checked — no spend cap enforcement
+- Only `claude-code` agent is implemented; other agent levels silently skip
 - `retort intake` / D-optimal augmentation untested against a real candidate
-- Bundled tasks `cli-data-pipeline` and `react-dashboard` exist but haven't been run end-to-end
-- `evaluate-run` skill timeout is 600s per run (evaluate + file-run-issues chained in one call); runs on very large codebases may hit the limit
-- 8 of 61 experiment-1 runs and 2 of 24 experiment-2 runs missed evaluation (rc=143 SIGTERM under load from concurrent haiku workers) — re-run with `retort evaluate --workers 2` on the missing runs
+- Bundled tasks `cli-data-pipeline` and `react-dashboard` have `validate.py` but haven't been run end-to-end
+- `evaluate-run` skill timeout is 600s per run; very large codebases may hit the limit
+- 8 of 61 experiment-1 runs and 2 of 24 experiment-2 runs missed evaluation (rc=143 SIGTERM under load) — re-run with `retort evaluate --workers 2`
+- MLflow sink has no integration tests
+- 2 pre-existing failures in `TestEvaluateCommand` (test_experiment_dir tests) need investigation
 
 ## Development
 
