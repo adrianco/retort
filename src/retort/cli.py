@@ -15,7 +15,7 @@ from retort import __version__
 from retort.analysis.anova import run_all_responses, run_anova
 from retort.analysis.residuals import check_residuals
 from retort.design.factors import FactorRegistry
-from retort.design.generator import generate_design
+from retort.design.generator import DesignMatrix, generate_design
 
 WORKSPACE_TEMPLATE = """\
 # Retort workspace configuration
@@ -268,19 +268,35 @@ def design_generate(phase: str, config: str | None, output: str | None) -> None:
 
     Reads factor definitions and produces a design matrix for the given phase.
     Without --config, reads a JSON dict of {factor_name: [levels]} from stdin.
+    When workspace.yaml contains ``design.fraction``, the generated matrix is
+    automatically reduced to that fraction of the full factorial.
     """
+    import math
+
     registry = _load_factors(config)
 
     if len(registry) < 2:
         click.echo("Error: need at least 2 factors for design generation.", err=True)
         sys.exit(1)
 
-    result = generate_design(registry, phase)
+    # Honour design.fraction from workspace config when available
+    fraction: float | None = None
+    if config is not None:
+        from retort.config.loader import load_workspace
+        ws = load_workspace(config)
+        fraction = ws.design.fraction
+
+    result = generate_design(registry, phase, fraction=fraction)
+
+    full_n = result.full_factorial_size or math.prod(f.num_levels for f in registry.factors)
+    frac_label = f"{result.num_runs}/{full_n}" if result.num_runs != full_n else f"{full_n} (full factorial)"
 
     if output:
         result.to_csv(output)
-        click.echo(f"Design matrix written to {output} ({result.num_runs} runs)")
+        click.echo(f"Design matrix written to {output} ({result.num_runs} runs, {frac_label})")
     else:
+        # Summary to stderr so it doesn't pollute a piped CSV
+        click.echo(f"# {result.num_runs} runs — {frac_label}", err=True)
         click.echo(result.matrix.to_csv(index_label="run"))
 
 
@@ -385,6 +401,18 @@ def _load_from_stdin() -> FactorRegistry:
         "polecats can run in parallel without colliding."
     ),
 )
+@click.option(
+    "--design",
+    "design_csv",
+    type=click.Path(exists=True),
+    default=None,
+    help=(
+        "Path to a CSV design matrix produced by `retort design generate -o`. "
+        "When provided, skips auto-generation and runs exactly the cells listed "
+        "in the file. Use this to run a manually-trimmed fractional design. "
+        "Overrides the workspace design.fraction setting."
+    ),
+)
 def run_experiments(
     phase: str,
     config: str,
@@ -394,6 +422,7 @@ def run_experiments(
     resume: bool,
     retry_failed: bool,
     shard: str | None,
+    design_csv: str | None,
 ) -> None:
     """Execute experiment runs for a design matrix.
 
@@ -426,9 +455,21 @@ def run_experiments(
 
     shard_index, shard_total = _parse_shard(shard)
 
-    # Generate design matrix
-    design = generate_design(registry, phase)
-    click.echo(f"Design matrix: {design.num_runs} runs ({phase})")
+    # Generate (or load) design matrix
+    if design_csv is not None:
+        design = DesignMatrix.from_csv(design_csv, phase)
+        click.echo(f"Design matrix: {design.num_runs} runs (loaded from {design_csv})")
+    else:
+        fraction = workspace_config.design.fraction
+        design = generate_design(registry, phase, fraction=fraction)
+        if fraction is not None and fraction < 1.0:
+            full_n = design.full_factorial_size or design.num_runs
+            click.echo(
+                f"Design matrix: {design.num_runs}/{full_n} cells "
+                f"({fraction:.0%} fraction, {phase})"
+            )
+        else:
+            click.echo(f"Design matrix: {design.num_runs} runs ({phase})")
 
     # Resolve task
     if task_source is None:

@@ -178,6 +178,21 @@ class DesignConfig(BaseModel):
     screening_resolution: Annotated[int, Field(default=3, ge=2, le=6)]
     characterization_resolution: Annotated[int, Field(default=4, ge=3, le=6)]
     significance_threshold: Annotated[float, Field(default=0.10, gt=0, lt=1)]
+    fraction: Annotated[
+        float | None,
+        Field(
+            default=None,
+            gt=0,
+            le=1,
+            description=(
+                "Fraction of the full factorial to run (e.g. 0.25 for a quarter "
+                "fraction). When set, retort generates a balanced subset that covers "
+                "every factor level at least once. Unrun cells are predicted via "
+                "`retort analyze --predict`. Omit (or set to 1.0) for the full "
+                "fractional factorial that the resolution setting produces."
+            ),
+        ),
+    ] = None
 
 
 # ---------------------------------------------------------------------------

@@ -130,6 +130,42 @@ design:
 | `screening_resolution` | `3` | Resolution III aliases 3-factor interactions but estimates all main effects |
 | `characterization_resolution` | `4` | Resolution IV also estimates two-factor interactions |
 | `significance_threshold` | `0.10` | p-value below this = significant effect |
+| `fraction` | *(none)* | Fraction of the full factorial to run (e.g. `0.25` for a quarter-fraction). Omit to run the full fractional factorial the resolution setting produces. |
+
+### Fractional designs and prediction
+
+When `fraction` is set, `retort design generate` and `retort run` automatically reduce the design to a balanced subset:
+
+```yaml
+design:
+  screening_resolution: 3
+  fraction: 0.25            # quarter-fraction: 6 cells from 24
+  significance_threshold: 0.10
+```
+
+The generator ensures:
+- Every factor level appears at least once (full contrast coverage).
+- Multi-level factor levels each get exactly `ceil(full_factorial * fraction / max_levels)` runs.
+- Binary secondary factors are individually balanced (equal runs per level).
+
+**Predicting unrun cells** — after running a fractional design, fit the ANOVA model and project missing cells:
+
+```bash
+retort analyze --data results.csv -r code_quality \
+    -f language -f model -f tooling --predict
+```
+
+The `--predict` flag outputs point estimates and 95% confidence intervals for every cell in the full factorial, whether or not it was actually run.
+
+**Manual design editing** — generate the design CSV, edit it to keep only the cells you want, then pass it back via `--design`:
+
+```bash
+retort design generate --phase screening --config workspace.yaml -o design.csv
+# Edit design.csv to trim or adjust cells
+retort run --phase screening --config workspace.yaml --design design.csv
+```
+
+`--design` overrides both `design.fraction` and the auto-generator, letting you run any arbitrary subset of cells.
 
 ## promotion
 

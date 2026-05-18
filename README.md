@@ -184,12 +184,19 @@ bd --version                 # Beads present (only needed for tooling=beads)
 retort init my-eval
 cd my-eval
 
-# Edit workspace.yaml to define your factors, responses, and tasks
-# Then generate a screening design matrix
+# Edit workspace.yaml to define your factors, responses, and tasks.
+# Add design.fraction: 0.25 to run a quarter-fraction instead of the full design.
+# Then generate a screening design matrix (optional — run does this automatically)
 retort design generate --phase screening --config workspace.yaml -o design.csv
 
-# Execute experiment runs
+# Execute experiment runs (uses design.fraction from workspace.yaml automatically)
 retort run --phase screening --config workspace.yaml
+
+# Predict unrun cells from a fractional run
+retort analyze --data results.csv -r code_quality -f language -f model -f tooling --predict
+
+# Or pass a hand-edited CSV to run any arbitrary subset
+retort run --phase screening --config workspace.yaml --design design.csv
 
 # Compute main effects and interactions
 retort report effects --db retort.db --matrix-id 1 --metric code_quality
@@ -239,7 +246,7 @@ wait
 |---------|-------------|
 | `retort init <name>` | Create a new workspace with config template and SQLite database |
 | `retort design generate` | Generate a fractional factorial design matrix (screening or characterization) |
-| `retort run` | Execute experiment runs: design matrix, playpen provisioning, scoring, storage |
+| `retort run` | Execute experiment runs: design matrix, playpen provisioning, scoring, storage. Honors `design.fraction` from config; `--design <csv>` overrides with a manually-edited design file |
 | `retort promote` | Evaluate promotion gates for stack lifecycle transitions |
 | `retort report effects` | Compute and export main effects and interaction effects (text, JSON, CSV) |
 | `retort export csv` | Export experiment runs + scores to CSV for `retort analyze` and external tools |
@@ -284,11 +291,14 @@ playpen:
 design:
   screening_resolution: 3
   significance_threshold: 0.10
+  fraction: 0.25            # optional: quarter-fraction (6 cells from 24); omit for full fractional factorial
 
 promotion:
   screening_to_trial: { p_value: 0.10 }
   trial_to_production: { posterior_confidence: 0.80 }
 ```
+
+When `fraction` is set, `retort run` automatically uses a balanced subset that covers every factor level at least once. After the run, use `retort analyze --predict` to project point estimates and 95% CIs for every unrun cell. You can also override the fraction with a manually-edited CSV via `retort run --design design.csv`.
 
 ## Architecture
 
