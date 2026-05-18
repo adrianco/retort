@@ -66,6 +66,42 @@ retort design generate --phase screening --config workspace.yaml -o design.csv
 
 This produces a fractional factorial design — far fewer runs than a full factorial, while still estimating all main effects.
 
+### Optional: reduce runs further with an explicit fraction
+
+For larger factor spaces (e.g. 6 languages × 2 models × 2 tooling = 24 cells), add `fraction` to `workspace.yaml`:
+
+```yaml
+design:
+  screening_resolution: 3
+  significance_threshold: 0.10
+  fraction: 0.25            # quarter-fraction: 6 cells from a 24-cell full factorial
+```
+
+`retort run` picks this up automatically — every factor level appears at least once and binary secondary factors are balanced:
+
+```bash
+retort run --phase screening --config workspace.yaml
+```
+
+**Predict unrun cells** after the fractional run completes:
+
+```bash
+retort analyze --data results.csv -r code_quality \
+    -f language -f model -f tooling --predict
+```
+
+The `--predict` flag outputs point estimates and 95% confidence intervals for every cell in the full factorial, whether or not it was run.
+
+**Pass a custom design CSV** to override the `fraction` setting entirely:
+
+```bash
+retort design generate --phase screening --config workspace.yaml -o design.csv
+# Edit design.csv to keep only the cells you want
+retort run --phase screening --config workspace.yaml --design design.csv
+```
+
+`--design` accepts any CSV in the same format `design generate` produces — hand-trimmed subsets, augmented designs, whatever you need.
+
 ## 4. Preview the experiment
 
 ```bash

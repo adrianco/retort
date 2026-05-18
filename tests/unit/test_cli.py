@@ -392,3 +392,183 @@ class TestEvaluateCommand:
         result = runner.invoke(cli, ["evaluate", str(run_a), "--config", str(cfg)])
         assert result.exit_code == 0, result.output
         assert called == [run_a]
+
+
+class TestDesignGenerateCommand:
+    """Tests for `retort design generate`."""
+
+    def _make_workspace(self, tmp_path: Path, fraction: float | None = None) -> Path:
+        cfg = tmp_path / "workspace.yaml"
+        fraction_line = f"  fraction: {fraction}\n" if fraction is not None else ""
+        cfg.write_text(
+            "experiment:\n"
+            "  name: test\n"
+            "factors:\n"
+            "  language:\n"
+            "    levels: [python, typescript, go, rust, java, clojure]\n"
+            "  model:\n"
+            "    levels: [opus-4-6, opus-4-7]\n"
+            "  tooling:\n"
+            "    levels: [none, beads]\n"
+            "responses:\n"
+            "  - code_quality\n"
+            "tasks:\n"
+            "  - source: bundled://rest-api-crud\n"
+            "design:\n"
+            f"{fraction_line}"
+            "  screening_resolution: 3\n"
+        )
+        return cfg
+
+    def test_generate_outputs_csv(self, tmp_path: Path):
+        cfg = self._make_workspace(tmp_path)
+        runner = CliRunner()
+        result = runner.invoke(
+            cli,
+            ["design", "generate", "--phase", "screening", "--config", str(cfg), "-o", str(tmp_path / "design.csv")],
+        )
+        assert result.exit_code == 0, result.output
+        assert (tmp_path / "design.csv").exists()
+
+    def test_generate_stdout_csv(self, tmp_path: Path):
+        cfg = self._make_workspace(tmp_path)
+        runner = CliRunner()
+        result = runner.invoke(
+            cli,
+            ["design", "generate", "--phase", "screening", "--config", str(cfg)],
+        )
+        assert result.exit_code == 0, result.output
+        # Output should contain CSV header
+        assert "language" in result.output
+
+    def test_generate_with_fraction_reduces_rows(self, tmp_path: Path):
+        """design.fraction = 0.25 should produce 6 rows for 6×2×2 design."""
+        cfg = self._make_workspace(tmp_path, fraction=0.25)
+        out_csv = tmp_path / "design.csv"
+        runner = CliRunner()
+        result = runner.invoke(
+            cli,
+            ["design", "generate", "--phase", "screening", "--config", str(cfg), "-o", str(out_csv)],
+        )
+        assert result.exit_code == 0, result.output
+        assert out_csv.exists()
+        import pandas as pd
+        df = pd.read_csv(out_csv, index_col="run")
+        assert len(df) == 6
+
+    def test_generate_fraction_summary_in_output(self, tmp_path: Path):
+        cfg = self._make_workspace(tmp_path, fraction=0.25)
+        runner = CliRunner()
+        result = runner.invoke(
+            cli,
+            ["design", "generate", "--phase", "screening", "--config", str(cfg), "-o", str(tmp_path / "d.csv")],
+        )
+        assert result.exit_code == 0, result.output
+        assert "6/24" in result.output
+
+
+class TestRunDesignFlag:
+    """Tests for `retort run --design`."""
+
+    def _make_workspace(self, tmp_path: Path) -> Path:
+        cfg = tmp_path / "workspace.yaml"
+        cfg.write_text(
+            "experiment:\n"
+            "  name: test\n"
+            "factors:\n"
+            "  language:\n"
+            "    levels: [python, typescript, go]\n"
+            "  model:\n"
+            "    levels: [opus, sonnet]\n"
+            "responses:\n"
+            "  - code_quality\n"
+            "tasks:\n"
+            "  - source: bundled://rest-api-crud\n"
+            "playpen:\n"
+            "  runner: local\n"
+            "  replicates: 1\n"
+        )
+        return cfg
+
+    def _make_design_csv(self, tmp_path: Path) -> Path:
+        """Write a minimal 2-row design CSV."""
+        import pandas as pd
+        df = pd.DataFrame([
+            {"language": "python", "model": "opus"},
+            {"language": "typescript", "model": "sonnet"},
+        ])
+        path = tmp_path / "design.csv"
+        df.to_csv(path, index_label="run")
+        return path
+
+    def test_dry_run_with_design_csv(self, tmp_path: Path):
+        """--design csv + --dry-run should list only the CSV rows."""
+        cfg = self._make_workspace(tmp_path)
+        design_csv = self._make_design_csv(tmp_path)
+        runner = CliRunner()
+        result = runner.invoke(
+            cli,
+            [
+                "run",
+                "--phase", "screening",
+                "--config", str(cfg),
+                "--design", str(design_csv),
+                "--dry-run",
+            ],
+        )
+        assert result.exit_code == 0, result.output
+        # Should see exactly 2 run entries in dry-run output
+        assert result.output.count("[RUN ]") == 2
+
+    def test_design_csv_must_exist(self, tmp_path: Path):
+        """--design pointing to a missing file should fail with exit code != 0."""
+        cfg = self._make_workspace(tmp_path)
+        runner = CliRunner()
+        result = runner.invoke(
+            cli,
+            [
+                "run",
+                "--phase", "screening",
+                "--config", str(cfg),
+                "--design", str(tmp_path / "nonexistent.csv"),
+                "--dry-run",
+            ],
+        )
+        assert result.exit_code != 0
+
+    def test_design_csv_overrides_fraction(self, tmp_path: Path):
+        """--design csv should be used even if workspace has design.fraction set."""
+        cfg = tmp_path / "workspace.yaml"
+        cfg.write_text(
+            "experiment:\n"
+            "  name: test\n"
+            "factors:\n"
+            "  language:\n"
+            "    levels: [python, typescript, go]\n"
+            "  model:\n"
+            "    levels: [opus, sonnet]\n"
+            "responses:\n"
+            "  - code_quality\n"
+            "tasks:\n"
+            "  - source: bundled://rest-api-crud\n"
+            "playpen:\n"
+            "  runner: local\n"
+            "  replicates: 1\n"
+            "design:\n"
+            "  fraction: 0.25\n"
+        )
+        design_csv = self._make_design_csv(tmp_path)
+        runner = CliRunner()
+        result = runner.invoke(
+            cli,
+            [
+                "run",
+                "--phase", "screening",
+                "--config", str(cfg),
+                "--design", str(design_csv),
+                "--dry-run",
+            ],
+        )
+        assert result.exit_code == 0, result.output
+        # CSV has 2 rows, not the fraction-reduced count
+        assert result.output.count("[RUN ]") == 2
