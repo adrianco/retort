@@ -668,3 +668,83 @@ class TestPromptFactor:
 
         with pytest.raises(FileNotFoundError, match="prompts directory"):
             runner._build_agent_command(stack, task)
+
+
+class TestCostLimitEnforcement:
+    """Tests for cost_limit_usd enforcement in retort run."""
+
+    def _make_workspace(self, tmp_path: Path, cost_limit: float | None = None) -> Path:
+        cfg = tmp_path / "workspace.yaml"
+        limit_line = f"  cost_limit_usd: {cost_limit}\n" if cost_limit is not None else ""
+        cfg.write_text(
+            "experiment:\n"
+            "  name: test\n"
+            "factors:\n"
+            "  language:\n"
+            "    levels: [python, go]\n"
+            "  model:\n"
+            "    levels: [opus, sonnet]\n"
+            "responses:\n"
+            "  - code_quality\n"
+            "tasks:\n"
+            "  - source: bundled://rest-api-crud\n"
+            "playpen:\n"
+            "  runner: local\n"
+            "  replicates: 1\n"
+            + limit_line
+        )
+        return cfg
+
+    def _patch_runner(self, monkeypatch, cost_per_run: float = 0.04):
+        """Patch LocalRunner + helpers so no real execution happens."""
+        from retort.playpen.runner import RunArtifacts, TaskSpec
+        from retort.scoring.collector import ScoreVector
+
+        monkeypatch.setattr(
+            "retort.playpen.local_runner.LocalRunner.provision",
+            lambda *a, **k: "env-1",
+        )
+        monkeypatch.setattr(
+            "retort.playpen.local_runner.LocalRunner.execute",
+            lambda *a, **k: RunArtifacts(
+                exit_code=0,
+                duration_seconds=0.1,
+                token_count=10,
+                metadata={"total_cost_usd": str(cost_per_run)},
+            ),
+        )
+        monkeypatch.setattr(
+            "retort.playpen.local_runner.LocalRunner.teardown",
+            lambda *a, **k: None,
+        )
+        monkeypatch.setattr(
+            "retort.scoring.collector.ScoreCollector.collect",
+            lambda *a, **k: ScoreVector(scores=[]),
+        )
+        monkeypatch.setattr(
+            "retort.playpen.task_loader.load_task",
+            lambda source: TaskSpec(name="test", description="test task", prompt="Do it."),
+        )
+
+    def test_run_aborts_when_cost_limit_exceeded(self, tmp_path: Path, monkeypatch):
+        """Accumulated cost exceeding cost_limit_usd aborts the run with a clear error."""
+        # 2 runs at $0.04 each = $0.08 > $0.05 limit; should abort after first run
+        cfg = self._make_workspace(tmp_path, cost_limit=0.05)
+        self._patch_runner(monkeypatch, cost_per_run=0.04)
+
+        runner = CliRunner()
+        result = runner.invoke(cli, ["run", "--phase", "screening", "--config", str(cfg)])
+
+        assert result.exit_code != 0
+        assert "cost_limit_usd" in result.output
+
+    def test_run_completes_when_no_cost_limit(self, tmp_path: Path, monkeypatch):
+        """Without cost_limit_usd, all runs complete regardless of accumulated cost."""
+        cfg = self._make_workspace(tmp_path)  # no cost_limit
+        self._patch_runner(monkeypatch, cost_per_run=100.0)
+
+        runner = CliRunner()
+        result = runner.invoke(cli, ["run", "--phase", "screening", "--config", str(cfg)])
+
+        assert result.exit_code == 0, result.output
+        assert "cost_limit_usd" not in result.output
