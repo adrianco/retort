@@ -61,6 +61,7 @@ class LocalRunner:
         work_dir: Path | None = None,
         eval_model: str | None = None,
         local_inference_cost: LocalInferenceCost | None = None,
+        prompts_dir: Path | None = None,
     ) -> None:
         self.timeout_minutes = timeout_minutes
         self.max_turns = max_turns
@@ -70,6 +71,9 @@ class LocalRunner:
         self.eval_model = eval_model
         # When set, compute run cost from hardware model instead of agent-reported cost.
         self.local_inference_cost = local_inference_cost
+        # Directory containing named prompt files (<name>.md) for the prompt factor.
+        # None means prompt injection is disabled (factor absent or always "none").
+        self.prompts_dir = prompts_dir
 
     def provision(self, stack: StackConfig, task: TaskSpec) -> str:
         """Create a workspace directory with the task spec."""
@@ -229,6 +233,26 @@ class LocalRunner:
         if self.work_dir.exists():
             shutil.rmtree(self.work_dir, ignore_errors=True)
 
+    def _load_prompt_file(self, prompt_level: str) -> str:
+        """Load and return the text for a named prompt level.
+
+        Raises FileNotFoundError with a clear message if the file is missing,
+        so misconfigured experiments fail immediately rather than silently
+        running without the intended prompt.
+        """
+        if self.prompts_dir is None:
+            raise FileNotFoundError(
+                f"prompt factor level {prompt_level!r} requires a prompts directory, "
+                f"but none was configured. Create prompts/{prompt_level}.md next to workspace.yaml."
+            )
+        path = self.prompts_dir / f"{prompt_level}.md"
+        if not path.exists():
+            raise FileNotFoundError(
+                f"Prompt file not found: {path}\n"
+                f"Create prompts/{prompt_level}.md next to workspace.yaml to define this prompt level."
+            )
+        return path.read_text().strip()
+
     def _build_agent_command(self, stack: StackConfig, task: TaskSpec) -> list[str] | None:
         """Build the CLI command to invoke the agent."""
         agent = stack.agent if stack.agent != "unknown" else "claude-code"
@@ -248,6 +272,11 @@ class LocalRunner:
                     "Run bd init first, then bd create for each subtask, "
                     "bd update --claim to claim work, and bd close when done."
                 )
+
+            # Inject named prompt if prompt factor is set and not "none"
+            prompt_level = stack.extra.get("prompt", "none")
+            if prompt_level != "none":
+                prompt += " " + self._load_prompt_file(prompt_level)
 
             # Per-task max_turns wins over workspace-wide setting if set.
             effective_max_turns = task.max_turns if task.max_turns is not None else self.max_turns

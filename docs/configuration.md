@@ -18,6 +18,43 @@ factors:
 
 Each factor must have at least 2 levels. Factor names become column headers in the design matrix CSV.
 
+### Built-in factor conventions
+
+Some factor names trigger special runner behaviour:
+
+| Factor | Special behaviour |
+|--------|-------------------|
+| `tooling` | Level `beads` appends beads task-tracking instructions to the agent prompt |
+| `model` | Level value is resolved through the model alias table (e.g. `opus` → `claude-opus-4-7`) |
+| `prompt` | Level value selects a prompt file from `prompts/<name>.md`; level `none` injects nothing |
+
+#### The `prompt` factor
+
+Adding `prompt` as a factor lets you compare named prompting strategies across every other combination of factors.
+
+```yaml
+factors:
+  language:
+    levels: [python, go, typescript]
+  model:
+    levels: [claude-opus-4-6, claude-opus-4-7]
+  prompt:
+    levels: [none, concise, tdd]
+```
+
+Each non-`none` level must have a corresponding file `prompts/<name>.md` in the same directory as `workspace.yaml`. The file's text is appended to the base agent prompt at run time. The `none` level injects nothing, so experiments without the `prompt` factor (or with all levels set to `none`) behave exactly as before.
+
+```
+my-eval/
+├── workspace.yaml
+├── prompts/
+│   ├── concise.md        # "Be concise. Minimise token usage…"
+│   └── tdd.md            # "Write failing tests first, then implement…"
+└── retort.db
+```
+
+If a non-`none` level is used but its `.md` file is missing, the run fails immediately with a clear error rather than silently running without the intended prompt.
+
 ## responses
 
 List the metric names to collect for each run.

@@ -565,10 +565,12 @@ def run_experiments(
     # Set up runner and scorer
     runner_type = workspace_config.playpen.runner
     if runner_type == "local":
+        prompts_dir = config_dir / "prompts"
         runner = LocalRunner(
             timeout_minutes=workspace_config.playpen.timeout_minutes,
             max_turns=workspace_config.playpen.max_turns,
             local_inference_cost=workspace_config.playpen.local_inference_cost,
+            prompts_dir=prompts_dir if prompts_dir.is_dir() else None,
         )
     else:
         runner = DockerRunner(timeout_minutes=workspace_config.playpen.timeout_minutes)

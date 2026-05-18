@@ -572,3 +572,94 @@ class TestRunDesignFlag:
         assert result.exit_code == 0, result.output
         # CSV has 2 rows, not the fraction-reduced count
         assert result.output.count("[RUN ]") == 2
+
+
+class TestPromptFactor:
+    """Tests for the prompt factor and file injection."""
+
+    def _make_workspace_with_prompt(self, tmp_path: Path, prompt_levels: list[str]) -> Path:
+        cfg = tmp_path / "workspace.yaml"
+        levels_yaml = "[" + ", ".join(prompt_levels) + "]"
+        cfg.write_text(
+            "experiment:\n"
+            "  name: test\n"
+            "factors:\n"
+            "  language:\n"
+            "    levels: [python, go]\n"
+            "  prompt:\n"
+            f"    levels: {levels_yaml}\n"
+            "responses:\n"
+            "  - code_quality\n"
+            "tasks:\n"
+            "  - source: bundled://rest-api-crud\n"
+            "playpen:\n"
+            "  runner: local\n"
+            "  replicates: 1\n"
+        )
+        return cfg
+
+    def test_none_level_needs_no_file(self, tmp_path: Path):
+        """prompt: none must work even when prompts_dir is None (no prompts/ directory)."""
+        from retort.playpen.local_runner import LocalRunner
+        from retort.playpen.runner import StackConfig, TaskSpec
+
+        runner = LocalRunner(prompts_dir=None)
+        stack = StackConfig(language="python", agent="claude-code", framework="unknown",
+                            extra={"prompt": "none"})
+        task = TaskSpec(name="t", description="d", prompt="Do the thing.")
+
+        cmd = runner._build_agent_command(stack, task)
+        assert cmd is not None
+        # Base prompt only — no extra text from a file
+        prompt_arg = cmd[cmd.index("-p") + 1]
+        assert "none" not in prompt_arg  # level name itself should not appear
+
+    def test_named_prompt_injected_into_command(self, tmp_path: Path):
+        """A named prompt level appends the file text to the agent prompt."""
+        from retort.playpen.local_runner import LocalRunner
+        from retort.playpen.runner import StackConfig, TaskSpec
+
+        prompts_dir = tmp_path / "prompts"
+        prompts_dir.mkdir()
+        (prompts_dir / "concise.md").write_text("Be concise. Minimise token usage.")
+
+        runner = LocalRunner(prompts_dir=prompts_dir)
+        stack = StackConfig(language="python", agent="claude-code", framework="unknown",
+                            extra={"prompt": "concise"})
+        task = TaskSpec(name="t", description="d", prompt="Do the thing.")
+
+        cmd = runner._build_agent_command(stack, task)
+        assert cmd is not None
+        prompt_arg = cmd[cmd.index("-p") + 1]
+        assert "Be concise" in prompt_arg
+
+    def test_missing_prompt_file_raises(self, tmp_path: Path):
+        """A non-none prompt level with no matching file must raise FileNotFoundError."""
+        import pytest
+        from retort.playpen.local_runner import LocalRunner
+        from retort.playpen.runner import StackConfig, TaskSpec
+
+        prompts_dir = tmp_path / "prompts"
+        prompts_dir.mkdir()  # directory exists but file does not
+
+        runner = LocalRunner(prompts_dir=prompts_dir)
+        stack = StackConfig(language="python", agent="claude-code", framework="unknown",
+                            extra={"prompt": "tdd"})
+        task = TaskSpec(name="t", description="d", prompt="Do the thing.")
+
+        with pytest.raises(FileNotFoundError, match="tdd"):
+            runner._build_agent_command(stack, task)
+
+    def test_no_prompts_dir_with_named_level_raises(self, tmp_path: Path):
+        """Named prompt level with no prompts_dir configured must raise immediately."""
+        import pytest
+        from retort.playpen.local_runner import LocalRunner
+        from retort.playpen.runner import StackConfig, TaskSpec
+
+        runner = LocalRunner(prompts_dir=None)
+        stack = StackConfig(language="python", agent="claude-code", framework="unknown",
+                            extra={"prompt": "verbose"})
+        task = TaskSpec(name="t", description="d", prompt="Do the thing.")
+
+        with pytest.raises(FileNotFoundError, match="prompts directory"):
+            runner._build_agent_command(stack, task)
