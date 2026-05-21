@@ -82,8 +82,23 @@ class TestCoverageScorer:
 
     def _coverage_via_command(self, output_dir: Path, language: str) -> float | None:
         cmd = COVERAGE_COMMANDS.get(language)
+
+        # Languages without a coverage command (e.g. rust) go straight to the
+        # tests-only fallback. Coverage commands are tried first when they exist.
         if cmd is None:
-            return None
+            tests_cmd = _TESTS_ONLY_COMMANDS.get(language)
+            if tests_cmd is None:
+                return None
+            try:
+                result2 = subprocess.run(
+                    tests_cmd, cwd=output_dir, capture_output=True,
+                    text=True, timeout=300,
+                )
+            except (subprocess.TimeoutExpired, FileNotFoundError):
+                return None
+            combined2 = _strip_ansi((result2.stdout or "") + "\n" + (result2.stderr or ""))
+            rate2 = _parse_test_pass_rate(combined2, language)
+            return rate2 * 100.0 if rate2 is not None else None
 
         env = None
         if language == "python":
@@ -268,29 +283,34 @@ def _parse_test_pass_rate(output: str, language: str) -> float | None:
     if not output:
         return None
     for pattern in _TEST_PASS_PATTERNS.get(language, []):
-        m = pattern.search(output)
-        if not m:
-            continue
-        groups = m.groupdict()
-        total = _to_int(groups.get("total"))
-        passed = _to_int(groups.get("passed"))
-        failures = _to_int(groups.get("failures")) or 0
-        errors = _to_int(groups.get("errors")) or 0
-        skipped = _to_int(groups.get("skipped")) or 0
-        failed = _to_int(groups.get("failed")) or 0
+        # Use finditer so we see every match (e.g. one per binary for `cargo test`)
+        # and pick the one with the highest total — the most informative signal.
+        best_passed: int | None = None
+        best_total: int | None = None
+        for m in pattern.finditer(output):
+            groups = m.groupdict()
+            total = _to_int(groups.get("total"))
+            passed = _to_int(groups.get("passed"))
+            failures = _to_int(groups.get("failures")) or 0
+            errors = _to_int(groups.get("errors")) or 0
+            skipped = _to_int(groups.get("skipped")) or 0
+            failed = _to_int(groups.get("failed")) or 0
 
-        if total is not None and total > 0:
-            if passed is None:
-                passed = total - failures - errors - skipped - failed
-        else:
-            # No explicit total — derive from passed + the failure-class counts.
-            if passed is None:
-                continue
-            total = passed + failures + errors + failed
-            if total == 0:
-                continue
-        if passed >= 0:
-            return max(0.0, min(1.0, passed / total))
+            if total is not None and total > 0:
+                if passed is None:
+                    passed = total - failures - errors - skipped - failed
+            else:
+                # No explicit total — derive from passed + the failure-class counts.
+                if passed is None:
+                    continue
+                total = passed + failures + errors + failed
+                if total == 0:
+                    continue  # empty binary — skip
+            if passed is not None and passed >= 0:
+                if best_total is None or total > best_total:
+                    best_passed, best_total = passed, total
+        if best_total is not None and best_total > 0:
+            return max(0.0, min(1.0, best_passed / best_total))
     return None
 
 
