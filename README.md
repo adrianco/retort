@@ -142,6 +142,34 @@ Every other stack is dominated. **`go / sonnet / beads` is the only stack that n
 
 For prediction of unmeasured cells (when running fewer cells of a fractional design), use `retort analyze --predict` — emits 95% CIs for cells you didn't run, fitted from cells you did.
 
+## Experiment 3 Results — Model Version Comparison (claude-opus-4-6 vs claude-opus-4-7)
+
+📊 **[Full report →](experiment-3/reports/comparison.md)**
+
+A quarter-fraction screening experiment on the same brazil-bench task, designed to estimate the effect of upgrading from `claude-opus-4-6` to `claude-opus-4-7`. **6 cells × 2 replicates = 12 run-slots, executed across 4 parallel polecats (May 2026).**
+
+**Model version provenance:** Experiment-2 used model alias `"opus"` which resolved to `claude-opus-4-6` via the Claude CLI (claude-opus-4-7 did not yet exist in April 2026). Experiment-3 uses explicit versioned model IDs: `claude-opus-4-6` and `claude-opus-4-7`.
+
+**Design (Resolution III quarter-fraction):** Each language is assigned to one model to maximize coverage; model main effect is aliased with the compiled-vs-scripted language contrast.
+
+| Language | Model | Tooling | test_coverage | code_quality | avg duration |
+|---|---|---|---|---|---|
+| go | claude-opus-4-7 | none | **0.813** | **1.000** | 23.1m |
+| java | claude-opus-4-6 | none | 1.000 | **1.000** | 12.9m |
+| rust | claude-opus-4-7 | beads | 1.000 | 0.833 | 25.0m |
+| python | claude-opus-4-6 | none | 0.897 | 0.667 | 5.2m |
+| typescript | claude-opus-4-6 | beads | 1.000 | 0.733 | 6.7m |
+| clojure | claude-opus-4-7 | beads | 1.000 | 0.833 | 20.9m |
+
+**Headlines:**
+- **Go + claude-opus-4-7 achieves 81% test coverage vs 42% for claude-opus-4-6 on the same task** — the clearest model-version signal in the dataset. Code quality is identical (1.000 = zero high-severity findings). The 5× longer runtime in experiment-3 correlates with more thorough test writing.
+- **Java and Rust hit 100% test coverage regardless of model version.** Java scores code_quality 1.000 in both experiments; consistent with experiment-2.
+- **TypeScript + beads tooling enables test frameworks.** Experiment-2 typescript/opus scores 0.0 (no test framework generated); experiment-3 typescript/claude-opus-4-6/beads scores 1.000 — the `model:tooling` interaction matters more than model version alone.
+- **Runs take 2–9× longer in experiment-3.** Compiled languages (Go, Rust, Clojure) now use a 45-minute budget vs 25 minutes in experiment-2. The adaptive timeout system (`_estimate_run_timeout` in `cli.py`) learns per-cell timing from history and sets future budgets automatically.
+- **Same model (claude-opus-4-6), same task, same quality.** Java and Python show identical `code_quality` across the April→May gap, suggesting model quality is stable.
+
+**Scorer fixes (applied in this experiment, rescored across all experiments):** Java MVN `-q` flag silenced surefire output (removed); Clojure test alias was wrong (`-X:test` → `-M:test`); Rust lacked a coverage-command path (added tests-only fallback); TypeScript vitest invoked via broken `.bin/` wrapper (switched to direct `node` invocation with test-pass-rate fallback).
+
 ## Installation
 
 ### Prerequisites
