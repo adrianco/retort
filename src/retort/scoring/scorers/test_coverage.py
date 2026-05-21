@@ -33,7 +33,7 @@ COVERAGE_COMMANDS: dict[str, list[str]] = {
 # parseable test-pass output (e.g. maven aborts on missing jacoco
 # plugin before tests run).
 _TESTS_ONLY_COMMANDS: dict[str, list[str]] = {
-    "java": ["mvn", "-q", "test"],
+    "java": ["mvn", "test"],
     "python": ["pytest", "-q", "--tb=no"],
     "go": ["go", "test", "./..."],
     "clojure": ["clojure", "-X:test"],
