@@ -36,7 +36,9 @@ _TESTS_ONLY_COMMANDS: dict[str, list[str]] = {
     "java": ["mvn", "test"],
     "python": ["pytest", "-q", "--tb=no"],
     "go": ["go", "test", "./..."],
-    "clojure": ["clojure", "-X:test"],
+    # -M:test runs :main-opts (most common agent pattern); -X:test requires
+    # :exec-fn which agents less commonly set up.
+    "clojure": ["clojure", "-M:test"],
     # Rust: cargo-llvm-cov not always installed; fall back to plain test run.
     "rust": ["cargo", "test"],
 }
