@@ -1,0 +1,23 @@
+{
+  "severity_counts": {
+    "critical": 0,
+    "high": 1,
+    "medium": 0,
+    "low": 0,
+    "info": 0
+  },
+  "penalty_score": 0.9,
+  "top_findings": [
+    {
+      "id": "R11",
+      "kind": "requirement_missing",
+      "severity": "high",
+      "title": "Cross-file queries work (e.g., player + match data)",
+      "evidence": "No tool or method combines player data with match data (e.g., 'which players played in match X', 'which teams did player X play for'). All queries are either match-based or player-based, never combined.",
+      "suggestion": "Implement cross-file queries to combine player and match information"
+    }
+  ],
+  "requirement_coverage": 0.6363636363636364,
+  "model": "claude-opus-4-6",
+  "evaluated_at": "2026-05-21T14:11:18.720128Z"
+}
