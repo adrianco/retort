@@ -1,0 +1,7 @@
+run,language,model,tooling
+0,python,claude-opus-4-6,none
+5,typescript,claude-opus-4-6,beads
+10,go,claude-opus-4-7,none
+15,rust,claude-opus-4-7,beads
+16,java,claude-opus-4-6,none
+23,clojure,claude-opus-4-7,beads
