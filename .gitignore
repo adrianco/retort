@@ -249,4 +249,4 @@ experiment-*/runs/**/app
 experiment-*/runs/**/api
 
 # Retort run directories with embedded git repos (evaluated by polecat)
-experiment-3/runs/
+# experiment-3/runs/  # temporarily removed

@@ -1,0 +1,10 @@
+{
+  "replicate": 2,
+  "run_config": {
+    "language": "typescript",
+    "model": "claude-opus-4-6",
+    "tooling": "beads"
+  },
+  "succeeded": true,
+  "visibility": "public"
+}
