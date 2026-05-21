@@ -78,7 +78,7 @@ Sortable + drill-downable in the [web report](https://rawcdn.githack.com/adrianc
 
 📊 **[Web report →](https://rawcdn.githack.com/adrianco/retort/main/experiment-2/reports/web/index.html)**
 
-A second experiment run against [`brazil-bench/benchmark-template`](https://github.com/brazil-bench/benchmark-template) — a much harder task: MCP server, CSV ingest of Kaggle data, BDD tests with 16 canonical requirements. **24 cells, 1 replicate each, screening pass.** Results combine with experiment-1 to give cross-task ANOVA insights.
+A second experiment run against [`brazil-bench/benchmark-template`](https://github.com/brazil-bench/benchmark-template) — a much harder task: MCP server, CSV ingest of Kaggle data, BDD tests with 16 canonical requirements. **22 completed runs (of 24 cells), 1 replicate each, screening pass. Total cost $29.85, 33.6M tokens (avg $1.36/run).** Results combine with experiment-1 to give cross-task ANOVA insights.
 
 **Single-task ANOVA on `code_quality`:** only language significant (consistent with experiment-1).
 
@@ -152,14 +152,16 @@ A quarter-fraction screening experiment on the same brazil-bench task, designed 
 
 **Design (Resolution III quarter-fraction):** Each language is assigned to one model to maximize coverage; model main effect is aliased with the compiled-vs-scripted language contrast.
 
-| Language | Model | Tooling | test_coverage | code_quality | avg duration |
-|---|---|---|---|---|---|
-| go | claude-opus-4-7 | none | **0.813** | **1.000** | 23.1m |
-| java | claude-opus-4-6 | none | 1.000 | **1.000** | 12.9m |
-| rust | claude-opus-4-7 | beads | 1.000 | 0.833 | 25.0m |
-| python | claude-opus-4-6 | none | 0.897 | 0.667 | 5.2m |
-| typescript | claude-opus-4-6 | beads | 1.000 | 0.733 | 6.7m |
-| clojure | claude-opus-4-7 | beads | 1.000 | 0.833 | 20.9m |
+**Total: 14 runs, $54.94, 52.2M tokens** (avg $3.92/run — 3.3× higher than experiment-2's $1.36/run avg)
+
+| Language | Model | Tooling | test_coverage | code_quality | avg duration | avg tokens | avg cost |
+|---|---|---|---|---|---|---|---|
+| go | claude-opus-4-7 | none | **0.813** | **1.000** | 23.1m | 7,612,020 | $8.13 |
+| java | claude-opus-4-6 | none | 1.000 | **1.000** | 12.9m | 2,472,358 | $2.87 |
+| rust | claude-opus-4-7 | beads | 1.000 | 0.833 | 25.0m | 7,573,138 | $7.34 |
+| python | claude-opus-4-6 | none | 0.897 | 0.667 | 5.2m | 750,075 | $0.98 |
+| typescript | claude-opus-4-6 | beads | 1.000 | 0.733 | 6.7m | 1,545,433 | $1.56 |
+| clojure | claude-opus-4-7 | beads | 1.000 | 0.833 | 20.9m | 5,007,051 | $5.30 |
 
 **Headlines:**
 - **Go + claude-opus-4-7 achieves 81% test coverage vs 42% for claude-opus-4-6 on the same task** — the clearest model-version signal in the dataset. Code quality is identical (1.000 = zero high-severity findings). The 5× longer runtime in experiment-3 correlates with more thorough test writing.

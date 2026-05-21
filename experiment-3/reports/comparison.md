@@ -77,38 +77,40 @@ All completed runs from all three experiments were rescored with the fixed score
 
 ## 4. Experiment-3 Results
 
-### 4.1 Scores by Cell (averages across 2 replicates)
+### 4.1 Scores by Cell (averages across replicates)
 
-| Language   | Model            | Tooling | cov avg | cq avg | idiomatic avg | maint avg | avg dur |
-|------------|------------------|---------|---------|--------|---------------|-----------|---------|
-| go         | claude-opus-4-7  | none    | 0.813   | 1.000  | 0.85          | 0.585     | 23.1m   |
-| java       | claude-opus-4-6  | none    | 1.000   | 1.000  | 0.735         | 0.794     | 12.9m   |
-| rust       | claude-opus-4-7  | beads   | 1.000   | 0.833  | 0.87          | 0.478     | 25.0m   |
-| python     | claude-opus-4-6  | none    | 0.897   | 0.667  | 0.56          | 0.575     | 5.2m    |
-| typescript | claude-opus-4-6  | beads   | 1.000   | 0.733  | 0.607         | 0.513     | 6.7m    |
-| clojure    | claude-opus-4-7  | beads   | 1.000   | 0.833  | 0.855         | 0.684     | 20.9m   |
+| Language   | Model            | Tooling | cov avg | cq avg | idiomatic | maint | avg dur | avg tokens | avg cost  |
+|------------|------------------|---------|---------|--------|-----------|-------|---------|------------|-----------|
+| go         | claude-opus-4-7  | none    | 0.813   | 1.000  | 0.85      | 0.585 | 23.1m   | 7,612,020  | $8.13     |
+| java       | claude-opus-4-6  | none    | 1.000   | 1.000  | 0.735     | 0.794 | 12.9m   | 2,472,358  | $2.87     |
+| rust       | claude-opus-4-7  | beads   | 1.000   | 0.833  | 0.87      | 0.478 | 25.0m   | 7,573,138  | $7.34     |
+| python     | claude-opus-4-6  | none    | 0.897   | 0.667  | 0.56      | 0.575 | 5.2m    | 750,075    | $0.98     |
+| typescript | claude-opus-4-6  | beads   | 1.000   | 0.733  | 0.607     | 0.513 | 6.7m    | 1,545,433  | $1.56     |
+| clojure    | claude-opus-4-7  | beads   | 1.000   | 0.833  | 0.855     | 0.684 | 20.9m   | 5,007,051  | $5.30     |
+
+**Total experiment-3: 14 runs, $54.94, 52.2M tokens** (avg $3.92/run, 3.73M tokens/run)
 
 *Python and TypeScript each had one extra replicate run across polecats (3 data points vs 2).
 Averages include all available data points.*
 
 ### 4.2 Individual Run Data
 
-| Polecat  | Language   | Model           | Tooling | Rep | cov   | cq    | idom | maint | dur   |
-|----------|------------|-----------------|---------|-----|-------|-------|------|-------|-------|
-| dag      | go         | claude-opus-4-7 | none    | 1   | 0.765 | 1.000 | 0.82 | 0.517 | 24.6m |
-| cheedo   | go         | claude-opus-4-7 | none    | 2   | 0.861 | 1.000 | 0.88 | 0.653 | 21.6m |
-| capable  | java       | claude-opus-4-6 | none    | 1   | 1.000 | 1.000 | 0.70 | 0.870 | 13.5m |
-| dementus | java       | claude-opus-4-6 | none    | 2   | 1.000 | 1.000 | 0.77 | 0.717 | 12.2m |
-| dementus | rust       | claude-opus-4-7 | beads   | 1   | 1.000 | 0.833 | 0.87 | 0.482 | 29.7m |
-| capable  | rust       | claude-opus-4-7 | beads   | 2   | 1.000 | 0.833 | 0.87 | 0.474 | 20.3m |
-| cheedo   | python     | claude-opus-4-6 | none    | 1   | 0.980 | 0.667 | 0.52 | 0.689 | 5.0m  |
-| dag      | python     | claude-opus-4-6 | none    | 1   | 0.960 | 0.667 | 0.38 | 0.626 | 3.9m  |
-| dag      | python     | claude-opus-4-6 | none    | 2   | 0.750 | 0.667 | 0.78 | 0.410 | 6.7m  |
-| cheedo   | typescript | claude-opus-4-6 | beads   | 1   | 1.000 | 0.733 | 0.72 | 0.333 | 7.1m  |
-| dag      | typescript | claude-opus-4-6 | beads   | 1   | 1.000 | 0.733 | 0.72 | 0.667 | 7.1m  |
-| cheedo   | typescript | claude-opus-4-6 | beads   | 2   | 1.000 | 0.733 | 0.38 | 0.539 | 5.9m  |
-| dag      | clojure    | claude-opus-4-7 | beads   | 1   | 1.000 | 0.833 | 0.87 | 0.668 | 20.6m |
-| dementus | clojure    | claude-opus-4-7 | beads   | 2   | 1.000 | 0.833 | 0.84 | 0.699 | 21.1m |
+| Polecat  | Language   | Model           | Tooling | Rep | cov   | cq    | dur   | tokens     | cost    |
+|----------|------------|-----------------|---------|-----|-------|-------|-------|------------|---------|
+| dag      | go         | claude-opus-4-7 | none    | 1   | 0.765 | 1.000 | 24.6m | 8,620,042  | $9.35   |
+| cheedo   | go         | claude-opus-4-7 | none    | 2   | 0.861 | 1.000 | 21.6m | 6,603,998  | $6.91   |
+| capable  | java       | claude-opus-4-6 | none    | 1   | 1.000 | 1.000 | 13.5m | 3,659,358  | $3.54   |
+| dementus | java       | claude-opus-4-6 | none    | 2   | 1.000 | 1.000 | 12.2m | 1,285,357  | $2.21   |
+| dementus | rust       | claude-opus-4-7 | beads   | 1   | 1.000 | 0.833 | 29.7m | 10,526,048 | $9.37   |
+| capable  | rust       | claude-opus-4-7 | beads   | 2   | 1.000 | 0.833 | 20.3m | 4,620,228  | $5.31   |
+| cheedo   | python     | claude-opus-4-6 | none    | 1   | 0.980 | 0.667 | 5.0m  | 803,212    | $1.07   |
+| dag      | python     | claude-opus-4-6 | none    | 1   | 0.960 | 0.667 | 3.9m  | 538,447    | $0.80   |
+| dag      | python     | claude-opus-4-6 | none    | 2   | 0.750 | 0.667 | 6.7m  | 908,567    | $1.08   |
+| cheedo   | typescript | claude-opus-4-6 | beads   | 1   | 1.000 | 0.733 | 7.1m  | 1,743,636  | $1.65   |
+| dag      | typescript | claude-opus-4-6 | beads   | 1   | 1.000 | 0.733 | 7.1m  | 1,798,252  | $1.74   |
+| cheedo   | typescript | claude-opus-4-6 | beads   | 2   | 1.000 | 0.733 | 5.9m  | 1,095,410  | $1.30   |
+| dag      | clojure    | claude-opus-4-7 | beads   | 1   | 1.000 | 0.833 | 20.6m | 4,389,693  | $4.81   |
+| dementus | clojure    | claude-opus-4-7 | beads   | 2   | 1.000 | 0.833 | 21.1m | 5,624,409  | $5.80   |
 
 ---
 
@@ -179,52 +181,56 @@ The higher coverage in exp-3 could also reflect the longer timeout (45 min vs 25
 model more time to write tests. An experiment-4 run of go/claude-opus-4-6/none with a 45-min
 timeout would control for the timeout variable.
 
-### 5.3 Experiment-2 vs Experiment-3 Runtime Comparison
+### 5.3 Experiment-2 vs Experiment-3 Runtime and Cost Comparison
 
-| Language | Exp-2 avg dur | Exp-3 dur   | Factor |
-|----------|---------------|-------------|--------|
-| java     | 3.6m (none)   | 12.9m       | 3.6×   |
-| python   | 2.5m (none)   | 5.2m        | 2.1×   |
-| go       | 4.6m (none)   | 23.1m       | 5.0×   |
-| rust     | 2.9m (none)   | 25.0m       | 8.6×   |
-| clojure  | 3.0m (none)   | 20.9m       | 7.0×   |
+| Language | Exp-2 dur (none) | Exp-3 dur  | Dur factor | Exp-2 cost (none) | Exp-3 cost avg | Cost factor |
+|----------|------------------|------------|------------|-------------------|----------------|-------------|
+| java     | 3.6m             | 12.9m      | 3.6×       | $1.26             | $2.87          | 2.3×        |
+| python   | 2.5m             | 5.2m       | 2.1×       | $0.73             | $0.98          | 1.3×        |
+| go       | 4.6m             | 23.1m      | 5.0×       | $1.39             | $8.13          | 5.9×        |
+| rust     | 2.9m             | 25.0m      | 8.6×       | $0.87             | $7.34          | 8.4×        |
+| clojure  | 3.0m             | 20.9m      | 7.0×       | $0.81             | $5.30          | 6.5×        |
 
-The consistent 2–9× runtime increase across all languages suggests that the models in experiment-3
-are doing substantially more work — likely more iterations, more self-correction, and more thorough
-testing — within the extended 45-minute budget. Experiment-2 used a 25-minute timeout, but most
-runs finished in under 6 minutes (timeout was not binding).
+The consistent 2–9× runtime and cost increase across all languages reflects both the longer timeout
+budget (25 min in experiment-2, 45 min in experiment-3) and the model spending more time on
+thorough implementation. Notably, the cost increase for Go, Rust, and Clojure (all claude-opus-4-7)
+is 6–8×, while for Java and Python (claude-opus-4-6) it is 1.3–2.3×. This is partly a model-version
+difference (claude-opus-4-7 is more expensive per token) and partly a language-complexity effect.
 
 ---
 
 ## 6. Experiment-2 Results (Brazil-Bench, April 2026)
 
-For reference: all scores after rescoring with fixed scorer. Model "opus" = claude-opus-4-6.
+For reference: all scores after rescoring with fixed scorer. Model `"opus"` = claude-opus-4-6 (resolved
+by Claude CLI alias). `"sonnet"` = claude-sonnet-4-5.
 
-| Language   | Model  | Tooling | cov   | cq    | dur   |
-|------------|--------|---------|-------|-------|-------|
-| go         | opus   | none    | 0.423 | 1.000 | 4.6m  |
-| go         | opus   | beads   | 0.333 | 1.000 | 4.5m  |
-| go         | sonnet | none    | 0.769 | 1.000 | 7.1m  |
-| java       | opus   | none    | 1.000 | 1.000 | 3.6m  |
-| java       | opus   | beads   | 1.000 | 1.000 | 5.7m  |
-| java       | sonnet | none    | 1.000 | 1.000 | 5.5m  |
-| java       | sonnet | beads   | 1.000 | 1.000 | 11.2m |
-| rust       | opus   | none    | 1.000 | 0.833 | 2.9m  |
-| rust       | opus   | beads   | 1.000 | 0.833 | 5.8m  |
-| rust       | sonnet | none    | 1.000 | 0.833 | 7.9m  |
-| rust       | sonnet | beads   | 0.333 | 0.833 | 8.9m  |
-| python     | opus   | none    | 0.800 | 0.667 | 2.5m  |
-| python     | opus   | beads   | 0.850 | 0.667 | 5.8m  |
-| python     | sonnet | none    | 0.960 | 0.667 | 5.5m  |
-| python     | sonnet | beads   | 0.970 | 0.667 | 8.1m  |
-| clojure    | opus   | none    | 1.000 | 0.833 | 3.0m  |
-| clojure    | opus   | beads   | 1.000 | 0.833 | 5.7m  |
-| clojure    | sonnet | none    | 1.000 | 0.833 | 7.3m  |
-| clojure    | sonnet | beads   | 1.000 | 0.833 | 6.8m  |
-| typescript | opus   | none    | 0.000 | 0.000 | 3.1m  |
-| typescript | opus   | beads   | 0.000 | 0.000 | 3.4m  |
-| typescript | sonnet | none    | 0.961 | 0.733 | 4.6m  |
-| typescript | sonnet | beads   | 1.000 | 0.733 | 6.0m  |
+**Total experiment-2: 22 completed runs, $29.85, 33.6M tokens** (avg $1.36/run, 1.53M tokens/run)
+
+| Language   | Model  | Tooling | cov   | cq    | dur   | tokens     | cost   |
+|------------|--------|---------|-------|-------|-------|------------|--------|
+| go         | opus   | none    | 0.423 | 1.000 | 4.6m  | 1,098,817  | $1.39  |
+| go         | opus   | beads   | 0.333 | 1.000 | 4.5m  | 683,860    | $1.23  |
+| go         | sonnet | none    | 0.769 | 1.000 | 7.1m  | 1,540,294  | $1.18  |
+| java       | opus   | none    | 1.000 | 1.000 | 3.6m  | 965,345    | $1.26  |
+| java       | opus   | beads   | 1.000 | 1.000 | 5.7m  | 1,669,932  | $1.75  |
+| java       | sonnet | none    | 1.000 | 1.000 | 5.5m  | —          | —      |
+| java       | sonnet | beads   | 1.000 | 1.000 | 11.2m | 2,779,597  | $1.84  |
+| rust       | opus   | none    | 1.000 | 0.833 | 2.9m  | 593,895    | $0.87  |
+| rust       | opus   | beads   | 1.000 | 0.833 | 5.8m  | 1,108,771  | $1.57  |
+| rust       | sonnet | none    | 1.000 | 0.833 | 7.9m  | 209,825    | $1.14  |
+| rust       | sonnet | beads   | 0.333 | 0.833 | 8.9m  | 491,969    | $1.11  |
+| python     | opus   | none    | 0.800 | 0.667 | 2.5m  | 580,884    | $0.73  |
+| python     | opus   | beads   | 0.850 | 0.667 | 5.8m  | 1,625,376  | $1.73  |
+| python     | sonnet | none    | 0.960 | 0.667 | 5.5m  | 879,497    | $0.72  |
+| python     | sonnet | beads   | 0.970 | 0.667 | 8.1m  | 2,113,900  | $1.25  |
+| clojure    | opus   | none    | 1.000 | 0.833 | 3.0m  | 630,222    | $0.81  |
+| clojure    | opus   | beads   | 1.000 | 0.833 | 5.7m  | 1,391,321  | $1.39  |
+| clojure    | sonnet | none    | 1.000 | 0.833 | 7.3m  | 1,920,625  | $1.12  |
+| clojure    | sonnet | beads   | 1.000 | 0.833 | 6.8m  | 1,811,932  | $1.03  |
+| typescript | opus   | none    | 0.000 | 0.000 | 3.1m  | 919,663    | $1.01  |
+| typescript | opus   | beads   | 0.000 | 0.000 | 3.4m  | 1,022,265  | $1.07  |
+| typescript | sonnet | none    | 0.961 | 0.733 | 4.6m  | 797,512    | $0.71  |
+| typescript | sonnet | beads   | 1.000 | 0.733 | 6.0m  | 1,556,688  | $0.92  |
 
 **Note on TypeScript/opus zeros:** The two experiment-2 typescript/opus runs have cov=0 and cq=0.
 Manual inspection of the archived run directories shows neither vitest nor jest in `package.json`
