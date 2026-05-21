@@ -37,6 +37,8 @@ _TESTS_ONLY_COMMANDS: dict[str, list[str]] = {
     "python": ["pytest", "-q", "--tb=no"],
     "go": ["go", "test", "./..."],
     "clojure": ["clojure", "-X:test"],
+    # Rust: cargo-llvm-cov not always installed; fall back to plain test run.
+    "rust": ["cargo", "test"],
 }
 
 # Regex to extract a percentage like "75%" from coverage output.
@@ -242,6 +244,13 @@ _TEST_PASS_PATTERNS: dict[str, list[re.Pattern[str]]] = {
         # pytest summary:
         #   ===== 12 passed, 2 failed, 1 skipped in 0.34s =====
         re.compile(r"(?P<passed>\d+)\s+passed(?:,\s*(?P<failed>\d+)\s+failed)?"),
+    ],
+    "rust": [
+        # cargo test summary:
+        #   test result: ok. 27 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out
+        re.compile(
+            r"test result:.*?(?P<passed>\d+)\s+passed;\s*(?P<failed>\d+)\s+failed"
+        ),
     ],
 }
 
