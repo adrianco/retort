@@ -238,6 +238,9 @@ experiment-*/runs/**/package-lock.json
 experiment-*/runs/**/yarn.lock
 experiment-*/runs/**/go.sum
 experiment-*/runs/**/Cargo.lock
+# Scorer cache files (idiomatic, maintainability LLM outputs)
+experiment-*/runs/**/.idiomatic_cache.json
+experiment-*/runs/**/.maintainability_cache.json
 # Compiled Go/Rust binaries (no extension, executable) — exclude by common names
 experiment-*/runs/**/brazilian-soccer-mcp
 experiment-*/runs/**/books_api
@@ -248,5 +251,6 @@ experiment-*/runs/**/main
 experiment-*/runs/**/app
 experiment-*/runs/**/api
 
-# Retort run directories with embedded git repos (evaluated by polecat)
-experiment-3/runs/
+# Gas Town (added by gt)
+CLAUDE.md
+CLAUDE.local.md
