@@ -166,6 +166,27 @@ class TestCoverageScorer:
                 pass
 
         if "vitest" in text:
+            # Prefer invoking via node directly: npm may install vitest with a
+            # broken relative-path bin wrapper (.bin/vitest → ./dist/cli.js)
+            # that fails when cwd != node_modules/.bin.
+            vitest_cli = output_dir / "node_modules" / "vitest" / "dist" / "cli.js"
+            if vitest_cli.exists():
+                for args in [["--coverage"], []]:
+                    try:
+                        r = subprocess.run(
+                            ["node", str(vitest_cli), "run"] + args,
+                            cwd=output_dir, capture_output=True, text=True, timeout=180,
+                        )
+                    except (subprocess.TimeoutExpired, FileNotFoundError):
+                        continue
+                    combined = _strip_ansi(r.stdout + "\n" + r.stderr)
+                    pct = _parse_coverage(combined, "typescript")
+                    if pct is not None:
+                        return pct
+                    rate = _parse_test_pass_rate(combined, "typescript")
+                    if rate is not None:
+                        return rate * 100.0
+                return None
             cmd = ["npx", "vitest", "run", "--coverage", "--reporter=basic"]
         elif "jest" in text:
             cmd = ["npx", "jest", "--coverage", "--coverageReporters=text-summary"]
@@ -174,16 +195,17 @@ class TestCoverageScorer:
 
         try:
             result = subprocess.run(
-                cmd,
-                cwd=output_dir,
-                capture_output=True,
-                text=True,
-                timeout=180,
+                cmd, cwd=output_dir, capture_output=True, text=True, timeout=180,
             )
         except (subprocess.TimeoutExpired, FileNotFoundError):
             return None
 
-        return _parse_coverage(result.stdout + "\n" + result.stderr, "typescript")
+        combined = _strip_ansi(result.stdout + "\n" + result.stderr)
+        pct = _parse_coverage(combined, "typescript")
+        if pct is not None:
+            return pct
+        rate = _parse_test_pass_rate(combined, "typescript")
+        return rate * 100.0 if rate is not None else None
 
 
 def _parse_coverage(output: str, language: str) -> float | None:
@@ -230,6 +252,15 @@ def _parse_coverage(output: str, language: str) -> float | None:
 # Patterns for "X passed / Y total" messages from common test runners.
 # Match returns (passed, total) as strings.
 _TEST_PASS_PATTERNS: dict[str, list[re.Pattern[str]]] = {
+    "typescript": [
+        # vitest summary (--reporter=basic or default):
+        #   Tests  49 passed (49)
+        #   Tests  45 passed | 4 failed (49)
+        re.compile(r"Tests\s+(?P<passed>\d+)\s+passed(?:\s*\|\s*\d+\s+\w+)?\s+\((?P<total>\d+)\)"),
+        # jest summary (--verbose or default):
+        #   Tests:      49 passed, 49 total
+        re.compile(r"Tests:\s+(?P<passed>\d+)\s+passed(?:,\s*\d+\s+\w+)*,\s*(?P<total>\d+)\s+total"),
+    ],
     "java": [
         # JUnit Surefire summary:
         #   Tests run: 24, Failures: 0, Errors: 0, Skipped: 0
