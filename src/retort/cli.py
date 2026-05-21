@@ -603,6 +603,13 @@ def run_experiments(
                     continue
                 click.echo(f"  {label} {stack.language}/{stack.framework}/{stack.agent}", nl=False)
 
+                estimated_timeout = _estimate_run_timeout(
+                    session, run_config, workspace_config.playpen.timeout_minutes
+                )
+                if estimated_timeout != runner.timeout_minutes:
+                    click.echo(f" [timeout={estimated_timeout}m]", nl=False)
+                runner.timeout_minutes = estimated_timeout
+
                 env_id = runner.provision(stack, task)
                 try:
                     artifacts = runner.execute(env_id, stack, task)
@@ -703,6 +710,47 @@ def _parse_shard(spec: str | None) -> tuple[int, int]:
     if idx < 0 or idx >= total:
         raise click.ClickException(f"--shard INDEX must be in [0, {total - 1}], got {idx}")
     return (idx, total)
+
+
+def _estimate_run_timeout(session, run_config: dict, fallback_minutes: int) -> int:
+    """Estimate a per-run timeout from historical _duration_seconds in the DB.
+
+    Looks at completed runs with the same factor config first; if none exist,
+    falls back to completed runs sharing the same language (the dominant cost
+    driver). Returns ceil(max_observed * 1.5 / 60) clamped to [5, fallback*3].
+    Returns fallback_minutes when no history is available.
+    """
+    import math
+
+    from retort.storage.models import ExperimentRun, RunResult, RunStatus
+
+    config_json = json.dumps(run_config, sort_keys=True)
+
+    all_completed = (
+        session.query(ExperimentRun.run_config_json, RunResult.value)
+        .join(RunResult, RunResult.run_id == ExperimentRun.id)
+        .filter(
+            ExperimentRun.status == RunStatus.completed,
+            RunResult.metric_name == "_duration_seconds",
+        )
+        .all()
+    )
+
+    exact = [v for cfg, v in all_completed if cfg == config_json]
+    if exact:
+        durations = exact
+    else:
+        language = run_config.get("language", "")
+        durations = [
+            v for cfg, v in all_completed
+            if language and json.loads(cfg).get("language") == language
+        ]
+
+    if not durations:
+        return fallback_minutes
+
+    estimated = math.ceil(max(durations) * 1.5 / 60)
+    return max(5, min(estimated, fallback_minutes * 3))
 
 
 def _shard_owns(config_key: str, rep: int, shard_index: int, shard_total: int) -> bool:
