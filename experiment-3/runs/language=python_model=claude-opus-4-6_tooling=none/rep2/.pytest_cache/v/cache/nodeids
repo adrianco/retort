@@ -1,0 +1,12 @@
+[
+  "test_server.py::test_find_matches_between_two_teams",
+  "test_server.py::test_find_matches_by_competition",
+  "test_server.py::test_find_matches_by_team_and_season",
+  "test_server.py::test_get_brasileirao_standings",
+  "test_server.py::test_get_competition_statistics",
+  "test_server.py::test_get_headtohead_comparison",
+  "test_server.py::test_get_team_statistics",
+  "test_server.py::test_handle_team_name_normalization",
+  "test_server.py::test_search_players_by_club",
+  "test_server.py::test_search_players_by_nationality"
+]
