@@ -135,11 +135,12 @@ class LocalRunner:
                 exit_code=1,
             )
 
-        cmd = self._build_agent_command(stack, task)
-        if cmd is None:
+        try:
+            cmd = self._build_agent_command(stack, task)
+        except ValueError as exc:
             return RunArtifacts(
                 output_dir=info.workspace,
-                stderr=f"No agent command configured for: {stack.agent}",
+                stderr=str(exc),
                 exit_code=1,
             )
 
@@ -295,9 +296,12 @@ class LocalRunner:
 
             return cmd
 
-        # Other agents: return None (not implemented)
-        logger.warning("Agent %r not implemented, skipping", stack.agent)
-        return None
+        # Unsupported agent — caller checks for None and surfaces the error.
+        raise ValueError(
+            f"Agent {stack.agent!r} is not implemented. "
+            f"Only 'claude-code' is supported in this release. "
+            f"Check the 'agent' factor levels in your workspace config."
+        )
 
     def _build_env(self, stack: StackConfig) -> dict[str, str]:
         """Build environment variables for the agent process."""

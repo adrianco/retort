@@ -1,0 +1,1 @@
+{"id": "test-fail", "kind": "test_failure", "severity": "high", "title": "Tests failed: 1 failures", "evidence": "npm test --silent returned 1 failures", "suggestion": "Fix failing tests"}

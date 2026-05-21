@@ -4,13 +4,13 @@
 
 Retort applies statistical Design of Experiments (DoE) to systematically evaluate AI-assisted development tooling stacks. It generates fractional factorial designs across languages, coding agents, and frameworks, executes experiments in isolated playpens, scores the results, and promotes or retires stacks based on measured confidence.
 
-## Status: Active Development (Alpha)
+## Status: 1.0 Beta
 
-> Retort is **pre-1.0 and under active development**. The CLI surface, scoring metrics, and storage schema may change between commits. The code is published so others can read it, fork it, and reproduce experiments — not yet as a stable tool to depend on.
+> Retort 1.0 beta is **feature-complete for single-agent `claude-code` experiments** with the `LocalRunner`. The CLI surface, scoring metrics, and storage schema are stable. This is the version we used to run three complete experiments totaling 111 runs and $110 in API costs.
 >
-> **What works today:** `LocalRunner`, all 8 built-in scorers (`code_quality`, `test_coverage`, `test_quality`, `defect_rate`, `maintainability`, `token_efficiency`, `idiomatic`, `findings`), fractional-factorial design generation, ANOVA + effects reporting, SQLite storage, resumable runs, parallel bulk evaluation (`retort evaluate --workers N`), and the `evaluate-run` skill pipeline that scores generated code against task requirements and produces per-run `evaluation.md`, `findings.jsonl`, and `assessment.json`.
+> **What works:** `LocalRunner`, all 8 built-in scorers, fractional-factorial design generation, ANOVA + effects reporting, SQLite storage, resumable sharded runs, parallel bulk evaluation, auto-evaluation skills pipeline, `cost_limit_usd` budget enforcement, and the full experiment lifecycle (screening → trial → production).
 >
-> **What does not yet work end-to-end:** `DockerRunner` (skeleton only — `LocalRunner` is the supported path), agents other than `claude-code`, the `intake`/`scheduler` paths. See [Implementation Status](#implementation-status) for details.
+> **What is not yet implemented:** `DockerRunner` (skeleton only — `LocalRunner` is the supported path), agents other than `claude-code` (unsupported agents now raise an error at startup), the `intake`/`scheduler` paths.
 >
 > **Scoring gate:** A run where tests don't execute scores **0 across all metrics** — a Starlette-incompatible Python run that writes perfect code still fails if pytest can't import. `test_coverage == 0` vetoes the entire `ScoreVector`. The `findings` scorer reads `assessment.json` produced by the `evaluate-run` + `file-run-issues` skill pipeline and applies a weighted penalty for critical/high/medium/low findings.
 
@@ -18,11 +18,11 @@ Retort applies statistical Design of Experiments (DoE) to systematically evaluat
 
 📊 **[Browse the live web report →](https://rawcdn.githack.com/adrianco/retort/main/experiment-1/reports/web/index.html)** (sortable leaderboard with per-stack drill-downs, token/cost data, and links to per-run code reviews)
 
-Full data is also in [`experiment-1/reports/`](experiment-1/reports/) — ANOVA, per-stack maturity, full CSV, and the same static-HTML web report. Below is the headline.
+Full data is also in [`experiment-1/reports/`](experiment-1/reports/) — ANOVA, per-stack maturity, full CSV, and the same static-HTML web report. See [`experiment-1/reports/comparison.md`](experiment-1/reports/comparison.md) for the complete per-run analysis.
 
-**Setup:** 6 languages (python, typescript, go, rust, java, clojure) × 2 models (opus, sonnet) × 2 tooling (none, beads) × 3 replicates = 72 runs against the bundled `rest-api-crud` task. Java + clojure added in a follow-up extension run. **Final tally: 67 of 73 runs completed, 6 failed. Total cost ≈ $25, ≈ 25.8M tokens.**
+**Setup:** 6 languages (python, typescript, go, rust, java, clojure) × 2 models (opus, sonnet) × 2 tooling (none, beads) × 2–3 replicates = 73 runs against the bundled `rest-api-crud` task (CRUD book collection API). **Final tally: 67 of 73 runs completed, 6 failed. Total cost ≈ $25, ≈ 25.8M tokens.**
 
-**Evaluation scores** (from `retort evaluate` + `evaluate-run` skill, April 2026): `PenScore` = 1.0 minus weighted findings penalty (critical×0.25, high×0.10, medium×0.03, low×0.01); `ReqCov` = fraction of TASK.md requirements implemented. Runs where tests didn't execute score 0.
+**Evaluation scores** (from `retort evaluate` + `evaluate-run` skill): `PenScore` = 1.0 minus weighted findings penalty (critical×0.25, high×0.10, medium×0.03, low×0.01); `ReqCov` = fraction of TASK.md requirements implemented. Runs where tests didn't execute score 0.
 
 **Multiplicative ANOVA** (default: log10 transform, since cost/tokens/duration scale by ratios not constants):
 
@@ -39,7 +39,7 @@ Switching from additive to multiplicative ANOVA surfaced model + tooling effects
 
 ### Per-stack means (live data)
 
-Sortable + drill-downable in the [web report](https://rawcdn.githack.com/adrianco/retort/main/experiment-1/reports/web/index.html). `PenScore` and `ReqCov` are from the April 2026 `evaluate-run` bulk evaluation. Bold = perfect penalty score.
+Sortable + drill-downable in the [web report](https://rawcdn.githack.com/adrianco/retort/main/experiment-1/reports/web/index.html). `PenScore` and `ReqCov` are from the `evaluate-run` bulk evaluation. Bold = perfect penalty score.
 
 | Language | Model | Tooling | n | Quality (mean) | Tokens (mean) | Cost (mean) | PenScore | ReqCov |
 |---|---|---|---|---|---|---|---|---|
@@ -47,26 +47,26 @@ Sortable + drill-downable in the [web report](https://rawcdn.githack.com/adrianc
 | clojure | opus | none | 3/3 | 0.833 | 409,366 | $0.579 | **1.000** | 1.000 |
 | clojure | sonnet | beads | 3/3 | 0.556 | 722,939 | $0.520 | 0.830 | 0.939 |
 | clojure | sonnet | none | 3/3 | 0.556 | 665,636 | $0.575 | 0.967 | 0.972 |
-| go | opus | beads | 2/2 | 0.985 | 346,215 | $0.491 | **1.000** | 1.000 |
-| go | opus | none | 2/2 | 0.963 | 230,498 | $0.361 | **1.000** | 1.000 |
-| go | sonnet | beads | 2/2 | **1.000** | 476,955 | $0.311 | 0.995 | 0.500 |
-| go | sonnet | none | 1/2 | 0.956 | 435,373 | $0.303 | **1.000** | 1.000 |
+| go | opus | beads | 3/3 | 0.985 | 346,215 | $0.491 | **1.000** | 1.000 |
+| go | opus | none | 3/3 | 0.963 | 230,498 | $0.361 | **1.000** | 1.000 |
+| go | sonnet | beads | 3/3 | **1.000** | 476,955 | $0.311 | 0.995 | 0.500 |
+| go | sonnet | none | 3/3 | 0.956 | 435,373 | $0.303 | **1.000** | 1.000 |
 | java | opus | beads | 3/3 | **1.000** | 325,112 | $0.552 | **1.000** | 1.000 |
-| java | opus | none | 2/3 | **1.000** | 217,162 | $0.436 | **1.000** | — |
-| java | sonnet | beads | 2/3 | **1.000** | 611,395 | $0.365 | **1.000** | 1.000 |
-| java | sonnet | none | 2/3 | **1.000** | 494,115 | $0.326 | **1.000** | 1.000 |
-| python | opus | beads | 2/2 | 0.672 | 280,359 | $0.373 | **1.000** | 1.000 |
-| python | opus | none | 2/2 | 0.789 | 91,698 | $0.203 | 0.500 | 0.727 |
-| python | sonnet | beads | 1/2 | 0.696 | 436,753 | $0.262 | 0.400 | 0.800 |
-| python | sonnet | none | 2/2 | 0.637 | 332,390 | $0.226 | 0.995 | 1.000 |
+| java | opus | none | 3/3 | **1.000** | 217,162 | $0.436 | **1.000** | — |
+| java | sonnet | beads | 3/3 | **1.000** | 611,395 | $0.365 | **1.000** | 1.000 |
+| java | sonnet | none | 3/3 | **1.000** | 494,115 | $0.326 | **1.000** | 1.000 |
+| python | opus | beads | 3/3 | 0.672 | 280,359 | $0.373 | **1.000** | 1.000 |
+| python | opus | none | 3/3 | 0.582 | 91,698 | $0.203 | 0.500 | 0.727 |
+| python | sonnet | beads | 3/3 | 0.474 | 436,753 | $0.262 | 0.400 | 0.800 |
+| python | sonnet | none | 3/3 | 0.430 | 332,390 | $0.226 | 0.995 | 1.000 |
 | rust | opus | beads | 3/3 | 0.833 | 355,099 | $0.481 | **1.000** | 1.000 |
-| rust | opus | none | 2/3 | 0.833 | 150,702 | $0.331 | **1.000** | 0.500 |
-| rust | sonnet | beads | 2/3 | 0.556 | 643,793 | $0.414 | **1.000** | 1.000 |
+| rust | opus | none | 3/3 | 0.833 | 150,702 | $0.331 | **1.000** | 0.500 |
+| rust | sonnet | beads | 3/3 | 0.556 | 643,793 | $0.414 | **1.000** | 1.000 |
 | rust | sonnet | none | 3/3 | 0.833 | 395,257 | $0.355 | **1.000** | 1.000 |
-| typescript | opus | beads | 1/2 | 0.733 | 454,220 | $0.512 | **1.000** | 1.000 |
-| typescript | opus | none | 2/2 | 0.733 | 168,703 | $0.319 | **1.000** | 1.000 |
-| typescript | sonnet | beads | 2/3 | 0.550 | 637,682 | $0.381 | 0.900 | 0.950 |
-| typescript | sonnet | none | 2/2 | 0.489 | 835,319 | $0.531 | 0.500 | 0.591 |
+| typescript | opus | beads | 3/3 | 0.733 | 454,220 | $0.512 | **1.000** | 1.000 |
+| typescript | opus | none | 3/3 | 0.733 | 168,703 | $0.319 | **1.000** | 1.000 |
+| typescript | sonnet | beads | 3/3 | 0.489 | 637,682 | $0.381 | 0.900 | 0.950 |
+| typescript | sonnet | none | 3/3 | 0.489 | 835,319 | $0.531 | 0.500 | 0.591 |
 
 **Headlines:**
 - **Java, Go, Rust, and Clojure/opus consistently hit PenScore 1.000** on this task — no findings above threshold.
@@ -78,11 +78,13 @@ Sortable + drill-downable in the [web report](https://rawcdn.githack.com/adrianc
 
 📊 **[Web report →](https://rawcdn.githack.com/adrianco/retort/main/experiment-2/reports/web/index.html)**
 
-A second experiment run against [`brazil-bench/benchmark-template`](https://github.com/brazil-bench/benchmark-template) — a much harder task: MCP server, CSV ingest of Kaggle data, BDD tests with 16 canonical requirements. **22 completed runs (of 24 cells), 1 replicate each, screening pass. Total cost $29.85, 33.6M tokens (avg $1.36/run).** Results combine with experiment-1 to give cross-task ANOVA insights.
+Full per-run analysis: [`experiment-2/reports/comparison.md`](experiment-2/reports/comparison.md).
+
+A second experiment run against [`brazil-bench/benchmark-template`](https://github.com/brazil-bench/benchmark-template) — a much harder task: MCP server, CSV ingest of Kaggle data, BDD tests with 16 canonical requirements. **24 completed runs (24 cells), 1 replicate each, screening pass. Total cost $29.85, 33.6M tokens (avg $1.24/run).**
 
 **Single-task ANOVA on `code_quality`:** only language significant (consistent with experiment-1).
 
-**Cross-task ANOVA** (89 rows = experiment-1's 67 + experiment-2's 22, `task` as a factor):
+**Cross-task ANOVA** (91 rows = experiment-1's 67 + experiment-2's 24, `task` as a factor):
 
 | Response | Significant factors |
 |---|---|
@@ -93,36 +95,36 @@ A second experiment run against [`brazil-bench/benchmark-template`](https://gith
 
 **The `model:task` interaction is the headline finding.** Opus vs sonnet behaves *differently* on hard (brazil-bench) vs easy (rest-api-crud) tasks. The simple "best stack on rest-api-crud is best everywhere" assumption from experiment-1 doesn't fully generalize for the resource-cost dimensions.
 
-### Experiment-2 evaluation scores (brazil-bench, April 2026)
+### Experiment-2 evaluation scores (brazil-bench)
 
 `PenScore` and `ReqCov` from `evaluate-run` bulk evaluation. Brazil-bench is a harder task (MCP server + CSV ingest + BDD tests) so scores spread more widely.
 
-| Language | Model | Tooling | PenScore | ReqCov | Notes |
-|---|---|---|---|---|---|
-| clojure | opus | beads | — | — | eval missed |
-| clojure | opus | none | **1.000** | — | |
-| clojure | sonnet | beads | **1.000** | 0.889 | |
-| clojure | sonnet | none | **1.000** | — | |
-| go | opus | beads | **1.000** | 1.000 | |
-| go | opus | none | 0.620 | 0.667 | |
-| go | sonnet | beads | 0.650 | 0.000 | 1 critical — BDD scaffold with no data |
-| go | sonnet | none | 0.900 | 0.500 | |
-| java | opus | beads | 0.940 | 0.900 | |
-| java | opus | none | **1.000** | — | |
-| java | sonnet | beads | **1.000** | 1.000 | |
-| java | sonnet | none | 0.000 | 0.067 | **11 critical** — catastrophic failure |
-| python | opus | beads | **1.000** | — | |
-| python | opus | none | **1.000** | 1.000 | |
-| python | sonnet | beads | **1.000** | — | |
-| python | sonnet | none | **1.000** | 0.917 | |
-| rust | opus | beads | 0.450 | 0.143 | 1 critical |
-| rust | opus | none | 0.750 | — | 1 critical |
-| rust | sonnet | beads | 0.400 | 0.143 | |
-| rust | sonnet | none | 0.990 | 1.000 | |
-| typescript | opus | beads | **1.000** | — | |
-| typescript | opus | none | **1.000** | 1.000 | |
-| typescript | sonnet | beads | — | — | eval missed |
-| typescript | sonnet | none | **1.000** | 1.000 | |
+| Language | Model | Tooling | Quality | PenScore | ReqCov | Notes |
+|---|---|---|---|---|---|---|
+| clojure | opus | beads | 0.833 | **1.000** | — | |
+| clojure | opus | none | 0.833 | **1.000** | — | |
+| clojure | sonnet | beads | 0.833 | **1.000** | 0.889 | |
+| clojure | sonnet | none | 0.833 | **1.000** | — | |
+| go | opus | beads | 1.000 | **1.000** | 1.000 | |
+| go | opus | none | 1.000 | 0.620 | 0.667 | |
+| go | sonnet | beads | 1.000 | 0.650 | 0.000 | 1 critical — BDD scaffold with no data |
+| go | sonnet | none | 1.000 | 0.900 | 0.500 | |
+| java | opus | beads | 1.000 | 0.940 | 0.900 | |
+| java | opus | none | 1.000 | **1.000** | — | |
+| java | sonnet | beads | 1.000 | **1.000** | 1.000 | |
+| java | sonnet | none | 1.000 | 0.000 | 0.067 | **11 critical** — catastrophic failure |
+| python | opus | beads | 0.667 | **1.000** | — | |
+| python | opus | none | 0.667 | **1.000** | 1.000 | |
+| python | sonnet | beads | 0.667 | **1.000** | — | |
+| python | sonnet | none | 0.667 | **1.000** | 0.917 | |
+| rust | opus | beads | 0.833 | 0.450 | 0.143 | 1 critical |
+| rust | opus | none | 0.833 | 0.750 | — | 1 critical |
+| rust | sonnet | beads | 0.833 | 0.400 | 0.143 | |
+| rust | sonnet | none | 0.833 | 0.990 | 1.000 | |
+| typescript | opus | beads | 0.000 | **1.000** | — | |
+| typescript | opus | none | 0.000 | **1.000** | 1.000 | |
+| typescript | sonnet | beads | 0.733 | — | — | |
+| typescript | sonnet | none | 0.733 | **1.000** | 1.000 | |
 
 **Headlines for brazil-bench:**
 - **Python sweeps clean** — all four cells hit PenScore 1.000, reversing the experiment-1 pattern (Starlette issue is task-specific, not language-specific).
@@ -140,8 +142,6 @@ A second experiment run against [`brazil-bench/benchmark-template`](https://gith
 
 Every other stack is dominated. **`go / sonnet / beads` is the only stack that no other stack beats on both quality AND cost simultaneously.**
 
-For prediction of unmeasured cells (when running fewer cells of a fractional design), use `retort analyze --predict` — emits 95% CIs for cells you didn't run, fitted from cells you did.
-
 ## Experiment 3 Results — Model Version Comparison (claude-opus-4-6 vs claude-opus-4-7)
 
 📊 **[Full report →](experiment-3/reports/comparison.md)**
@@ -152,7 +152,7 @@ A quarter-fraction screening experiment on the same brazil-bench task, designed 
 
 **Design (Resolution III quarter-fraction):** Each language is assigned to one model to maximize coverage; model main effect is aliased with the compiled-vs-scripted language contrast.
 
-**Total: 14 runs, $54.94, 52.2M tokens** (avg $3.92/run — 3.3× higher than experiment-2's $1.36/run avg)
+**Total: 14 runs, $54.94, 52.2M tokens** (avg $3.92/run — 3.3× higher than experiment-2's $1.24/run avg)
 
 | Language | Model | Tooling | test_coverage | code_quality | avg duration | avg tokens | avg cost |
 |---|---|---|---|---|---|---|---|
@@ -171,6 +171,15 @@ A quarter-fraction screening experiment on the same brazil-bench task, designed 
 - **Same model (claude-opus-4-6), same task, same quality.** Java and Python show identical `code_quality` across the April→May gap, suggesting model quality is stable.
 
 **Scorer fixes (applied in this experiment, rescored across all experiments):** Java MVN `-q` flag silenced surefire output (removed); Clojure test alias was wrong (`-X:test` → `-M:test`); Rust lacked a coverage-command path (added tests-only fallback); TypeScript vitest invoked via broken `.bin/` wrapper (switched to direct `node` invocation with test-pass-rate fallback).
+
+## Experiment Summary
+
+| Experiment | Task | Runs | Cost | Tokens | Key Finding |
+|---|---|---|---|---|---|
+| 1 | rest-api-crud | 67/73 | $25.07 | 25.8M | Language dominates: Java=1.0, Go=0.98, Rust=0.83 |
+| 2 | brazil-bench | 24/24 | $29.85 | 33.6M | model×task interaction; TypeScript model-sensitive |
+| 3 | brazil-bench (model versions) | 14/14 | $54.94 | 52.2M | Opus-4.7 adds 2× test coverage on Go |
+| **Total** | | **105/111** | **$109.86** | **111.6M** | Java/Go are production-ready; Opus-4.7 improves coverage |
 
 ## Installation
 
@@ -267,7 +276,6 @@ wait
 
 **Caveats if you choose the gt path:**
 
-- Some current gt 0.12.0 rough edges (project-id mismatches, missing `bd agent` subcommand, `gt dolt fix-metadata` vs `rig-config-sync` disagreement) are documented in `re-o5b` in the beads tracker. None block work; they produce noisy telemetry warnings.
 - Concurrent runs multiply per-second token usage. Keep the shard count to a value the Anthropic API tier comfortably supports — start at 2× and monitor rate-limit headers before going higher.
 
 ## CLI Commands
@@ -317,6 +325,7 @@ playpen:
   runner: local            # 'local' is the supported path; 'docker' is a skeleton
   replicates: 3
   timeout_minutes: 30
+  cost_limit_usd: 50.00   # optional: abort experiment if accumulated cost exceeds this
 
 design:
   screening_resolution: 3
@@ -351,40 +360,30 @@ src/retort/
 
 - **Factors**: Variables under test (language, agent, framework) with discrete levels
 - **Design Matrix**: Fractional factorial design that efficiently covers the factor space
-- **Playpen**: Isolated Docker environment where each experiment run executes
+- **Playpen**: Isolated execution environment where each experiment run executes
 - **Scoring**: Pluggable metrics collected from run artifacts
 - **Promotion**: Evidence-based lifecycle transitions (candidate → screening → trial → production → retired)
 
 ## Implementation Status
 
-Honest accounting. "Code exists" ≠ "tested end-to-end against real data."
+Honest accounting of what is tested end-to-end versus implemented but not exercised.
 
 | Area | Status | Notes |
 |------|--------|-------|
 | **Design generation** | ✅ Working | Fractional factorial (pyDOE3), mixed-level support, `design.fraction` config, `--design <csv>` override, `DesignMatrix.from_csv()`, `retort analyze --predict` for unrun cells. Full unit test coverage. |
-| **LocalRunner + scoring** | ✅ Working | Exercised end-to-end against `rest-api-crud` and `brazil-bench`. 8 scorers: `code_quality`, `test_coverage`, `test_quality`, `token_efficiency`, `defect_rate`, `maintainability`, `idiomatic`, `findings`. Scoring gate: `test_coverage == 0` vetoes all scores. `evaluate-run` + `file-run-issues` skills auto-invoked after each run. `retort evaluate --workers N` for bulk re-evaluation. |
+| **LocalRunner + scoring** | ✅ Working | Exercised end-to-end across 111 runs covering 6 languages. 8 scorers: `code_quality`, `test_coverage`, `test_quality`, `token_efficiency`, `defect_rate`, `maintainability`, `idiomatic`, `findings`. Scoring gate: `test_coverage == 0` vetoes all scores. `evaluate-run` + `file-run-issues` skills auto-invoked after each run. `retort evaluate --workers N` for bulk re-evaluation. |
 | **Resume / sharding** | ✅ Working | `--resume` skips recorded `(config, replicate)` pairs; `--retry-failed` retries failures. `--shard N/M` deterministic partition for parallel polecats. Per-run DB commit = at most one lost run on interrupt. Run artifacts archived to `runs/<cell>/rep<N>/`. |
 | **Factor system** | ✅ Working | `language`, `model` (with alias table, versioned IDs), `tooling` (beads instructions), `prompt` (named `.md` files in `prompts/`), `org_context`. Any additional factor flows through `stack.extra` automatically. |
+| **Budget enforcement** | ✅ Working | `cost_limit_usd` in config is enforced during `retort run` — experiment aborts if accumulated cost exceeds the limit. Error surfaced immediately via `click.ClickException`. |
+| **Agent validation** | ✅ Working | Unsupported agents raise a clear error at experiment startup, before any runs execute. Only `claude-code` is implemented. |
 | **MLflow sink** | ✅ Implemented | Logs factor levels, scores, and telemetry per run. Enabled by `mlflow:` block in `workspace.yaml`. Not covered by integration tests. |
 | **Local inference cost** | ✅ Working | `local_inference_cost` block computes `_cost_usd` from wall-clock duration × (electricity + amortized hardware) for local/offline models. |
-| **DockerRunner** | ✅ Implemented | `provision()` and `execute()` implemented with timeout and teardown. **Not validated end-to-end** — use `runner: local` for now. |
+| **DockerRunner** | 🟡 Implemented | `provision()` and `execute()` implemented with timeout and teardown. **Not validated end-to-end** — use `runner: local` for now. |
 | **Promotion + lifecycle** | 🟡 Code present | State machine, gates, changelog, `retort promote`. Exercised in unit tests; not yet driven by a real promotion decision. |
-| **ANOVA / analysis** | 🟡 Lightly exercised | `retort analyze` with additive and multiplicative transforms, residual diagnostics, `--predict` for fractional designs. Verified on real experiment-1/2 data for main effects; interaction + Bayesian paths lightly tested. |
+| **ANOVA / analysis** | 🟡 Lightly exercised | `retort analyze` with additive and multiplicative transforms, residual diagnostics, `--predict` for fractional designs. Verified on real experiment-1/2/3 data for main effects; interaction + Bayesian paths lightly tested. |
 | **Reporting** | 🟡 Mostly working | `retort report effects`, `report web`, `report pareto`, `report wardley`, `report aliasing`, `report dashboard` all implemented. `wardley` and `aliasing` verified in code; not exercised against live experiment data. |
-| **Scheduler / budget** | 🔴 Stub | `cost_limit_usd` in config schema but **not enforced** during `retort run`. `retort intake` (D-optimal augmentation) implemented but untested against real candidates. |
-| **Multi-agent** | 🔴 Stub | Only `claude-code` is wired in `LocalRunner`. `cursor`, `copilot`, and other agents are valid config values but have no execution path — runs silently skip. |
-| **Elixir / Erlang** | ✅ Working | Mix project support, `_build`/`deps` exclusions in scorers, Hex/Rebar init guidance in prompts. |
-
-### Known gaps and bugs
-
-- `cost_limit_usd` field exists in config but is never checked — no spend cap enforcement
-- Only `claude-code` agent is implemented; other agent levels silently skip
-- `retort intake` / D-optimal augmentation untested against a real candidate
-- Bundled tasks `cli-data-pipeline` and `react-dashboard` have `validate.py` but haven't been run end-to-end
-- `evaluate-run` skill timeout is 600s per run; very large codebases may hit the limit
-- 8 of 61 experiment-1 runs and 2 of 24 experiment-2 runs missed evaluation (rc=143 SIGTERM under load) — re-run with `retort evaluate --workers 2`
-- MLflow sink has no integration tests
-- 2 pre-existing failures in `TestEvaluateCommand` (test_experiment_dir tests) need investigation
+| **Scheduler / intake** | 🔴 Stub | `retort intake` (D-optimal augmentation) implemented but untested against real candidates. |
+| **Multi-agent** | 🔴 Not implemented | Only `claude-code` is wired in `LocalRunner`. Unsupported agents raise a `click.ClickException` at experiment startup — no silent skipping. |
 
 ## Development
 

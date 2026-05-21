@@ -577,6 +577,18 @@ def run_experiments(
     metric_names = [r.name for r in workspace_config.responses]
     collector = ScoreCollector(metrics=metric_names)
 
+    # Fail fast: validate agent types before any runs start.
+    if runner_type == "local":
+        _supported_agents = {"claude-code"}
+        for _rc in design.run_configs():
+            _agent = _rc.get("agent", "claude-code") or "claude-code"
+            if _agent not in _supported_agents and _agent != "unknown":
+                raise click.ClickException(
+                    f"Agent {_agent!r} is not implemented. "
+                    f"Only {sorted(_supported_agents)} are supported in this release. "
+                    f"Remove or replace unsupported agent levels in your workspace config."
+                )
+
     click.echo(f"\nStarting experiment runs...")
 
     completed = 0
@@ -624,6 +636,8 @@ def run_experiments(
                         cost = artifacts.metadata.get("total_cost_usd", "0")
                         token_str = f" tokens={artifacts.token_count:,} cost=${float(cost):.4f}"
                     click.echo(f" — {status} ({artifacts.duration_seconds:.1f}s) [{score_str}]{token_str}")
+                    if not artifacts.succeeded and artifacts.stderr:
+                        click.echo(f"    error: {artifacts.stderr[:200]}", err=True)
 
                     # Store results
                     _store_run_result(

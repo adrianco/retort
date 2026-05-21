@@ -1,0 +1,2 @@
+{"id": "R12", "kind": "requirement_missing", "severity": "high", "title": "README.md missing — no setup or run instructions", "evidence": "run_dir root lacks README.md file", "suggestion": "Add README.md with setup, build, and run instructions as specified in TASK.md deliverables"}
+{"id": "lint-1", "kind": "lint_warning", "severity": "medium", "title": "Unnecessary Ok and ? operator in src/db.rs", "evidence": "src/db.rs:48 — enclosing Ok() and ? are unneeded per clippy", "suggestion": "Change `Ok(rows.next().transpose()?)` to `rows.next().transpose()`"}

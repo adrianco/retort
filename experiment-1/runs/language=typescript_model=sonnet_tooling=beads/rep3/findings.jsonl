@@ -1,0 +1,11 @@
+{"id": "R1", "kind": "requirement_implemented", "severity": "info", "title": "POST /books endpoint", "evidence": "src/app.ts:25-41 — endpoint accepts title, author, year, isbn and returns 201", "suggestion": ""}
+{"id": "R2", "kind": "requirement_implemented", "severity": "info", "title": "GET /books endpoint with ?author= filter", "evidence": "src/app.ts:44-53 — endpoint supports author query parameter with LIKE filtering", "suggestion": ""}
+{"id": "R3", "kind": "requirement_implemented", "severity": "info", "title": "GET /books/{id} endpoint", "evidence": "src/app.ts:56-62 — endpoint returns single book by ID with 404 handling", "suggestion": ""}
+{"id": "R4", "kind": "requirement_implemented", "severity": "info", "title": "PUT /books/{id} endpoint", "evidence": "src/app.ts:65-91 — endpoint updates book fields with partial update support", "suggestion": ""}
+{"id": "R5", "kind": "requirement_implemented", "severity": "info", "title": "DELETE /books/{id} endpoint", "evidence": "src/app.ts:94-101 — endpoint deletes book and returns 204", "suggestion": ""}
+{"id": "R6", "kind": "requirement_implemented", "severity": "info", "title": "SQLite database", "evidence": "src/db.ts uses better-sqlite3, creates books table with proper schema", "suggestion": ""}
+{"id": "R7", "kind": "requirement_implemented", "severity": "info", "title": "JSON responses with appropriate HTTP status codes", "evidence": "src/app.ts — 201 for create, 200 for get, 204 for delete, 400 for validation, 404 for not found", "suggestion": ""}
+{"id": "R8", "kind": "requirement_implemented", "severity": "info", "title": "Input validation (title and author required)", "evidence": "src/app.ts:28-33 — validates title and author, rejects empty strings", "suggestion": ""}
+{"id": "R9", "kind": "requirement_implemented", "severity": "info", "title": "Health check endpoint GET /health", "evidence": "src/app.ts:20-22 — returns {status: 'ok'} with 200", "suggestion": ""}
+{"id": "R10", "kind": "requirement_implemented", "severity": "info", "title": "README.md with setup and run instructions", "evidence": "README.md exists in root directory", "suggestion": ""}
+{"id": "R11", "kind": "requirement_implemented", "severity": "info", "title": "At least 3 unit/integration tests", "evidence": "src/__tests__/books.test.ts — 15 tests total covering all endpoints", "suggestion": ""}

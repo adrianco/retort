@@ -62,7 +62,7 @@ class TestDesignToRun:
 
         # 2. Set up runner (simulation mode — no Docker needed)
         runner = DockerRunner(work_dir=tmp_path / "runs")
-        collector = ScoreCollector(metrics=["build_time", "code_quality", "token_efficiency"])
+        collector = ScoreCollector(metrics=["code_quality", "token_efficiency"])
 
         # 3. Execute each run
         runs_completed = 0
@@ -103,12 +103,12 @@ class TestDesignToRun:
         assert len(stored_runs) == design.num_runs
 
         stored_results = db_session.query(RunResult).all()
-        # Each run should have 3 scored metrics
-        assert len(stored_results) == design.num_runs * 3
+        # Each run should have 2 scored metrics (code_quality + token_efficiency)
+        assert len(stored_results) == design.num_runs * 2
 
         # Verify metric names
         metric_names = {r.metric_name for r in stored_results}
-        assert metric_names == {"build_time", "code_quality", "token_efficiency"}
+        assert metric_names == {"code_quality", "token_efficiency"}
 
         # Verify all scores are in valid range
         for result in stored_results:

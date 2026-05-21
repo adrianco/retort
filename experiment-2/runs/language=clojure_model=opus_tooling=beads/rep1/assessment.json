@@ -1,0 +1,55 @@
+{
+  "severity_counts": {
+    "critical": 0,
+    "high": 9,
+    "medium": 0,
+    "low": 0,
+    "info": 0
+  },
+  "penalty_score": 0.1,
+  "top_findings": [
+    {
+      "id": "R1",
+      "kind": "requirement_missing",
+      "severity": "high",
+      "title": "Requirement not implemented: Neymar Jr - Overall: 92, Position: LW, Club: Paris Saint-Germain",
+      "evidence": "No matching code found",
+      "suggestion": "Implement this requirement"
+    },
+    {
+      "id": "R2",
+      "kind": "requirement_missing",
+      "severity": "high",
+      "title": "Requirement not implemented: Alisson - Overall: 89, Position: GK, Club: Liverpool",
+      "evidence": "No matching code found",
+      "suggestion": "Implement this requirement"
+    },
+    {
+      "id": "R3",
+      "kind": "requirement_missing",
+      "severity": "high",
+      "title": "Requirement not implemented: Casemiro - Overall: 89, Position: CDM, Club: Real Madrid",
+      "evidence": "No matching code found",
+      "suggestion": "Implement this requirement"
+    },
+    {
+      "id": "R4",
+      "kind": "requirement_missing",
+      "severity": "high",
+      "title": "Requirement not implemented: Flamengo - 90 pts (28W, 6D, 4L) - Champion",
+      "evidence": "No matching code found",
+      "suggestion": "Implement this requirement"
+    },
+    {
+      "id": "R5",
+      "kind": "requirement_missing",
+      "severity": "high",
+      "title": "Requirement not implemented: Santos - 74 pts (22W, 8D, 8L)",
+      "evidence": "No matching code found",
+      "suggestion": "Implement this requirement"
+    }
+  ],
+  "requirement_coverage": 0.0,
+  "model": "unknown",
+  "evaluated_at": "2026-05-21T17:18:29Z"
+}

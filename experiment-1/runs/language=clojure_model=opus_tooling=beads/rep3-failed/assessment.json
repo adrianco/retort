@@ -1,0 +1,23 @@
+{
+  "severity_counts": {
+    "critical": 1,
+    "high": 0,
+    "medium": 0,
+    "low": 0,
+    "info": 12
+  },
+  "penalty_score": 0.75,
+  "top_findings": [
+    {
+      "id": "run-failed",
+      "kind": "build_failure",
+      "severity": "critical",
+      "title": "Run marked as failed \u2014 code not committed to git",
+      "evidence": "_meta.json shows succeeded=false, all source files untracked in git",
+      "suggestion": "Agent must commit generated code: git add -A && git commit -m 'generated implementation'"
+    }
+  ],
+  "requirement_coverage": 1.0,
+  "model": "opus",
+  "evaluated_at": "2026-05-21T17:31:17.328115Z"
+}

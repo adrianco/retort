@@ -142,7 +142,8 @@ def test_auto_evaluation_skips_when_current(tmp_path: Path):
 
 
 def test_auto_evaluation_private_forces_beads_tracker(tmp_path: Path):
-    # Provide fake skills directory adjacent to run_dir so _find_skill succeeds.
+    # When both skills exist the code chains them into a single prompt via
+    # _invoke_claude_skill_prompt (one claude cold-start instead of two).
     exp = tmp_path / "experiment"
     exp.mkdir()
     skills = exp / "skills"
@@ -157,21 +158,22 @@ def test_auto_evaluation_private_forces_beads_tracker(tmp_path: Path):
 
     cfg = EvaluationConfig(enabled=True, issue_tracker="github")
 
-    calls: list[dict] = []
+    prompts: list[str] = []
 
-    def fake_invoke(skill_path, params, model, timeout=300):
-        calls.append({"skill": skill_path.parent.name, "params": params})
+    def fake_prompt(prompt, model, timeout=600):
+        prompts.append(prompt)
         return 0, ""
 
-    with patch("retort.cli._invoke_claude_skill", side_effect=fake_invoke):
+    with patch("retort.cli._invoke_claude_skill_prompt", side_effect=fake_prompt):
         _run_auto_evaluation(run, cfg, visibility="private")
 
-    # evaluate-run fires, then file-run-issues with tracker forced to beads.
-    kinds = [c["skill"] for c in calls]
-    assert "evaluate-run" in kinds
-    assert "file-run-issues" in kinds
-    fri = next(c for c in calls if c["skill"] == "file-run-issues")
-    assert fri["params"]["tracker"] == "beads"
+    # A single chained prompt should reference both skills and use beads tracker.
+    assert prompts, "expected _invoke_claude_skill_prompt to be called"
+    combined = prompts[0]
+    assert "evaluate-run" in combined
+    assert "file-run-issues" in combined
+    # Private runs must override github → beads.
+    assert "tracker=beads" in combined
 
 
 def test_auto_evaluation_public_respects_configured_tracker(tmp_path: Path):
@@ -186,17 +188,17 @@ def test_auto_evaluation_public_respects_configured_tracker(tmp_path: Path):
     (run / "source.py").write_text("x=1")
 
     cfg = EvaluationConfig(enabled=True, issue_tracker="both")
-    calls: list[dict] = []
+    prompts: list[str] = []
 
-    def fake_invoke(skill_path, params, model, timeout=300):
-        calls.append({"skill": skill_path.parent.name, "params": params})
+    def fake_prompt(prompt, model, timeout=600):
+        prompts.append(prompt)
         return 0, ""
 
-    with patch("retort.cli._invoke_claude_skill", side_effect=fake_invoke):
+    with patch("retort.cli._invoke_claude_skill_prompt", side_effect=fake_prompt):
         _run_auto_evaluation(run, cfg, visibility="public")
 
-    fri = next(c for c in calls if c["skill"] == "file-run-issues")
-    assert fri["params"]["tracker"] == "both"
+    assert prompts, "expected _invoke_claude_skill_prompt to be called"
+    assert "tracker=both" in prompts[0]
 
 
 def test_auto_evaluation_swallows_skill_failure(tmp_path: Path):
@@ -209,9 +211,10 @@ def test_auto_evaluation_swallows_skill_failure(tmp_path: Path):
     (run / "source.py").write_text("x=1")
 
     cfg = EvaluationConfig(enabled=True)
-    with patch(
-        "retort.cli._invoke_claude_skill", return_value=(1, "boom")
-    ):
+    # Patch both paths: _find_skill falls back to the package root so the real
+    # file-run-issues skill may be found, routing through _invoke_claude_skill_prompt.
+    with patch("retort.cli._invoke_claude_skill", return_value=(1, "boom")), \
+         patch("retort.cli._invoke_claude_skill_prompt", return_value=(1, "boom")):
         # Should not raise — evaluation failure must never abort the experiment.
         _run_auto_evaluation(run, cfg, visibility="public")
 
@@ -264,20 +267,21 @@ def test_evaluate_command_invokes_skill(tmp_path: Path):
     run.mkdir(parents=True)
     (run / "source.py").write_text("x=1")
 
-    calls: list = []
+    prompts: list[str] = []
 
-    def fake_invoke(skill_path, params, model, timeout=300):
-        calls.append(skill_path.parent.name)
+    def fake_prompt(prompt, model, timeout=600):
+        prompts.append(prompt)
         return 0, ""
 
     runner = CliRunner()
-    with patch("retort.cli._invoke_claude_skill", side_effect=fake_invoke):
+    with patch("retort.cli._invoke_claude_skill_prompt", side_effect=fake_prompt):
         result = runner.invoke(
             cli,
             ["evaluate", str(run), "--config", str(ws / "workspace.yaml")],
         )
     assert result.exit_code == 0, result.output
-    assert "evaluate-run" in calls
+    assert prompts, "expected skill invocation"
+    assert "evaluate-run" in prompts[0]
 
 
 def test_report_compare_invokes_compare_skill(tmp_path: Path):

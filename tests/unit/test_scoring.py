@@ -519,6 +519,9 @@ class TestTestQualityScorer:
 
     def test_pytest_bdd_decorator_detected(self, python_stack, tmp_path):
         # conftest.py with @given/@when/@then → BDD detected
+        # Mock the coverage scorer: conftest.py causes pytest to traverse up to the
+        # project rootdir and run all retort tests, producing a non-zero base score.
+        from unittest.mock import patch
         (tmp_path / "conftest.py").write_text(
             "from pytest_bdd import given, when, then\n\n"
             "@given('the system is ready')\ndef ready():\n    pass\n"
@@ -528,7 +531,11 @@ class TestTestQualityScorer:
             output_dir=tmp_path, stdout="", exit_code=0, duration_seconds=1.0,
         )
         scorer = TestQualityScorer()
-        score = scorer.score(artifacts, python_stack)
+        with patch(
+            "retort.scoring.scorers.test_coverage.TestCoverageScorer.score",
+            return_value=0.0,
+        ):
+            score = scorer.score(artifacts, python_stack)
         # TASK.md mentions "pytest-bdd" → prompted bonus
         assert score == pytest.approx(0.15)
 

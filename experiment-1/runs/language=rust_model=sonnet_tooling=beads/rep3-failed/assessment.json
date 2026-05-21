@@ -1,0 +1,31 @@
+{
+  "severity_counts": {
+    "critical": 0,
+    "high": 1,
+    "medium": 1,
+    "low": 0,
+    "info": 0
+  },
+  "penalty_score": 0.87,
+  "top_findings": [
+    {
+      "id": "R12",
+      "kind": "requirement_missing",
+      "severity": "high",
+      "title": "README.md missing \u2014 no setup or run instructions",
+      "evidence": "run_dir root lacks README.md file",
+      "suggestion": "Add README.md with setup, build, and run instructions as specified in TASK.md deliverables"
+    },
+    {
+      "id": "lint-1",
+      "kind": "lint_warning",
+      "severity": "medium",
+      "title": "Unnecessary Ok and ? operator in src/db.rs",
+      "evidence": "src/db.rs:48 \u2014 enclosing Ok() and ? are unneeded per clippy",
+      "suggestion": "Change `Ok(rows.next().transpose()?)` to `rows.next().transpose()`"
+    }
+  ],
+  "requirement_coverage": 0.9167,
+  "model": "unknown",
+  "evaluated_at": "2026-05-21T17:32:00.977325Z"
+}
