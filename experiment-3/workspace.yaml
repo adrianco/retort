@@ -101,7 +101,7 @@ tasks:
 playpen:
   runner: local
   replicates: 2
-  timeout_minutes: 25
+  timeout_minutes: 45
   max_turns: 200
 
 design:
