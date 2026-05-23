@@ -11,7 +11,9 @@ factors:
   language:
     levels: [python, typescript, rust, go]
   agent:
-    levels: [claude-code, cursor, copilot, aider]
+    levels: [claude-code, qwen-local, pi-dense]
+  thinking:
+    levels: [off, minimal]
   framework:
     levels: [fastapi, nextjs, axum, stdlib]
 ```
@@ -25,8 +27,16 @@ Some factor names trigger special runner behaviour:
 | Factor | Special behaviour |
 |--------|-------------------|
 | `tooling` | Level `beads` appends beads task-tracking instructions to the agent prompt |
-| `model` | Level value is resolved through the model alias table (e.g. `opus` → `claude-opus-4-7`) |
+| `model` | For `claude-code`, level value is resolved through the model alias table (e.g. `opus` -> `claude-opus-4-7`); for `harness: omp`, the value is passed through as `--model` |
+| `thinking` | For `harness: omp`, non-`off` levels are passed as `--thinking <level>` |
 | `prompt` | Level value selects a prompt file from `prompts/<name>.md`; level `none` injects nothing |
+
+The built-in local runner supports `claude-code` directly. Additional local
+agent names are experiment-defined profiles under `playpen.local_agents`.
+Profiles with `harness: omp` invoke the `omp` CLI with
+`-p --no-session --mode json`. Use the `model` factor to pass `--model`; use
+the `thinking` factor to pass `--thinking`. Levels `off`, `none`, `default`,
+and `false` omit the thinking flag.
 
 #### The `prompt` factor
 
@@ -100,6 +110,15 @@ playpen:
   runner: local               # "local" (supported) or "docker" (skeleton)
   replicates: 3               # Runs per design point (minimum: 1)
   timeout_minutes: 30         # Max time per run
+  model: moe                  # Optional global default when model is not a factor/profile default
+  thinking: off               # Optional global default when thinking is not a factor/profile default
+  local_agents:
+    qwen-local:
+      harness: omp
+      model: moe
+    pi-dense:
+      harness: omp
+      model: dense
   cost_limit_usd: 500.00      # Budget cap per screening phase
 ```
 
@@ -108,6 +127,9 @@ playpen:
 | `runner` | `local` | `local` shells out to the agent CLI on the host; `docker` exists but is a skeleton |
 | `replicates` | `3` | Number of times to repeat each design point. Higher = less noise, more cost |
 | `timeout_minutes` | `30` | Kill a run after this many minutes |
+| `model` | none | Global fallback model for local agents when neither `model` factor nor profile default is set |
+| `thinking` | none | Global fallback OMP thinking mode when neither `thinking` factor nor profile default is set |
+| `local_agents` | `{}` | Named local agent profiles keyed by `agent` factor level |
 | `cost_limit_usd` | none | Optional budget cap. Runs stop when limit is reached |
 | `local_inference_cost` | none | Cost model for local/offline models — see below |
 

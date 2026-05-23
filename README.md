@@ -6,11 +6,11 @@ Retort applies statistical Design of Experiments (DoE) to systematically evaluat
 
 ## Status: 1.0 Beta
 
-> Retort 1.0 beta is **feature-complete for single-agent `claude-code` experiments** with the `LocalRunner`. The CLI surface, scoring metrics, and storage schema are stable. This is the version we used to run three complete experiments totaling 111 runs and $110 in API costs.
+> Retort 1.0 beta is **feature-complete for single-agent `claude-code` experiments** with the `LocalRunner`, with basic `harness: omp` local-agent profile support for local model experiments. The CLI surface, scoring metrics, and storage schema are stable. This is the version we used to run three complete experiments totaling 111 runs and $110 in API costs.
 >
 > **What works:** `LocalRunner`, all 8 built-in scorers, fractional-factorial design generation, ANOVA + effects reporting, SQLite storage, resumable sharded runs, parallel bulk evaluation, auto-evaluation skills pipeline, `cost_limit_usd` budget enforcement, and the full experiment lifecycle (screening → trial → production).
 >
-> **What is not yet implemented:** `DockerRunner` (skeleton only — `LocalRunner` is the supported path), agents other than `claude-code` (unsupported agents now raise an error at startup), the `intake`/`scheduler` paths.
+> **What is not yet implemented:** `DockerRunner` (skeleton only — `LocalRunner` is the supported path), agents other than `claude-code` or explicitly configured `playpen.local_agents` profiles (unsupported agents now raise an error at startup), the `intake`/`scheduler` paths.
 >
 > **Scoring gate:** A run where tests don't execute scores **0 across all metrics** — a Starlette-incompatible Python run that writes perfect code still fails if pytest can't import. `test_coverage == 0` vetoes the entire `ScoreVector`. The `findings` scorer reads `assessment.json` produced by the `evaluate-run` + `file-run-issues` skill pipeline and applies a weighted penalty for critical/high/medium/low findings.
 
@@ -191,7 +191,8 @@ A quarter-fraction screening experiment on the same brazil-bench task, designed 
 |---|---|---|
 | **Python 3.11+** | Runtime | https://www.python.org/downloads/ |
 | **C/C++ toolchain + cmake** | `OApackage` (orthogonal arrays) is a C++ extension; no manylinux wheel on every platform | `apt install build-essential cmake` (Debian/Ubuntu) / `xcode-select --install` (macOS) |
-| **`claude` CLI, authenticated** | The only currently-implemented agent runner shells out to `claude -p ...` | https://docs.claude.com/claude-code · run `claude` once to log in |
+| **`claude` CLI, authenticated** | Required for `agent: claude-code`; shells out to `claude -p ...` | https://docs.claude.com/claude-code · run `claude` once to log in |
+| **`omp` CLI** | Required for any `playpen.local_agents` profile using `harness: omp`; Retort invokes `omp -p --no-session --mode json` | Install and authenticate/configure OMP for your local model endpoint |
 | **`bd` (beads) CLI** | Required only if any factor uses `tooling: beads` (the bundled examples do). The agent runs `bd init`/`bd create` inside its playpen | https://github.com/steveyegge/beads |
 | **Per-language toolchains** | The scorer builds and tests the generated code. Install the toolchain for every language you list as a factor level. | `python` (already), `node` ≥ 20 + `npm` for typescript, `go` ≥ 1.22, `rustup` for rust |
 | **Docker** *(optional, future)* | `DockerRunner` is a skeleton; `LocalRunner` is the supported path today. Only install if you plan to develop the Docker path. | https://docs.docker.com/get-docker/ |
@@ -308,7 +309,7 @@ factors:
   language:
     levels: [python, typescript, go]
   agent:
-    levels: [claude-code, cursor, copilot]
+    levels: [claude-code, qwen-local, pi-dense]
   framework:
     levels: [fastapi, nextjs, stdlib]
 
@@ -326,6 +327,13 @@ playpen:
   replicates: 3
   timeout_minutes: 30
   cost_limit_usd: 50.00   # optional: abort experiment if accumulated cost exceeds this
+  local_agents:
+    qwen-local:
+      harness: omp
+      model: moe
+    pi-dense:
+      harness: omp
+      model: dense
 
 design:
   screening_resolution: 3
@@ -375,7 +383,7 @@ Honest accounting of what is tested end-to-end versus implemented but not exerci
 | **Resume / sharding** | ✅ Working | `--resume` skips recorded `(config, replicate)` pairs; `--retry-failed` retries failures. `--shard N/M` deterministic partition for parallel polecats. Per-run DB commit = at most one lost run on interrupt. Run artifacts archived to `runs/<cell>/rep<N>/`. |
 | **Factor system** | ✅ Working | `language`, `model` (with alias table, versioned IDs), `tooling` (beads instructions), `prompt` (named `.md` files in `prompts/`), `org_context`. Any additional factor flows through `stack.extra` automatically. |
 | **Budget enforcement** | ✅ Working | `cost_limit_usd` in config is enforced during `retort run` — experiment aborts if accumulated cost exceeds the limit. Error surfaced immediately via `click.ClickException`. |
-| **Agent validation** | ✅ Working | Unsupported agents raise a clear error at experiment startup, before any runs execute. Only `claude-code` is implemented. |
+| **Agent validation** | ✅ Working | Unsupported agents raise a clear error at experiment startup, before any runs execute. `claude-code` is built in; additional local agent names must be configured under `playpen.local_agents`. |
 | **MLflow sink** | ✅ Implemented | Logs factor levels, scores, and telemetry per run. Enabled by `mlflow:` block in `workspace.yaml`. Not covered by integration tests. |
 | **Local inference cost** | ✅ Working | `local_inference_cost` block computes `_cost_usd` from wall-clock duration × (electricity + amortized hardware) for local/offline models. |
 | **DockerRunner** | 🟡 Implemented | `provision()` and `execute()` implemented with timeout and teardown. **Not validated end-to-end** — use `runner: local` for now. |
@@ -383,7 +391,7 @@ Honest accounting of what is tested end-to-end versus implemented but not exerci
 | **ANOVA / analysis** | 🟡 Lightly exercised | `retort analyze` with additive and multiplicative transforms, residual diagnostics, `--predict` for fractional designs. Verified on real experiment-1/2/3 data for main effects; interaction + Bayesian paths lightly tested. |
 | **Reporting** | 🟡 Mostly working | `retort report effects`, `report web`, `report pareto`, `report wardley`, `report aliasing`, `report dashboard` all implemented. `wardley` and `aliasing` verified in code; not exercised against live experiment data. |
 | **Scheduler / intake** | 🔴 Stub | `retort intake` (D-optimal augmentation) implemented but untested against real candidates. |
-| **Multi-agent** | 🔴 Not implemented | Only `claude-code` is wired in `LocalRunner`. Unsupported agents raise a `click.ClickException` at experiment startup — no silent skipping. |
+| **Multi-agent** | 🟡 Basic local support | `claude-code` plus arbitrary `playpen.local_agents` profiles are wired in `LocalRunner`; profiles can currently use `harness: omp`. Other agents raise a `click.ClickException` at experiment startup — no silent skipping. |
 
 ## Development
 

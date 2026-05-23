@@ -31,7 +31,7 @@ factors:
   language:
     levels: [python, typescript, go]
   agent:
-    levels: [claude-code, cursor, copilot]
+    levels: [claude-code, qwen-local, pi-dense]
   framework:
     levels: [fastapi, nextjs, stdlib]
 
@@ -48,6 +48,13 @@ playpen:
   runner: local            # 'local' is supported; 'docker' is a skeleton
   replicates: 3
   timeout_minutes: 30
+  local_agents:
+    qwen-local:
+      harness: omp
+      model: moe
+    pi-dense:
+      harness: omp
+      model: dense
 
 design:
   screening_resolution: 3

@@ -578,6 +578,46 @@ class TestRunDesignFlag:
         # CSV has 2 rows, not the fraction-reduced count
         assert result.output.count("[RUN ]") == 2
 
+    def test_dry_run_accepts_configured_local_agents(self, tmp_path: Path):
+        """Spec1 local harness profiles should pass run planning."""
+        cfg = tmp_path / "workspace.yaml"
+        cfg.write_text(
+            "experiment:\n"
+            "  name: test\n"
+            "factors:\n"
+            "  language:\n"
+            "    levels: [python, go]\n"
+            "  agent:\n"
+            "    levels: [qwen-local, pi-dense]\n"
+            "  model:\n"
+            "    levels: [moe, dense]\n"
+            "  thinking:\n"
+            "    levels: [off, minimal]\n"
+            "responses:\n"
+            "  - code_quality\n"
+            "tasks:\n"
+            "  - source: bundled://rest-api-crud\n"
+            "playpen:\n"
+            "  runner: local\n"
+            "  replicates: 1\n"
+            "  local_agents:\n"
+            "    qwen-local:\n"
+            "      harness: omp\n"
+            "    pi-dense:\n"
+            "      harness: omp\n"
+            "      model: dense\n"
+        )
+
+        runner = CliRunner()
+        result = runner.invoke(
+            cli,
+            ["run", "--phase", "screening", "--config", str(cfg), "--dry-run"],
+        )
+
+        assert result.exit_code == 0, result.output
+        assert "agent': 'qwen-local'" in result.output
+        assert "agent': 'pi-dense'" in result.output
+
 
 class TestPromptFactor:
     """Tests for the prompt factor and file injection."""
@@ -668,6 +708,36 @@ class TestPromptFactor:
 
         with pytest.raises(FileNotFoundError, match="prompts directory"):
             runner._build_agent_command(stack, task)
+
+
+def test_playpen_accepts_local_agent_defaults():
+    from retort.config.loader import load_workspace_dict
+
+    cfg = load_workspace_dict(
+        {
+            "factors": {"language": {"levels": ["python"]}},
+            "responses": ["code_quality"],
+            "tasks": [{"source": "bundled://rest-api-crud"}],
+            "playpen": {
+                "runner": "local",
+                "model": "moe",
+                "thinking": "minimal",
+                "local_agents": {
+                    "qwen-local": {
+                        "harness": "omp",
+                        "model": "dense",
+                        "thinking": False,
+                    },
+                },
+            },
+        }
+    )
+
+    assert cfg.playpen.model == "moe"
+    assert cfg.playpen.thinking == "minimal"
+    assert cfg.playpen.local_agents["qwen-local"].harness == "omp"
+    assert cfg.playpen.local_agents["qwen-local"].model == "dense"
+    assert cfg.playpen.local_agents["qwen-local"].thinking == "off"
 
 
 class TestCostLimitEnforcement:
