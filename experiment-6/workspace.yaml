@@ -1,0 +1,73 @@
+# Experiment 6 — opus 4.7 vs 4.8 on the bookshop task (rest-api-crud)
+#
+# Same full-factorial design as experiment-5, but on the bundled
+# `rest-api-crud` task (a CRUD "books" collection REST API) instead of the
+# brazil-bench Brazilian-soccer MCP task. This re-runs the 4.7-vs-4.8
+# confirmation on a simpler, cheaper task — and cross-task data tests whether
+# the model-version effects generalize beyond brazil-bench.
+#
+# Design: FULL factorial (not fractional)
+#   6 language x 2 model x 2 tooling = 24 cells x 3 replicates = 72 runs
+#
+# Cost note: rest-api-crud is much lighter than brazil-bench. In experiment-1
+# it averaged ~$0.34/run and ~350K tokens/run (vs ~$5 and ~5M for brazil-bench),
+# so a full 72-run pass should be on the order of ~$25-40 and ~25-30M tokens —
+# well within a single usage window.
+#
+# IMPORTANT — usage-limit lesson from experiment-5:
+#   exp-5 had 65/72 runs killed when a Claude usage limit hit during 4 parallel
+#   shards ("63% of usage was while 4+ sessions ran in parallel"). For exp-6,
+#   run at LOW parallelism (sequential or at most 2 shards) and watch with
+#   `retort monitor` as a re-limit tripwire (instant 1-2s failures = limit hit).
+#
+# Launch (low parallelism, with the floored-timeout fix already in place):
+#   export PATH="/opt/homebrew/opt/openjdk/bin:/opt/homebrew/bin:$HOME/go/bin:$PATH"
+#   export JAVA_HOME="/opt/homebrew/opt/openjdk/libexec/openjdk.jdk/Contents/Home"
+#   PYTHONPATH=src .venv/bin/retort run --phase screening \
+#     --config experiment-6/workspace.yaml --resume        # sequential
+#   # monitor in another shell:
+#   PYTHONPATH=src .venv/bin/retort monitor \
+#     --db experiment-6/retort.db --config experiment-6/workspace.yaml --watch
+
+experiment:
+  name: experiment-6-opus-4-7-vs-4-8-bookshop
+  visibility: public
+
+factors:
+  language:
+    levels: [python, typescript, go, rust, java, clojure]
+  model:
+    levels: [claude-opus-4-7, claude-opus-4-8]
+  tooling:
+    levels: [none, beads]
+
+responses:
+  - code_quality
+  - token_efficiency
+  - test_coverage
+  - defect_rate
+  - maintainability
+  - idiomatic
+
+tasks:
+  - source: bundled://rest-api-crud
+
+playpen:
+  runner: local
+  replicates: 3
+  timeout_minutes: 45
+  max_turns: 200
+
+design:
+  screening_resolution: 3
+  significance_threshold: 0.10
+
+promotion:
+  screening_to_trial: { p_value: 0.10 }
+  trial_to_production: { posterior_confidence: 0.80 }
+
+evaluation:
+  enabled: true
+  model: haiku
+  min_severity_to_file: high
+  issue_tracker: beads
