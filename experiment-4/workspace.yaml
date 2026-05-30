@@ -1,0 +1,115 @@
+# Experiment 4 — Three-way model comparison: opus 4.6 vs 4.7 vs 4.8
+#
+# Primary question: how does claude-opus-4-8 compare to 4-7 and 4-6, and does
+# the answer depend on language or tooling?
+#
+# This experiment EXTENDS experiment-3 (which compared 4-6 vs 4-7) by adding
+# claude-opus-4-8 as a third model level. The full factorial is now
+#   3 model x 6 language x 2 tooling = 36 cells
+# and the augmented quarter-fraction design is 9 cells (6 reused from
+# experiment-3 + 3 new claude-opus-4-8 cells). Only the 3 new cells are
+# executed here (2 replicates each = 6 new runs); the 6 prior cells are
+# carried over from experiment-3's published results for the combined ANOVA.
+#
+# ── Augmented quarter-fraction design (9 cells) ─────────────────────────────
+#
+#   cell  language    model            tooling  source     role
+#   ----  ----------  ---------------  -------  ---------  -----------------------------
+#   A     python      claude-opus-4-6  none     exp-3      4-6 anchor (carried over)
+#   B     typescript  claude-opus-4-6  beads    exp-3      4-6 x beads (carried over)
+#   C     go          claude-opus-4-7  none     exp-3      4-7 x none (carried over)
+#   D     rust        claude-opus-4-7  beads    exp-3      4-7 anchor (carried over)
+#   E     java        claude-opus-4-6  none     exp-3      4-6 (carried over)
+#   F     clojure     claude-opus-4-7  beads    exp-3      4-7 (carried over)
+#   G     go          claude-opus-4-8  none     exp-4 NEW  completes go 4-6->4-7->4-8 trajectory
+#   H     python      claude-opus-4-8  beads    exp-4 NEW  4-8 x beads; python controlled vs exp-2/3
+#   I     clojure     claude-opus-4-8  none     exp-4 NEW  4-8 on a JVM/compiled language
+#
+#   The 3 new 4-8 cells deliberately span the score range seen in exp-3: go was
+#   the strongest cell (cq 1.0, the clearest 4-7 signal), python the weakest
+#   (cq 0.667), and clojure a mid compiled-language cell. Tooling is split
+#   none/beads/none so the 4-8 x tooling contrast is observable.
+#
+# ── The headline controlled comparison: Go across all three versions ────────
+#
+#   go/none is the one cell that now has a data point for every model version
+#   on the same task, holding language AND tooling constant:
+#     exp-2  go / claude-opus-4-6 / none  -> test_coverage 0.42
+#     exp-3  go / claude-opus-4-7 / none  -> test_coverage 0.81
+#     exp-4  go / claude-opus-4-8 / none  -> (this experiment)
+#   This is the cleanest model-version trajectory in the whole program and the
+#   primary motivation for cell G.
+#
+# ── Aliasing note (carried from exp-3) ──────────────────────────────────────
+#
+#   This remains a Resolution III screening design: the model main effect is
+#   partially aliased with language-group contrasts, so model-vs-language
+#   cannot be fully separated. The go/none trajectory above is the controlled
+#   comparison that sidesteps the aliasing for the single most important cell.
+#   Unrun cells are predicted via multiplicative ANOVA: retort analyze --predict
+#
+# ── Cross-experiment comparability ──────────────────────────────────────────
+#
+#   Versioned model IDs (claude-opus-4-6/4-7/4-8) are used verbatim, matching
+#   experiment-3. claude-opus-4-6 is the same model that ran as the "opus"
+#   alias in experiments 1 & 2. Task, replicate count (2), timeout (45 min),
+#   and scorers all match experiment-3 so the new 4-8 cells are directly
+#   comparable to the carried-over 4-6/4-7 cells.
+#
+# ── Running this design ─────────────────────────────────────────────────────
+#
+#   Only the 3 new cells in design.csv are executed (the 6 prior cells live in
+#   experiment-3). The runner ignores the leading 'run' index column and runs
+#   exactly the factor rows listed:
+#
+#     retort run --phase screening \
+#       --config experiment-4/workspace.yaml \
+#       --design experiment-4/design.csv --resume
+#
+#   PATH must include the openjdk bin (for clojure) and ~/go/bin (for bd):
+#     export PATH="/opt/homebrew/opt/openjdk/bin:$HOME/go/bin:$PATH"
+
+experiment:
+  name: experiment-4-opus-4-8-three-way
+  visibility: public
+
+# Factors match experiment-3 for cross-experiment ANOVA comparability,
+# with claude-opus-4-8 added as the third model level.
+factors:
+  language:
+    levels: [python, typescript, go, rust, java, clojure]
+  model:
+    levels: [claude-opus-4-6, claude-opus-4-7, claude-opus-4-8]
+  tooling:
+    levels: [none, beads]
+
+responses:
+  - code_quality
+  - token_efficiency
+  - test_coverage
+  - defect_rate
+  - maintainability
+  - idiomatic
+
+tasks:
+  - source: github://brazil-bench/benchmark-template/brazilian-soccer-mcp-guide.md
+
+playpen:
+  runner: local
+  replicates: 2
+  timeout_minutes: 45
+  max_turns: 200
+
+design:
+  screening_resolution: 3
+  significance_threshold: 0.10
+
+promotion:
+  screening_to_trial: { p_value: 0.10 }
+  trial_to_production: { posterior_confidence: 0.80 }
+
+evaluation:
+  enabled: true
+  model: haiku
+  min_severity_to_file: high
+  issue_tracker: beads

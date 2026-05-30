@@ -1,0 +1,79 @@
+# Experiment 5 — Confirmation: full factorial on claude-opus-4-7 vs claude-opus-4-8
+#
+# Purpose: confirm the directional findings from experiment-4 (which had only
+# n=2 per cell and a single new cell per language) with a fully replicated,
+# full-factorial design over the two recent model versions.
+#
+# Design: FULL factorial, NOT fractional.
+#   6 language x 2 model x 2 tooling = 24 cells
+#   x 3 replicates = 72 runs
+#
+# Models are limited to the two versions under confirmation:
+#   claude-opus-4-7, claude-opus-4-8
+# (claude-opus-4-6 already has full coverage from experiments 2 and 3 and is
+#  not re-run here.)
+#
+# Because this is a full factorial, the model main effect is NO LONGER aliased
+# with language contrasts (the Resolution III limitation of experiments 3-4 is
+# removed). Model, language, tooling, and all their interactions are
+# independently estimable. This is the design that can actually confirm or
+# refute the experiment-4 trajectory findings, in particular:
+#   - go/none: was 4-7 coverage (0.81) a peak, with 4-8 reverting to ~0.44?
+#   - python: does code_quality really rise at 4-8 (0.667 -> 0.833)?
+#   - clojure: is the 4-8 ReqCov 0.0 flag real or an evaluator artifact?
+#
+# Execution: 4 parallel --shard workers sharing one retort.db:
+#   export PATH="/opt/homebrew/opt/openjdk/bin:/opt/homebrew/bin:$HOME/go/bin:$PATH"
+#   export JAVA_HOME="/opt/homebrew/opt/openjdk/libexec/openjdk.jdk/Contents/Home"
+#   for s in 0 1 2 3; do
+#     retort run --phase screening --config experiment-5/workspace.yaml \
+#       --resume --shard $s/4 > experiment-5/shard-$s.log 2>&1 &
+#   done; wait
+#
+# Toolchains required (all installed): python, node (typescript), go, rust
+# (cargo), java (openjdk + maven), clojure, and bd (beads).
+
+experiment:
+  name: experiment-5-opus-4-7-vs-4-8-full-factorial
+  visibility: public
+
+# Factors match experiments 3-4 for cross-experiment comparability.
+factors:
+  language:
+    levels: [python, typescript, go, rust, java, clojure]
+  model:
+    levels: [claude-opus-4-7, claude-opus-4-8]
+  tooling:
+    levels: [none, beads]
+
+responses:
+  - code_quality
+  - token_efficiency
+  - test_coverage
+  - defect_rate
+  - maintainability
+  - idiomatic
+
+tasks:
+  - source: github://brazil-bench/benchmark-template/brazilian-soccer-mcp-guide.md
+
+playpen:
+  runner: local
+  replicates: 3
+  timeout_minutes: 45
+  max_turns: 200
+
+# Full factorial — no design.fraction set, so the generator runs all 24 cells.
+design:
+  screening_resolution: 3
+  significance_threshold: 0.10
+
+promotion:
+  screening_to_trial: { p_value: 0.10 }
+  trial_to_production: { posterior_confidence: 0.80 }
+
+evaluation:
+  enabled: true
+  model: haiku
+  min_severity_to_file: high
+  issue_tracker: beads
