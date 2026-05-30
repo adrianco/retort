@@ -731,8 +731,13 @@ def _estimate_run_timeout(session, run_config: dict, fallback_minutes: int) -> i
 
     Looks at completed runs with the same factor config first; if none exist,
     falls back to completed runs sharing the same language (the dominant cost
-    driver). Returns ceil(max_observed * 1.5 / 60) clamped to [5, fallback*3].
-    Returns fallback_minutes when no history is available.
+    driver). The adaptive estimate ``ceil(max_observed * 1.5 / 60)`` only ever
+    *extends* the configured budget: the result is clamped to
+    ``[fallback_minutes, fallback_minutes * 3]``. It never returns less than the
+    configured ``timeout_minutes`` — otherwise an early run (before any slow
+    run exists to raise the ceiling) could be killed below the user's budget,
+    producing a false all-zeros timeout. Returns ``fallback_minutes`` when no
+    history is available.
     """
     import math
 
@@ -764,7 +769,10 @@ def _estimate_run_timeout(session, run_config: dict, fallback_minutes: int) -> i
         return fallback_minutes
 
     estimated = math.ceil(max(durations) * 1.5 / 60)
-    return max(5, min(estimated, fallback_minutes * 3))
+    # Adaptive timeout only extends: never below the configured budget, never
+    # above 3x it. Clamping the lower bound to fallback_minutes (rather than 5)
+    # prevents early, history-poor runs from being killed under budget.
+    return max(fallback_minutes, min(estimated, fallback_minutes * 3))
 
 
 def _shard_owns(config_key: str, rep: int, shard_index: int, shard_total: int) -> bool:
@@ -2457,6 +2465,102 @@ def report_web(
     )
     click.echo(f"Wrote {n_pages} page(s) to {output}", err=True)
     click.echo(str(output / "index.html"))
+
+
+@main.command("monitor")
+@click.option(
+    "--db",
+    type=click.Path(exists=True),
+    required=True,
+    help="Path to the retort SQLite database.",
+)
+@click.option(
+    "--config",
+    type=click.Path(exists=True),
+    default=None,
+    help="Workspace YAML; read to derive the expected total from replicates.",
+)
+@click.option(
+    "--total",
+    type=int,
+    default=None,
+    help="Override the expected total run count (design cells × replicates).",
+)
+@click.option(
+    "--watch/--once",
+    default=False,
+    help="Refresh continuously until all runs finish (Ctrl-C to stop).",
+)
+@click.option(
+    "--interval",
+    type=float,
+    default=10.0,
+    show_default=True,
+    help="Seconds between refreshes in --watch mode.",
+)
+@click.option(
+    "--json",
+    "as_json",
+    is_flag=True,
+    default=False,
+    help="Emit a JSON snapshot instead of the text report.",
+)
+def monitor_cmd(
+    db: str,
+    config: str | None,
+    total: int | None,
+    watch: bool,
+    interval: float,
+    as_json: bool,
+) -> None:
+    """Show live progress of an experiment run database.
+
+    Summarizes completed/remaining runs, per-cell coverage, cost and token
+    totals, throughput, and an ETA. Safe to point at a database that one or
+    more ``retort run`` shards are actively writing. With --watch it refreshes
+    until every expected run has reached a terminal state.
+
+    The expected total is design-cells × replicates; pass --config (to read
+    replicates) or --total so progress can be shown as a fraction.
+    """
+    import time
+
+    from retort.reporting.monitor import build_snapshot, render_json, render_text
+    from retort.storage.database import get_engine, get_session_factory
+
+    replicates: int | None = None
+    if config is not None:
+        from retort.config.loader import load_workspace
+
+        try:
+            replicates = load_workspace(config).playpen.replicates
+        except Exception as exc:  # noqa: BLE001 - surfaced as a warning, non-fatal
+            click.echo(f"warning: could not read replicates from {config}: {exc}", err=True)
+
+    db_path = Path(db)
+    engine = get_engine(db_path)
+    session_factory = get_session_factory(engine)
+
+    def _snapshot():
+        session = session_factory()
+        try:
+            return build_snapshot(session, replicates=replicates, expected_total=total)
+        finally:
+            session.close()
+
+    try:
+        while True:
+            snap = _snapshot()
+            if watch and not as_json:
+                click.echo("\033[2J\033[H", nl=False)  # clear screen + cursor home
+            click.echo(render_json(snap) if as_json else render_text(snap, db_path=str(db_path)))
+            if not watch or snap.is_done:
+                break
+            time.sleep(interval)
+    except KeyboardInterrupt:
+        click.echo("", err=True)
+    finally:
+        engine.dispose()
 
 
 if __name__ == "__main__":
