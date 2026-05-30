@@ -1,0 +1,436 @@
+"""Live progress monitor for in-flight and completed experiment runs.
+
+Reads a retort SQLite database and summarizes run status, per-cell coverage,
+resource totals (cost / tokens / duration), throughput, and an ETA. It is safe
+to point at a database that is actively being written by one or more
+``retort run`` shards: it only reads, and the runner commits one row per run, so
+each snapshot reflects every run that has finished so far.
+
+The runner persists a row in ``experiment_runs`` only when a run reaches a
+terminal state (``completed`` / ``failed``), so the number of in-flight runs is
+inferred as ``expected_total - completed - failed`` rather than read directly.
+``expected_total`` comes from the design (``design_matrix_rows`` × replicates).
+"""
+
+from __future__ import annotations
+
+import json
+from dataclasses import dataclass, field
+from datetime import datetime, timezone
+
+from sqlalchemy.orm import Session
+
+from retort.storage.models import (
+    DesignMatrixRow,
+    ExperimentRun,
+    RunResult,
+    RunStatus,
+)
+
+# Underscore-prefixed metrics carry resource data rather than quality scores.
+COST_METRIC = "_cost_usd"
+TOKENS_METRIC = "_tokens"
+DURATION_METRIC = "_duration_seconds"
+_RESOURCE_METRICS = frozenset({COST_METRIC, TOKENS_METRIC, DURATION_METRIC, "_turns"})
+
+
+def _as_utc(dt: datetime | None) -> datetime | None:
+    """Coerce a (possibly naive, SQLite-sourced) datetime to UTC-aware."""
+    if dt is None:
+        return None
+    if dt.tzinfo is None:
+        return dt.replace(tzinfo=timezone.utc)
+    return dt.astimezone(timezone.utc)
+
+
+def _label(factors: dict, run_id: int) -> str:
+    """Stable ``value/value/...`` cell label ordered by factor name."""
+    return "/".join(str(factors[k]) for k in sorted(factors)) or f"run-{run_id}"
+
+
+@dataclass
+class CellProgress:
+    """Aggregated progress for one design cell (one factor combination)."""
+
+    factors: dict[str, str]
+    completed: int = 0
+    failed: int = 0
+    cost_usd: float = 0.0
+    tokens: float = 0.0
+    metric_means: dict[str, float] = field(default_factory=dict)
+
+    @property
+    def label(self) -> str:
+        """Stable ``value/value/...`` label, ordered by factor name."""
+        return "/".join(v for _, v in sorted(self.factors.items()))
+
+
+@dataclass
+class MonitorSnapshot:
+    """A point-in-time summary of an experiment's run database."""
+
+    completed: int
+    failed: int
+    expected_total: int | None
+    design_cells: int
+    replicates: int | None
+    total_cost_usd: float
+    total_tokens: float
+    mean_duration_s: float | None
+    wall_elapsed_s: float | None
+    throughput_per_hour: float | None
+    eta_seconds: float | None
+    cells: list[CellProgress]
+    recent: list[dict]
+    failures: list[dict]
+    generated_at: datetime
+
+    @property
+    def terminal(self) -> int:
+        """Runs in a terminal state (completed or failed)."""
+        return self.completed + self.failed
+
+    @property
+    def remaining(self) -> int | None:
+        if self.expected_total is None:
+            return None
+        return max(self.expected_total - self.terminal, 0)
+
+    @property
+    def pct_complete(self) -> float | None:
+        if not self.expected_total:
+            return None
+        return 100.0 * self.terminal / self.expected_total
+
+    @property
+    def is_done(self) -> bool:
+        """True when every expected run has reached a terminal state."""
+        return self.remaining == 0 if self.remaining is not None else False
+
+    @property
+    def eta_finish(self) -> datetime | None:
+        if self.eta_seconds is None:
+            return None
+        return self.generated_at + _timedelta(self.eta_seconds)
+
+
+def _timedelta(seconds: float):
+    from datetime import timedelta
+
+    return timedelta(seconds=seconds)
+
+
+def build_snapshot(
+    session: Session,
+    *,
+    replicates: int | None = None,
+    expected_total: int | None = None,
+    recent_n: int = 6,
+    now: datetime | None = None,
+) -> MonitorSnapshot:
+    """Build a :class:`MonitorSnapshot` from the current database state.
+
+    Args:
+        session: Open SQLAlchemy session bound to a retort database.
+        replicates: Replicates per cell. Used (with the design cell count) to
+            compute ``expected_total`` when that is not given directly.
+        expected_total: Total runs expected. Overrides the replicates-derived
+            value when provided.
+        recent_n: How many most-recently-finished completions to surface.
+        now: Reference time for elapsed/ETA (defaults to ``datetime.now(utc)``;
+            injectable for deterministic tests).
+
+    Returns:
+        A populated snapshot. Quality-metric means exclude failed runs.
+    """
+    now = now or datetime.now(timezone.utc)
+
+    design_cells = session.query(DesignMatrixRow).count()
+
+    runs = session.query(ExperimentRun).all()
+    # Pre-load results once to avoid an N+1 query per run.
+    results_by_run: dict[int, dict[str, float]] = {}
+    for r in session.query(RunResult).all():
+        results_by_run.setdefault(r.run_id, {})[r.metric_name] = r.value
+
+    cells: dict[str, CellProgress] = {}
+    metric_sums: dict[str, dict[str, list[float]]] = {}
+    total_cost = 0.0
+    total_tokens = 0.0
+    durations: list[float] = []
+    started_times: list[datetime] = []
+    finished: list[tuple[datetime, ExperimentRun]] = []
+    failures: list[dict] = []
+    completed = failed = 0
+
+    for run in runs:
+        try:
+            factors = json.loads(run.run_config_json or "{}")
+        except (TypeError, ValueError):
+            factors = {}
+        if not isinstance(factors, dict):
+            factors = {}
+        label = _label(factors, run.id)
+        str_factors = {k: str(v) for k, v in factors.items()}
+        cell = cells.setdefault(label, CellProgress(factors=str_factors))
+        res = results_by_run.get(run.id, {})
+
+        status = run.status.value if hasattr(run.status, "value") else str(run.status)
+        if status == RunStatus.failed.value:
+            failed += 1
+            cell.failed += 1
+            failures.append(
+                {
+                    "label": label,
+                    "replicate": run.replicate,
+                    "error": run.error_message or "",
+                }
+            )
+            continue
+        if status != RunStatus.completed.value:
+            # pending / running rows are not normally persisted; skip if present.
+            continue
+
+        completed += 1
+        cell.completed += 1
+        cost = res.get(COST_METRIC, 0.0) or 0.0
+        toks = res.get(TOKENS_METRIC, 0.0) or 0.0
+        total_cost += cost
+        total_tokens += toks
+        cell.cost_usd += cost
+        cell.tokens += toks
+        if DURATION_METRIC in res and res[DURATION_METRIC] is not None:
+            durations.append(res[DURATION_METRIC])
+        if run.started_at is not None:
+            started_times.append(_as_utc(run.started_at))
+        if run.finished_at is not None:
+            finished.append((_as_utc(run.finished_at), run))
+
+        # Accumulate quality-metric means (skip resource metrics).
+        sums = metric_sums.setdefault(label, {})
+        for name, val in res.items():
+            if name in _RESOURCE_METRICS or val is None:
+                continue
+            sums.setdefault(name, []).append(val)
+
+    for label, sums in metric_sums.items():
+        cells[label].metric_means = {n: sum(v) / len(v) for n, v in sums.items() if v}
+
+    if expected_total is None and replicates is not None and design_cells:
+        expected_total = design_cells * replicates
+
+    mean_duration = sum(durations) / len(durations) if durations else None
+
+    wall_elapsed = None
+    throughput = None
+    eta = None
+    if started_times:
+        wall_elapsed = (now - min(started_times)).total_seconds()
+        if wall_elapsed > 0 and completed > 0:
+            throughput = completed / (wall_elapsed / 3600.0)
+            remaining = (
+                max(expected_total - completed - failed, 0)
+                if expected_total is not None
+                else None
+            )
+            if remaining:
+                eta = remaining / throughput * 3600.0
+            elif remaining == 0:
+                eta = 0.0
+
+    finished.sort(key=lambda t: t[0], reverse=True)
+    recent = []
+    for fin_dt, run in finished[:recent_n]:
+        res = results_by_run.get(run.id, {})
+        try:
+            factors = json.loads(run.run_config_json or "{}")
+        except (TypeError, ValueError):
+            factors = {}
+        recent.append(
+            {
+                "label": _label(factors, run.id),
+                "replicate": run.replicate,
+                "finished_at": fin_dt,
+                "code_quality": res.get("code_quality"),
+                "test_coverage": res.get("test_coverage"),
+                "cost_usd": res.get(COST_METRIC),
+                "duration_s": res.get(DURATION_METRIC),
+            }
+        )
+
+    ordered_cells = sorted(cells.values(), key=lambda c: c.label)
+
+    return MonitorSnapshot(
+        completed=completed,
+        failed=failed,
+        expected_total=expected_total,
+        design_cells=design_cells,
+        replicates=replicates,
+        total_cost_usd=total_cost,
+        total_tokens=total_tokens,
+        mean_duration_s=mean_duration,
+        wall_elapsed_s=wall_elapsed,
+        throughput_per_hour=throughput,
+        eta_seconds=eta,
+        cells=ordered_cells,
+        recent=recent,
+        failures=failures,
+        generated_at=now,
+    )
+
+
+def _fmt_duration(seconds: float | None) -> str:
+    if seconds is None:
+        return "—"
+    seconds = int(seconds)
+    h, rem = divmod(seconds, 3600)
+    m, s = divmod(rem, 60)
+    if h:
+        return f"{h}h{m:02d}m"
+    if m:
+        return f"{m}m{s:02d}s"
+    return f"{s}s"
+
+
+def _fmt_tokens(tokens: float) -> str:
+    if tokens >= 1e9:
+        return f"{tokens / 1e9:.2f}B"
+    if tokens >= 1e6:
+        return f"{tokens / 1e6:.1f}M"
+    if tokens >= 1e3:
+        return f"{tokens / 1e3:.0f}K"
+    return f"{tokens:.0f}"
+
+
+def render_text(snap: MonitorSnapshot, db_path: str | None = None) -> str:
+    """Render a snapshot as a compact human-readable report."""
+    lines: list[str] = []
+    ts = snap.generated_at.strftime("%Y-%m-%d %H:%M:%S UTC")
+    header = "Retort run monitor"
+    if db_path:
+        header += f" — {db_path}"
+    lines.append(f"{header}")
+    lines.append(ts)
+    lines.append("─" * 64)
+
+    if snap.expected_total is not None:
+        pct = snap.pct_complete or 0.0
+        bar_w = 30
+        frac = snap.terminal / snap.expected_total if snap.expected_total else 0
+        filled = int(bar_w * frac)
+        bar = "█" * filled + "·" * (bar_w - filled)
+        lines.append(
+            f"Progress   : {snap.terminal:>3} / {snap.expected_total:<3} "
+            f"({pct:4.1f}%)  [{bar}]"
+        )
+        lines.append(
+            f"             completed={snap.completed}  failed={snap.failed}  "
+            f"remaining={snap.remaining}"
+        )
+    else:
+        lines.append(
+            f"Progress   : {snap.completed} completed, {snap.failed} failed "
+            f"(total unknown — pass --config or --total)"
+        )
+
+    lines.append(
+        f"Resources  : ${snap.total_cost_usd:,.2f}   "
+        f"{_fmt_tokens(snap.total_tokens)} tokens   "
+        f"mean {_fmt_duration(snap.mean_duration_s)}/run"
+    )
+    tp = f"{snap.throughput_per_hour:.1f} runs/hr" if snap.throughput_per_hour else "—"
+    eta = _fmt_duration(snap.eta_seconds) if snap.eta_seconds else "—"
+    finish = ""
+    if snap.eta_finish and snap.eta_seconds:
+        finish = f"  (≈ {snap.eta_finish.strftime('%H:%M UTC')})"
+    lines.append(f"Throughput : {tp}   ·   ETA {eta}{finish}")
+    if snap.design_cells:
+        reps = f" × {snap.replicates} reps" if snap.replicates else ""
+        lines.append(f"Design     : {snap.design_cells} cells{reps}")
+    lines.append("")
+
+    # Per-cell table
+    reps = snap.replicates
+    lines.append("Cells:")
+    lines.append(
+        f"  {'cell':<34} {'done':>5}  {'cq':>4}  {'cov':>4}  {'$tot':>6}"
+    )
+    for c in snap.cells:
+        done = f"{c.completed}/{reps}" if reps else str(c.completed)
+        if c.failed:
+            done += f" ✗{c.failed}"
+        cq = c.metric_means.get("code_quality")
+        cov = c.metric_means.get("test_coverage")
+        cq_s = f"{cq:.2f}" if cq is not None else "—"
+        cov_s = f"{cov:.2f}" if cov is not None else "—"
+        lines.append(
+            f"  {c.label:<34} {done:>5}  {cq_s:>4}  {cov_s:>4}  ${c.cost_usd:>5.1f}"
+        )
+    lines.append("")
+
+    if snap.recent:
+        lines.append("Recent completions:")
+        for r in snap.recent:
+            qual = r["code_quality"]
+            covg = r["test_coverage"]
+            cst = r["cost_usd"]
+            cq = f"cq={qual:.2f}" if qual is not None else "cq=—"
+            cov = f"cov={covg:.2f}" if covg is not None else "cov=—"
+            cost = f"${cst:.2f}" if cst is not None else "$—"
+            dur = _fmt_duration(r["duration_s"])
+            lines.append(
+                f"  ✓ {r['label']} rep{r['replicate']}  {cq} {cov}  {cost}  {dur}"
+            )
+        lines.append("")
+
+    if snap.failures:
+        lines.append(f"Failures ({len(snap.failures)}):")
+        for f in snap.failures:
+            err = (f["error"] or "").splitlines()[0][:80] if f["error"] else ""
+            lines.append(f"  ✗ {f['label']} rep{f['replicate']}  {err}")
+    else:
+        lines.append("Failures   : none")
+
+    return "\n".join(lines)
+
+
+def render_json(snap: MonitorSnapshot) -> str:
+    """Render a snapshot as JSON (machine-readable)."""
+
+    def _iso(dt: datetime | None) -> str | None:
+        return dt.isoformat() if dt else None
+
+    data = {
+        "generated_at": _iso(snap.generated_at),
+        "completed": snap.completed,
+        "failed": snap.failed,
+        "remaining": snap.remaining,
+        "expected_total": snap.expected_total,
+        "pct_complete": snap.pct_complete,
+        "design_cells": snap.design_cells,
+        "replicates": snap.replicates,
+        "is_done": snap.is_done,
+        "total_cost_usd": round(snap.total_cost_usd, 4),
+        "total_tokens": snap.total_tokens,
+        "mean_duration_s": snap.mean_duration_s,
+        "throughput_per_hour": snap.throughput_per_hour,
+        "eta_seconds": snap.eta_seconds,
+        "eta_finish": _iso(snap.eta_finish),
+        "cells": [
+            {
+                "label": c.label,
+                "factors": c.factors,
+                "completed": c.completed,
+                "failed": c.failed,
+                "cost_usd": round(c.cost_usd, 4),
+                "tokens": c.tokens,
+                "metric_means": {k: round(v, 4) for k, v in c.metric_means.items()},
+            }
+            for c in snap.cells
+        ],
+        "recent": [
+            {**r, "finished_at": _iso(r["finished_at"])} for r in snap.recent
+        ],
+        "failures": snap.failures,
+    }
+    return json.dumps(data, indent=2)
