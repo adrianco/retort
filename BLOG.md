@@ -145,13 +145,38 @@ pip install -e ".[dev,test]"
 
 You also need: **Python 3.11+**, a **C/C++ toolchain + cmake** (for the `OApackage` orthogonal-array extension), the authenticated **`claude` CLI**, the per-language **toolchains** you list as factors (go, node, rustup, a JDK + maven, clojure), and **`bd`** (beads) only if you use `tooling: beads`.
 
-### Define an experiment
+### Define an experiment — just describe it to Claude Code
 
-```bash
-retort init my-eval && cd my-eval
+You don't have to hand-write `workspace.yaml` or work out the fractional-factorial math. Open `claude` in the repo and describe the experiment in plain language; it designs the matrix, checks prerequisites, estimates cost, confirms the decisions that matter, and runs it. Every experiment in this post was built this way:
+
+```text
+> I want to run a quarter fraction experiment 4 that extends experiment 3,
+  which compared opus 4.6 and 4.7, to compare opus 4.8 as well
+
+⏺ Two findings that shape the design:
+  - claude CLI is present (v2.1.156) — good.
+  - bd (beads) is NOT installed. Experiment-3 used tooling: beads in several
+    cells … so any beads cell in experiment-4 needs beads installed first.
+
+  Experiment-3 is a 6-cell Resolution III quarter-fraction of a 24-cell
+  factorial (6 language × 2 model × 2 tooling), 2 replicates. Adding
+  claude-opus-4-8 makes model a 3-level factor → the full factorial becomes
+  3 × 6 × 2 = 36 cells, and a quarter-fraction is 9 cells.
+
+  Before I build and run this (real API spend — exp-3 cost ~$55 — and hours
+  of wall-clock), confirm a few design decisions:
+
+⏺ User answered Claude's questions:
+  · How should experiment-4 be structured?  → Augment exp-3 (reuse + add 4.8)
+  · bd (beads) isn't installed. Tooling?     → Install bd, keep beads cells
+  · Execute the runs, or set up and stop?    → Set up, then run it
 ```
 
-Edit `workspace.yaml` — factors, response metrics, task, replicates:
+Claude writes `experiment-4/workspace.yaml` + `design.csv`, installs the toolchains it needs, runs the cells, and reports results — and resumes cleanly across API usage-limit windows along the way.
+
+### Or write the config yourself
+
+`retort init my-eval` scaffolds a `workspace.yaml` you can edit directly — factors, response metrics, task, replicates:
 
 ```yaml
 factors:

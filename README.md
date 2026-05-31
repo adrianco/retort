@@ -295,6 +295,37 @@ bd --version                 # Beads present (only needed for tooling=beads)
 
 ## Quick Start
 
+### Drive it with Claude Code (recommended)
+
+You don't have to hand-write `workspace.yaml` or do the fractional-factorial math. Open `claude` in the repo, **describe the experiment you want in plain language**, and let it design the matrix, check prerequisites, estimate cost, confirm the decisions that actually matter, and run it. Every experiment in this repo was built this way:
+
+```text
+> I want to run a quarter fraction experiment 4 that extends experiment 3,
+  which compared opus 4.6 and 4.7, to compare opus 4.8 as well
+
+⏺ Two findings that shape the design:
+  - claude CLI is present (v2.1.156) — good.
+  - bd (beads) is NOT installed. Experiment-3 used tooling: beads in several
+    cells … so any beads cell in experiment-4 needs beads installed first.
+
+  Experiment-3 is a 6-cell Resolution III quarter-fraction of a 24-cell
+  factorial (6 language × 2 model × 2 tooling), 2 replicates. Adding
+  claude-opus-4-8 makes model a 3-level factor → the full factorial becomes
+  3 × 6 × 2 = 36 cells, and a quarter-fraction is 9 cells.
+
+  Before I build and run this (real API spend — exp-3 cost ~$55 — and hours
+  of wall-clock), confirm a few design decisions:
+
+⏺ User answered Claude's questions:
+  · How should experiment-4 be structured?  → Augment exp-3 (reuse + add 4.8)
+  · bd (beads) isn't installed. Tooling?     → Install bd, keep beads cells
+  · Execute the runs, or set up and stop?    → Set up, then run it
+```
+
+Claude then writes `experiment-4/workspace.yaml` + `design.csv`, installs the language toolchains it needs, runs the cells, and reports results — watch live with `retort monitor experiment-4`. It also handles the messy parts in practice: resuming cleanly across API usage-limit windows, retrying failures, and flagging cost before it spends.
+
+### Or drive the CLI directly
+
 ```bash
 # Initialize a workspace
 retort init my-eval
@@ -307,6 +338,9 @@ retort design generate --phase screening --config workspace.yaml -o design.csv
 
 # Execute experiment runs (uses design.fraction from workspace.yaml automatically)
 retort run --phase screening --config workspace.yaml
+
+# Watch live progress (completed/remaining, cost, ETA, failures)
+retort monitor my-eval --watch
 
 # Predict unrun cells from a fractional run
 retort analyze --data results.csv -r code_quality -f language -f model -f tooling --predict
