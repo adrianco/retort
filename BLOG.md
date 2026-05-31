@@ -60,6 +60,16 @@ Beads vs. no-beads was statistically insignificant for `code_quality` across bot
 
 The same factorial costs ~$0.34–$0.96 per run on the CRUD task and ~$5 per run on the MCP-server task. Compiled languages (Go, Rust, Clojure) consume the most tokens because the agent spends the extra budget writing tests. Only `go/sonnet/beads` sat on the Pareto frontier across both tasks — nothing beat it on quality *and* cost simultaneously.
 
+### 6. Time taken: task first, then language, then (weakly) model — and newer isn't faster
+
+Wall-clock per run tracks tokens and cost closely, and the same ordering holds: **task dominates, language is next, model version is a distant, task-dependent third.**
+
+- **Task is a 5–9× multiplier.** The identical languages run far longer on the hard MCP task than on the bookshop CRUD task — Go ≈ 2.6 min vs ≈ 23 min, Python ≈ 1.9 min vs ≈ 13 min. Budget by task before anything else.
+- **Language sets the rest, and the tail matters.** Scripted languages (python ≈ 1.8 min median, typescript ≈ 2.4) are quickest; JVM/compiled are slower, and **java and clojure carry the heavy right tails** — single bookshop runs of 17 min (java) and 27 min (clojure) against a ~3-minute median.
+- **A newer model is not a faster model.** On the easy task, opus-4.7 and 4.8 are a duration dead heat (flat median, 2.8 vs 2.7 min). On the *hard* task, 4.8 runs **+33–73% longer** than 4.7 for the same quality (and produced the one run that hit the 45-minute ceiling). The "newer = quicker" intuition is wrong here — 4.8 spends *more* time, especially as tasks get harder.
+
+This long-tail-on-hard-tasks behavior is exactly why retort's adaptive timeout is **extend-only** (it floors at your configured budget and only ever grants *more* time): an early, fast run must never set a ceiling that strangles a later, legitimately slow one.
+
 ---
 
 ## How These Results Are Produced

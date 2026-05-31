@@ -196,6 +196,8 @@ The headline is the **controlled Go test-coverage trajectory** (go/none, the one
 
 A **full** 24-cell factorial (6 language × {claude-opus-4-7, claude-opus-4-8} × {none, beads} × 3 replicates = 72 runs) on brazil-bench — the de-aliased confirmation of experiment 4's model-version findings (a full factorial removes the Resolution III aliasing). Run single-shard and resumed across usage-limit windows; **results pending completion**. (This experiment is the reason `retort monitor` reports failed runs as *pending retry* rather than done — see [CLI Commands](#cli-commands).)
 
+**Early duration signal (partial):** on this harder task, `claude-opus-4-8` runs *materially longer* than `4-7` on the cells finished so far — python/none **+73%** (12.7m → 22.1m), typescript/beads **+73%**, typescript/none **+33%**, python/beads +2%. This is the **opposite** of the near-flat bookshop result: if it holds, the model×task interaction extends to wall-clock — 4-8 spends more time on hard tasks. (Final numbers pending completion.)
+
 ## Experiment 6 Results — 4.7 vs 4.8 full factorial (bookshop / rest-api-crud)
 
 📊 **[Data →](experiment-6/results.csv)**
@@ -218,6 +220,19 @@ The same full 4.7×4.8 factorial as experiment 5, but on the lighter `rest-api-c
 | typescript | 0.733 | 0.733 | 0.89 | 0.97 |
 | python | 0.766 | 0.781 | 1.00 | 0.99 |
 
+**Time taken (per-run wall-clock, minutes):** language-dominated, and the 4.7-vs-4.8 *median* is flat — but 4.8 has a heavy right tail on the JVM languages.
+
+| Language | median | mean | max | 4.7 mean | 4.8 mean |
+|---|---|---|---|---|---|
+| python | 1.8 | 1.9 | 3.5 | 1.7 | 2.0 |
+| typescript | 2.4 | 2.5 | 3.2 | 2.6 | 2.4 |
+| go | 2.6 | 2.6 | 3.2 | 2.8 | 2.5 |
+| rust | 2.8 | 3.0 | 4.5 | 2.9 | 3.1 |
+| java | 3.2 | 4.5 | **17.2** | 3.0 | 6.2 |
+| clojure | 4.1 | 6.0 | **26.8** | 3.5 | 8.5 |
+
+Overall median 2.8m (4.7) vs 2.7m (4.8) — flat. The mean diverges (+47%) only because 4.8 produced single runs of 17m (java) and 27m (clojure) where 4.7 never exceeded ~4.5m — plus the one 45-min `java/4-8/none` timeout. **ANOVA on log10(duration):** language `p < 1e-6` (dominant), tooling `p = 0.0096` (beads adds time), model `p = 0.061` (marginal — the tail). Duration tracks cost and tokens closely.
+
 **Headlines:**
 - **Model version is a second-order effect.** Per-language code_quality is identical between 4.7 and 4.8; 4.8 costs slightly more. The language ladder (java/go = 1.0 > rust/clojure = 0.83 > python ≈ ts) is unchanged by the model bump — consistent with experiments 1–3.
 - **Cross-task generalization:** the strong model-version movements seen on brazil-bench (Go coverage, Python quality) do **not** appear on this simpler task — the model effect is task-dependent.
@@ -233,6 +248,16 @@ The same full 4.7×4.8 factorial as experiment 5, but on the lighter `rest-api-c
 | 5 | brazil-bench (4.7×4.8 full) | *in progress* | — | — | De-aliased 4.7-vs-4.8 confirmation (resuming across limit windows) |
 | 6 | rest-api-crud (4.7×4.8 full) | 71/72 | $64.01 | 50.2M | 4.7 ≈ 4.8 (cq 0.861 vs 0.860); language still dominates |
 | **Total (excl. exp-5)** | | **182/189** | **$206.02** | **194.9M** | Language dominates; model version is a second-order, task-dependent effect |
+
+### Time taken
+
+Wall-clock per run is driven first by **task**, then **language**, then (weakly, and task-dependently) **model version** — the same ordering as cost and tokens, with which duration is tightly correlated.
+
+- **Task dominates.** The same languages run **~5–9× longer** on brazil-bench (MCP server, CSV ingest, BDD tests) than on the bookshop CRUD task: Go ≈ 2.6m vs ≈ 23m, Python ≈ 1.9m vs ≈ 13m, Clojure ≈ 4m vs ≈ 21m. Pick the task budget accordingly.
+- **Language is the next factor, and the ranking is stable.** Scripted languages (python, typescript) are fastest; JVM/compiled (java, clojure, rust, go) are slower, and **java + clojure carry the longest right tails** (occasional runs many× the median).
+- **Model version is second-order and task-dependent.** `4-7 ≈ 4-8` on the easy task (flat median), but on the hard task `4-8` runs **+33–73% longer** (exp-5, partial), and across both tasks `4-8` has a heavier tail of occasional runaway runs — up to a 45-minute timeout. This is why retort's adaptive timeout is **extend-only**: a slow run gets more budget, never less.
+
+The practical implication: budget by **task first** (a hard task is a 5–9× multiplier), watch the **java/clojure tails**, and don't expect a newer model to be faster — on hard tasks `4-8` is somewhat slower than `4-7` for the same quality.
 
 ## Installation
 
