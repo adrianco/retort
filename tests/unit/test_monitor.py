@@ -9,6 +9,7 @@ from retort.reporting.monitor import (
     build_snapshot,
     render_json,
     render_text,
+    resolve_target,
 )
 from retort.storage.models import (
     DesignMatrix,
@@ -84,9 +85,11 @@ def test_counts_and_progress(db_session):
     assert snap.failed == 1
     assert snap.design_cells == 2
     assert snap.expected_total == 6  # 2 cells × 3 reps
-    assert snap.terminal == 4
-    assert snap.remaining == 2
-    assert round(snap.pct_complete, 2) == round(4 / 6 * 100, 2)
+    assert snap.terminal == 4  # rows with a terminal status (completed + failed)
+    # Progress counts completed only; the failed run is pending retry, not done.
+    assert snap.remaining == 3  # 6 expected - 3 completed
+    assert round(snap.pct_complete, 2) == round(3 / 6 * 100, 2)
+    assert snap.all_terminal is False  # 4 terminal < 6 expected
     assert snap.is_done is False
 
 
@@ -119,16 +122,48 @@ def test_throughput_and_eta(db_session):
     snap = build_snapshot(db_session, replicates=3, now=NOW)
     # wall elapsed = 1h from T0 to NOW; 3 completed -> 3 runs/hr
     assert abs(snap.throughput_per_hour - 3.0) < 1e-9
-    # 2 remaining at 3/hr -> 2400s
-    assert abs(snap.eta_seconds - 2400.0) < 1e-6
-    assert snap.eta_finish == NOW + timedelta(seconds=2400)
+    # 3 remaining (6 expected - 3 completed) at 3/hr -> 3600s
+    assert abs(snap.eta_seconds - 3600.0) < 1e-6
+    assert snap.eta_finish == NOW + timedelta(seconds=3600)
+
+
+def test_throughput_uses_recent_session_only(db_session):
+    """A --resume run's pace ignores the idle gap before old completed runs."""
+    _add_design_cells(db_session, 24)  # expected 72
+    old = T0 - timedelta(days=2)  # prior session, long ago
+    for i in range(2):
+        _add_run(
+            db_session, {"language": "go", "tooling": f"old{i}"}, 1,
+            RunStatus.completed, {"_duration_seconds": 600},
+        )
+    # Overwrite their started_at to the old session.
+    for run in db_session.query(ExperimentRun).all():
+        run.started_at = old
+        run.finished_at = old + timedelta(seconds=600)
+    db_session.flush()
+    # New session: 2 runs started this hour.
+    for i in range(2):
+        r = ExperimentRun(
+            design_row_id=None, replicate=1, status=RunStatus.completed,
+            started_at=T0, finished_at=T0 + timedelta(seconds=600),
+            run_config_json=_json.dumps({"language": "rust", "tooling": f"new{i}"}),
+        )
+        db_session.add(r)
+        db_session.flush()
+        db_session.add(
+            RunResult(run_id=r.id, metric_name="_duration_seconds", value=600)
+        )
+    db_session.flush()
+    snap = build_snapshot(db_session, replicates=3, now=NOW)  # NOW = T0 + 1h
+    # Recent session = 2 runs over 1h -> 2/hr, NOT 4 runs / 2 days.
+    assert abs(snap.throughput_per_hour - 2.0) < 1e-6
 
 
 def test_expected_total_override(db_session):
     _seed(db_session)
     snap = build_snapshot(db_session, expected_total=10, now=NOW)
     assert snap.expected_total == 10
-    assert snap.remaining == 6  # 10 - 4 terminal
+    assert snap.remaining == 7  # 10 expected - 3 completed (failed != progress)
 
 
 def test_unknown_total_when_no_hint(db_session):
@@ -166,7 +201,8 @@ def test_render_text_contains_key_fields(db_session):
     snap = build_snapshot(db_session, replicates=3, now=NOW)
     out = render_text(snap, db_path="/tmp/retort.db")
     assert "Retort run monitor" in out
-    assert "4 / 6" in out  # terminal / expected
+    assert "3 / 6" in out  # completed / expected (not 4 — failed isn't progress)
+    assert "1 failed, pending retry" in out
     assert "$14.00" in out
     assert "Failures (1)" in out
     assert "go/claude-opus-4-7/none" in out
@@ -178,7 +214,71 @@ def test_render_json_roundtrip(db_session):
     data = _json.loads(render_json(snap))
     assert data["completed"] == 3
     assert data["failed"] == 1
-    assert data["remaining"] == 2
+    assert data["remaining"] == 3  # 6 expected - 3 completed
     assert data["expected_total"] == 6
     assert data["is_done"] is False
     assert any(c["label"] == "go/claude-opus-4-7/none" for c in data["cells"])
+
+
+def test_stale_failures_are_not_progress(db_session):
+    """Regression: a --retry-failed run with mostly stale failures must not
+    read as 'almost done' (the exp-5 bug: 9 completed + 62 failed showed 98.6%).
+    """
+    _add_design_cells(db_session, 24)  # 24 cells x 3 reps = 72
+    # 3 completed, 9 failed (stale, awaiting retry)
+    for i in range(3):
+        _add_run(
+            db_session, {"language": "go", "tooling": f"c{i}"}, 1,
+            RunStatus.completed, {"_duration_seconds": 600, "code_quality": 1.0},
+            finished=T0 + timedelta(seconds=600 * (i + 1)),
+        )
+    for i in range(9):
+        _add_run(db_session, {"language": "rust", "tooling": f"f{i}"}, 1,
+                 RunStatus.failed, {}, error="Timeout")
+    snap = build_snapshot(db_session, replicates=3, now=NOW)
+    assert snap.completed == 3
+    assert snap.failed == 9
+    assert snap.expected_total == 72
+    assert snap.remaining == 69        # 72 - 3 completed, NOT 72 - 12
+    assert round(snap.pct_complete) == 4  # ~4%, not ~17%
+    assert snap.is_done is False
+    out = render_text(snap)
+    assert "3 / 72" in out
+    assert "9 failed, pending retry" in out
+
+
+def test_resolve_target_directory(tmp_path):
+    exp = tmp_path / "experiment-5"
+    exp.mkdir()
+    (exp / "retort.db").write_text("")
+    (exp / "workspace.yaml").write_text("x")
+    db, cfg = resolve_target(str(exp))
+    assert db == exp / "retort.db"
+    assert cfg == exp / "workspace.yaml"
+
+
+def test_resolve_target_db_file(tmp_path):
+    exp = tmp_path / "experiment-6"
+    exp.mkdir()
+    dbf = exp / "retort.db"
+    dbf.write_text("")
+    (exp / "workspace.yaml").write_text("x")
+    db, cfg = resolve_target(str(dbf))
+    assert db == dbf
+    assert cfg == exp / "workspace.yaml"
+
+
+def test_resolve_target_explicit_overrides(tmp_path):
+    exp = tmp_path / "experiment-7"
+    exp.mkdir()
+    other = tmp_path / "other.db"
+    other.write_text("")
+    db, cfg = resolve_target(str(exp), db=str(other), config=None)
+    assert db == other  # explicit --db wins over inferred
+
+
+def test_resolve_target_requires_something():
+    import pytest
+
+    with pytest.raises(ValueError):
+        resolve_target(None, None, None)

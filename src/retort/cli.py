@@ -2468,17 +2468,19 @@ def report_web(
 
 
 @main.command("monitor")
+@click.argument("target", required=False)
 @click.option(
     "--db",
     type=click.Path(exists=True),
-    required=True,
-    help="Path to the retort SQLite database.",
+    default=None,
+    help="Path to the retort SQLite database (inferred from TARGET if omitted).",
 )
 @click.option(
     "--config",
     type=click.Path(exists=True),
     default=None,
-    help="Workspace YAML; read to derive the expected total from replicates.",
+    help="Workspace YAML; read to derive the expected total from replicates "
+    "(inferred from TARGET if omitted).",
 )
 @click.option(
     "--total",
@@ -2506,7 +2508,8 @@ def report_web(
     help="Emit a JSON snapshot instead of the text report.",
 )
 def monitor_cmd(
-    db: str,
+    target: str | None,
+    db: str | None,
     config: str | None,
     total: int | None,
     watch: bool,
@@ -2515,29 +2518,47 @@ def monitor_cmd(
 ) -> None:
     """Show live progress of an experiment run database.
 
+    TARGET is an experiment directory (or a .db path): `retort monitor
+    experiment-5` resolves to experiment-5/retort.db and its workspace.yaml.
+    --db / --config override the inferred paths.
+
     Summarizes completed/remaining runs, per-cell coverage, cost and token
     totals, throughput, and an ETA. Safe to point at a database that one or
-    more ``retort run`` shards are actively writing. With --watch it refreshes
-    until every expected run has reached a terminal state.
-
-    The expected total is design-cells × replicates; pass --config (to read
-    replicates) or --total so progress can be shown as a fraction.
+    more ``retort run`` shards are actively writing. Failed runs are reported
+    as pending (they re-run under --resume --retry-failed), so a resume run
+    isn't mistaken for "almost done". With --watch it refreshes until the run
+    finishes. Progress is completed/(design-cells × replicates); pass --config
+    (to read replicates) or --total when neither can be inferred.
     """
     import time
 
-    from retort.reporting.monitor import build_snapshot, render_json, render_text
+    from retort.reporting.monitor import (
+        build_snapshot,
+        render_json,
+        render_text,
+        resolve_target,
+    )
     from retort.storage.database import get_engine, get_session_factory
 
+    try:
+        db_path, config_path = resolve_target(target, db, config)
+    except ValueError as exc:
+        raise click.ClickException(str(exc)) from exc
+    if not db_path.is_file():
+        raise click.ClickException(f"Database not found: {db_path}")
+
     replicates: int | None = None
-    if config is not None:
+    if config_path is not None:
         from retort.config.loader import load_workspace
 
         try:
-            replicates = load_workspace(config).playpen.replicates
+            replicates = load_workspace(str(config_path)).playpen.replicates
         except Exception as exc:  # noqa: BLE001 - surfaced as a warning, non-fatal
-            click.echo(f"warning: could not read replicates from {config}: {exc}", err=True)
+            click.echo(
+                f"warning: could not read replicates from {config_path}: {exc}",
+                err=True,
+            )
 
-    db_path = Path(db)
     engine = get_engine(db_path)
     session_factory = get_session_factory(engine)
 
@@ -2553,7 +2574,8 @@ def monitor_cmd(
             snap = _snapshot()
             if watch and not as_json:
                 click.echo("\033[2J\033[H", nl=False)  # clear screen + cursor home
-            click.echo(render_json(snap) if as_json else render_text(snap, db_path=str(db_path)))
+            out = render_json(snap) if as_json else render_text(snap, db_path=str(db_path))
+            click.echo(out)
             if not watch or snap.is_done:
                 break
             time.sleep(interval)

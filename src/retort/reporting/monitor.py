@@ -17,6 +17,7 @@ from __future__ import annotations
 import json
 from dataclasses import dataclass, field
 from datetime import datetime, timezone
+from pathlib import Path
 
 from sqlalchemy.orm import Session
 
@@ -33,6 +34,11 @@ TOKENS_METRIC = "_tokens"
 DURATION_METRIC = "_duration_seconds"
 _RESOURCE_METRICS = frozenset({COST_METRIC, TOKENS_METRIC, DURATION_METRIC, "_turns"})
 
+# An idle gap longer than this between consecutive run starts marks a new run
+# session (e.g. a --resume after a usage-limit pause), so throughput/ETA are
+# measured over the current session rather than since the first-ever run.
+_SESSION_GAP_S = 3600.0
+
 
 def _as_utc(dt: datetime | None) -> datetime | None:
     """Coerce a (possibly naive, SQLite-sourced) datetime to UTC-aware."""
@@ -46,6 +52,45 @@ def _as_utc(dt: datetime | None) -> datetime | None:
 def _label(factors: dict, run_id: int) -> str:
     """Stable ``value/value/...`` cell label ordered by factor name."""
     return "/".join(str(factors[k]) for k in sorted(factors)) or f"run-{run_id}"
+
+
+def resolve_target(
+    target: str | None,
+    db: str | None = None,
+    config: str | None = None,
+) -> tuple[Path, Path | None]:
+    """Resolve a positional experiment target to ``(db_path, config_path)``.
+
+    Convention: ``retort monitor experiment-5`` finds ``experiment-5/retort.db``
+    and ``experiment-5/workspace.yaml``. ``target`` may be an experiment
+    directory, a path to a ``.db`` file, or omitted (falling back to the
+    explicit ``--db`` / ``--config`` options). Explicit ``db`` / ``config``
+    always win over inferred paths.
+
+    Raises:
+        ValueError: if no database path can be determined.
+    """
+    db_path: Path | None = Path(db) if db else None
+    config_path: Path | None = Path(config) if config else None
+
+    if target is not None:
+        p = Path(target)
+        # A direct .db file, else treat the target as an experiment directory.
+        if p.suffix == ".db" or (p.is_file() and p.suffix != ""):
+            base = p.parent
+            db_path = db_path or p
+        else:
+            base = p
+            db_path = db_path or p / "retort.db"
+        if config_path is None and (base / "workspace.yaml").is_file():
+            config_path = base / "workspace.yaml"
+
+    if db_path is None:
+        raise ValueError(
+            "No database to monitor. Pass an experiment directory "
+            "(e.g. `retort monitor experiment-5`) or `--db <path>`."
+        )
+    return db_path, config_path
 
 
 @dataclass
@@ -87,25 +132,48 @@ class MonitorSnapshot:
 
     @property
     def terminal(self) -> int:
-        """Runs in a terminal state (completed or failed)."""
+        """Runs that currently hold a terminal-status row (completed or failed)."""
         return self.completed + self.failed
 
     @property
     def remaining(self) -> int | None:
+        """Slots still needing a *successful* run.
+
+        Counts toward ``completed`` only — a ``failed`` row is NOT progress,
+        because under ``retort run --resume --retry-failed`` it is re-executed.
+        This keeps a resume run from reading as "almost done" when most of its
+        rows are stale failures awaiting retry.
+        """
         if self.expected_total is None:
             return None
-        return max(self.expected_total - self.terminal, 0)
+        return max(self.expected_total - self.completed, 0)
 
     @property
     def pct_complete(self) -> float | None:
+        """Percent of expected runs that have completed successfully."""
         if not self.expected_total:
             return None
-        return 100.0 * self.terminal / self.expected_total
+        return 100.0 * self.completed / self.expected_total
+
+    @property
+    def all_terminal(self) -> bool:
+        """True once every expected slot holds a terminal-status row.
+
+        Used to stop ``--watch``. During an active run the in-flight cell has no
+        row yet (rows are written on terminal), so this stays False until the
+        run process writes its final row — it does not fire early on stale
+        failures the way a completed+failed >= expected display total would.
+        """
+        if self.expected_total is None:
+            return False
+        return self.terminal >= self.expected_total
 
     @property
     def is_done(self) -> bool:
-        """True when every expected run has reached a terminal state."""
-        return self.remaining == 0 if self.remaining is not None else False
+        """True when the run is finished — every slot resolved (or all succeeded)."""
+        if self.expected_total is None:
+            return False
+        return self.completed >= self.expected_total or self.all_terminal
 
     @property
     def eta_finish(self) -> datetime | None:
@@ -225,11 +293,25 @@ def build_snapshot(
     throughput = None
     eta = None
     if started_times:
-        wall_elapsed = (now - min(started_times)).total_seconds()
-        if wall_elapsed > 0 and completed > 0:
-            throughput = completed / (wall_elapsed / 3600.0)
+        # Measure pace over the most recent contiguous run *session* only: a
+        # --resume run carries old completed rows whose start times are hours or
+        # days back, and dividing by that idle gap yields a uselessly low rate.
+        # Split sessions on an idle gap between consecutive run starts.
+        starts = sorted(started_times)
+        session_start = starts[0]
+        session_count = len(starts)
+        for i in range(len(starts) - 1, 0, -1):
+            if (starts[i] - starts[i - 1]).total_seconds() > _SESSION_GAP_S:
+                session_start = starts[i]
+                session_count = len(starts) - i
+                break
+        wall_elapsed = (now - session_start).total_seconds()
+        if wall_elapsed > 0 and session_count > 0:
+            throughput = session_count / (wall_elapsed / 3600.0)
+            # Remaining counts toward successful completion only (failures are
+            # retried under --retry-failed), so the ETA reflects real work left.
             remaining = (
-                max(expected_total - completed - failed, 0)
+                max(expected_total - completed, 0)
                 if expected_total is not None
                 else None
             )
@@ -316,16 +398,19 @@ def render_text(snap: MonitorSnapshot, db_path: str | None = None) -> str:
     if snap.expected_total is not None:
         pct = snap.pct_complete or 0.0
         bar_w = 30
-        frac = snap.terminal / snap.expected_total if snap.expected_total else 0
+        frac = snap.completed / snap.expected_total if snap.expected_total else 0
         filled = int(bar_w * frac)
         bar = "█" * filled + "·" * (bar_w - filled)
         lines.append(
-            f"Progress   : {snap.terminal:>3} / {snap.expected_total:<3} "
+            f"Progress   : {snap.completed:>3} / {snap.expected_total:<3} done "
             f"({pct:4.1f}%)  [{bar}]"
         )
+        # Failures are pending work, not progress: they re-run under --retry-failed.
+        fail_note = (
+            f"  ({snap.failed} failed, pending retry)" if snap.failed else ""
+        )
         lines.append(
-            f"             completed={snap.completed}  failed={snap.failed}  "
-            f"remaining={snap.remaining}"
+            f"             remaining={snap.remaining}{fail_note}"
         )
     else:
         lines.append(
