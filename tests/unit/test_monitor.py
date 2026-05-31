@@ -188,6 +188,26 @@ def test_is_done_when_all_terminal(db_session):
     assert snap.eta_seconds == 0.0
 
 
+def test_is_done_false_when_failures_pending_retry(db_session):
+    """Regression: all slots terminal but completed < expected must NOT be done
+    (the --watch one-shot bug: completed+failed==expected exited after 1 render).
+    """
+    _add_design_cells(db_session, 2)  # 2 cells x 3 reps = 6
+    for i in range(2):
+        _add_run(db_session, {"language": "go", "tooling": f"c{i}"}, 1,
+                 RunStatus.completed, {"_duration_seconds": 60},
+                 finished=T0 + timedelta(seconds=60 * (i + 1)))
+    for i in range(4):
+        _add_run(db_session, {"language": "rust", "tooling": f"f{i}"}, 1,
+                 RunStatus.failed, {}, error="Timeout")
+    snap = build_snapshot(db_session, replicates=3, now=NOW)
+    assert snap.completed == 2
+    assert snap.failed == 4
+    assert snap.terminal == 6          # all slots hold a terminal row...
+    assert snap.all_terminal is True   # ...so all_terminal is True...
+    assert snap.is_done is False       # ...but the run is NOT done (4 to retry)
+
+
 def test_failures_captured(db_session):
     _seed(db_session)
     snap = build_snapshot(db_session, replicates=3, now=NOW)

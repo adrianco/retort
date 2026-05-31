@@ -157,23 +157,27 @@ class MonitorSnapshot:
 
     @property
     def all_terminal(self) -> bool:
-        """True once every expected slot holds a terminal-status row.
-
-        Used to stop ``--watch``. During an active run the in-flight cell has no
-        row yet (rows are written on terminal), so this stays False until the
-        run process writes its final row — it does not fire early on stale
-        failures the way a completed+failed >= expected display total would.
-        """
+        """True once every expected slot holds a terminal-status row (completed
+        or failed). Informational only — NOT used to stop ``--watch``, because
+        under ``--retry-failed`` failed rows are re-run, so a run with stale
+        failures is "all terminal" yet far from finished."""
         if self.expected_total is None:
             return False
         return self.terminal >= self.expected_total
 
     @property
     def is_done(self) -> bool:
-        """True when the run is finished — every slot resolved (or all succeeded)."""
+        """True only when every expected run has completed *successfully*.
+
+        Failed rows do not count — under ``--retry-failed`` they are re-run, so
+        ``completed + failed >= expected`` (``all_terminal``) is not "done".
+        ``--watch`` loops until this is true (or the user interrupts), so it
+        keeps refreshing through a resume that is still converting failures to
+        completions.
+        """
         if self.expected_total is None:
             return False
-        return self.completed >= self.expected_total or self.all_terminal
+        return self.completed >= self.expected_total
 
     @property
     def eta_finish(self) -> datetime | None:
