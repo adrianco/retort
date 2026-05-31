@@ -146,7 +146,7 @@ Every other stack is dominated. **`go / sonnet / beads` is the only stack that n
 
 📊 **[Full report →](experiment-3/reports/comparison.md)**
 
-A quarter-fraction screening experiment on the same brazil-bench task, designed to estimate the effect of upgrading from `claude-opus-4-6` to `claude-opus-4-7`. **6 cells × 2 replicates = 12 run-slots, executed across 4 parallel polecats (May 2026).**
+A quarter-fraction screening experiment on the same brazil-bench task, designed to estimate the effect of upgrading from `claude-opus-4-6` to `claude-opus-4-7`. **6 cells × 2 replicates = 12 run-slots, executed across 4 parallel shards (May 2026).**
 
 **Model version provenance:** Experiment-2 used model alias `"opus"` which resolved to `claude-opus-4-6` via the Claude CLI (claude-opus-4-7 did not yet exist in April 2026). Experiment-3 uses explicit versioned model IDs: `claude-opus-4-6` and `claude-opus-4-7`.
 
@@ -356,38 +356,27 @@ retort promote my-stack --from screening --to trial \
     --evidence '{"p_value": 0.05}' --config workspace.yaml
 ```
 
-## Running at scale with Gas Town (optional)
+## Running at scale (parallel shards)
 
-Retort runs standalone — `pip install` + `claude` CLI is enough to drive every command above. There is **no Gas Town dependency**.
+Retort runs standalone — `pip install` + the `claude` CLI is enough to drive everything above, including parallel execution. `retort run --shard N/M` runs only the cells a deterministic hash assigns to shard N of M; all shards share one `retort.db` with per-run commits, so two shards never pick the same cell and a crash loses at most one run.
 
-That said, real experiments are long-running, parallelizable, and benefit from an orchestrator. [Gas Town](https://github.com/steveyegge/gastown) is the orchestrator we use during development; it adds:
-
-- **Parallel execution.** `gt sling` dispatches a slice of the design to a polecat (a worker agent in its own git worktree). Multiple polecats share one `retort.db` via `retort run --shard N/M --resume`. The `--shard` partition is a deterministic hash, so two polecats never both pick the same cell, and per-run sqlite commits keep concurrent writers safe.
-- **Patrol + escalation.** `witness` watches the merge queue; `refinery` patrols it; mail/escalations route to the mayor agent if anything sticks.
-- **Auto-evaluation.** With gt + `bd` (beads) installed, the `evaluate-run` and `file-run-issues` skills file findings as tracked beads in your project — survives session resets and shows up in queries.
-
-Pattern:
-
-```bash
-gt sling re-ucc retort --crew alpha   --args "retort run --phase screening --config experiment-2/workspace.yaml --resume --shard 0/4"
-gt sling re-ucc retort --crew bravo   --args "retort run --phase screening --config experiment-2/workspace.yaml --resume --shard 1/4"
-gt sling re-ucc retort --crew charlie --args "retort run --phase screening --config experiment-2/workspace.yaml --resume --shard 2/4"
-gt sling re-ucc retort --crew delta   --args "retort run --phase screening --config experiment-2/workspace.yaml --resume --shard 3/4"
-```
-
-**Without Gas Town, the same parallelism works in plain bash:**
+The simplest way to run a multi-shard experiment is to **ask Claude Code to do it** — it launches the workers, watches them with `retort monitor`, stops when it sees an API usage limit, and `--resume`s after each reset to bank progress. Or start the shards yourself with plain bash:
 
 ```bash
 for s in 0 1 2 3; do
     nohup retort run --phase screening --config experiment-2/workspace.yaml \
-        --resume --shard $s/4 > shard-$s.log 2>&1 &
+        --resume --shard $s/4 > experiment-2/shard-$s.log 2>&1 &
 done
 wait
 ```
 
-**Caveats if you choose the gt path:**
+Watch progress (and catch usage limits) in another shell:
 
-- Concurrent runs multiply per-second token usage. Keep the shard count to a value the Anthropic API tier comfortably supports — start at 2× and monitor rate-limit headers before going higher.
+```bash
+retort monitor experiment-2 --watch
+```
+
+**Caveat — usage limits are cumulative.** Concurrent shards multiply per-second token usage and hit provider usage limits faster; but the limit tracks *total* consumption, so even a single sequential shard hits it on a large experiment. Start with a low shard count, watch rate-limit headers, and rely on `--resume` (which skips completed cells) to continue across reset windows.
 
 ## CLI Commands
 
@@ -403,7 +392,7 @@ wait
 | `retort report web` | Generate static HTML reports (sortable leaderboard + per-stack drill-downs); respects experiment.visibility for private experiments |
 | `retort export merge` | Combine multiple experiment CSVs into one with an experiment-tag column, for cross-experiment ANOVA |
 | `retort report pareto` | Identify Pareto-optimal stacks across multiple objectives; minimize cost-like metrics with `-` prefix |
-| `retort run --shard N/M` | Run only the slice of cells owned by shard N (of M); deterministic partition for parallel polecats sharing one retort.db |
+| `retort run --shard N/M` | Run only the slice of cells owned by shard N (of M); deterministic partition for parallel shard workers sharing one retort.db |
 | `retort monitor <experiment>` | Live progress dashboard from the run DB: completed/remaining, per-cell coverage, cost/tokens, throughput + ETA, failures. `retort monitor experiment-5` infers the db/config by convention; `--watch` refreshes; `--json` for machines. Failed runs are reported as *pending retry* (they re-run under `--resume --retry-failed`), so a resumed run isn't mistaken for done |
 | `retort analyze` | Run ANOVA analysis on experiment data with optional residual diagnostics |
 | `retort intake` | Ingest a new candidate (factor level) and generate D-optimal augmentation runs |
@@ -484,7 +473,7 @@ Honest accounting of what is tested end-to-end versus implemented but not exerci
 |------|--------|-------|
 | **Design generation** | ✅ Working | Fractional factorial (pyDOE3), mixed-level support, `design.fraction` config, `--design <csv>` override, `DesignMatrix.from_csv()`, `retort analyze --predict` for unrun cells. Full unit test coverage. |
 | **LocalRunner + scoring** | ✅ Working | Exercised end-to-end across 180+ runs covering 6 languages. 8 scorers: `code_quality`, `test_coverage`, `test_quality`, `token_efficiency`, `defect_rate`, `maintainability`, `idiomatic`, `findings`. Scoring gate: `test_coverage == 0` vetoes all scores. `evaluate-run` + `file-run-issues` skills auto-invoked after each run. `retort evaluate --workers N` for bulk re-evaluation. |
-| **Resume / sharding** | ✅ Working | `--resume` skips recorded `(config, replicate)` pairs; `--retry-failed` retries failures. `--shard N/M` deterministic partition for parallel polecats. Per-run DB commit = at most one lost run on interrupt. Run artifacts archived to `runs/<cell>/rep<N>/`. Resume cleanly banks progress across API-usage-limit windows. |
+| **Resume / sharding** | ✅ Working | `--resume` skips recorded `(config, replicate)` pairs; `--retry-failed` retries failures. `--shard N/M` deterministic partition for parallel shard workers. Per-run DB commit = at most one lost run on interrupt. Run artifacts archived to `runs/<cell>/rep<N>/`. Resume cleanly banks progress across API-usage-limit windows. |
 | **Monitoring** | ✅ Working | `retort monitor <experiment>` reads the run DB for live progress, per-cell coverage, cost/tokens, session-aware throughput + ETA, and failures. Text / `--json` / `--watch`. Failed runs counted as pending (re-run under `--retry-failed`), not done. |
 | **Adaptive timeout** | ✅ Working | `_estimate_run_timeout` sizes each run from historical per-cell timing and is **extend-only** — floored at the configured `timeout_minutes`, so a slow language gets more time but an early, history-poor run is never killed under budget. |
 | **Factor system** | ✅ Working | `language`, `model` (with alias table, versioned IDs), `tooling` (beads instructions), `prompt` (named `.md` files in `prompts/`), `org_context`. Any additional factor flows through `stack.extra` automatically. |
