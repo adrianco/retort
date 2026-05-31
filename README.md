@@ -236,6 +236,30 @@ The same full 4.7×4.8 factorial as experiment 5, but on the lighter `rest-api-c
 
 ## Installation
 
+### The easy way: ask Claude Code
+
+Retort has a few environment gotchas (it needs Python ≥3.11, and `OApackage` is a C++ extension that must be built with `cmake`). The fastest install is to let Claude Code sort them out — point it at a directory and ask:
+
+```text
+$ cd Documents/GitHub
+$ claude
+> clone and install https://github.com/adrianco/retort here
+
+⏺ Done. Retort is cloned and installed, and all tests pass.
+
+  Setup steps I had to take (the system default python3 is 3.9.6, but retort needs ≥3.11):
+  - Installed cmake via Homebrew — required to build OApackage (a C++ extension
+    with no prebuilt wheel for this platform).
+  - Created a virtualenv with Homebrew's Python 3.12 at retort/.venv.
+  - Ran pip install -e ".[dev,test]" — built retort and oapackage from source.
+
+  Verification:
+  - retort --help loads and lists all commands.
+  - Test suite: 573 passed.
+```
+
+It will also offer to install the per-language toolchains and the `claude` / `bd` CLIs when you set up your first experiment. Prefer to do it by hand? Read on.
+
 ### Prerequisites
 
 `pip install` only fetches the Python deps. To actually run experiments you also need:

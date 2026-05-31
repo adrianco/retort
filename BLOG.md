@@ -114,7 +114,28 @@ Every run produces a complete, buildable implementation of a task. Eight scorers
 
 Retort is [open source](https://github.com/adrianco/retort) (Apache-2.0). The quick start is genuinely quick.
 
-### Install
+### Install — the easy way, ask Claude Code
+
+Retort has a couple of environment gotchas (Python ≥3.11, and `OApackage` is a C++ extension that must be built with `cmake`). The fastest install is to let Claude Code handle them — point it at a directory and ask:
+
+```text
+$ cd Documents/GitHub
+$ claude
+> clone and install https://github.com/adrianco/retort here
+
+⏺ Done. Retort is cloned and installed, and all tests pass.
+
+  Setup steps I had to take (the system default python3 is 3.9.6, but retort needs ≥3.11):
+  - Installed cmake via Homebrew — required to build OApackage (a C++ extension).
+  - Created a virtualenv with Homebrew's Python 3.12 at retort/.venv.
+  - Ran pip install -e ".[dev,test]" — built retort and oapackage from source.
+
+  Verification: retort --help loads; test suite 573 passed.
+```
+
+It will also offer to install the per-language toolchains and the `claude`/`bd` CLIs when you set up your first experiment.
+
+### Install — by hand
 
 ```bash
 git clone https://github.com/adrianco/retort.git
