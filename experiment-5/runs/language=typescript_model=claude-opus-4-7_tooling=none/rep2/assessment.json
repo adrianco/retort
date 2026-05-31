@@ -1,0 +1,31 @@
+{
+  "severity_counts": {
+    "critical": 1,
+    "high": 1,
+    "medium": 0,
+    "low": 0,
+    "info": 0
+  },
+  "penalty_score": 0.65,
+  "top_findings": [
+    {
+      "id": "build-fail",
+      "kind": "build_failure",
+      "severity": "critical",
+      "title": "Build failed",
+      "evidence": "npm install --no-audit --no-fund && npm run build exited with code 1",
+      "suggestion": "Fix build errors before running tests"
+    },
+    {
+      "id": "test-fail",
+      "kind": "test_failure",
+      "severity": "high",
+      "title": "Tests failed: 0 failures",
+      "evidence": "npm test --silent returned 0 failures",
+      "suggestion": "Fix failing tests"
+    }
+  ],
+  "requirement_coverage": null,
+  "model": "claude-opus-4-7",
+  "evaluated_at": "2026-05-30T10:15:47Z"
+}

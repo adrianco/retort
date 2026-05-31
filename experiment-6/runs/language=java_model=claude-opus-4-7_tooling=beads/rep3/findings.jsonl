@@ -1,0 +1,1 @@
+{"id": "R1", "kind": "requirement_missing", "severity": "info", "title": "Requirement extraction from TASK.md", "evidence": "TASK.md parsed into 6 core REST endpoint requirements", "suggestion": "N/A - for tracking purposes"}

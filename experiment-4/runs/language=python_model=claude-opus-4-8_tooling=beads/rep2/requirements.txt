@@ -1,0 +1,6 @@
+# Brazilian Soccer MCP Server — runtime & test dependencies
+# Requires Python >= 3.10 (mcp SDK constraint).
+mcp>=1.20
+# Test dependencies
+pytest>=8.0
+pytest-bdd>=7.0

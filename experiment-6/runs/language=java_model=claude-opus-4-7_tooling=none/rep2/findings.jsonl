@@ -1,0 +1,1 @@
+{"id": "enhancement-spring-data", "kind": "enhancement", "severity": "info", "title": "Proper Spring Data query method naming used for filtering", "evidence": "BookRepository.java:8 — findByAuthor query method follows Spring Data conventions", "suggestion": "No changes needed; this is a proper implementation pattern"}

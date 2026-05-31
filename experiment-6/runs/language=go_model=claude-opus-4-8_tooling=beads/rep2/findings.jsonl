@@ -1,0 +1,1 @@
+{"id": "enhancement-1", "kind": "enhancement", "severity": "info", "title": "Comprehensive API documentation with examples", "evidence": "README.md:60-83 — includes curl examples for all endpoints", "suggestion": "Maintain this quality of documentation for future features"}

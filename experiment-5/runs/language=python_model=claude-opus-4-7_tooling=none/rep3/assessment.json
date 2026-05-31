@@ -1,0 +1,55 @@
+{
+  "severity_counts": {
+    "critical": 0,
+    "high": 0,
+    "medium": 0,
+    "low": 2,
+    "info": 14
+  },
+  "penalty_score": 0.98,
+  "top_findings": [
+    {
+      "id": "R7",
+      "kind": "requirement_partial",
+      "severity": "low",
+      "title": "Query performance not explicitly tested (< 2s requirement unverified)",
+      "evidence": "No performance benchmarks in test suite; manual testing would be needed",
+      "suggestion": "Add performance benchmarks to test suite if performance is critical"
+    },
+    {
+      "id": "R8",
+      "kind": "requirement_partial",
+      "severity": "low",
+      "title": "Aggregate query performance not explicitly tested (< 5s requirement unverified)",
+      "evidence": "No performance benchmarks in test suite; manual testing would be needed",
+      "suggestion": "Add performance benchmarks to test suite if performance is critical"
+    },
+    {
+      "id": "R1",
+      "kind": "requirement_implemented",
+      "severity": "info",
+      "title": "Match data from all 6 CSV files searchable",
+      "evidence": "brazilian_soccer_mcp/data_loader.py:427 loads all 6 files; tests/test_data_loading.py:test_all_six_csv_files_contribute_matches PASSED",
+      "suggestion": "No action needed"
+    },
+    {
+      "id": "R2",
+      "kind": "requirement_implemented",
+      "severity": "info",
+      "title": "Player data searchable",
+      "evidence": "brazilian_soccer_mcp/queries.py contains find_players, top_brazilian_players, etc.; tests/test_player_queries.py:test_find_player_by_name_neymar PASSED",
+      "suggestion": "No action needed"
+    },
+    {
+      "id": "R3",
+      "kind": "requirement_implemented",
+      "severity": "info",
+      "title": "Basic statistics (wins, losses, goals) calculated",
+      "evidence": "brazilian_soccer_mcp/queries.py:team_stats, overall_stats, best_home_record; tests/test_statistics.py all 6 tests PASSED",
+      "suggestion": "No action needed"
+    }
+  ],
+  "requirement_coverage": 0.875,
+  "model": "claude-opus-4-7",
+  "evaluated_at": "2026-05-30T09:52:51.151863Z"
+}

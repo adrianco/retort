@@ -1,0 +1,1 @@
+{"id": "R1", "kind": "requirement_missing", "severity": "info", "title": "No explicit pagination support on GET /books", "evidence": "src/books/db.clj:26-34 returns all matching rows without limit/offset", "suggestion": "Consider adding ?limit and ?offset query parameters for pagination"}

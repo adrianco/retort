@@ -1,0 +1,5 @@
+mcp>=1.2.0
+
+[test]
+pytest>=8
+pytest-bdd>=7

@@ -1,0 +1,25 @@
+[build-system]
+requires = ["setuptools>=61.0"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "brazilian-soccer-mcp"
+version = "1.0.0"
+description = "MCP server providing a knowledge-graph interface over Brazilian soccer datasets (Brasileirão, Copa do Brasil, Libertadores, FIFA players)."
+readme = "README.md"
+requires-python = ">=3.10"
+license = { text = "MIT" }
+dependencies = ["mcp>=1.2.0"]
+
+[project.optional-dependencies]
+test = ["pytest>=7.0", "pytest-bdd>=6.0"]
+
+[project.scripts]
+bsoccer-mcp = "brazilian_soccer_mcp.server:main"
+
+[tool.setuptools]
+packages = ["brazilian_soccer_mcp"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+bdd_features_base_dir = "tests/features"

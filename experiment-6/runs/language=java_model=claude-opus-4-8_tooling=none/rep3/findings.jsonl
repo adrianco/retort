@@ -1,0 +1,1 @@
+{"id": "info-1", "kind": "info", "severity": "info", "title": "No linter configured for Java project", "evidence": "pom.xml: no checkstyle or spotbugs plugin", "suggestion": "Consider adding code style checks via maven-checkstyle-plugin or similar"}

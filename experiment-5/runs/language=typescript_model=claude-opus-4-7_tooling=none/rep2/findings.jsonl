@@ -1,0 +1,3 @@
+{"id": "build-fail", "kind": "build_failure", "severity": "critical", "title": "Build failed", "evidence": "npm install --no-audit --no-fund && npm run build exited with code 1", "suggestion": "Fix build errors before running tests"}
+{"id": "test-fail", "kind": "test_failure", "severity": "high", "title": "Tests failed: 0 failures", "evidence": "npm test --silent returned 0 failures", "suggestion": "Fix failing tests"}
+{"id": "skipped-tests", "kind": "skipped_test", "severity": "medium", "title": "2 tests are skipped", "evidence": "Skipped test count: 2", "suggestion": "Implement or remove skipped tests"}

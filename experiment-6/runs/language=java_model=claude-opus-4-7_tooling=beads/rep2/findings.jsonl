@@ -1,0 +1,1 @@
+{"id": "enhancement-1", "kind": "enhancement", "severity": "info", "title": "Comprehensive error handling with field-level validation feedback", "evidence": "src/main/java/com/example/booksapi/ValidationExceptionHandler.java — handles MethodArgumentNotValidException with field details", "suggestion": "Already implemented at a high level"}

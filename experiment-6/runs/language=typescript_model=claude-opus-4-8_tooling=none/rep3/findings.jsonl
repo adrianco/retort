@@ -1,0 +1,1 @@
+{"id": "lint-unavailable", "kind": "lint_warning", "severity": "info", "title": "No lint script configured", "evidence": "package.json has no 'lint' script", "suggestion": "Consider adding ESLint or similar linting tool for code quality checks"}

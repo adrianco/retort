@@ -1,0 +1,11 @@
+{"id": "R1", "kind": "requirement_implemented", "severity": "info", "title": "POST /books endpoint creates books", "evidence": "src/lib.rs:112-144, tests/api.rs:47-72", "suggestion": ""}
+{"id": "R2", "kind": "requirement_implemented", "severity": "info", "title": "GET /books lists books with author filter", "evidence": "src/lib.rs:146-171, tests/api.rs:88-103", "suggestion": ""}
+{"id": "R3", "kind": "requirement_implemented", "severity": "info", "title": "GET /books/{id} retrieves a book by ID", "evidence": "src/lib.rs:173-184, tests/api.rs:65-72", "suggestion": ""}
+{"id": "R4", "kind": "requirement_implemented", "severity": "info", "title": "PUT /books/{id} updates a book", "evidence": "src/lib.rs:186-223, tests/api.rs:115-127", "suggestion": ""}
+{"id": "R5", "kind": "requirement_implemented", "severity": "info", "title": "DELETE /books/{id} deletes a book", "evidence": "src/lib.rs:225-238, tests/api.rs:129-145", "suggestion": ""}
+{"id": "R6", "kind": "requirement_implemented", "severity": "info", "title": "SQLite database storage", "evidence": "src/lib.rs:67-84 (init_pool), src/main.rs:6-9 (DATABASE_URL)", "suggestion": ""}
+{"id": "R7", "kind": "requirement_implemented", "severity": "info", "title": "JSON responses with appropriate HTTP status codes", "evidence": "src/lib.rs:47-49, 140, 167, 180, 219, 235", "suggestion": ""}
+{"id": "R8", "kind": "requirement_implemented", "severity": "info", "title": "Input validation (title and author required)", "evidence": "src/lib.rs:51-62, tests/api.rs:75-85", "suggestion": ""}
+{"id": "R9", "kind": "requirement_implemented", "severity": "info", "title": "GET /health endpoint", "evidence": "src/lib.rs:98-100, tests/api.rs:34-44", "suggestion": ""}
+{"id": "R10", "kind": "requirement_implemented", "severity": "info", "title": "README.md with setup and run instructions", "evidence": "README.md present with requirements, setup, API docs, examples", "suggestion": ""}
+{"id": "R11", "kind": "requirement_implemented", "severity": "info", "title": "At least 3 unit/integration tests", "evidence": "tests/api.rs: 5 tests total (health_check, create_and_get, validation, filter, update_delete)", "suggestion": ""}

@@ -1,0 +1,1 @@
+{"id": "enhancement-1", "kind": "enhancement", "severity": "info", "title": "SQL injection vulnerability in UPDATE statement", "evidence": "app.py:176-178 constructs dynamic SQL with f-string instead of parameterized query", "suggestion": "Use parameterized query or a safer approach to build the UPDATE statement dynamically"}

@@ -1,0 +1,5 @@
+{"id": "lint-1", "kind": "lint_warning", "severity": "low", "title": "Use `list` instead of `List` for type annotation", "evidence": "app/main.py:4,48,49 — typing.List is deprecated, use list instead", "suggestion": "Replace `List` with `list` and `Optional` with `X | None`"}
+{"id": "lint-2", "kind": "lint_warning", "severity": "low", "title": "Use `X | None` instead of Optional", "evidence": "app/main.py:49, app/models.py:11,12 — Optional is deprecated", "suggestion": "Replace `Optional[T]` with `T | None`"}
+{"id": "lint-3", "kind": "lint_warning", "severity": "low", "title": "Import block is unsorted", "evidence": "tests/test_books.py:3-10 — imports not organized per ruff", "suggestion": "Run `ruff check --fix` to auto-format imports"}
+{"id": "lint-4", "kind": "lint_warning", "severity": "low", "title": "Line too long", "evidence": "tests/test_books.py:33 — 89 chars exceeds max 88", "suggestion": "Break long lines into multiple lines"}
+{"id": "lint-5", "kind": "lint_warning", "severity": "low", "title": "Line too long", "evidence": "tests/test_books.py:86 — 92 chars exceeds max 88", "suggestion": "Break long lines into multiple lines"}

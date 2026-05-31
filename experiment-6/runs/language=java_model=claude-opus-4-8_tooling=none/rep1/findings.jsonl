@@ -1,0 +1,1 @@
+{"id": "enhancement-1", "kind": "enhancement", "severity": "info", "title": "H2 database used instead of SQLite", "evidence": "pom.xml:38-41 depends on com.h2database:h2", "suggestion": "Task specified SQLite but H2 is acceptable for embedded DB requirement — both satisfy the intent"}

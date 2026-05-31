@@ -1,0 +1,12 @@
+{"id": "R1", "kind": "implemented", "severity": "info", "title": "POST /books endpoint implemented", "evidence": "app.py:80-102 — create_book() handles book creation with validation", "suggestion": "N/A"}
+{"id": "R2", "kind": "implemented", "severity": "info", "title": "GET /books with author filter implemented", "evidence": "app.py:104-114 — list_books() supports ?author= query parameter", "suggestion": "N/A"}
+{"id": "R3", "kind": "implemented", "severity": "info", "title": "GET /books/{id} endpoint implemented", "evidence": "app.py:116-122 — get_book() fetches single book with 404 handling", "suggestion": "N/A"}
+{"id": "R4", "kind": "implemented", "severity": "info", "title": "PUT /books/{id} endpoint implemented", "evidence": "app.py:124-149 — update_book() supports partial updates with validation", "suggestion": "N/A"}
+{"id": "R5", "kind": "implemented", "severity": "info", "title": "DELETE /books/{id} endpoint implemented", "evidence": "app.py:151-159 — delete_book() removes book and returns 204", "suggestion": "N/A"}
+{"id": "R6", "kind": "implemented", "severity": "info", "title": "SQLite storage implemented", "evidence": "app.py:8-22 — init_db() creates books table with proper schema", "suggestion": "N/A"}
+{"id": "R7", "kind": "implemented", "severity": "info", "title": "JSON responses with proper HTTP status codes", "evidence": "app.py — Uses 200, 201, 204, 400, 404 status codes appropriately", "suggestion": "N/A"}
+{"id": "R8", "kind": "implemented", "severity": "info", "title": "Input validation for title and author", "evidence": "app.py:35-54 — validate_book_payload() enforces required fields and types", "suggestion": "N/A"}
+{"id": "R9", "kind": "implemented", "severity": "info", "title": "GET /health endpoint implemented", "evidence": "app.py:76-78 — health() returns status ok", "suggestion": "N/A"}
+{"id": "R10", "kind": "implemented", "severity": "info", "title": "README.md with setup and run instructions", "evidence": "README.md:13-26 — Comprehensive setup, run, and test instructions", "suggestion": "N/A"}
+{"id": "R11", "kind": "implemented", "severity": "info", "title": "At least 3 unit/integration tests", "evidence": "test_app.py — 13 passing tests covering all endpoints", "suggestion": "N/A"}
+{"id": "test-coverage", "kind": "enhancement", "severity": "info", "title": "Excellent test coverage with 13 comprehensive tests", "evidence": "test_app.py:20-124 — Tests cover happy path, error cases, and edge cases", "suggestion": "Consider adding tests for concurrent operations or edge cases with whitespace"}

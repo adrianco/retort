@@ -1,0 +1,10 @@
+{
+  "replicate": 1,
+  "run_config": {
+    "language": "go",
+    "model": "claude-opus-4-7",
+    "tooling": "beads"
+  },
+  "succeeded": true,
+  "visibility": "public"
+}

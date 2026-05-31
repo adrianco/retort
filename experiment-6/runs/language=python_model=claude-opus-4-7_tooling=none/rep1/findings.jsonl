@@ -1,0 +1,1 @@
+{"id": "info-1", "kind": "info", "severity": "info", "title": "Lint check unavailable", "evidence": "ruff command not installed", "suggestion": "Consider installing ruff for style checking"}

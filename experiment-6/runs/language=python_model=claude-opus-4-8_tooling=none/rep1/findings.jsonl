@@ -1,0 +1,1 @@
+{"id": "build-fail", "kind": "build_failure", "severity": "critical", "title": "Build failed", "evidence": "python -m py_compile **/*.py exited with code 127", "suggestion": "Fix build errors before running tests"}

@@ -1,0 +1,5 @@
+# Runtime dependency: the official Model Context Protocol Python SDK.
+mcp>=1.0.0
+
+# Test dependency (install with: pip install -r requirements.txt pytest).
+pytest>=7.0

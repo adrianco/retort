@@ -1,0 +1,55 @@
+{
+  "severity_counts": {
+    "critical": 0,
+    "high": 0,
+    "medium": 0,
+    "low": 0,
+    "info": 13
+  },
+  "penalty_score": 1.0,
+  "top_findings": [
+    {
+      "id": "R1",
+      "kind": "requirement_implemented",
+      "severity": "info",
+      "title": "POST /books \u2014 Create a new book",
+      "evidence": "src/books/handlers.clj:12-18, src/books/db.clj:33-44, test/books/api_test.clj:43-56",
+      "suggestion": ""
+    },
+    {
+      "id": "R2",
+      "kind": "requirement_implemented",
+      "severity": "info",
+      "title": "GET /books \u2014 List all books with ?author= filter",
+      "evidence": "src/books/handlers.clj:20-23, src/books/db.clj:46-52, test/books/api_test.clj:66-75",
+      "suggestion": ""
+    },
+    {
+      "id": "R3",
+      "kind": "requirement_implemented",
+      "severity": "info",
+      "title": "GET /books/{id} \u2014 Get a single book by ID",
+      "evidence": "src/books/handlers.clj:25-30, src/books/db.clj:54-57, test/books/api_test.clj:54-56",
+      "suggestion": ""
+    },
+    {
+      "id": "R4",
+      "kind": "requirement_implemented",
+      "severity": "info",
+      "title": "PUT /books/{id} \u2014 Update a book",
+      "evidence": "src/books/handlers.clj:32-42, src/books/db.clj:59-66, test/books/api_test.clj:77-87",
+      "suggestion": ""
+    },
+    {
+      "id": "R5",
+      "kind": "requirement_implemented",
+      "severity": "info",
+      "title": "DELETE /books/{id} \u2014 Delete a book",
+      "evidence": "src/books/handlers.clj:44-49, src/books/db.clj:68-72, test/books/api_test.clj:89-96",
+      "suggestion": ""
+    }
+  ],
+  "requirement_coverage": 1.0,
+  "model": "claude-opus-4-8",
+  "evaluated_at": "2026-05-31T01:27:39.569002+00:00"
+}

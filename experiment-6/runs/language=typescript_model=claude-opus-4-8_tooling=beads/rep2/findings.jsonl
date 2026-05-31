@@ -1,0 +1,1 @@
+{"id": "build-fail", "kind": "build_failure", "severity": "critical", "title": "Build failed", "evidence": "npm install --no-audit --no-fund && npm run build exited with code 1", "suggestion": "Fix build errors before running tests"}

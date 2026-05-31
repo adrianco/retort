@@ -1,0 +1,31 @@
+{
+  "severity_counts": {
+    "critical": 0,
+    "high": 0,
+    "medium": 0,
+    "low": 0,
+    "info": 2
+  },
+  "penalty_score": 1.0,
+  "top_findings": [
+    {
+      "id": "test-coverage",
+      "kind": "info",
+      "severity": "info",
+      "title": "Comprehensive test coverage of 62 tests",
+      "evidence": "pytest output: 62 passed in 0.76s (100% pass rate)",
+      "suggestion": "Test suite validates all five capability areas and 25+ sample questions"
+    },
+    {
+      "id": "data-reconciliation",
+      "kind": "enhancement",
+      "severity": "info",
+      "title": "Robust data reconciliation across multiple sources",
+      "evidence": "data_loader.py: deduplicate_matches function handles cross-file duplication by (competition, season)",
+      "suggestion": "This ensures consistent standings calculations and prevents team name mismatches"
+    }
+  ],
+  "requirement_coverage": 1.0,
+  "model": "claude-opus-4-8",
+  "evaluated_at": "2026-05-29T19:34:05Z"
+}

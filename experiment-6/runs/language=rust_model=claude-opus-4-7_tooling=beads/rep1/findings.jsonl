@@ -1,0 +1,1 @@
+{"id": "lint-warnings", "kind": "lint_warning", "severity": "low", "title": "2 lint warnings", "evidence": "Linter found 2 issues", "suggestion": "Address lint warnings"}

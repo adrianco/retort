@@ -1,0 +1,23 @@
+{
+  "severity_counts": {
+    "critical": 1,
+    "high": 0,
+    "medium": 0,
+    "low": 0,
+    "info": 0
+  },
+  "penalty_score": 0.75,
+  "top_findings": [
+    {
+      "id": "build-fail",
+      "kind": "build_failure",
+      "severity": "critical",
+      "title": "Build failed",
+      "evidence": "python -m py_compile **/*.py exited with code 127",
+      "suggestion": "Fix build errors before running tests"
+    }
+  ],
+  "requirement_coverage": null,
+  "model": "claude-opus-4-8",
+  "evaluated_at": "2026-05-30T16:06:14Z"
+}

@@ -1,0 +1,12 @@
+{"id": "R1", "kind": "requirement_implemented", "severity": "info", "title": "POST /books endpoint creates books", "evidence": "App.java:99-112, BookRepository.create:43-62", "suggestion": "n/a"}
+{"id": "R2", "kind": "requirement_implemented", "severity": "info", "title": "GET /books lists all books with author filter", "evidence": "App.java:93-97, BookRepository.findAll:64-78", "suggestion": "n/a"}
+{"id": "R3", "kind": "requirement_implemented", "severity": "info", "title": "GET /books/{id} retrieves single book", "evidence": "App.java:114-121, BookRepository.findById:80-91", "suggestion": "n/a"}
+{"id": "R4", "kind": "requirement_implemented", "severity": "info", "title": "PUT /books/{id} updates book", "evidence": "App.java:123-140, BookRepository.update:93-109", "suggestion": "n/a"}
+{"id": "R5", "kind": "requirement_implemented", "severity": "info", "title": "DELETE /books/{id} deletes book", "evidence": "App.java:142-150, BookRepository.delete:111-119", "suggestion": "n/a"}
+{"id": "R6", "kind": "requirement_implemented", "severity": "info", "title": "GET /health endpoint returns status", "evidence": "App.java:32,57-63", "suggestion": "n/a"}
+{"id": "R7", "kind": "requirement_implemented", "severity": "info", "title": "Input validation for required fields (title, author)", "evidence": "App.java:152-156", "suggestion": "n/a"}
+{"id": "R8", "kind": "requirement_implemented", "severity": "info", "title": "SQLite database storage", "evidence": "BookRepository.java using JDBC sqlite, init:26-41", "suggestion": "n/a"}
+{"id": "R9", "kind": "requirement_implemented", "severity": "info", "title": "JSON responses with appropriate HTTP status codes", "evidence": "App.java:182-195", "suggestion": "n/a"}
+{"id": "R10", "kind": "requirement_implemented", "severity": "info", "title": "At least 3 unit/integration tests", "evidence": "BookApiTest.java: 5 tests pass (healthEndpointReturnsOk, createListGetUpdateDeleteBook, rejectsBookWithoutRequiredFields, filterByAuthor, getMissingBookReturns404)", "suggestion": "n/a"}
+{"id": "R11", "kind": "requirement_implemented", "severity": "info", "title": "README.md with setup and run instructions", "evidence": "README.md with complete build, run, endpoints, and examples sections", "suggestion": "n/a"}
+{"id": "test-pass", "kind": "test_success", "severity": "info", "title": "All 5 tests pass", "evidence": "Maven test output: Tests run: 5, Failures: 0, Errors: 0, Skipped: 0", "suggestion": "n/a"}

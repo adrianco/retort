@@ -1,0 +1,10 @@
+{
+  "replicate": 1,
+  "run_config": {
+    "language": "python",
+    "model": "claude-opus-4-8",
+    "tooling": "beads"
+  },
+  "succeeded": false,
+  "visibility": "public"
+}

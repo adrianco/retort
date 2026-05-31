@@ -1,0 +1,11 @@
+{"id": "R1", "kind": "requirement_implemented", "severity": "info", "title": "POST /books endpoint implemented", "evidence": "src/app.ts:20-27, tests/books.test.ts:19-32", "suggestion": ""}
+{"id": "R2", "kind": "requirement_implemented", "severity": "info", "title": "GET /books with optional ?author= filter", "evidence": "src/app.ts:29-32, tests/books.test.ts:58-73", "suggestion": ""}
+{"id": "R3", "kind": "requirement_implemented", "severity": "info", "title": "GET /books/{id} single book retrieval", "evidence": "src/app.ts:34-44, tests/books.test.ts:75-89", "suggestion": ""}
+{"id": "R4", "kind": "requirement_implemented", "severity": "info", "title": "PUT /books/{id} update endpoint", "evidence": "src/app.ts:46-60, tests/books.test.ts:91-103", "suggestion": ""}
+{"id": "R5", "kind": "requirement_implemented", "severity": "info", "title": "DELETE /books/{id} delete endpoint", "evidence": "src/app.ts:62-72, tests/books.test.ts:105-120", "suggestion": ""}
+{"id": "R6", "kind": "requirement_implemented", "severity": "info", "title": "GET /health health check endpoint", "evidence": "src/app.ts:16-18, tests/books.test.ts:11-17", "suggestion": ""}
+{"id": "R7", "kind": "requirement_implemented", "severity": "info", "title": "SQLite database storage via better-sqlite3", "evidence": "src/db.ts:1-31, package.json dependencies", "suggestion": ""}
+{"id": "R8", "kind": "requirement_implemented", "severity": "info", "title": "JSON responses with appropriate HTTP status codes", "evidence": "src/app.ts (all endpoints), tests/books.test.ts validates status codes", "suggestion": ""}
+{"id": "R9", "kind": "requirement_implemented", "severity": "info", "title": "Input validation for title and author (required)", "evidence": "src/validation.ts:19-23, tests/books.test.ts:34-55", "suggestion": ""}
+{"id": "R10", "kind": "requirement_implemented", "severity": "info", "title": "README.md with setup and run instructions", "evidence": "README.md:1-106 includes setup, run, test, endpoints, examples", "suggestion": ""}
+{"id": "R11", "kind": "requirement_implemented", "severity": "info", "title": "At least 3 unit/integration tests (13 tests total)", "evidence": "tests/books.test.ts: 13 tests all passing, 0 skipped", "suggestion": ""}

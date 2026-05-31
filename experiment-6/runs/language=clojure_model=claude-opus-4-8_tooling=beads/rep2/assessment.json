@@ -1,0 +1,23 @@
+{
+  "severity_counts": {
+    "critical": 0,
+    "high": 0,
+    "medium": 0,
+    "low": 0,
+    "info": 1
+  },
+  "penalty_score": 1.0000,
+  "top_findings": [
+    {
+      "id": "R1",
+      "kind": "requirement_missing",
+      "severity": "info",
+      "title": "No explicit pagination support on GET /books",
+      "evidence": "src/books/db.clj:26-34 returns all matching rows without limit/offset",
+      "suggestion": "Consider adding ?limit and ?offset query parameters for pagination"
+    }
+  ],
+  "requirement_coverage": 0.9231,
+  "model": "claude-opus-4-8",
+  "evaluated_at": "2026-05-31T00:00:00Z"
+}

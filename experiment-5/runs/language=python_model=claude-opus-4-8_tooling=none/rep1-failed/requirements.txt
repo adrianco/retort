@@ -1,0 +1,8 @@
+# The core query engine + the test-suite have NO third-party dependencies
+# (Python standard library only). The entries below are OPTIONAL extras.
+
+# Required only to actually serve the MCP tools over stdio (server.py):
+mcp[cli]>=1.2.0
+
+# Test runner (the suite uses only stdlib + pytest):
+pytest>=7.0
