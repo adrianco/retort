@@ -167,7 +167,7 @@ A quarter-fraction screening experiment on the same brazil-bench task, designed 
 - **Go + claude-opus-4-7 achieves 81% test coverage vs 42% for claude-opus-4-6 on the same task** — the clearest model-version signal in the dataset. Code quality is identical (1.000 = zero high-severity findings). The 5× longer runtime in experiment-3 correlates with more thorough test writing.
 - **Java and Rust hit 100% test coverage regardless of model version.** Java scores code_quality 1.000 in both experiments; consistent with experiment-2.
 - **TypeScript + beads tooling enables test frameworks.** Experiment-2 typescript/opus scores 0.0 (no test framework generated); experiment-3 typescript/claude-opus-4-6/beads scores 1.000 — the `model:tooling` interaction matters more than model version alone.
-- **Runs take 2–9× longer in experiment-3.** Compiled languages (Go, Rust, Clojure) now use a 45-minute budget vs 25 minutes in experiment-2. The adaptive timeout system (`_estimate_run_timeout` in `cli.py`) learns per-cell timing from history and sets future budgets automatically.
+- **Runs take 2–9× longer than experiment-2 — and it's the model, not the timeout.** The timeout only ever *fails* a run that exceeds it; a run that completes does so in its natural time regardless of the budget. The longer durations are genuine model behavior: `claude-opus-4-7`/`4-8` spend far more time per run on brazil-bench than `4-6`/`sonnet` did (see the four-model duration ladder under [Time taken](#time-taken)). The adaptive timeout (`_estimate_run_timeout`) is extend-only — it just keeps a legitimately slow run from being killed.
 - **Same model (claude-opus-4-6), same task, same quality.** Java and Python show identical `code_quality` across the April→May gap, suggesting model quality is stable.
 
 **Scorer fixes (applied in this experiment, rescored across all experiments):** Java MVN `-q` flag silenced surefire output (removed); Clojure test alias was wrong (`-X:test` → `-M:test`); Rust lacked a coverage-command path (added tests-only fallback); TypeScript vitest invoked via broken `.bin/` wrapper (switched to direct `node` invocation with test-pass-rate fallback).
@@ -249,9 +249,9 @@ Overall median 2.8m (4.7) vs 2.7m (4.8) — flat. The mean diverges (+47%) only 
 | 6 | rest-api-crud (4.7×4.8 full) | 71/72 | $64.01 | 50.2M | 4.7 ≈ 4.8 (cq 0.861 vs 0.860); language still dominates |
 | **Total (excl. exp-5)** | | **182/189** | **$206.02** | **194.9M** | Language dominates; model version is a second-order, task-dependent effect |
 
-### All four models head-to-head (bookshop task)
+### All four models head-to-head
 
-The bookshop CRUD task was run with **sonnet-4.5 and opus-4.6** (experiment 1) and **opus-4.7 and opus-4.8** (experiment 6) — the same task across all four models, so they can be compared directly (caveat: exp-1 and exp-6 ran on different dates; both were rescored with the fixed scorers):
+The CRUD/bookshop task was run with **sonnet-4.5 and opus-4.6** (experiment 1) and **opus-4.7 and opus-4.8** (experiment 6) — the same task across all four models, so they can be compared directly (caveat: exp-1 and exp-6 ran on different dates; both were rescored with the fixed scorers):
 
 | Model | n | code_quality | duration (median) | cost/run |
 |---|---|---|---|---|
@@ -265,7 +265,16 @@ The bookshop CRUD task was run with **sonnet-4.5 and opus-4.6** (experiment 1) a
 - **Cost:** roughly **doubles** from sonnet/4-6 (~$0.40) to 4-7/4-8 (~$0.90) — newer opus is pricier per run, not cheaper.
 - **Net:** on this task `opus-4-7` is the value sweet spot (top quality, moderate cost); `4-8` costs ~14% more and runs with a heavier tail for no quality gain; `4-6` is the cheap-and-fast pick at slightly lower quality; `sonnet-4-5` is cheapest but lowest quality.
 
-(On the harder brazil-bench task the same four models were run across experiments 2–5; the opus 4-6 → 4-7 → 4-8 quality/coverage trajectory there is detailed in experiments 3–5 above, and sonnet's `model:task` sensitivity in experiment 2.)
+**On the harder brazil-bench task** the same four models ran across experiments 2–5, and per-run **duration climbs steeply** with each newer Opus generation — the opposite of the near-flat bookshop result:
+
+| Model | source | duration (median) | mean |
+|---|---|---|---|
+| claude-opus-4-6 | exp-2 | 4.0m | 4.2m |
+| claude-sonnet-4-5 | exp-2 | 7.1m | 7.2m |
+| claude-opus-4-7 | exp-5 (matched cells) | 11.0m | 11.4m |
+| claude-opus-4-8 | exp-5 (matched cells) | 15.5m | 16.5m |
+
+Each generation runs roughly **1.5–2× longer** than the last (`opus-4-6` ≈ 4m → `4-7` ≈ 11m → `4-8` ≈ 16m), with `sonnet-4-5` (~7m) between 4-6 and 4-7. The cleanest contrasts are within a single experiment: in exp-2, `sonnet-4-5` ran **+70%** vs `opus-4-6`; in exp-5's matched cells, `opus-4-8` ran **+44%** vs `4-7`. (Durations are comparable across experiments — the timeout only fails a run that exceeds it, it does not change how long a completed run takes. The opus 4-6 → 4-7 → 4-8 quality/coverage trajectory on brazil-bench is in experiments 3–5 above.)
 
 ### Time taken
 
@@ -273,9 +282,9 @@ Wall-clock per run is driven first by **task**, then **language**, then (weakly,
 
 - **Task dominates.** The same languages run **~5–9× longer** on brazil-bench (MCP server, CSV ingest, BDD tests) than on the bookshop CRUD task: Go ≈ 2.6m vs ≈ 23m, Python ≈ 1.9m vs ≈ 13m, Clojure ≈ 4m vs ≈ 21m. Pick the task budget accordingly.
 - **Language is the next factor, and the ranking is stable.** Scripted languages (python, typescript) are fastest; JVM/compiled (java, clojure, rust, go) are slower, and **java + clojure carry the longest right tails** (occasional runs many× the median).
-- **Model is second-order and task-dependent — and newer is not faster.** Across all four models on the bookshop task, **`opus-4-6` is the quickest** (2.3m median) with `sonnet-4-5` ~2.9m and the newer opus versions 2.7–2.8m; `4-7 ≈ 4-8` on median there. But on the hard brazil-bench task `4-8` runs **+33–73% longer** than `4-7` (exp-5, partial), and across both tasks `4-8` carries a heavier tail of runaway runs — up to a 45-minute timeout. This is why retort's adaptive timeout is **extend-only**: a slow run gets more budget, never less.
+- **Model effect on duration is small on easy tasks but large on hard ones — and newer is slower.** On bookshop the four models are within ~0.6m of each other (`opus-4-6` quickest at 2.3m; `4-7 ≈ 4-8`). On brazil-bench the model effect explodes: each newer Opus generation runs **~1.5–2× longer** (`4-6` ≈ 4m → `4-7` ≈ 11m → `4-8` ≈ 16m; matched-cell `4-8` is **+44%** vs `4-7`), plus a heavier tail of runaway runs that occasionally exceed the timeout and fail. This `model:task` interaction on duration mirrors the one on quality. (The timeout never lengthens a run — it only fails one that overruns; retort's adaptive timeout is **extend-only** so a legitimately slow run isn't killed.)
 
-The practical implication: budget by **task first** (a hard task is a 5–9× multiplier), watch the **java/clojure tails**, and don't expect a newer model to be faster or cheaper — newer opus generations cost ~2× more than `4-6`/`sonnet` and, on hard tasks, run slower for the same quality.
+The practical implication: budget by **task first** (a hard task is a 5–9× multiplier), watch the **java/clojure tails**, and don't expect a newer model to be faster or cheaper — newer Opus generations cost ~2× more than `4-6`/`sonnet` and, on hard tasks, run **1.5–2× longer** for the same quality.
 
 ## Installation
 
