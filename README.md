@@ -6,7 +6,7 @@ Retort applies statistical Design of Experiments (DoE) to systematically evaluat
 
 ## Status: 1.0 Beta
 
-> Retort 1.0 beta is **feature-complete for single-agent `claude-code` experiments** with the `LocalRunner`. The CLI surface, scoring metrics, and storage schema are stable. This is the version we used to run three complete experiments totaling 111 runs and $110 in API costs.
+> Retort 1.0 beta is **feature-complete for single-agent `claude-code` experiments** with the `LocalRunner`. The CLI surface, scoring metrics, and storage schema are stable. This is the version we used to run **six experiments — 180+ completed runs and ~$200 in API costs** — comparing languages, two tasks, and three Claude Opus generations (4.6 / 4.7 / 4.8). A live `retort monitor` dashboard and an extend-only adaptive timeout were added during this work.
 >
 > **What works:** `LocalRunner`, all 8 built-in scorers, fractional-factorial design generation, ANOVA + effects reporting, SQLite storage, resumable sharded runs, parallel bulk evaluation, auto-evaluation skills pipeline, `cost_limit_usd` budget enforcement, and the full experiment lifecycle (screening → trial → production).
 >
@@ -172,14 +172,67 @@ A quarter-fraction screening experiment on the same brazil-bench task, designed 
 
 **Scorer fixes (applied in this experiment, rescored across all experiments):** Java MVN `-q` flag silenced surefire output (removed); Clojure test alias was wrong (`-X:test` → `-M:test`); Rust lacked a coverage-command path (added tests-only fallback); TypeScript vitest invoked via broken `.bin/` wrapper (switched to direct `node` invocation with test-pass-rate fallback).
 
+## Experiment 4 Results — Adding claude-opus-4-8 (three-way)
+
+📊 **[Full report →](experiment-4/reports/comparison.md)**
+
+A quarter-fraction augmentation of experiment 3 that adds the third Opus generation, `claude-opus-4-8`, on the same brazil-bench task — 3 new cells × 2 replicates. **6 runs, $32.15, 33.1M tokens.**
+
+The headline is the **controlled Go test-coverage trajectory** (go/none, the one cell with a point on all three versions):
+
+| Version | code_quality | **test_coverage** |
+|---|---|---|
+| claude-opus-4-6 (exp-2) | 1.000 | 0.42 |
+| claude-opus-4-7 (exp-3) | 1.000 | **0.81** |
+| claude-opus-4-8 (exp-4) | 1.000 | 0.44 |
+
+**Headlines:**
+- **4.7's Go coverage spike was a peak, not a trend.** 4.8 reverts to ~4.6-level coverage (0.44), with *less* runtime — so it is a behavioral difference, not a timeout artifact. Code quality stays a flat 1.000 throughout. The "newer model writes more tests" effect was specific to 4.7.
+- **Python code quality improved at 4.8** for the first time across the program: 0.667 (4.6) → **0.833** (4.8), with PenScore 1.0 / ReqCov 1.0.
+- **4.8 is cheaper and faster than 4.7 on the matched Go cell** (−28% cost, −24% time) while matching 4.6 coverage.
+- **Clojure/4-8 flagged** for manual review (perfect mechanical scores but evaluator ReqCov 0.0 — a grep-based matcher artifact to confirm).
+
+## Experiment 5 Results — 4.7 vs 4.8 full factorial (brazil-bench) — *in progress*
+
+A **full** 24-cell factorial (6 language × {claude-opus-4-7, claude-opus-4-8} × {none, beads} × 3 replicates = 72 runs) on brazil-bench — the de-aliased confirmation of experiment 4's model-version findings (a full factorial removes the Resolution III aliasing). Run single-shard and resumed across usage-limit windows; **results pending completion**. (This experiment is the reason `retort monitor` reports failed runs as *pending retry* rather than done — see [CLI Commands](#cli-commands).)
+
+## Experiment 6 Results — 4.7 vs 4.8 full factorial (bookshop / rest-api-crud)
+
+📊 **[Data →](experiment-6/results.csv)**
+
+The same full 4.7×4.8 factorial as experiment 5, but on the lighter `rest-api-crud` (books CRUD API) task — a **cross-task** confirmation. **71/72 runs completed (1 java/4-8/none rep timed out at 45m), all 24 cells valid. $64.01, 50.2M tokens.**
+
+**`claude-opus-4-7` and `claude-opus-4-8` are a statistical dead heat**, and the language hierarchy is identical across both versions:
+
+| | code_quality | test_coverage | cost/run |
+|---|---|---|---|
+| claude-opus-4-7 | 0.861 | 0.929 | $0.84 |
+| claude-opus-4-8 | 0.860 | 0.941 | $0.96 |
+
+| Language | 4.7 cq | 4.8 cq | 4.7 cov | 4.8 cov |
+|---|---|---|---|---|
+| java | 1.000 | 1.000 | 1.00 | 1.00 |
+| go | 1.000 | 1.000 | 0.68 | 0.70 |
+| rust | 0.833 | 0.833 | 1.00 | 1.00 |
+| clojure | 0.833 | 0.833 | 1.00 | 1.00 |
+| typescript | 0.733 | 0.733 | 0.89 | 0.97 |
+| python | 0.766 | 0.781 | 1.00 | 0.99 |
+
+**Headlines:**
+- **Model version is a second-order effect.** Per-language code_quality is identical between 4.7 and 4.8; 4.8 costs slightly more. The language ladder (java/go = 1.0 > rust/clojure = 0.83 > python ≈ ts) is unchanged by the model bump — consistent with experiments 1–3.
+- **Cross-task generalization:** the strong model-version movements seen on brazil-bench (Go coverage, Python quality) do **not** appear on this simpler task — the model effect is task-dependent.
+
 ## Experiment Summary
 
 | Experiment | Task | Runs | Cost | Tokens | Key Finding |
 |---|---|---|---|---|---|
 | 1 | rest-api-crud | 67/73 | $25.07 | 25.8M | Language dominates: Java=1.0, Go=0.98, Rust=0.83 |
 | 2 | brazil-bench | 24/24 | $29.85 | 33.6M | model×task interaction; TypeScript model-sensitive |
-| 3 | brazil-bench (model versions) | 14/14 | $54.94 | 52.2M | Opus-4.7 adds 2× test coverage on Go |
-| **Total** | | **105/111** | **$109.86** | **111.6M** | Java/Go are production-ready; Opus-4.7 improves coverage |
+| 3 | brazil-bench (4.6 vs 4.7) | 14/14 | $54.94 | 52.2M | Opus-4.7 adds 2× test coverage on Go |
+| 4 | brazil-bench (+4.8, ¼-frac) | 6/6 | $32.15 | 33.1M | 4.7's Go-coverage spike doesn't hold at 4.8; Python cq rises |
+| 5 | brazil-bench (4.7×4.8 full) | *in progress* | — | — | De-aliased 4.7-vs-4.8 confirmation (resuming across limit windows) |
+| 6 | rest-api-crud (4.7×4.8 full) | 71/72 | $64.01 | 50.2M | 4.7 ≈ 4.8 (cq 0.861 vs 0.860); language still dominates |
+| **Total (excl. exp-5)** | | **182/189** | **$206.02** | **194.9M** | Language dominates; model version is a second-order, task-dependent effect |
 
 ## Installation
 
@@ -293,6 +346,7 @@ wait
 | `retort export merge` | Combine multiple experiment CSVs into one with an experiment-tag column, for cross-experiment ANOVA |
 | `retort report pareto` | Identify Pareto-optimal stacks across multiple objectives; minimize cost-like metrics with `-` prefix |
 | `retort run --shard N/M` | Run only the slice of cells owned by shard N (of M); deterministic partition for parallel polecats sharing one retort.db |
+| `retort monitor <experiment>` | Live progress dashboard from the run DB: completed/remaining, per-cell coverage, cost/tokens, throughput + ETA, failures. `retort monitor experiment-5` infers the db/config by convention; `--watch` refreshes; `--json` for machines. Failed runs are reported as *pending retry* (they re-run under `--resume --retry-failed`), so a resumed run isn't mistaken for done |
 | `retort analyze` | Run ANOVA analysis on experiment data with optional residual diagnostics |
 | `retort intake` | Ingest a new candidate (factor level) and generate D-optimal augmentation runs |
 | `retort report dashboard` | Show full workspace status dashboard (experiments, lifecycle, budget) |
@@ -371,8 +425,10 @@ Honest accounting of what is tested end-to-end versus implemented but not exerci
 | Area | Status | Notes |
 |------|--------|-------|
 | **Design generation** | ✅ Working | Fractional factorial (pyDOE3), mixed-level support, `design.fraction` config, `--design <csv>` override, `DesignMatrix.from_csv()`, `retort analyze --predict` for unrun cells. Full unit test coverage. |
-| **LocalRunner + scoring** | ✅ Working | Exercised end-to-end across 111 runs covering 6 languages. 8 scorers: `code_quality`, `test_coverage`, `test_quality`, `token_efficiency`, `defect_rate`, `maintainability`, `idiomatic`, `findings`. Scoring gate: `test_coverage == 0` vetoes all scores. `evaluate-run` + `file-run-issues` skills auto-invoked after each run. `retort evaluate --workers N` for bulk re-evaluation. |
-| **Resume / sharding** | ✅ Working | `--resume` skips recorded `(config, replicate)` pairs; `--retry-failed` retries failures. `--shard N/M` deterministic partition for parallel polecats. Per-run DB commit = at most one lost run on interrupt. Run artifacts archived to `runs/<cell>/rep<N>/`. |
+| **LocalRunner + scoring** | ✅ Working | Exercised end-to-end across 180+ runs covering 6 languages. 8 scorers: `code_quality`, `test_coverage`, `test_quality`, `token_efficiency`, `defect_rate`, `maintainability`, `idiomatic`, `findings`. Scoring gate: `test_coverage == 0` vetoes all scores. `evaluate-run` + `file-run-issues` skills auto-invoked after each run. `retort evaluate --workers N` for bulk re-evaluation. |
+| **Resume / sharding** | ✅ Working | `--resume` skips recorded `(config, replicate)` pairs; `--retry-failed` retries failures. `--shard N/M` deterministic partition for parallel polecats. Per-run DB commit = at most one lost run on interrupt. Run artifacts archived to `runs/<cell>/rep<N>/`. Resume cleanly banks progress across API-usage-limit windows. |
+| **Monitoring** | ✅ Working | `retort monitor <experiment>` reads the run DB for live progress, per-cell coverage, cost/tokens, session-aware throughput + ETA, and failures. Text / `--json` / `--watch`. Failed runs counted as pending (re-run under `--retry-failed`), not done. |
+| **Adaptive timeout** | ✅ Working | `_estimate_run_timeout` sizes each run from historical per-cell timing and is **extend-only** — floored at the configured `timeout_minutes`, so a slow language gets more time but an early, history-poor run is never killed under budget. |
 | **Factor system** | ✅ Working | `language`, `model` (with alias table, versioned IDs), `tooling` (beads instructions), `prompt` (named `.md` files in `prompts/`), `org_context`. Any additional factor flows through `stack.extra` automatically. |
 | **Budget enforcement** | ✅ Working | `cost_limit_usd` in config is enforced during `retort run` — experiment aborts if accumulated cost exceeds the limit. Error surfaced immediately via `click.ClickException`. |
 | **Agent validation** | ✅ Working | Unsupported agents raise a clear error at experiment startup, before any runs execute. Only `claude-code` is implemented. |
