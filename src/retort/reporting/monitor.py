@@ -39,6 +39,10 @@ _RESOURCE_METRICS = frozenset({COST_METRIC, TOKENS_METRIC, DURATION_METRIC, "_tu
 # measured over the current session rather than since the first-ever run.
 _SESSION_GAP_S = 3600.0
 
+# Cap the failures list in the text report so a run with dozens of pending
+# retries doesn't flood a --watch screen; the full list is still in --json.
+_MAX_FAILURES_SHOWN = 5
+
 
 def _as_utc(dt: datetime | None) -> datetime | None:
     """Coerce a (possibly naive, SQLite-sourced) datetime to UTC-aware."""
@@ -473,8 +477,12 @@ def render_text(snap: MonitorSnapshot, db_path: str | None = None) -> str:
         lines.append("")
 
     if snap.failures:
-        lines.append(f"Failures ({len(snap.failures)}):")
-        for f in snap.failures:
+        n = len(snap.failures)
+        shown = snap.failures[-_MAX_FAILURES_SHOWN:]
+        hidden = n - len(shown)
+        suffix = f" — showing last {len(shown)} of {n}" if hidden else ""
+        lines.append(f"Failures ({n}){suffix}:")
+        for f in shown:
             err = (f["error"] or "").splitlines()[0][:80] if f["error"] else ""
             lines.append(f"  ✗ {f['label']} rep{f['replicate']}  {err}")
     else:

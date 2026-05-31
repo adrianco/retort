@@ -228,6 +228,19 @@ def test_render_text_contains_key_fields(db_session):
     assert "go/claude-opus-4-7/none" in out
 
 
+def test_render_text_caps_failures(db_session):
+    """Text report shows only the last 5 failures (full list stays in --json)."""
+    _add_design_cells(db_session, 24)
+    for i in range(8):
+        _add_run(db_session, {"language": "go", "tooling": f"f{i}"}, 1,
+                 RunStatus.failed, {}, error=f"Timeout {i}")
+    snap = build_snapshot(db_session, replicates=3, now=NOW)
+    out = render_text(snap)
+    assert "Failures (8) — showing last 5 of 8" in out
+    assert out.count("✗ go/f") == 5         # only 5 failure lines rendered
+    assert len(_json.loads(render_json(snap))["failures"]) == 8  # JSON keeps all
+
+
 def test_render_json_roundtrip(db_session):
     _seed(db_session)
     snap = build_snapshot(db_session, replicates=3, now=NOW)
