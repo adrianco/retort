@@ -480,8 +480,10 @@ def render_text(snap: MonitorSnapshot, db_path: str | None = None) -> str:
             cov = f"cov={covg:.2f}" if covg is not None else "cov=—"
             cost = f"${cst:.2f}" if cst is not None else "$—"
             dur = _fmt_duration(r["duration_s"])
+            fin = r["finished_at"]
+            ts = fin.strftime("%m-%d %H:%MZ") if fin else "  —  "
             lines.append(
-                f"  ✓ {r['label']} rep{r['replicate']}  {cq} {cov}  {cost}  {dur}"
+                f"  ✓ {ts}  {r['label']} rep{r['replicate']}  {cq} {cov}  {cost}  {dur}"
             )
         lines.append("")
 

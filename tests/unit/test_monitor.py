@@ -225,6 +225,8 @@ def test_render_text_contains_key_fields(db_session):
     assert "3 / 6" in out  # completed / expected (not 4 — failed isn't progress)
     assert "~dur" in out  # cells table has a per-run duration column
     assert "15m50s" in out  # go cell mean duration (1000+900)/2 = 950s
+    assert "Recent completions:" in out
+    assert "05-30 12:" in out  # date stamp on recent completions (finished_at)
     assert "1 failed, pending retry" in out
     assert "$14.00" in out
     assert "Failures (1)" in out
