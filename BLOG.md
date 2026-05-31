@@ -25,9 +25,9 @@ Across every experiment, ANOVA on `code_quality` returns the same verdict: **lan
 
 **Switching language buys you more quality than switching model.** Going from Python to Go moves the needle further than going from Sonnet to Opus (at 2× the price). Choose the ecosystem first.
 
-### 2. Newer model ≠ monotonically better
+### 2. Newer model ≠ better — and newer ≠ faster or cheaper
 
-We compared three Opus generations — **4.6 → 4.7 → 4.8** — on the same tasks. The headline isn't "newer is better." It's "newer is *different*, mostly in second-order ways."
+We compared **four models** — `sonnet-4.5` and three Opus generations (`4.6 → 4.7 → 4.8`) — on the same tasks. The headline isn't "newer is better." It's "newer is *different*, mostly in second-order ways, and it costs more."
 
 The cleanest controlled comparison is Go with no tooling, the one cell measured on all three versions of the hard brazil-bench task:
 
@@ -48,6 +48,17 @@ On the simpler bookshop task (a full 24-cell factorial, 71 runs), **4.7 and 4.8 
 
 Per-language, the two versions produce **identical** quality (go 1.00/1.00, java 1.00/1.00, rust 0.83/0.83, clojure 0.83/0.83, ts 0.73/0.73, python 0.77/0.78). 4.8 costs a little more. The language ladder is untouched by the model bump.
 
+Putting all four models side by side on that same bookshop task tells the fuller story:
+
+| Model | code_quality | duration (median) | cost/run |
+|---|---|---|---|
+| sonnet-4.5 | 0.752 | 2.9m | $0.37 |
+| opus-4.6 | 0.833 | **2.3m** | $0.45 |
+| opus-4.7 | **0.861** | 2.8m | $0.84 |
+| opus-4.8 | 0.860 | 2.7m | $0.96 |
+
+Quality climbs from Sonnet to Opus and rises 4.6 → 4.7, then **plateaus** at 4.8. But the resource curve goes the *other* way: **opus-4.6 is the fastest** model, and **cost roughly doubles** from Sonnet/4.6 (~$0.40) to 4.7/4.8 (~$0.90). So the newest model is the most expensive and among the slowest, for no quality gain over 4.7 — on this task `opus-4.7` is the value sweet spot, and on the harder brazil-bench task 4.8 runs *longer still* (Time taken, below). "Upgrade to the newest model" is not free, and not automatically better.
+
 ### 3. Task difficulty reshuffles the middle of the pack
 
 The top (Java, Go) and the method are stable, but the middle moves with task difficulty — a real **model × task interaction**. On the simple CRUD task Opus and Sonnet performed similarly; on the harder MCP task, TypeScript/Opus produced broken builds that Sonnet didn't. A cross-task ANOVA (pooling tasks as a factor) confirms `model:task` is significant. **Single-task benchmarks miss this** — they generalize less than people assume.
@@ -66,7 +77,7 @@ Wall-clock per run tracks tokens and cost closely, and the same ordering holds: 
 
 - **Task is a 5–9× multiplier.** The identical languages run far longer on the hard MCP task than on the bookshop CRUD task — Go ≈ 2.6 min vs ≈ 23 min, Python ≈ 1.9 min vs ≈ 13 min. Budget by task before anything else.
 - **Language sets the rest, and the tail matters.** Scripted languages (python ≈ 1.8 min median, typescript ≈ 2.4) are quickest; JVM/compiled are slower, and **java and clojure carry the heavy right tails** — single bookshop runs of 17 min (java) and 27 min (clojure) against a ~3-minute median.
-- **A newer model is not a faster model.** On the easy task, opus-4.7 and 4.8 are a duration dead heat (flat median, 2.8 vs 2.7 min). On the *hard* task, 4.8 runs **+33–73% longer** than 4.7 for the same quality (and produced the one run that hit the 45-minute ceiling). The "newer = quicker" intuition is wrong here — 4.8 spends *more* time, especially as tasks get harder.
+- **A newer model is not a faster model.** Across all four models on the easy task, **opus-4.6 is the quickest** (2.3 min median); Sonnet-4.5 ~2.9 min; the newer opus versions 2.7–2.8 min (4.7 ≈ 4.8). On the *hard* task, 4.8 runs **+33–73% longer** than 4.7 for the same quality (and produced the one run that hit the 45-minute ceiling). The "newer = quicker" intuition is wrong here — newer opus generations spend *more* time (and ~2× the cost), especially as tasks get harder.
 
 This long-tail-on-hard-tasks behavior is exactly why retort's adaptive timeout is **extend-only** (it floors at your configured budget and only ever grants *more* time): an early, fast run must never set a ceiling that strangles a later, legitimately slow one.
 

@@ -249,15 +249,33 @@ Overall median 2.8m (4.7) vs 2.7m (4.8) — flat. The mean diverges (+47%) only 
 | 6 | rest-api-crud (4.7×4.8 full) | 71/72 | $64.01 | 50.2M | 4.7 ≈ 4.8 (cq 0.861 vs 0.860); language still dominates |
 | **Total (excl. exp-5)** | | **182/189** | **$206.02** | **194.9M** | Language dominates; model version is a second-order, task-dependent effect |
 
+### All four models head-to-head (bookshop task)
+
+The bookshop CRUD task was run with **sonnet-4.5 and opus-4.6** (experiment 1) and **opus-4.7 and opus-4.8** (experiment 6) — the same task across all four models, so they can be compared directly (caveat: exp-1 and exp-6 ran on different dates; both were rescored with the fixed scorers):
+
+| Model | n | code_quality | duration (median) | cost/run |
+|---|---|---|---|---|
+| claude-sonnet-4-5 | 32 | 0.752 | 2.9m | $0.37 |
+| claude-opus-4-6 | 35 | 0.833 | **2.3m** | $0.45 |
+| claude-opus-4-7 | 36 | **0.861** | 2.8m | $0.84 |
+| claude-opus-4-8 | 35 | 0.860 | 2.7m | $0.96 |
+
+- **Quality:** opus > sonnet (+0.08), and it rises 4-6 → 4-7 (+0.03) then **plateaus** — 4-8 matches 4-7.
+- **Speed:** `opus-4-6` is the **fastest** model here; each newer opus is a little slower, and 4-8 adds a heavy right tail (java/clojure runs of 17–27m, and a 45-min timeout).
+- **Cost:** roughly **doubles** from sonnet/4-6 (~$0.40) to 4-7/4-8 (~$0.90) — newer opus is pricier per run, not cheaper.
+- **Net:** on this task `opus-4-7` is the value sweet spot (top quality, moderate cost); `4-8` costs ~14% more and runs with a heavier tail for no quality gain; `4-6` is the cheap-and-fast pick at slightly lower quality; `sonnet-4-5` is cheapest but lowest quality.
+
+(On the harder brazil-bench task the same four models were run across experiments 2–5; the opus 4-6 → 4-7 → 4-8 quality/coverage trajectory there is detailed in experiments 3–5 above, and sonnet's `model:task` sensitivity in experiment 2.)
+
 ### Time taken
 
 Wall-clock per run is driven first by **task**, then **language**, then (weakly, and task-dependently) **model version** — the same ordering as cost and tokens, with which duration is tightly correlated.
 
 - **Task dominates.** The same languages run **~5–9× longer** on brazil-bench (MCP server, CSV ingest, BDD tests) than on the bookshop CRUD task: Go ≈ 2.6m vs ≈ 23m, Python ≈ 1.9m vs ≈ 13m, Clojure ≈ 4m vs ≈ 21m. Pick the task budget accordingly.
 - **Language is the next factor, and the ranking is stable.** Scripted languages (python, typescript) are fastest; JVM/compiled (java, clojure, rust, go) are slower, and **java + clojure carry the longest right tails** (occasional runs many× the median).
-- **Model version is second-order and task-dependent.** `4-7 ≈ 4-8` on the easy task (flat median), but on the hard task `4-8` runs **+33–73% longer** (exp-5, partial), and across both tasks `4-8` has a heavier tail of occasional runaway runs — up to a 45-minute timeout. This is why retort's adaptive timeout is **extend-only**: a slow run gets more budget, never less.
+- **Model is second-order and task-dependent — and newer is not faster.** Across all four models on the bookshop task, **`opus-4-6` is the quickest** (2.3m median) with `sonnet-4-5` ~2.9m and the newer opus versions 2.7–2.8m; `4-7 ≈ 4-8` on median there. But on the hard brazil-bench task `4-8` runs **+33–73% longer** than `4-7` (exp-5, partial), and across both tasks `4-8` carries a heavier tail of runaway runs — up to a 45-minute timeout. This is why retort's adaptive timeout is **extend-only**: a slow run gets more budget, never less.
 
-The practical implication: budget by **task first** (a hard task is a 5–9× multiplier), watch the **java/clojure tails**, and don't expect a newer model to be faster — on hard tasks `4-8` is somewhat slower than `4-7` for the same quality.
+The practical implication: budget by **task first** (a hard task is a 5–9× multiplier), watch the **java/clojure tails**, and don't expect a newer model to be faster or cheaper — newer opus generations cost ~2× more than `4-6`/`sonnet` and, on hard tasks, run slower for the same quality.
 
 ## Installation
 
