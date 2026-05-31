@@ -187,25 +187,36 @@ class TestCoverageScorer:
                     if rate is not None:
                         return rate * 100.0
                 return None
-            cmd = ["npx", "vitest", "run", "--coverage", "--reporter=basic"]
+            # Try coverage first, then a plain run for the pass-rate fallback —
+            # a project without @vitest/coverage-v8 fails `--coverage` but its
+            # tests still pass, and that must not score 0 (test-gate veto).
+            cmds = [
+                ["npx", "vitest", "run", "--coverage", "--reporter=basic"],
+                ["npx", "vitest", "run", "--reporter=basic"],
+            ]
         elif "jest" in text:
-            cmd = ["npx", "jest", "--coverage", "--coverageReporters=text-summary"]
+            cmds = [
+                ["npx", "jest", "--coverage", "--coverageReporters=text-summary"],
+                ["npx", "jest"],
+            ]
         else:
             return None
 
-        try:
-            result = subprocess.run(
-                cmd, cwd=output_dir, capture_output=True, text=True, timeout=180,
-            )
-        except (subprocess.TimeoutExpired, FileNotFoundError):
-            return None
-
-        combined = _strip_ansi(result.stdout + "\n" + result.stderr)
-        pct = _parse_coverage(combined, "typescript")
-        if pct is not None:
-            return pct
-        rate = _parse_test_pass_rate(combined, "typescript")
-        return rate * 100.0 if rate is not None else None
+        for cmd in cmds:
+            try:
+                result = subprocess.run(
+                    cmd, cwd=output_dir, capture_output=True, text=True, timeout=180,
+                )
+            except (subprocess.TimeoutExpired, FileNotFoundError):
+                continue
+            combined = _strip_ansi(result.stdout + "\n" + result.stderr)
+            pct = _parse_coverage(combined, "typescript")
+            if pct is not None:
+                return pct
+            rate = _parse_test_pass_rate(combined, "typescript")
+            if rate is not None:
+                return rate * 100.0
+        return None
 
 
 def _parse_coverage(output: str, language: str) -> float | None:

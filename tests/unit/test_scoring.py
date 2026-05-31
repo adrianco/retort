@@ -323,6 +323,16 @@ class TestTestCoverageScorer:
         out = "ok pkg/a 0.1s coverage: 80% of statements\nok pkg/b 0.2s coverage: 60% of statements"
         assert _parse_coverage(out, "go") == 70.0
 
+    def test_parse_vitest_pass_rate_fallback(self):
+        # Regression: a vitest suite with no @vitest/coverage-v8 has no coverage
+        # %, so the pass-rate fallback must parse vitest's summary or the run
+        # scores 0 (test-gate veto) despite passing tests.
+        from retort.scoring.scorers.test_coverage import _parse_test_pass_rate
+        assert _parse_test_pass_rate(" Test Files  7 passed (7)\n      Tests  40 passed (40)",
+                                     "typescript") == 1.0
+        assert _parse_test_pass_rate("      Tests  45 passed | 4 failed (49)",
+                                     "typescript") == 45 / 49
+
 
 class TestDefectRateScorer:
     def test_failed_run_scores_zero(self, failed_artifacts, python_stack):
