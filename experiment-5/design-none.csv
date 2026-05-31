@@ -1,0 +1,13 @@
+run,language,model,tooling
+0,python,claude-opus-4-7,none
+1,python,claude-opus-4-8,none
+2,typescript,claude-opus-4-7,none
+3,typescript,claude-opus-4-8,none
+4,go,claude-opus-4-7,none
+5,go,claude-opus-4-8,none
+6,rust,claude-opus-4-7,none
+7,rust,claude-opus-4-8,none
+8,java,claude-opus-4-7,none
+9,java,claude-opus-4-8,none
+10,clojure,claude-opus-4-7,none
+11,clojure,claude-opus-4-8,none

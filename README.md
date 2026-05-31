@@ -72,7 +72,7 @@ Sortable + drill-downable in the [web report](https://rawcdn.githack.com/adrianc
 - **Java, Go, Rust, and Clojure/opus consistently hit PenScore 1.000** on this task — no findings above threshold.
 - **Python is the outlier.** `python/opus/none` and `python/sonnet/beads` scored 0.50 and 0.40 due to a Starlette 1.0 compatibility break that prevented tests from executing (which zeroes all scores under the new test-gate rule). Other Python cells pass cleanly.
 - **Requirement coverage diverges from penalty score.** `go/sonnet/beads` has PenScore 0.995 but ReqCov 0.500 — the code is high quality but only implements half the spec. The old `code_quality` scorer missed this.
-- **Beads helps only for Go.** Pattern consistent with experiment-1 ANOVA findings.
+- **Beads helps only for Go.** Pattern consistent with experiment-1 ANOVA findings. Across the full program, beads never improved `code_quality` but added **~30% wall-clock and ~10–20% cost** (none vs beads: bookshop 2.3→3.0m / $0.81→$0.99; brazil-bench 11→14m / $4.82→$5.33), so **beads was dropped from experiments 5+ onward** — it solves multi-step coordination these single-shot tasks don't exercise.
 
 ## Experiment 2 Results — brazil-bench (cross-task)
 

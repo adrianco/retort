@@ -65,7 +65,7 @@ The top (Java, Go) and the method are stable, but the middle moves with task dif
 
 ### 4. Task-tracking tooling doesn't move code quality
 
-Beads vs. no-beads was statistically insignificant for `code_quality` across both tasks and every model. That's not a knock on beads — it solves multi-step *coordination*, which these single-shot tasks don't exercise. It's a caution against assuming tooling helps a metric it was never aimed at.
+Beads vs. no-beads was statistically insignificant for `code_quality` across both tasks and every model — **and it's not free.** Turning beads on added **~30% wall-clock and ~10–20% cost** (bookshop: 2.3 → 3.0 min median, $0.81 → $0.99; brazil-bench: 11 → 14 min, $4.82 → $5.33) with quality *identical or slightly worse*. That's not a knock on beads — it solves multi-step *coordination*, which these single-shot tasks don't exercise — but for this kind of benchmark it's pure overhead, so we **dropped it from the experiment program** going forward. The lesson generalizes: don't pay for tooling against a metric it was never aimed at.
 
 ### 5. Cost: the expensive task is 6× the cheap one
 

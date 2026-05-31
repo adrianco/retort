@@ -32,6 +32,13 @@
 #
 # Toolchains required (all installed): python, node (typescript), go, rust
 # (cargo), java (openjdk + maven), clojure, and bd (beads).
+#
+# NOTE: beads was DROPPED partway through this run. The collected data (here +
+# exp-1/2/3/6) showed beads adds ~30% wall-clock and ~10-20% cost for zero
+# quality gain, so the remaining cells were run none-only via design-none.csv
+# (`retort run --config workspace.yaml --design design-none.csv --resume`).
+# The beads factor level below is kept for provenance; the completed beads runs
+# remain in the DB as data, but no further beads cells are executed.
 
 experiment:
   name: experiment-5-opus-4-7-vs-4-8-full-factorial
