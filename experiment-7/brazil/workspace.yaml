@@ -1,0 +1,60 @@
+# Experiment 7 — claude-opus-4-8 FAST MODE (brazil-bench)
+#
+# Measures Claude Opus 4.8 "fast mode" on the harder brazil-bench task, to
+# compare against the regular 4.8/none data from experiments 4 & 5. No beads.
+#
+# Model level `claude-opus-4-8-fast` -> LocalRunner runs
+# `claude -p --model claude-opus-4-8 --settings '{"fastMode": true}'`.
+#
+# Design: 4 language x 1 model x 1 tooling = 4 cells x 3 replicates = 12 runs.
+#
+# Run (single shard, with PATH for toolchains):
+#   export PATH="/opt/homebrew/opt/openjdk/bin:/opt/homebrew/bin:$HOME/go/bin:$PATH"
+#   export JAVA_HOME="/opt/homebrew/opt/openjdk/libexec/openjdk.jdk/Contents/Home"
+#   PYTHONPATH=src .venv/bin/retort run --phase screening \
+#     --config experiment-7/brazil/workspace.yaml --resume
+
+experiment:
+  name: experiment-7-opus-4-8-fast-brazil
+  visibility: public
+
+# retort requires >=2 levels per factor, so model carries both the fast and
+# the regular 4-8 level. We RUN only the fast cells (design-fast.csv); the
+# regular-4-8 baseline comes from experiments 4 & 5 (same task). tooling is
+# dropped (constant none) since beads was retired from the program.
+factors:
+  language:
+    levels: [go, python, clojure, rust]
+  model:
+    levels: [claude-opus-4-8-fast, claude-opus-4-8]
+
+responses:
+  - code_quality
+  - token_efficiency
+  - test_coverage
+  - defect_rate
+  - maintainability
+  - idiomatic
+
+tasks:
+  - source: github://brazil-bench/benchmark-template/brazilian-soccer-mcp-guide.md
+
+playpen:
+  runner: local
+  replicates: 3
+  timeout_minutes: 45
+  max_turns: 200
+
+design:
+  screening_resolution: 3
+  significance_threshold: 0.10
+
+promotion:
+  screening_to_trial: { p_value: 0.10 }
+  trial_to_production: { posterior_confidence: 0.80 }
+
+evaluation:
+  enabled: true
+  model: haiku
+  min_severity_to_file: high
+  issue_tracker: beads

@@ -206,6 +206,25 @@ class TestLocalRunnerModelVersioning:
         idx = cmd.index("--model")
         assert cmd[idx + 1] == "claude-opus-4-7"
 
+    def test_versioned_opus_48_passes_through(self):
+        cmd = self._cmd("claude-opus-4-8")
+        idx = cmd.index("--model")
+        assert cmd[idx + 1] == "claude-opus-4-8"
+        assert "--settings" not in cmd  # non-fast: no fastMode setting
+
+    def test_fast_model_strips_suffix_and_enables_fast_mode(self):
+        cmd = self._cmd("claude-opus-4-8-fast")
+        idx = cmd.index("--model")
+        assert cmd[idx + 1] == "claude-opus-4-8"  # suffix stripped to base model
+        assert "--settings" in cmd
+        assert cmd[cmd.index("--settings") + 1] == '{"fastMode": true}'
+
+    def test_fast_alias_resolves_and_enables_fast_mode(self):
+        cmd = self._cmd("opus-4.8-fast")
+        idx = cmd.index("--model")
+        assert cmd[idx + 1] == "claude-opus-4-8"
+        assert '{"fastMode": true}' in cmd
+
     def test_no_model_flag_when_absent(self):
         from retort.playpen.local_runner import LocalRunner
         runner = LocalRunner()

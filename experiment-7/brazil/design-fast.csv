@@ -1,0 +1,5 @@
+run,language,model
+0,go,claude-opus-4-8-fast
+1,python,claude-opus-4-8-fast
+2,clojure,claude-opus-4-8-fast
+3,rust,claude-opus-4-8-fast

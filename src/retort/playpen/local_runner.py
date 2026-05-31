@@ -39,9 +39,13 @@ MODEL_ALIASES: dict[str, str] = {
     # Versioned aliases — never change; enable cross-version comparisons
     "opus-4.6": "claude-opus-4-6",
     "opus-4.7": "claude-opus-4-7",
+    "opus-4.8": "claude-opus-4-8",
     "sonnet-4.5": "claude-sonnet-4-5",
     "sonnet-4.6": "claude-sonnet-4-6",
     "haiku-4.5": "claude-haiku-4-5",
+    # Fast-mode variant: a "<id>-fast" model level runs the same model with
+    # Claude Code fast mode on (faster output) — handled in _build_agent_command.
+    "opus-4.8-fast": "claude-opus-4-8-fast",
 }
 
 
@@ -292,7 +296,14 @@ class LocalRunner:
             # Resolve model alias → versioned ID; full versioned IDs pass through.
             model = stack.extra.get("model", "")
             if model:
-                cmd.extend(["--model", MODEL_ALIASES.get(model, model)])
+                resolved = MODEL_ALIASES.get(model, model)
+                # A "<id>-fast" model level enables Claude Code fast mode (same
+                # model, faster output) via the fastMode setting — fast mode is
+                # NOT a distinct model ID, so strip the suffix and pass the flag.
+                if resolved.endswith("-fast"):
+                    resolved = resolved[: -len("-fast")]
+                    cmd.extend(["--settings", '{"fastMode": true}'])
+                cmd.extend(["--model", resolved])
 
             return cmd
 
