@@ -399,7 +399,28 @@ def _fmt_tokens(tokens: float) -> str:
     return f"{tokens:.0f}"
 
 
-def render_text(snap: MonitorSnapshot, db_path: str | None = None) -> str:
+def render_active(active: list[dict]) -> list[str]:
+    """Render the 'Active now' block from live in-flight run descriptors.
+
+    Each descriptor: ``{"label": str, "replicate": int|None, "elapsed_s":
+    float|None, "evaluating": bool}``. Returns [] when there are no active runs.
+    """
+    if not active:
+        return []
+    lines = [f"Active now ({len(active)}):"]
+    for a in sorted(active, key=lambda x: x.get("label", "")):
+        rep = f" rep{a['replicate']}" if a.get("replicate") is not None else ""
+        elapsed = _fmt_duration(a.get("elapsed_s")) if a.get("elapsed_s") else "—"
+        state = "evaluating" if a.get("evaluating") else "running"
+        lines.append(f"  ▶ {a.get('label', '?')}{rep}  {state} {elapsed}")
+    return lines
+
+
+def render_text(
+    snap: MonitorSnapshot,
+    db_path: str | None = None,
+    active: list[dict] | None = None,
+) -> str:
     """Render a snapshot as a compact human-readable report."""
     lines: list[str] = []
     # All timestamps shown in the viewer's local timezone (%Z labels it).
@@ -449,6 +470,11 @@ def render_text(snap: MonitorSnapshot, db_path: str | None = None) -> str:
         reps = f" × {snap.replicates} reps" if snap.replicates else ""
         lines.append(f"Design     : {snap.design_cells} cells{reps}")
     lines.append("")
+
+    active_lines = render_active(active or [])
+    if active_lines:
+        lines.extend(active_lines)
+        lines.append("")
 
     # Per-cell table
     reps = snap.replicates
@@ -503,7 +529,7 @@ def render_text(snap: MonitorSnapshot, db_path: str | None = None) -> str:
     return "\n".join(lines)
 
 
-def render_json(snap: MonitorSnapshot) -> str:
+def render_json(snap: MonitorSnapshot, active: list[dict] | None = None) -> str:
     """Render a snapshot as JSON (machine-readable)."""
 
     def _iso(dt: datetime | None) -> str | None:
@@ -511,6 +537,7 @@ def render_json(snap: MonitorSnapshot) -> str:
 
     data = {
         "generated_at": _iso(snap.generated_at),
+        "active": active or [],
         "completed": snap.completed,
         "failed": snap.failed,
         "remaining": snap.remaining,

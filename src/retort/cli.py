@@ -2467,6 +2467,92 @@ def report_web(
     click.echo(str(output / "index.html"))
 
 
+def _etime_to_seconds(etime: str) -> float | None:
+    """Parse BSD/GNU ps etime ([[dd-]hh:]mm:ss) into seconds."""
+    etime = etime.strip()
+    if not etime:
+        return None
+    days = 0
+    if "-" in etime:
+        d, etime = etime.split("-", 1)
+        if not d.isdigit():
+            return None
+        days = int(d)
+    parts = etime.split(":")
+    try:
+        nums = [int(p) for p in parts]
+    except ValueError:
+        return None
+    secs = 0
+    for n in nums:
+        secs = secs * 60 + n
+    return float(days * 86400 + secs)
+
+
+def _discover_active_runs(db_path: Path) -> list[dict]:
+    """Best-effort list of in-flight agent runs for this experiment.
+
+    Finds ``retort run`` processes referencing this experiment directory, then
+    their ``claude`` agent children, and reads each child's playpen
+    ``stack.json`` (cell) plus ``ps`` elapsed time. Returns [] when it can't
+    determine them (no process access / not the run host). Local-only.
+    """
+    import json as _json
+    import subprocess
+
+    def _run(args: list[str]) -> subprocess.CompletedProcess | None:
+        try:
+            return subprocess.run(args, capture_output=True, text=True, timeout=5)
+        except Exception:  # noqa: BLE001 - best-effort; never fail the monitor
+            return None
+
+    exp = db_path.resolve().parent.name
+    r = _run(["pgrep", "-f", f"retort run .*{exp}"])
+    if r is None or r.returncode not in (0, 1):
+        return []
+    active: list[dict] = []
+    seen: set[str] = set()
+    for rpid in r.stdout.split():
+        ch = _run(["pgrep", "-P", rpid])
+        if ch is None:
+            continue
+        for cpid in ch.stdout.split():
+            psc = _run(["ps", "-o", "command=", "-p", cpid])
+            cmd = psc.stdout.strip() if psc else ""
+            if "claude" not in cmd or " -p" not in cmd:
+                continue
+            evaluating = "haiku" in cmd
+            lf = _run(["lsof", "-a", "-p", cpid, "-d", "cwd", "-Fn"])
+            cwd = ""
+            if lf is not None:
+                for line in lf.stdout.splitlines():
+                    if line.startswith("n"):
+                        cwd = line[1:]
+                        break
+            if not cwd or cwd in seen:
+                continue
+            seen.add(cwd)
+            label = "?"
+            try:
+                sj = _json.loads((Path(cwd) / "stack.json").read_text())
+                label = "/".join(
+                    str(sj[k]) for k in ("language", "model", "tooling") if k in sj
+                )
+            except Exception:  # noqa: BLE001
+                pass
+            et = _run(["ps", "-o", "etime=", "-p", cpid])
+            elapsed = _etime_to_seconds(et.stdout) if et else None
+            active.append(
+                {
+                    "label": label,
+                    "replicate": None,
+                    "elapsed_s": elapsed,
+                    "evaluating": evaluating,
+                }
+            )
+    return active
+
+
 @main.command("monitor")
 @click.argument("target", required=False)
 @click.option(
@@ -2572,9 +2658,13 @@ def monitor_cmd(
     try:
         while True:
             snap = _snapshot()
+            active = _discover_active_runs(db_path)
             if watch and not as_json:
                 click.echo("\033[2J\033[H", nl=False)  # clear screen + cursor home
-            out = render_json(snap) if as_json else render_text(snap, db_path=str(db_path))
+            if as_json:
+                out = render_json(snap, active=active)
+            else:
+                out = render_text(snap, db_path=str(db_path), active=active)
             click.echo(out)
             if not watch or snap.is_done:
                 break

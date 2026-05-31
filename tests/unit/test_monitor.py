@@ -7,6 +7,7 @@ from datetime import datetime, timedelta, timezone
 
 from retort.reporting.monitor import (
     build_snapshot,
+    render_active,
     render_json,
     render_text,
     resolve_target,
@@ -285,6 +286,44 @@ def test_stale_failures_are_not_progress(db_session):
     out = render_text(snap)
     assert "3 / 72" in out
     assert "9 failed, pending retry" in out
+
+
+def test_render_active_empty():
+    assert render_active([]) == []
+
+
+def test_render_active_lists_running_and_evaluating():
+    active = [
+        {"label": "go/claude-opus-4-8/none", "replicate": None,
+         "elapsed_s": 800, "evaluating": False},
+        {"label": "python/claude-opus-4-8/none", "replicate": None,
+         "elapsed_s": 120, "evaluating": True},
+    ]
+    out = "\n".join(render_active(active))
+    assert "Active now (2):" in out
+    assert "▶ go/claude-opus-4-8/none  running 13m20s" in out
+    assert "▶ python/claude-opus-4-8/none  evaluating 2m00s" in out
+
+
+def test_render_text_includes_active_section(db_session):
+    _seed(db_session)
+    snap = build_snapshot(db_session, replicates=3, now=NOW)
+    active = [{"label": "rust/claude-opus-4-8/none", "elapsed_s": 300,
+               "evaluating": False}]
+    out = render_text(snap, active=active)
+    assert "Active now (1):" in out
+    assert "rust/claude-opus-4-8/none  running 5m00s" in out
+    # and JSON carries it too
+    data = _json.loads(render_json(snap, active=active))
+    assert data["active"][0]["label"] == "rust/claude-opus-4-8/none"
+
+
+def test_etime_to_seconds():
+    from retort.cli import _etime_to_seconds
+    assert _etime_to_seconds("05:30") == 330
+    assert _etime_to_seconds("01:02:03") == 3723
+    assert _etime_to_seconds("2-01:00:00") == 2 * 86400 + 3600
+    assert _etime_to_seconds("") is None
 
 
 def test_resolve_target_directory(tmp_path):
