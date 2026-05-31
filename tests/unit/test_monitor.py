@@ -108,6 +108,7 @@ def test_per_cell_aggregation(db_session):
     go = cells["go/claude-opus-4-7/none"]
     assert go.completed == 2
     assert go.cost_usd == 10.0
+    assert go.mean_duration_s == (1000 + 900) / 2  # mean per-run duration
     assert go.metric_means["code_quality"] == 1.0
     assert abs(go.metric_means["test_coverage"] - 0.7) < 1e-9
     py = cells["python/claude-opus-4-8/beads"]
@@ -222,6 +223,8 @@ def test_render_text_contains_key_fields(db_session):
     out = render_text(snap, db_path="/tmp/retort.db")
     assert "Retort run monitor" in out
     assert "3 / 6" in out  # completed / expected (not 4 — failed isn't progress)
+    assert "~dur" in out  # cells table has a per-run duration column
+    assert "15m50s" in out  # go cell mean duration (1000+900)/2 = 950s
     assert "1 failed, pending retry" in out
     assert "$14.00" in out
     assert "Failures (1)" in out

@@ -106,7 +106,13 @@ class CellProgress:
     failed: int = 0
     cost_usd: float = 0.0
     tokens: float = 0.0
+    duration_total_s: float = 0.0
     metric_means: dict[str, float] = field(default_factory=dict)
+
+    @property
+    def mean_duration_s(self) -> float | None:
+        """Mean wall-clock duration per completed run in this cell."""
+        return self.duration_total_s / self.completed if self.completed else None
 
     @property
     def label(self) -> str:
@@ -277,6 +283,7 @@ def build_snapshot(
         cell.tokens += toks
         if DURATION_METRIC in res and res[DURATION_METRIC] is not None:
             durations.append(res[DURATION_METRIC])
+            cell.duration_total_s += res[DURATION_METRIC]
         if run.started_at is not None:
             started_times.append(_as_utc(run.started_at))
         if run.finished_at is not None:
@@ -446,7 +453,7 @@ def render_text(snap: MonitorSnapshot, db_path: str | None = None) -> str:
     reps = snap.replicates
     lines.append("Cells:")
     lines.append(
-        f"  {'cell':<34} {'done':>5}  {'cq':>4}  {'cov':>4}  {'$tot':>6}"
+        f"  {'cell':<34} {'done':>5}  {'cq':>4}  {'cov':>4}  {'~dur':>6}  {'$tot':>6}"
     )
     for c in snap.cells:
         done = f"{c.completed}/{reps}" if reps else str(c.completed)
@@ -456,8 +463,10 @@ def render_text(snap: MonitorSnapshot, db_path: str | None = None) -> str:
         cov = c.metric_means.get("test_coverage")
         cq_s = f"{cq:.2f}" if cq is not None else "—"
         cov_s = f"{cov:.2f}" if cov is not None else "—"
+        dur_s = _fmt_duration(c.mean_duration_s)  # mean wall-clock per run
         lines.append(
-            f"  {c.label:<34} {done:>5}  {cq_s:>4}  {cov_s:>4}  ${c.cost_usd:>5.1f}"
+            f"  {c.label:<34} {done:>5}  {cq_s:>4}  {cov_s:>4}  {dur_s:>6}  "
+            f"${c.cost_usd:>5.1f}"
         )
     lines.append("")
 
@@ -521,6 +530,7 @@ def render_json(snap: MonitorSnapshot) -> str:
                 "failed": c.failed,
                 "cost_usd": round(c.cost_usd, 4),
                 "tokens": c.tokens,
+                "mean_duration_s": c.mean_duration_s,
                 "metric_means": {k: round(v, 4) for k, v in c.metric_means.items()},
             }
             for c in snap.cells
