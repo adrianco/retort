@@ -226,7 +226,9 @@ def test_render_text_contains_key_fields(db_session):
     assert "~dur" in out  # cells table has a per-run duration column
     assert "15m50s" in out  # go cell mean duration (1000+900)/2 = 950s
     assert "Recent completions:" in out
-    assert "05-30 12:" in out  # date stamp on recent completions (finished_at)
+    # date stamp on recent completions (finished_at), shown in LOCAL time
+    latest_local = (T0 + timedelta(seconds=3000)).astimezone().strftime("%m-%d %H:%M")
+    assert latest_local in out
     assert "1 failed, pending retry" in out
     assert "$14.00" in out
     assert "Failures (1)" in out

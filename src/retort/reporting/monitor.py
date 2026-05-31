@@ -402,7 +402,8 @@ def _fmt_tokens(tokens: float) -> str:
 def render_text(snap: MonitorSnapshot, db_path: str | None = None) -> str:
     """Render a snapshot as a compact human-readable report."""
     lines: list[str] = []
-    ts = snap.generated_at.strftime("%Y-%m-%d %H:%M:%S UTC")
+    # All timestamps shown in the viewer's local timezone (%Z labels it).
+    ts = snap.generated_at.astimezone().strftime("%Y-%m-%d %H:%M:%S %Z")
     header = "Retort run monitor"
     if db_path:
         header += f" — {db_path}"
@@ -442,7 +443,7 @@ def render_text(snap: MonitorSnapshot, db_path: str | None = None) -> str:
     eta = _fmt_duration(snap.eta_seconds) if snap.eta_seconds else "—"
     finish = ""
     if snap.eta_finish and snap.eta_seconds:
-        finish = f"  (≈ {snap.eta_finish.strftime('%H:%M UTC')})"
+        finish = f"  (≈ {snap.eta_finish.astimezone().strftime('%H:%M %Z')})"
     lines.append(f"Throughput : {tp}   ·   ETA {eta}{finish}")
     if snap.design_cells:
         reps = f" × {snap.replicates} reps" if snap.replicates else ""
@@ -481,7 +482,7 @@ def render_text(snap: MonitorSnapshot, db_path: str | None = None) -> str:
             cost = f"${cst:.2f}" if cst is not None else "$—"
             dur = _fmt_duration(r["duration_s"])
             fin = r["finished_at"]
-            ts = fin.strftime("%m-%d %H:%MZ") if fin else "  —  "
+            ts = fin.astimezone().strftime("%m-%d %H:%M %Z") if fin else "   —   "
             lines.append(
                 f"  ✓ {ts}  {r['label']} rep{r['replicate']}  {cq} {cov}  {cost}  {dur}"
             )
