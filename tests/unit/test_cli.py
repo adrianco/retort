@@ -748,3 +748,73 @@ class TestCostLimitEnforcement:
 
         assert result.exit_code == 0, result.output
         assert "cost_limit_usd" not in result.output
+
+
+class TestConformanceGate:
+    """A run whose tests never executed (test_coverage == 0) is not a valid
+    success — the gate marks it failed rather than a zero-scored completion."""
+
+    @staticmethod
+    def _scores(**metrics):
+        from types import SimpleNamespace
+        return SimpleNamespace(
+            scores=[SimpleNamespace(metric_name=k, value=v) for k, v in metrics.items()]
+        )
+
+    def test_tests_ran_passes(self):
+        from retort.cli import _tests_did_not_run
+        assert _tests_did_not_run(self._scores(test_coverage=1.0, code_quality=0.8)) is False
+
+    def test_tests_did_not_run_fails(self):
+        from retort.cli import _tests_did_not_run
+        assert _tests_did_not_run(self._scores(test_coverage=0.0, code_quality=0.0)) is True
+
+    def test_partial_coverage_is_not_gated(self):
+        from retort.cli import _tests_did_not_run
+        assert _tests_did_not_run(self._scores(test_coverage=0.46)) is False
+
+    def test_no_test_coverage_metric_no_gate(self):
+        from retort.cli import _tests_did_not_run
+        assert _tests_did_not_run(self._scores(code_quality=0.8)) is False
+
+
+class TestSecondOpinionGate:
+    """The opus second-opinion spec gate: pass if the first eval reaches 1.0;
+    else take one more opinion; fail only if both fall short."""
+
+    @staticmethod
+    def _patch(monkeypatch, covs):
+        import retort.cli as cli
+        seq = list(covs)
+        calls = {"n": 0}
+
+        def fake_eval(*a, **k):
+            calls["n"] += 1
+
+        monkeypatch.setattr(cli, "_run_auto_evaluation", fake_eval)
+        monkeypatch.setattr(cli, "_read_requirement_coverage", lambda run_dir: seq.pop(0))
+        return calls
+
+    def test_first_pass_short_circuits(self, monkeypatch, tmp_path):
+        from retort.cli import _spec_conformance_passes
+        calls = self._patch(monkeypatch, [1.0])
+        passed, cov = _spec_conformance_passes(tmp_path, object(), "public")
+        assert passed is True and cov == 1.0 and calls["n"] == 1
+
+    def test_second_opinion_rescues(self, monkeypatch, tmp_path):
+        from retort.cli import _spec_conformance_passes
+        calls = self._patch(monkeypatch, [0.83, 1.0])
+        passed, cov = _spec_conformance_passes(tmp_path, object(), "public")
+        assert passed is True and cov == 1.0 and calls["n"] == 2
+
+    def test_both_fail(self, monkeypatch, tmp_path):
+        from retort.cli import _spec_conformance_passes
+        calls = self._patch(monkeypatch, [0.83, 0.92])
+        passed, cov = _spec_conformance_passes(tmp_path, object(), "public")
+        assert passed is False and cov == 0.92 and calls["n"] == 2  # best of the two
+
+    def test_both_none_fails(self, monkeypatch, tmp_path):
+        from retort.cli import _spec_conformance_passes
+        calls = self._patch(monkeypatch, [None, None])
+        passed, cov = _spec_conformance_passes(tmp_path, object(), "public")
+        assert passed is False and cov is None and calls["n"] == 2

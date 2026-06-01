@@ -627,7 +627,48 @@ def run_experiments(
                     artifacts = runner.execute(env_id, stack, task)
                     scores = collector.collect(artifacts, stack)
 
-                    status = "ok" if artifacts.succeeded else "FAIL"
+                    # Conformance gate: an agent-succeeded run whose tests never
+                    # executed is not a valid success — record it as failed.
+                    tests_failed = _tests_did_not_run(scores)
+
+                    # Archive before teardown wipes the workspace. The spec gate
+                    # below reads the archived code; the eval reads the just-
+                    # computed mechanical scores from scores.json (the run isn't
+                    # in the DB yet), so drop those alongside the code.
+                    archived = _archive_run_workspace(
+                        archive_root, run_config, rep, artifacts,
+                        visibility=workspace_config.experiment.visibility,
+                    )
+                    if archived is not None:
+                        try:
+                            (archived / "scores.json").write_text(json.dumps(scores.to_dict()))
+                        except OSError:
+                            pass
+
+                    # Spec-conformance gate: a second-opinion eval (judge =
+                    # evaluation.model) must confirm the code implements the
+                    # task's requirements. Runs only when evaluation is enabled
+                    # and the run is otherwise valid (agent succeeded + tests
+                    # ran). The run fails only if two independent evals both
+                    # fall short of full requirement coverage.
+                    spec_failed = False
+                    req_cov = None
+                    if (workspace_config.evaluation.enabled
+                            and artifacts.succeeded and not tests_failed
+                            and archived is not None):
+                        try:
+                            spec_ok, req_cov = _spec_conformance_passes(
+                                archived,
+                                workspace_config.evaluation,
+                                workspace_config.experiment.visibility,
+                            )
+                            spec_failed = not spec_ok
+                        except Exception as exc:
+                            click.echo(f"  (spec gate crashed: {exc}; not gating)", err=True)
+
+                    run_ok = artifacts.succeeded and not tests_failed and not spec_failed
+
+                    status = "ok" if run_ok else "FAIL"
                     score_str = ", ".join(
                         f"{k}={v:.2f}" for k, v in scores.to_dict().items()
                     )
@@ -638,12 +679,18 @@ def run_experiments(
                     click.echo(f" — {status} ({artifacts.duration_seconds:.1f}s) [{score_str}]{token_str}")
                     if not artifacts.succeeded and artifacts.stderr:
                         click.echo(f"    error: {artifacts.stderr[:200]}", err=True)
+                    elif tests_failed and artifacts.succeeded:
+                        click.echo("    gate: tests did not run (test_coverage=0) — marked failed", err=True)
+                    elif spec_failed:
+                        click.echo(f"    gate: spec not met (requirement_coverage={req_cov} on two evals) — marked failed", err=True)
 
                     # Store results
                     _store_run_result(
                         session, run_config, phase, run_idx, rep,
                         artifacts, scores,
                         design_row_id=run_config_to_row_id.get(config_key),
+                        conformance_failed=(tests_failed or spec_failed),
+                        requirement_coverage=req_cov,
                     )
                     # Commit per-run so an interrupt loses at most one run.
                     session.commit()
@@ -660,23 +707,8 @@ def run_experiments(
                         except Exception as exc:
                             click.echo(f"  (mlflow log failed: {exc}; continuing)", err=True)
 
-                    # Archive the workspace before teardown wipes it.
-                    archived = _archive_run_workspace(
-                        archive_root, run_config, rep, artifacts,
-                        visibility=workspace_config.experiment.visibility,
-                    )
-
-                    if artifacts.succeeded:
+                    if run_ok:
                         completed += 1
-                        if archived is not None:
-                            try:
-                                _run_auto_evaluation(
-                                    archived,
-                                    workspace_config.evaluation,
-                                    workspace_config.experiment.visibility,
-                                )
-                            except Exception as exc:
-                                click.echo(f"  (evaluate crashed: {exc}; continuing)", err=True)
                     else:
                         failed += 1
 
@@ -1001,6 +1033,45 @@ def _run_auto_evaluation(
         click.echo(f"  (evaluate failed rc={rc}; continuing) {output[:200]}", err=True)
 
 
+def _read_requirement_coverage(run_dir: Path) -> float | None:
+    """Return the eval's requirement_coverage from assessment.json, or None if
+    it isn't present/parseable (eval failed or produced no requirement count)."""
+    p = run_dir / "assessment.json"
+    if not p.exists():
+        return None
+    try:
+        v = json.loads(p.read_text()).get("requirement_coverage")
+        return float(v) if v is not None else None
+    except (ValueError, TypeError, OSError):
+        return None
+
+
+def _spec_conformance_passes(run_dir, eval_config, visibility) -> tuple[bool, float | None]:
+    """Second-opinion spec gate. Run the eval; if requirement_coverage == 1.0
+    the run conforms (pass). If it falls short, take a *second opinion* — run
+    the eval once more; pass if that one reaches 1.0, otherwise fail.
+
+    A run thus fails only when two independent eval passes both find a gap, so
+    borderline judge noise on a single requirement can't sink a complete run,
+    while a real omission (caught by both) still fails. Returns
+    (passed, coverage) where coverage is the best of the attempts (for record).
+    """
+    best: float | None = None
+    for attempt in (1, 2):
+        _run_auto_evaluation(run_dir, eval_config, visibility, force=True)
+        cov = _read_requirement_coverage(run_dir)
+        if cov is not None and (best is None or cov > best):
+            best = cov
+        if cov is not None and cov >= 1.0:
+            if attempt == 2:
+                click.echo("    spec gate: passed on second opinion")
+            return True, cov
+        click.echo(
+            f"    spec gate attempt {attempt}/2: requirement_coverage={cov} (<1.0)"
+        )
+    return False, best
+
+
 def _persist_design_matrix(
     session,
     registry,
@@ -1087,6 +1158,19 @@ def _persist_design_matrix(
     return matrix.id, config_to_row_id
 
 
+def _tests_did_not_run(scores) -> bool:
+    """A run whose tests never executed (``test_coverage == 0``) is not a valid
+    success: it offers no proof the code works. Returns True when a
+    ``test_coverage`` score is present and zero, so callers can mark the run
+    ``failed`` rather than recording a zero-scored "completion". Returns False
+    when test_coverage isn't among the responses (no gate to apply).
+    """
+    for s in getattr(scores, "scores", []):
+        if s.metric_name == "test_coverage":
+            return s.value == 0.0
+    return False
+
+
 def _store_run_result(
     session,
     run_config: dict[str, str],
@@ -1096,8 +1180,17 @@ def _store_run_result(
     artifacts,
     scores,
     design_row_id: int | None = None,
+    conformance_failed: bool = False,
+    requirement_coverage: float | None = None,
 ) -> None:
-    """Store a run and its scores in the database."""
+    """Store a run and its scores in the database.
+
+    ``conformance_failed`` marks an agent-succeeded run that nonetheless fails a
+    conformance gate (tests did not run, or the spec gate failed) as ``failed``
+    — so the matrix records it as a genuine failure to retry, not a zero-scored
+    success. ``requirement_coverage``, when the spec eval produced one, is
+    persisted as a metric so the eval's verdict feeds the scored data.
+    """
     from retort.storage.models import (
         ExperimentRun,
         RunResult,
@@ -1105,7 +1198,11 @@ def _store_run_result(
     )
     from datetime import datetime, timezone
 
-    status = RunStatus.completed if artifacts.succeeded else RunStatus.failed
+    status = (
+        RunStatus.completed
+        if (artifacts.succeeded and not conformance_failed)
+        else RunStatus.failed
+    )
 
     # Resume + retry-failed: a failed ExperimentRun for this same
     # (design_row_id, replicate) already exists. The unique constraint on
@@ -1135,7 +1232,11 @@ def _store_run_result(
         status=status,
         started_at=datetime.now(timezone.utc),
         finished_at=datetime.now(timezone.utc),
-        error_message=artifacts.stderr if not artifacts.succeeded else None,
+        error_message=(
+            artifacts.stderr if not artifacts.succeeded
+            else "tests did not run (test_coverage=0)" if conformance_failed
+            else None
+        ),
         run_config_json=json.dumps(run_config),
     )
 
@@ -1149,6 +1250,14 @@ def _store_run_result(
             value=score.value,
         )
         session.add(result)
+
+    # The spec eval's verdict, when one was produced, is a first-class metric.
+    if requirement_coverage is not None:
+        session.add(RunResult(
+            run_id=run.id,
+            metric_name="requirement_coverage",
+            value=float(requirement_coverage),
+        ))
 
     # Persist non-scorer telemetry as RunResult rows too. Underscore prefix
     # marks them as side-channel data (vs. configured response metrics) so

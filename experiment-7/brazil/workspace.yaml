@@ -58,6 +58,6 @@ promotion:
 # adds up to ~10 min/run. Enable only when you want `retort maturity`.
 evaluation:
   enabled: false
-  model: haiku
+  model: claude-opus-4-6
   min_severity_to_file: high
   issue_tracker: beads

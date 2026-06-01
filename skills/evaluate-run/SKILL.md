@@ -47,46 +47,123 @@ Constraints:
 - You MUST NOT modify any file in `run_dir`. Run all commands read-only or in a temp copy.
 - You MUST handle the case where the run was marked failed (suffix `-failed` on the directory). Evaluate what exists; note the failure up front.
 
-### 2. Detect language + toolchain
+### 2. Read the already-computed build/test/lint scores from `retort.db`
 
-Read `stack.json` for the language factor. The evaluation commands differ by language:
+**Do NOT re-run the build, tests, or linter.** retort's scorers already ran them
+for this run during scoring and stored the results — re-running the toolchain
+(especially compiled/JVM languages) is the slowest part of evaluation and is
+pure duplication. Read the stored scores instead.
 
-| Language | Build | Test | Lint |
-|----------|-------|------|------|
-| python | `python -m py_compile **/*.py` or `pip install -e .` | `pytest -q` | `ruff check .` if available |
-| typescript | `npm install --no-audit --no-fund && npm run build` (or `tsc --noEmit`) | `npm test --silent` | `npm run lint` if defined |
-| go | `go build ./...` | `go test ./...` | `go vet ./...` |
-| rust | `cargo build --quiet` | `cargo test --quiet` | `cargo clippy -- -D warnings` |
+**Fastest source — `{run_dir}/scores.json`.** When the eval runs inline as a
+gate during `retort run`, the run isn't in `retort.db` yet, so the runner drops
+the just-computed mechanical scores into `scores.json` in the archive. If it
+exists, read it and skip the DB query:
+
+```bash
+[ -f "{run_dir}/scores.json" ] && cat "{run_dir}/scores.json"   # {"test_coverage": 1.0, "code_quality": 0.83, ...}
+```
+
+If `scores.json` is absent (e.g. retroactive `retort evaluate`), fall back to the
+database.
+
+The database is at `<experiment>/retort.db`. `run_dir` is `runs/<cell>/<rep>`,
+so walk *up* until you find `retort.db` (don't hard-code a level count — the
+nesting can vary). Match this run by the factors in `stack.json` plus the
+replicate (the trailing `repN` of `run_dir`, also in `_meta.json`):
+
+```bash
+db=""; d="{run_dir}"
+for _ in 1 2 3 4 5; do d="$(cd "$d/.." && pwd)"; [ -f "$d/retort.db" ] && { db="$d/retort.db"; break; }; done
+lang=$(python3 -c "import json;print(json.load(open('{run_dir}/stack.json'))['language'])")
+model=$(python3 -c "import json;print(json.load(open('{run_dir}/stack.json')).get('model',''))")
+tooling=$(python3 -c "import json;print(json.load(open('{run_dir}/stack.json')).get('tooling',''))")
+rep=$(basename "{run_dir}" | sed -E 's/rep([0-9]+).*/\1/')
+
+# A resumed/retried cell can have BOTH a stale `failed` row (test_coverage=0)
+# and the real `completed` row for the same (factors, replicate). Pull scores
+# from the single most-recent matching run, preferring the archive's own state:
+# a `-failed` run_dir -> the failed row, otherwise the completed row.
+want_status=completed
+case "{run_dir}" in *-failed) want_status=failed;; esac
+sqlite3 -readonly "$db" "
+  SELECT rr.metric_name, rr.value
+  FROM run_results rr
+  WHERE rr.run_id = (
+      SELECT er.id FROM experiment_runs er
+      WHERE json_extract(er.run_config_json,'\$.language')='$lang'
+        AND json_extract(er.run_config_json,'\$.model')='$model'
+        AND json_extract(er.run_config_json,'\$.tooling')='$tooling'
+        AND er.replicate=$rep AND er.status='$want_status'
+      ORDER BY er.finished_at DESC LIMIT 1)
+    AND rr.metric_name IN ('test_coverage','code_quality','defect_rate',
+                           'maintainability','idiomatic','token_efficiency');"
+```
+
+Interpret the stored scores (all 0–1) — these stand in for re-running:
+- **`test_coverage`** — coverage / pass-rate. **1.0 ⇒ build + all tests passed; 0.0 ⇒ tests did not execute** (build or import failure — the test gate). Use this as the build+test signal.
+- **`code_quality`** — lint/quality score. Use it for the Lint line.
+- **`defect_rate`** — `1.0` ⇒ build+test succeeded.
 
 Constraints:
-- You MUST run each command with a timeout (suggest 120s build, 180s test, 60s lint).
-- You MUST capture exit codes, stdout, and stderr — the evaluation report includes the actual output.
-- You MUST NOT install global toolchains. If a required toolchain is missing, note it and mark that check as `unavailable`, not `failed`.
+- You MUST NOT re-run build/test/lint when these scores exist. Cite the score (e.g. "test_coverage=1.0 from retort.db") as evidence.
+- **Fallback** — only if the DB or this run's row is absent (e.g. evaluating an un-scored archive): run the language's **test command once** (it builds too); skip the separate build and lint runs. Mark build/lint as derived. Use a 180s timeout; if a toolchain is missing, mark `unavailable`, not `failed`.
 
-### 3. Extract requirements from TASK.md
+### 3. Extract requirements from TASK.md AND the agent's prompt
 
-TASK.md contains the prompt the agent was given. Parse it into a checklist. Typical patterns:
-- Numbered lists (`1. Implement ...`, `2. Write tests for ...`)
-- Bullet lists of "must" / "should" items
-- Code-fenced API signatures or example requests
+**First: prefer a pinned requirement list.** Per-run requirement extraction is
+non-deterministic (the same task yields different counts on different runs,
+which makes `requirement_coverage` non-comparable). So if the experiment ships a
+fixed list, you MUST use it verbatim. Walk *up* from `run_dir` (as you did for
+`retort.db`) to find `REQUIREMENTS.json`:
+
+```bash
+req=""; d="{run_dir}"
+for _ in 1 2 3 4 5; do d="$(cd "$d/.." && pwd)"; [ -f "$d/REQUIREMENTS.json" ] && { req="$d/REQUIREMENTS.json"; break; }; done
+```
+
+If `REQUIREMENTS.json` exists, its `requirements[]` array IS the checklist —
+use those exact `id`s and `requirement` texts, in that order, as the **complete
+and only** list. Do NOT add, drop, merge, or re-number any. The denominator
+(`total`) is fixed at `len(requirements)` for **every** run of this task. Skip
+the extraction below entirely; go straight to step 4. (`how_to_verify` on each
+entry tells you what evidence to look for.)
+
+**Otherwise (no pinned list), extract requirements** as below.
+
+The run must conform to the full prompt the agent was actually given. retort
+assembles that prompt as: *"Read TASK.md … implement everything it asks for"* +
+(a tooling instruction) + (only when a `prompt` factor was set) the contents of
+`prompts/<level>.md`. So there are up to two requirement sources:
+
+1. **`TASK.md`** — the task spec, always present. Parse into a checklist (`R1`, `R2`, …). Typical patterns:
+   - Numbered lists (`1. Implement ...`), "must"/"should" bullets, code-fenced API signatures.
+2. **The prompt-factor file** — *only if* `stack.json` has `prompt` set to something other than `none`/absent. Then read `prompts/<prompt>.md` from the experiment dir (where `workspace.yaml` lives — walk up from `run_dir` like you did for `retort.db`). Extract its additional, checkable instructions as prompt requirements (`P1`, `P2`, …) and verify the code/output followed them.
+
+**Ignore `prompts.txt`** — it is a benchmark-template placeholder (it literally begins with `#ignore this file`), NOT the prompt retort gave the agent. Do not derive requirements from it.
 
 Constraints:
-- You MUST produce a deterministic requirement list with short stable IDs (`R1`, `R2`, ...) so comparisons across runs align.
-- You MUST NOT invent requirements not present in TASK.md — this is the spec, not your expectations.
+- You MUST produce a deterministic list with stable IDs (`R<N>` for TASK.md, `P<N>` for prompt-factor instructions) so comparisons across runs align.
+- You MUST NOT invent requirements not present in TASK.md or the prompt-factor file — these are the spec, not your expectations.
 - You SHOULD group related bullets into a single requirement when the source is clearly a single ask.
+- Most runs have no `prompt` factor, so the `P*` list is usually empty — that's fine; TASK.md is then the whole spec.
 
-### 4. Assess each requirement
+### 4. Assess each requirement and prompt instruction
 
-For each `R<N>`, classify as one of:
+This is the conformance gate: a run that doesn't implement the spec (and follow
+the prompt) is a failure, so be accurate — cite evidence, don't guess.
+
+For each `R<N>` (TASK.md) and each `P<N>` (prompt), classify as one of:
 - `implemented` — code clearly satisfies it, tests exercise it
 - `partial` — code attempts it but is incomplete or untested
 - `missing` — no evidence in the codebase
-- `cannot-verify` — toolchain unavailable or tests couldn't run
+- `cannot-verify` — you genuinely can't tell from the code (rare). Use sparingly with evidence.
+
+**Tests are non-negotiable:** if `test_coverage == 0` (tests did not run), the run already FAILS the test gate — that is always a failure, full stop. Note it up front and don't dress it up as `cannot-verify`.
 
 Base the assessment on:
 - The generated source (read key files)
-- The test output from Step 2
-- Any build errors that block verification
+- The stored `test_coverage` from Step 2 (1.0 ⇒ build + all tests pass; 0.0 ⇒ tests did not execute, so treat unverified requirements as `cannot-verify`)
+- The grepped test/skip counts from Step 5
 
 Constraints:
 - You MUST cite concrete evidence for each classification: file path, symbol name, or test name.
