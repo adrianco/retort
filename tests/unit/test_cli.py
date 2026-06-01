@@ -818,3 +818,53 @@ class TestSecondOpinionGate:
         calls = self._patch(monkeypatch, [None, None])
         passed, cov = _spec_conformance_passes(tmp_path, object(), "public")
         assert passed is False and cov is None and calls["n"] == 2
+
+
+class TestReevaluatePersist:
+    """Non-destructive persistence of requirement_coverage onto archived runs."""
+
+    @staticmethod
+    def _make_db(path):
+        import sqlite3, json
+        con = sqlite3.connect(path)
+        con.execute("CREATE TABLE experiment_runs (id INTEGER PRIMARY KEY, replicate INTEGER, "
+                    "status TEXT, finished_at TEXT, run_config_json TEXT)")
+        con.execute("CREATE TABLE run_results (id INTEGER PRIMARY KEY, run_id INTEGER, "
+                    "metric_name TEXT, value REAL)")
+        cfg = json.dumps({"language": "go", "model": "claude-opus-4-8", "tooling": "none"})
+        con.execute("INSERT INTO experiment_runs (id, replicate, status, finished_at, run_config_json) "
+                    "VALUES (1, 2, 'completed', '2026-06-01', ?)", (cfg,))
+        con.execute("INSERT INTO run_results (run_id, metric_name, value) VALUES (1, 'code_quality', 0.9)")
+        con.commit(); con.close()
+
+    def test_persist_and_detect(self, tmp_path):
+        from retort.cli import _persist_requirement_coverage, _run_has_requirement_coverage
+        db = tmp_path / "retort.db"
+        self._make_db(db)
+        cfg = {"language": "go", "model": "claude-opus-4-8", "tooling": "none"}
+        assert _run_has_requirement_coverage(db, cfg, 2) is False
+        assert _persist_requirement_coverage(db, cfg, 2, 0.917) is True
+        assert _run_has_requirement_coverage(db, cfg, 2) is True
+        import sqlite3
+        v = sqlite3.connect(db).execute(
+            "SELECT value FROM run_results WHERE metric_name='requirement_coverage'").fetchone()[0]
+        assert v == 0.917
+
+    def test_persist_is_idempotent_replace(self, tmp_path):
+        from retort.cli import _persist_requirement_coverage
+        db = tmp_path / "retort.db"
+        self._make_db(db)
+        cfg = {"language": "go", "model": "claude-opus-4-8", "tooling": "none"}
+        _persist_requirement_coverage(db, cfg, 2, 0.5)
+        _persist_requirement_coverage(db, cfg, 2, 1.0)  # replace, not duplicate
+        import sqlite3
+        rows = sqlite3.connect(db).execute(
+            "SELECT value FROM run_results WHERE metric_name='requirement_coverage'").fetchall()
+        assert rows == [(1.0,)]
+
+    def test_persist_no_match_returns_false(self, tmp_path):
+        from retort.cli import _persist_requirement_coverage
+        db = tmp_path / "retort.db"
+        self._make_db(db)
+        cfg = {"language": "rust", "model": "x", "tooling": "none"}  # no such run
+        assert _persist_requirement_coverage(db, cfg, 2, 1.0) is False

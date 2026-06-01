@@ -1072,6 +1072,59 @@ def _spec_conformance_passes(run_dir, eval_config, visibility) -> tuple[bool, fl
     return False, best
 
 
+def _run_has_requirement_coverage(db_path, run_config: dict, replicate: int) -> bool:
+    """True if the matching completed run already has a requirement_coverage row."""
+    import sqlite3
+    con = sqlite3.connect(f"file:{db_path}?mode=ro", uri=True)
+    try:
+        row = con.execute(
+            "SELECT 1 FROM run_results rr JOIN experiment_runs er ON er.id=rr.run_id "
+            "WHERE rr.metric_name='requirement_coverage' AND er.replicate=? "
+            "AND json_extract(er.run_config_json,'$.language')=? "
+            "AND json_extract(er.run_config_json,'$.model')=? "
+            "AND json_extract(er.run_config_json,'$.tooling')=? LIMIT 1",
+            (replicate, run_config.get("language"), run_config.get("model"),
+             run_config.get("tooling")),
+        ).fetchone()
+    except sqlite3.OperationalError:
+        row = None
+    con.close()
+    return row is not None
+
+
+def _persist_requirement_coverage(db_path, run_config: dict, replicate: int,
+                                  coverage: float | None) -> bool:
+    """Upsert requirement_coverage onto the matching latest completed run.
+
+    Non-destructive: only adds/replaces the requirement_coverage metric; never
+    touches the run's status. Matches by factors + replicate (robust to JSON key
+    order). Returns True if a run was found and updated.
+    """
+    import sqlite3
+    con = sqlite3.connect(db_path)
+    cur = con.cursor()
+    rows = cur.execute(
+        "SELECT id FROM experiment_runs WHERE replicate=? AND status='completed' "
+        "AND json_extract(run_config_json,'$.language')=? "
+        "AND json_extract(run_config_json,'$.model')=? "
+        "AND json_extract(run_config_json,'$.tooling')=? "
+        "ORDER BY finished_at DESC", (replicate, run_config.get("language"),
+                                      run_config.get("model"), run_config.get("tooling")),
+    ).fetchall()
+    if not rows:
+        con.close()
+        return False
+    run_id = rows[0][0]
+    cur.execute("DELETE FROM run_results WHERE run_id=? AND metric_name='requirement_coverage'",
+                (run_id,))
+    if coverage is not None:
+        cur.execute("INSERT INTO run_results (run_id, metric_name, value) VALUES (?,?,?)",
+                    (run_id, "requirement_coverage", float(coverage)))
+    con.commit()
+    con.close()
+    return True
+
+
 def _persist_design_matrix(
     session,
     registry,
@@ -2491,6 +2544,105 @@ def evaluate(
                 exc = fut.exception()
                 if exc:
                     click.echo(f"  (worker error for {futures[fut].name}: {exc})", err=True)
+
+
+@main.command("reevaluate")
+@click.option(
+    "--experiment-dir", "experiment_dir", required=True,
+    type=click.Path(exists=True, file_okay=False),
+    help="Experiment dir (uses its runs/ archives and retort.db).",
+)
+@click.option(
+    "--config", type=click.Path(exists=True), default=None,
+    help="Workspace YAML (defaults to <experiment-dir>/workspace.yaml).",
+)
+@click.option(
+    "--eval-model", default="claude-opus-4-6", show_default=True,
+    help="Judge model for the second-opinion spec eval.",
+)
+@click.option("--workers", default=2, show_default=True, type=int)
+@click.option(
+    "--force", is_flag=True,
+    help="Re-evaluate runs that already have requirement_coverage.",
+)
+def reevaluate(experiment_dir, config, eval_model, workers, force):
+    """Re-evaluate archived runs with the second-opinion spec eval, persisting
+    requirement_coverage into the experiment's retort.db.
+
+    Non-destructive: adds/updates the requirement_coverage metric only — run
+    status is left unchanged (apply the conformance gate separately if you want
+    to reclassify). Resumable: skips runs that already have a coverage value
+    unless --force. Use after `retort aggregate` to refresh the master DB.
+    """
+    import concurrent.futures
+    import re
+    from retort.config.loader import load_workspace
+
+    exp = Path(experiment_dir)
+    db_path = exp / "retort.db"
+    if not db_path.exists():
+        raise click.ClickException(f"No retort.db in {experiment_dir}")
+    cfg_path = config or (exp / "workspace.yaml")
+    workspace_config = load_workspace(str(cfg_path))
+    eval_cfg = workspace_config.evaluation.model_copy(
+        update={"enabled": True, "model": eval_model}
+    )
+    visibility = workspace_config.experiment.visibility
+
+    runs_root = exp / "runs"
+    reps = sorted(
+        rep for cell in runs_root.iterdir() if cell.is_dir()
+        for rep in cell.iterdir()
+        if rep.is_dir() and rep.name.startswith("rep") and not rep.name.endswith("-failed")
+    )
+    work = []
+    for rep in reps:
+        sj = rep / "stack.json"
+        if not sj.exists():
+            continue
+        cfg = json.loads(sj.read_text())
+        run_config = {k: cfg.get(k) for k in ("language", "model", "tooling")
+                      if cfg.get(k) is not None}
+        m = re.search(r"rep(\d+)", rep.name)
+        replicate = int(m.group(1)) if m else 1
+        if not force and _run_has_requirement_coverage(db_path, run_config, replicate):
+            continue
+        work.append((rep, run_config, replicate))
+
+    click.echo(
+        f"Re-evaluating {len(work)} run(s) in {experiment_dir} "
+        f"(judge={eval_model}, {workers} workers, second-opinion)"
+    )
+
+    def _eval(item):
+        rep, run_config, replicate = item
+        passed, cov = _spec_conformance_passes(rep, eval_cfg, visibility)
+        return (rep, run_config, replicate, passed, cov)
+
+    results = []
+    if workers <= 1:
+        results = [_eval(w) for w in work]
+    else:
+        with concurrent.futures.ThreadPoolExecutor(max_workers=workers) as pool:
+            for fut in concurrent.futures.as_completed([pool.submit(_eval, w) for w in work]):
+                exc = fut.exception()
+                if exc:
+                    click.echo(f"  (worker error: {exc})", err=True)
+                else:
+                    results.append(fut.result())
+
+    persisted = 0
+    for rep, run_config, replicate, passed, cov in results:
+        if _persist_requirement_coverage(db_path, run_config, replicate, cov):
+            persisted += 1
+        click.echo(f"  {rep.parent.name}/{rep.name}: ReqCov={cov} "
+                   f"[{'PASS' if passed else 'fail'}]")
+    # Fold any WAL back into the .db so readers (aggregate) + git see a clean file.
+    import sqlite3
+    cx = sqlite3.connect(db_path)
+    cx.execute("PRAGMA wal_checkpoint(TRUNCATE)")
+    cx.close()
+    click.echo(f"Persisted requirement_coverage for {persisted}/{len(results)} runs.")
 
 
 @report.command("compare")
