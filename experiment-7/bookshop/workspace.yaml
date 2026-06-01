@@ -56,8 +56,11 @@ promotion:
   screening_to_trial: { p_value: 0.10 }
   trial_to_production: { posterior_confidence: 0.80 }
 
+# Eval DISABLED: the evaluate-run skill only produces supplementary
+# PenScore/ReqCov/findings (assessment.json) that no scored response uses, and
+# adds up to ~10 min/run. Enable only when you want `retort maturity`.
 evaluation:
-  enabled: true
+  enabled: false
   model: haiku
   min_severity_to_file: high
   issue_tracker: beads
