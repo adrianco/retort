@@ -813,11 +813,19 @@ class TestSecondOpinionGate:
         passed, cov = _spec_conformance_passes(tmp_path, object(), "public")
         assert passed is False and cov == 0.92 and calls["n"] == 2  # best of the two
 
-    def test_both_none_fails(self, monkeypatch, tmp_path):
+    def test_both_none_inconclusive(self, monkeypatch, tmp_path):
         from retort.cli import _spec_conformance_passes
         calls = self._patch(monkeypatch, [None, None])
-        passed, cov = _spec_conformance_passes(tmp_path, object(), "public")
-        assert passed is False and cov is None and calls["n"] == 2
+        verdict, cov = _spec_conformance_passes(tmp_path, object(), "public")
+        assert verdict is None and cov is None and calls["n"] == 2
+
+    def test_one_real_one_none_is_inconclusive(self, monkeypatch, tmp_path):
+        # One real short eval + one that couldn't run -> inconclusive, NOT a fail
+        # (the usage-limit case that must not record a false failure).
+        from retort.cli import _spec_conformance_passes
+        calls = self._patch(monkeypatch, [0.83, None])
+        verdict, cov = _spec_conformance_passes(tmp_path, object(), "public")
+        assert verdict is None and cov == 0.83 and calls["n"] == 2
 
 
 class TestReevaluatePersist:

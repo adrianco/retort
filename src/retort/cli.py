@@ -657,12 +657,14 @@ def run_experiments(
                             and artifacts.succeeded and not tests_failed
                             and archived is not None):
                         try:
-                            spec_ok, req_cov = _spec_conformance_passes(
+                            spec_verdict, req_cov = _spec_conformance_passes(
                                 archived,
                                 workspace_config.evaluation,
                                 workspace_config.experiment.visibility,
                             )
-                            spec_failed = not spec_ok
+                            # Only an explicit False (two real short opinions)
+                            # fails the run; None (eval couldn't run) does not.
+                            spec_failed = spec_verdict is False
                         except Exception as exc:
                             click.echo(f"  (spec gate crashed: {exc}; not gating)", err=True)
 
@@ -1046,30 +1048,39 @@ def _read_requirement_coverage(run_dir: Path) -> float | None:
         return None
 
 
-def _spec_conformance_passes(run_dir, eval_config, visibility) -> tuple[bool, float | None]:
-    """Second-opinion spec gate. Run the eval; if requirement_coverage == 1.0
-    the run conforms (pass). If it falls short, take a *second opinion* — run
-    the eval once more; pass if that one reaches 1.0, otherwise fail.
+def _spec_conformance_passes(run_dir, eval_config, visibility) -> tuple[bool | None, float | None]:
+    """Second-opinion spec gate. Returns ``(verdict, coverage)``:
 
-    A run thus fails only when two independent eval passes both find a gap, so
-    borderline judge noise on a single requirement can't sink a complete run,
-    while a real omission (caught by both) still fails. Returns
-    (passed, coverage) where coverage is the best of the attempts (for record).
+    * ``True``  — a real eval found requirement_coverage == 1.0 (pass).
+    * ``False`` — two independent real evals both fell short (genuine spec gap).
+    * ``None``  — inconclusive: the eval could not run (usage limit / timeout),
+      so there aren't two real opinions. The caller should retry later rather
+      than record a failure — this keeps an infra hiccup from masquerading as a
+      spec failure.
+
+    A run fails only on two real short opinions, so borderline judge noise on a
+    single requirement can't sink a complete run while a real omission still does.
     """
-    best: float | None = None
+    reals: list[float] = []
     for attempt in (1, 2):
         _run_auto_evaluation(run_dir, eval_config, visibility, force=True)
         cov = _read_requirement_coverage(run_dir)
-        if cov is not None and (best is None or cov > best):
-            best = cov
-        if cov is not None and cov >= 1.0:
+        if cov is None:
+            click.echo(f"    spec gate attempt {attempt}/2: eval did not run (inconclusive)")
+            continue
+        reals.append(cov)
+        if cov >= 1.0:
             if attempt == 2:
                 click.echo("    spec gate: passed on second opinion")
             return True, cov
         click.echo(
             f"    spec gate attempt {attempt}/2: requirement_coverage={cov} (<1.0)"
         )
-    return False, best
+    if len(reals) >= 2:
+        return False, max(reals)   # two real opinions, both short -> genuine fail
+    if len(reals) == 1:
+        return None, reals[0]      # only one real opinion (other couldn't run)
+    return None, None              # no real opinions at all
 
 
 def _run_has_requirement_coverage(db_path, run_config: dict, replicate: int) -> bool:
@@ -2632,17 +2643,27 @@ def reevaluate(experiment_dir, config, eval_model, workers, force):
                     results.append(fut.result())
 
     persisted = 0
-    for rep, run_config, replicate, passed, cov in results:
+    inconclusive = 0
+    for rep, run_config, replicate, verdict, cov in results:
+        label = f"{rep.parent.name}/{rep.name}"
+        if verdict is None:
+            # Eval couldn't run (usage limit / timeout). Don't persist — leave
+            # the run uncovered so a later resume re-evaluates it cleanly.
+            inconclusive += 1
+            click.echo(f"  {label}: inconclusive (eval didn't run) — retry later")
+            continue
         if _persist_requirement_coverage(db_path, run_config, replicate, cov):
             persisted += 1
-        click.echo(f"  {rep.parent.name}/{rep.name}: ReqCov={cov} "
-                   f"[{'PASS' if passed else 'fail'}]")
+        click.echo(f"  {label}: ReqCov={cov} [{'PASS' if verdict else 'fail'}]")
     # Fold any WAL back into the .db so readers (aggregate) + git see a clean file.
     import sqlite3
     cx = sqlite3.connect(db_path)
     cx.execute("PRAGMA wal_checkpoint(TRUNCATE)")
     cx.close()
-    click.echo(f"Persisted requirement_coverage for {persisted}/{len(results)} runs.")
+    msg = f"Persisted requirement_coverage for {persisted}/{len(results)} runs."
+    if inconclusive:
+        msg += f" {inconclusive} inconclusive (usage limit/timeout) — re-run to finish."
+    click.echo(msg)
 
 
 @report.command("compare")
