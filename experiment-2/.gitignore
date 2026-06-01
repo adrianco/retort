@@ -1,5 +1,5 @@
-# Retort — workspace-local state
-retort.db
+# Retort — workspace-local state (retort.db IS tracked, per the program
+# convention; only its transient sidecars + caches are ignored)
 retort.db-journal
 retort.db-shm
 retort.db-wal

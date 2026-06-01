@@ -2290,6 +2290,40 @@ def export_merge(inputs: tuple[str, ...], output: str | None, tag_column: str) -
         sys.stdout.write(rendered)
 
 
+@main.command("aggregate")
+@click.option(
+    "--experiments-dir", "experiments_dir",
+    type=click.Path(exists=True, file_okay=False), default=".",
+    show_default=True,
+    help="Directory containing experiment-*/ subdirs.",
+)
+@click.option(
+    "--out", "out_path", type=click.Path(), default="master.db",
+    show_default=True, help="Master SQLite DB to (re)build.",
+)
+@click.option(
+    "--csv", "csv_path", type=click.Path(), default=None,
+    help="Also write the wide table as CSV to this path.",
+)
+def aggregate(experiments_dir: str, out_path: str, csv_path: str | None) -> None:
+    """Combine every experiment's retort.db into one master results table.
+
+    Builds a single wide, tidy `runs` table (one row per run, tagged with
+    experiment + task, a column per metric) across all experiment-*/retort.db,
+    so cross-experiment analysis works as the program grows. Rebuilt from
+    scratch each run — re-run it after a re-evaluation pass to pick up new
+    metrics like requirement_coverage.
+    """
+    from retort.analysis.aggregate import build_master_db, write_csv
+
+    root = Path(experiments_dir)
+    n = build_master_db(root, Path(out_path))
+    click.echo(f"Aggregated {n} runs from {root}/experiment-*/retort.db -> {out_path}")
+    if csv_path:
+        write_csv(root, Path(csv_path))
+        click.echo(f"Wrote CSV -> {csv_path}")
+
+
 @main.command("maturity")
 @click.option(
     "--db",
