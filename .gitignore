@@ -273,6 +273,7 @@ experiment-*/runs/**/*
 !experiment-*/runs/**/stack.json
 !experiment-*/runs/**/assessment.json
 !experiment-*/runs/**/findings.jsonl
+!experiment-*/runs/**/scores.json
 # Hard-exclude heavy/regenerable trees LAST so they win over the re-includes
 # above and no allowlisted file can leak out of a dependency/build dir.
 experiment-*/runs/**/target/
@@ -283,6 +284,9 @@ experiment-*/runs/**/vendor/
 experiment-*/runs/**/.gradle/
 experiment-*/runs/**/__pycache__/
 experiment-*/runs/**/.pytest_cache/
+experiment-*/runs/**/.ruff_cache/
+experiment-*/runs/**/.coverage
+experiment-*/runs/**/.beads/
 experiment-*/runs/**/.cpcache/
 experiment-*/runs/**/.clj-kondo/
 experiment-*/runs/**/.git/
