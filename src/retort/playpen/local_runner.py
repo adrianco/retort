@@ -242,27 +242,9 @@ class LocalRunner:
         """Build the CLI command to invoke the agent."""
         agent = stack.agent if stack.agent != "unknown" else "claude-code"
         if agent == "claude-code":
-            prompt = (
-                f"You are working in {stack.language}. "
-                f"Read TASK.md in the current directory and implement everything it "
-                f"asks for. "
-                f"Write all code files to the current directory. "
-                f"Make sure the code builds and tests pass."
-            )
-
-            # Check for beads/tooling factor
-            tooling = stack.extra.get("tooling", "none")
-            if tooling == "beads":
-                prompt += (
-                    " Use bd (beads) for task tracking. "
-                    "Run bd init first, then bd create for each subtask, "
-                    "bd update --claim to claim work, and bd close when done."
-                )
-
-            # Inject named prompt if prompt factor is set and not "none"
             prompt_level = stack.extra.get("prompt", "none")
-            if prompt_level != "none":
-                prompt += " " + self._load_prompt_file(prompt_level)
+            prompt_injection = self._load_prompt_file(prompt_level) if prompt_level != "none" else ""
+            prompt = _build_agent_prompt(stack, prompt_injection)
 
             # Per-task max_turns wins over workspace-wide setting if set.
             effective_max_turns = task.max_turns if task.max_turns is not None else self.max_turns
@@ -299,7 +281,9 @@ class LocalRunner:
             if thinking:
                 cmd.extend(["--thinking", thinking])
 
-            cmd.append(_build_agent_prompt(stack))
+            prompt_level = stack.extra.get("prompt", "none")
+            prompt_injection = self._load_prompt_file(prompt_level) if prompt_level != "none" else ""
+            cmd.append(_build_agent_prompt(stack, prompt_injection))
             return cmd
 
         # Unsupported agent — caller checks for None and surfaces the error.
@@ -384,7 +368,7 @@ def _find_skill_path(skill_name: str, start: Path) -> Path | None:
     return None
 
 
-def _build_agent_prompt(stack: StackConfig) -> str:
+def _build_agent_prompt(stack: StackConfig, prompt_injection: str = "") -> str:
     """Build the common implementation prompt used by local coding agents."""
     prompt = (
         f"You are working in {stack.language}. "
@@ -401,6 +385,9 @@ def _build_agent_prompt(stack: StackConfig) -> str:
             "Run bd init first, then bd create for each subtask, "
             "bd update --claim to claim work, and bd close when done."
         )
+
+    if prompt_injection:
+        prompt += " " + prompt_injection
 
     return prompt
 
