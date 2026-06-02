@@ -2607,11 +2607,18 @@ def reevaluate(experiment_dir, config, eval_model, workers, force):
         if rep.is_dir() and rep.name.startswith("rep") and not rep.name.endswith("-failed")
     )
     work = []
+    skipped = 0
     for rep in reps:
         sj = rep / "stack.json"
         if not sj.exists():
             continue
-        cfg = json.loads(sj.read_text())
+        try:
+            cfg = json.loads(sj.read_text())
+        except (ValueError, OSError):
+            # A malformed/empty stack.json must not kill the whole batch.
+            skipped += 1
+            click.echo(f"  (skipping {rep.parent.name}/{rep.name}: unreadable stack.json)", err=True)
+            continue
         run_config = {k: cfg.get(k) for k in ("language", "model", "tooling")
                       if cfg.get(k) is not None}
         m = re.search(r"rep(\d+)", rep.name)
