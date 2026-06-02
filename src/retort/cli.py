@@ -2609,18 +2609,26 @@ def reevaluate(experiment_dir, config, eval_model, workers, force):
     work = []
     skipped = 0
     for rep in reps:
-        sj = rep / "stack.json"
-        if not sj.exists():
-            continue
-        try:
-            cfg = json.loads(sj.read_text())
-        except (ValueError, OSError):
-            # A malformed/empty stack.json must not kill the whole batch.
-            skipped += 1
-            click.echo(f"  (skipping {rep.parent.name}/{rep.name}: unreadable stack.json)", err=True)
-            continue
-        run_config = {k: cfg.get(k) for k in ("language", "model", "tooling")
-                      if cfg.get(k) is not None}
+        # The cell dir name (language=X_model=Y_tooling=Z) is the authoritative
+        # factor source and matches what's stored in run_config_json. Older
+        # experiments' stack.json omit `model`, so deriving factors from
+        # stack.json silently fails to match the DB row (persisting nothing).
+        cm = re.match(r"language=([^_]+)_model=([^_]+)_tooling=([^_]+)$", rep.parent.name)
+        if cm:
+            run_config = {"language": cm.group(1), "model": cm.group(2), "tooling": cm.group(3)}
+        else:
+            sj = rep / "stack.json"
+            if not sj.exists():
+                continue
+            try:
+                cfg = json.loads(sj.read_text())
+            except (ValueError, OSError):
+                # A malformed/empty stack.json must not kill the whole batch.
+                skipped += 1
+                click.echo(f"  (skipping {rep.parent.name}/{rep.name}: unreadable stack.json)", err=True)
+                continue
+            run_config = {k: cfg.get(k) for k in ("language", "model", "tooling")
+                          if cfg.get(k) is not None}
         m = re.search(r"rep(\d+)", rep.name)
         replicate = int(m.group(1)) if m else 1
         if not force and _run_has_requirement_coverage(db_path, run_config, replicate):
