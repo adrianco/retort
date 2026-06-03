@@ -150,6 +150,8 @@ The point of a designed experiment is that you can *decompose* the variance — 
 
 Reproduce with `retort report effects --db <experiment>/retort.db --metric <response>`.
 
+**Next factor to explore: the prompt.** Every experiment here held the *instruction* constant (a fixed "implement TASK.md" prompt). But prompt wording and strategy — terse vs. detailed, test-first vs. implement-first, with vs. without worked examples — plausibly moves reliability as much as the model does, and far more cheaply. retort already supports **`prompt` as a factor** (named strategies in `prompts/<level>.md`), so the obvious next study is `prompt × model` on a hard task: does a better prompt close the gap between a cheap model and an expensive one? That's a question with real budget implications, and it's a one-line addition to the factor grid.
+
 ---
 
 ## The experiments

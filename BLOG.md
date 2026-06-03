@@ -85,6 +85,10 @@ Stated plainly: **language governs how clean the code is, the task governs how m
 
 (The `beads` issue-tracker tooling I tested showed up in exactly one place — extra cost and time, with no quality or reliability payoff — which is why it was dropped from the later experiments. Worth remembering the next time someone suggests bolting more scaffolding onto an agent "to be safe.")
 
+## The factor I haven't varied yet: the prompt
+
+There's a large lever I deliberately held constant: **the prompt.** Every run got the same terse "implement TASK.md" instruction. But how you ask plausibly moves reliability as much as which model you pick — and it's nearly free to change. Does a test-first prompt, or one with a worked example, or a "list the requirements before you code" preamble, lift a cheap model's hard-task pass rate from 0.5 toward the expensive model's 1.0? If so, a better prompt could be worth more than a model upgrade, at a fraction of the cost. retort treats `prompt` as just another factor, so the next study writes itself: **`prompt × model` on a hard task.** That's the experiment I'd run next, and it's the one with the most direct impact on a real engineering budget.
+
 ## So how should you actually choose?
 
 The data suggests a simple decision procedure:
