@@ -1075,6 +1075,14 @@ def _spec_conformance_passes(run_dir, eval_config, visibility) -> tuple[bool | N
     """
     reals: list[float] = []
     for attempt in (1, 2):
+        # Clear prior eval output FIRST, so a failed/partial eval leaves no file
+        # and _read_requirement_coverage returns None (inconclusive) — never a
+        # stale value from an earlier eval misread as this run's fresh result.
+        for fname in ("assessment.json", "evaluation.md", "findings.jsonl"):
+            try:
+                (run_dir / fname).unlink()
+            except (FileNotFoundError, IsADirectoryError, TypeError):
+                pass
         _run_auto_evaluation(run_dir, eval_config, visibility, force=True)
         cov = _read_requirement_coverage(run_dir)
         if cov is None:
