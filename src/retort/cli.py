@@ -1103,6 +1103,27 @@ def _run_has_requirement_coverage(db_path, run_config: dict, replicate: int) -> 
     return row is not None
 
 
+def _run_completed_exists(db_path, run_config: dict, replicate: int) -> bool:
+    """True if a *completed* run matches these factors+replicate. A clean rep
+    dir whose DB run is `failed` (or absent) can never receive coverage, so the
+    re-evaluator skips it instead of burning evals on it every pass."""
+    import sqlite3
+    con = sqlite3.connect(f"file:{db_path}?mode=ro", uri=True)
+    try:
+        row = con.execute(
+            "SELECT 1 FROM experiment_runs WHERE replicate=? AND status='completed' "
+            "AND json_extract(run_config_json,'$.language')=? "
+            "AND json_extract(run_config_json,'$.model')=? "
+            "AND json_extract(run_config_json,'$.tooling')=? LIMIT 1",
+            (replicate, run_config.get("language"), run_config.get("model"),
+             run_config.get("tooling")),
+        ).fetchone()
+    except sqlite3.OperationalError:
+        row = None
+    con.close()
+    return row is not None
+
+
 def _persist_requirement_coverage(db_path, run_config: dict, replicate: int,
                                   coverage: float | None) -> bool:
     """Upsert requirement_coverage onto the matching latest completed run.
@@ -2631,6 +2652,10 @@ def reevaluate(experiment_dir, config, eval_model, workers, force):
                           if cfg.get(k) is not None}
         m = re.search(r"rep(\d+)", rep.name)
         replicate = int(m.group(1)) if m else 1
+        if not _run_completed_exists(db_path, run_config, replicate):
+            # No completed DB row to attach coverage to — re-evaluating it would
+            # burn evals every pass and persist nothing. Skip.
+            continue
         if not force and _run_has_requirement_coverage(db_path, run_config, replicate):
             continue
         work.append((rep, run_config, replicate))
