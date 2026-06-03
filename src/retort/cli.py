@@ -2645,9 +2645,28 @@ def reevaluate(experiment_dir, config, eval_model, workers, force):
         passed, cov = _spec_conformance_passes(rep, eval_cfg, visibility)
         return (rep, run_config, replicate, passed, cov)
 
-    results = []
+    # Persist each result the moment its eval finishes (in the main thread, so
+    # the DB write is serial/safe), rather than batching at the end. The covered
+    # count then climbs run-by-run, and a mid-pass crash keeps what was done.
+    counts = {"persisted": 0, "inconclusive": 0, "done": 0}
+
+    def _handle(result):
+        rep, run_config, replicate, verdict, cov = result
+        counts["done"] += 1
+        label = f"{rep.parent.name}/{rep.name}"
+        if verdict is None:
+            # Eval couldn't run (usage limit / timeout). Don't persist — leave
+            # the run uncovered so a later resume re-evaluates it cleanly.
+            counts["inconclusive"] += 1
+            click.echo(f"  {label}: inconclusive (eval didn't run) — retry later")
+            return
+        if _persist_requirement_coverage(db_path, run_config, replicate, cov):
+            counts["persisted"] += 1
+        click.echo(f"  {label}: ReqCov={cov} [{'PASS' if verdict else 'fail'}]")
+
     if workers <= 1:
-        results = [_eval(w) for w in work]
+        for w in work:
+            _handle(_eval(w))
     else:
         with concurrent.futures.ThreadPoolExecutor(max_workers=workers) as pool:
             for fut in concurrent.futures.as_completed([pool.submit(_eval, w) for w in work]):
@@ -2655,27 +2674,15 @@ def reevaluate(experiment_dir, config, eval_model, workers, force):
                 if exc:
                     click.echo(f"  (worker error: {exc})", err=True)
                 else:
-                    results.append(fut.result())
+                    _handle(fut.result())
 
-    persisted = 0
-    inconclusive = 0
-    for rep, run_config, replicate, verdict, cov in results:
-        label = f"{rep.parent.name}/{rep.name}"
-        if verdict is None:
-            # Eval couldn't run (usage limit / timeout). Don't persist — leave
-            # the run uncovered so a later resume re-evaluates it cleanly.
-            inconclusive += 1
-            click.echo(f"  {label}: inconclusive (eval didn't run) — retry later")
-            continue
-        if _persist_requirement_coverage(db_path, run_config, replicate, cov):
-            persisted += 1
-        click.echo(f"  {label}: ReqCov={cov} [{'PASS' if verdict else 'fail'}]")
+    persisted, inconclusive = counts["persisted"], counts["inconclusive"]
     # Fold any WAL back into the .db so readers (aggregate) + git see a clean file.
     import sqlite3
     cx = sqlite3.connect(db_path)
     cx.execute("PRAGMA wal_checkpoint(TRUNCATE)")
     cx.close()
-    msg = f"Persisted requirement_coverage for {persisted}/{len(results)} runs."
+    msg = f"Persisted requirement_coverage for {persisted}/{counts['done']} runs."
     if inconclusive:
         msg += f" {inconclusive} inconclusive (usage limit/timeout) — re-run to finish."
     click.echo(msg)
