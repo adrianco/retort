@@ -111,6 +111,27 @@ Best `(model, tooling)` per language, ranked **pass-proportion → test coverage
 
 **Brazil MCP** (hard task; per-cell replication is thinner, so treat the model-level result above as the firmer guide): the only model that is reliable across *every* language here is **opus-4.8** (1.00) — at the cost/speed premium shown. The cheaper models succeed on some languages and fail on others, which is the whole point of measuring per-language rather than trusting one rank.
 
+### Results by language × task
+
+Aggregated across all models and tooling for each language on each task (Pass = pass-proportion = probability of a completely-correct run):
+
+| Language | Task | n | Pass | CodeQual | TestCov | Speed (s) | Cost ($) |
+|---|---|---:|---:|---:|---:|---:|---:|
+| clojure | Brazil MCP (hard) | 12 | 0.75 | 0.83 | 1.00 | 715 | 3.51 |
+| clojure | REST-API (easy) | 21 | 0.62 | 0.75 | 0.90 | 302 | 1.10 |
+| go | Brazil MCP (hard) | 13 | 0.69 | 1.00 | 0.58 | 773 | 4.35 |
+| go | REST-API (easy) | 20 | 1.00 | 1.00 | 0.67 | 142 | 0.61 |
+| java | Brazil MCP (hard) | 10 | 0.80 | 1.00 | 1.00 | 784 | 4.03 |
+| java | REST-API (easy) | 23 | 0.52 | 1.00 | 1.00 | 208 | 0.78 |
+| python | Brazil MCP (hard) | 14 | 0.86 | 0.73 | 0.90 | 638 | 3.30 |
+| python | REST-API (easy) | 20 | 0.90 | 0.65 | 0.80 | 97 | 0.43 |
+| rust | Brazil MCP (hard) | 10 | 0.50 | 0.83 | 0.93 | 717 | 3.97 |
+| rust | REST-API (easy) | 23 | 0.96 | 0.83 | 1.00 | 169 | 0.60 |
+| typescript | Brazil MCP (hard) | 12 | 0.92 | 0.61 | 0.82 | 617 | 3.31 |
+| typescript | REST-API (easy) | 20 | 1.00 | 0.73 | 0.89 | 168 | 0.56 |
+
+Reliability swings hard by **both** axes: **Rust** is near-perfect on the easy task (0.96) but a coin-flip on the hard one (0.50); **Java** runs the other way (0.80 hard / 0.52 easy); **TypeScript** and **Python** are strong on both. Code quality, by contrast, is steady within a language across tasks (consistent with the ANOVA below) — Go and Java stay at 1.00 regardless. *There is no single "best language"; it depends on the job.*
+
 ---
 
 ## Factor analysis (ANOVA): what actually moves each metric
