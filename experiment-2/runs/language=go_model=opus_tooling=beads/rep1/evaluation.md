@@ -2,162 +2,86 @@
 
 ## Summary
 
-- **Factors:** language=go, agent=unknown, framework=unknown, tooling=beads
-- **Status:** ok
-- **Requirements:** 8/12 implemented, 4 partial, 0 missing
-- **Tests:** 11 passed / 0 failed / 0 skipped (11 effective)
-- **Build:** pass — 0.0s
-- **Lint:** pass — 0 warnings (go vet)
-- **Architecture:** Summary skill unavailable; see internal/ package structure
-- **Findings:** 15 items in `findings.jsonl` (0 critical, 4 high, 4 medium, 7 low/info)
+- **Factors:** language=go, model=opus, tooling=beads
+- **Status:** ok (archive incomplete — internal/data/ missing)
+- **Requirements:** 11/12 implemented, 1 partial, 0 missing
+- **Tests:** 11 defined / 0 skipped (11 effective); test_coverage=0.33325 from retort.db
+- **Build:** pass — defect_rate=1.0 from retort.db (archive cannot reproduce; missing internal/data package and go.sum)
+- **Lint:** pass — code_quality=1.0 from retort.db
+- **Architecture:** summary skill unavailable
+- **Findings:** 4 items in `findings.jsonl` (0 critical, 2 high, 1 medium, 1 low)
 
 ## Requirements
 
+Source: pinned `REQUIREMENTS.json` (12 requirements, constant denominator across all runs).
+
 | ID | Requirement (short) | Status | Evidence |
 |----|----|----|-----|
-| R1 | Match Queries - find by team, date, competition, season | ✓ implemented | tools.go:14-63 find_matches tool |
-| R2 | Team Queries - history, W-D-L records, goals | ✓ implemented | tools.go:65-94 team_stats tool |
-| R3 | Player Queries - search by name, club, position, rating | ✓ implemented | tools.go:157-192 find_players tool |
-| R4 | Competition Queries - standings by season | ✓ implemented | tools.go:122-155 standings tool |
-| R5 | Statistical Analysis - h2h, stats, biggest wins | ✓ implemented | tools.go:96-241 multiple stats tools |
-| R6 | Load all 6 CSV files (Brasileirão, Copa, Libertadores, BR-Football, Novo, FIFA) | ✓ implemented | load.go:14-40, all 6 files present in data/kaggle/ |
-| R7 | Handle team name variations (with/without state suffix) | ✓ implemented | normalize.go, TeamMatches function |
-| R8 | Return properly formatted responses | ✓ implemented | format.go FormatMatches/FormatTeamStats/etc |
-| R9 | Simple lookups respond in < 2 seconds | ~ partial | No performance benchmarks; speed untested |
-| R10 | Aggregate queries respond in < 5 seconds | ~ partial | No performance benchmarks; speed untested |
-| R11 | At least 20 sample questions answerable | ~ partial | Only unit tests; no 20-question acceptance test |
-| R12 | Cross-file queries (player + match data) | ~ partial | find_players and find_matches exist but not joined |
+| R1 | MCP server exposing tools/handlers | ✓ implemented | `internal/mcp/server.go` JSON-RPC 2.0 MCP server; `tools.go:14-263` registers 8 tools (find_matches, team_stats, head_to_head, standings, find_players, overall_stats, biggest_wins, dataset_info) |
+| R2 | Loads data/kaggle/ datasets as data source | ~ partial | `main.go:16` calls `data.Load(*dataDir)` with `--data` flag; `internal/data/` package missing from archive — CSV parsing unverifiable. defect_rate=1.0 confirms it worked at scoring time. |
+| R3 | Match query: find by team (home, away, either) | ✓ implemented | `query/match.go:44-47` MatchFilter.Team checks home OR away via `data.TeamMatches`; also supports dedicated HomeTeam/AwayTeam fields |
+| R4 | Match query: filter by date range and/or season | ✓ implemented | `query/match.go:26-27` Season filter; `match.go:32-36` From/To date range; `tools.go:28-29` exposes as `from`/`to` ISO-8601 params |
+| R5 | Match query: filter by competition | ✓ implemented | `query/match.go:29-30` case-insensitive substring match on Competition |
+| R6 | Team query: W/L/D record and goals for/against | ✓ implemented | `query/team.go:35-75` ComputeTeamStats with wins/draws/losses, goals for/against, home/away splits, points |
+| R7 | Player query: search by name | ✓ implemented | `query/player.go:22-24` case-insensitive substring name match |
+| R8 | Player query: filter by nationality/club with ratings | ✓ implemented | `query/player.go:25-35` filters Nationality, Club, Position, MinOverall; sorted by Overall descending |
+| R9 | Competition query: season standings from results | ✓ implemented | `query/team.go:78-118` Standings() computes from match results, sorted by points → GD → GF |
+| R10 | Statistical analysis: aggregate stats | ✓ implemented | `query/stats.go:19-44` Overall() — avg goals/match, home win rate; `stats.go:47-67` BiggestWins() by goal difference |
+| R11 | Head-to-head records between two teams | ✓ implemented | `query/match.go:76-105` H2H() returns W/L/D, goals, and recent match examples |
+| R12 | Automated tests covering query capabilities | ✓ implemented | `server_test.go` (4 tests: MCP init, tools list, tool call, notifications) + `query_test.go` (7 tests: match search, team stats, H2H, standings, players, overall stats, biggest wins); 0 skipped; test_coverage=0.33325 from retort.db |
 
 ## Build & Test
 
-```text
-go build ./...
-(no output — build succeeds)
-```
+Stored scores from retort.db (build/test NOT re-run per evaluation protocol):
 
 ```text
-go test ./... -v
-?   	brsoccer/cmd/brsoccer-mcp	[no test files]
-=== RUN   TestNormalizeTeam
---- PASS: TestNormalizeTeam (0.00s)
-=== RUN   TestTeamMatches
---- PASS: TestTeamMatches (0.00s)
-PASS
-ok  	brsoccer/internal/data	0.003s
-=== RUN   TestMCPInitialize
---- PASS: TestMCPInitialize (0.00s)
-=== RUN   TestMCPToolsList
---- PASS: TestMCPToolsList (0.00s)
-=== RUN   TestMCPToolCall
---- PASS: TestMCPToolCall (0.00s)
-=== RUN   TestMCPNotification
---- PASS: TestMCPNotification (0.00s)
-PASS
-ok  	brsoccer/internal/mcp	0.008s
-=== RUN   TestFindMatchesBetweenTeams
---- PASS: TestFindMatchesBetweenTeams (0.00s)
-=== RUN   TestTeamStatsBySeason
---- PASS: TestTeamStatsBySeason (0.00s)
-=== RUN   TestH2H
---- PASS: TestH2H (0.00s)
-=== RUN   TestStandings
---- PASS: TestStandings (0.00s)
-=== RUN   TestFindPlayers
---- PASS: TestFindPlayers (0.00s)
-=== RUN   TestOverallStats
---- PASS: TestOverallStats (0.00s)
-=== RUN   TestBiggestWins
---- PASS: TestBiggestWins (0.00s)
-PASS
-ok  	brsoccer/internal/query	0.004s
+test_coverage    = 0.33325  (tests executed; ~33% code coverage)
+code_quality     = 1.0      (lint clean)
+defect_rate      = 1.0      (build + tests succeeded)
+idiomatic        = 0.67
+maintainability  = 0.546
+token_efficiency = 0.044
 ```
+
+Note: The `internal/data` package (data models, CSV loading, team name normalization) is missing from the archived workspace. All source files import it. `go.sum` is also absent. The code cannot be compiled from the archive alone, but `defect_rate=1.0` confirms the original run compiled and passed tests.
 
 ## Metrics
 
 | Metric | Value |
 |--------|-------|
-| Lines of code (source Go files) | 1647 |
-| Source files (excluding test/data) | 20 |
-| Direct dependencies | 1 (golang.org/x/text) |
+| Lines of code (Go source) | 1165 |
+| Go source files | 10 |
+| Total files in archive | 24 |
+| Dependencies (go.mod) | 1 (golang.org/x/text) |
 | Tests total | 11 |
-| Tests passed | 11 |
-| Tests failed | 0 |
+| Tests effective | 11 |
 | Tests skipped | 0 |
 | Skip ratio | 0% |
-| Build duration | <0.1s |
-| CSV datasets loaded | 6 (all present) |
-| Total matches in dataset | 17,753 (across all files) |
-| Total players in dataset | 18,207 |
-
-## Architecture
-
-The project implements an MCP (Model Context Protocol) server for Brazilian soccer queries:
-
-- **cmd/brsoccer-mcp/main.go**: Entry point, loads data and registers tools on MCP server
-- **internal/data/**: Data models (Match, Player, DB), CSV loading (load.go), team name normalization (normalize.go)
-- **internal/mcp/**: MCP server implementation (server.go, tools.go, format.go) with 8 registered tools
-- **internal/query/**: Query logic (match.go, team.go, player.go, stats.go) for searching and calculating statistics
-
-The MCP server exposes 8 tools:
-1. `find_matches` - filter matches by team, opponent, competition, season, date range
-2. `team_stats` - aggregate team statistics (W-D-L, goals)
-3. `head_to_head` - head-to-head record between two teams
-4. `standings` - compute season standings from match results
-5. `find_players` - search FIFA player database by name, nationality, club, position, rating
-6. `overall_stats` - aggregate dataset statistics (goals per match, home win rate)
-7. `biggest_wins` - find matches with largest goal differences
-8. `dataset_info` - report on loaded datasets
+| MCP tools registered | 8 |
 
 ## Findings
 
-Top findings by severity:
+Top findings by severity (full list in `findings.jsonl`):
 
-### High (4):
-- **Performance requirements untested** — Simple lookups and aggregate queries lack benchmarks (findings: test-1, test-2)
-- **Sample question coverage not verified** — Spec requires 20+ answerable questions; only unit tests exist (test-3)
-- **Cross-file queries incomplete** — Players and matches can be queried but not joined (test-4)
-
-### Medium (4):
-- None; high-severity items above
-
-### Low/Info (7):
-- All unit tests passing (test-5)
-- No linting issues (test-6)
-- Architecture documentation missing (arch-1)
-
-## Full Findings
-
-See `findings.jsonl` for structured findings (15 total):
-- 8 requirements confirmed implemented
-- 4 requirements partially implemented (performance, sampling, integration untested)
-- 0 requirements missing
-- 1 documentation gap (architecture/design docs)
-- 2 info items (test success, lint success)
+1. [high] R2 — Data loading package missing from archive; cannot verify CSV loading from data/kaggle/
+2. [high] archive-incomplete — Archived workspace missing internal/data package; code cannot compile from archive
+3. [medium] metric-low-coverage — Test code coverage at 33.3%
+4. [low] dep-go-version — go.mod specifies future Go version 1.25.4
 
 ## Reproduce
 
 ```bash
 cd experiment-2/runs/language=go_model=opus_tooling=beads/rep1
-go build ./...
-go test ./... -v
-go vet ./...
+# Archive is incomplete (internal/data missing, go.sum missing); build commands will not work as-is:
+# go build ./...
+# go test ./... -v -cover
+# Stored scores from retort.db were used instead:
+sqlite3 -readonly ../../retort.db \
+  "SELECT rr.metric_name, rr.value FROM run_results rr
+   WHERE rr.run_id = (SELECT er.id FROM experiment_runs er
+     WHERE json_extract(er.run_config_json,'$.language')='go'
+       AND json_extract(er.run_config_json,'$.model')='opus'
+       AND json_extract(er.run_config_json,'$.tooling')='beads'
+       AND er.replicate=1 AND er.status='completed'
+     ORDER BY er.finished_at DESC LIMIT 1);"
 ```
-
-## Session Summary
-
-This Go implementation of a Brazilian soccer MCP server successfully loads all 6 required CSV datasets (17.7k matches, 18.2k players) and implements 8 query tools covering match queries, team statistics, player search, standings computation, and statistical analysis. All 11 unit tests pass with no linting issues.
-
-**Strengths:**
-- Complete implementation of core query capabilities (R1-R8)
-- Handles team name variations correctly
-- Clean, modular architecture with separate data/mcp/query packages
-- Good test coverage of functional paths
-- Minimal dependencies (1 external)
-
-**Gaps:**
-- No performance benchmarks to verify < 2s and < 5s response time targets
-- No end-to-end acceptance test with 20 sample questions from spec
-- No direct player-match data integration (could add tool to find matches by player club)
-- Missing architecture documentation (README)
-
-**Assessment:** Implementation is functionally complete for core requirements. Performance validation and comprehensive query coverage testing would strengthen confidence that all specification goals are met.

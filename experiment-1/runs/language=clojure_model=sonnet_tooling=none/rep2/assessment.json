@@ -4,11 +4,11 @@
     "high": 0,
     "medium": 0,
     "low": 0,
-    "info": 5
+    "info": 0
   },
   "penalty_score": 1.0,
   "top_findings": [],
   "requirement_coverage": 1.0,
-  "model": "unknown",
-  "evaluated_at": "2026-04-18T22:11:06.206368Z"
+  "model": "sonnet",
+  "evaluated_at": "2026-06-03T17:20:28Z"
 }

@@ -1,0 +1,13 @@
+# Brazilian Soccer MCP Server — runtime requirements
+#
+# The server, query engine and data loader use ONLY the Python standard library
+# (csv, json, unicodedata, dataclasses), so there are NO required third-party
+# runtime dependencies. This keeps the server installable in air-gapped /
+# sandboxed environments (where this project was built).
+#
+# Development / test:
+pytest>=7.0
+#
+# Optional: if you prefer to run on top of the official MCP Python SDK instead
+# of the built-in stdio JSON-RPC transport, install it and adapt mcp_server.py:
+#   mcp>=1.0

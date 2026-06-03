@@ -1,55 +1,8 @@
 {
-  "severity_counts": {
-    "critical": 0,
-    "high": 0,
-    "medium": 0,
-    "low": 0,
-    "info": 12
-  },
+  "severity_counts": {"critical": 0, "high": 0, "medium": 0, "low": 0, "info": 1},
   "penalty_score": 1.0,
-  "top_findings": [
-    {
-      "id": "R1",
-      "kind": "implemented",
-      "severity": "info",
-      "title": "POST /books endpoint implemented",
-      "evidence": "app.py:80-102 \u2014 create_book() handles book creation with validation",
-      "suggestion": "N/A"
-    },
-    {
-      "id": "R2",
-      "kind": "implemented",
-      "severity": "info",
-      "title": "GET /books with author filter implemented",
-      "evidence": "app.py:104-114 \u2014 list_books() supports ?author= query parameter",
-      "suggestion": "N/A"
-    },
-    {
-      "id": "R3",
-      "kind": "implemented",
-      "severity": "info",
-      "title": "GET /books/{id} endpoint implemented",
-      "evidence": "app.py:116-122 \u2014 get_book() fetches single book with 404 handling",
-      "suggestion": "N/A"
-    },
-    {
-      "id": "R4",
-      "kind": "implemented",
-      "severity": "info",
-      "title": "PUT /books/{id} endpoint implemented",
-      "evidence": "app.py:124-149 \u2014 update_book() supports partial updates with validation",
-      "suggestion": "N/A"
-    },
-    {
-      "id": "R5",
-      "kind": "implemented",
-      "severity": "info",
-      "title": "DELETE /books/{id} endpoint implemented",
-      "evidence": "app.py:151-159 \u2014 delete_book() removes book and returns 204",
-      "suggestion": "N/A"
-    }
-  ],
+  "top_findings": [],
   "requirement_coverage": 1.0,
   "model": "claude-opus-4-7",
-  "evaluated_at": "2026-05-30T15:50:02.799943Z"
+  "evaluated_at": "2026-06-03T23:00:00Z"
 }

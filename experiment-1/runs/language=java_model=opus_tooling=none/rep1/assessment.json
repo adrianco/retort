@@ -1,14 +1,10 @@
 {
-  "severity_counts": {
-    "critical": 0,
-    "high": 0,
-    "medium": 0,
-    "low": 0,
-    "info": 0
-  },
-  "penalty_score": 1.0,
-  "top_findings": [],
-  "requirement_coverage": null,
-  "model": "unknown",
-  "evaluated_at": "2026-04-18T22:29:32Z"
+  "severity_counts": {"critical": 0, "high": 1, "medium": 0, "low": 0, "info": 0},
+  "penalty_score": 0.9000,
+  "top_findings": [
+    {"id": "archive-incomplete", "kind": "doc_missing", "severity": "high", "title": "Java source files missing from workspace archive", "evidence": "find shows only pom.xml and README.md in archive; no src/ directory present; test-output.txt:15 references src/main/resources and test-output.txt:23 compiled 1 test source from src/test/java, confirming source existed at test time", "suggestion": "Investigate archiver — source was present when tests ran on codespace but not preserved in the archive"}
+  ],
+  "requirement_coverage": 1.0,
+  "model": "opus",
+  "evaluated_at": "2026-06-03T08:15:30Z"
 }

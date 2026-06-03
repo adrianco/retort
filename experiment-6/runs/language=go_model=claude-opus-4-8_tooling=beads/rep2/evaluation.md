@@ -6,73 +6,73 @@
 - **Status:** ok
 - **Requirements:** 12/12 implemented, 0 partial, 0 missing
 - **Tests:** 7 passed / 0 failed / 0 skipped (7 effective)
-- **Build:** pass — <1s
-- **Lint:** pass — 0 warnings
-- **Findings:** 1 item in `findings.jsonl` (0 critical, 0 high, 0 medium, 0 low, 1 info)
+- **Build:** pass — test_coverage=0.708, defect_rate=1.0 from retort.db
+- **Lint:** pass — code_quality=1.0 from retort.db
+- **Architecture:** summary skill not invoked (clean run, straightforward layout)
+- **Findings:** 1 items in `findings.jsonl` (0 critical, 0 high, 0 medium, 0 low, 1 info)
 
 ## Requirements
 
 | ID | Requirement (short) | Status | Evidence |
-|----|----|----|-----|
-| R1 | POST /books — Create a new book | ✓ implemented | `server.go:58-78`, `server_test.go:43-77` |
-| R2 | GET /books — List all books with ?author= filter | ✓ implemented | `server.go:81-89`, `server_test.go:95-115` |
-| R3 | GET /books/{id} — Get a single book by ID | ✓ implemented | `server.go:91-107`, `server_test.go:43-77` |
-| R4 | PUT /books/{id} — Update a book | ✓ implemented | `server.go:109-139`, `server_test.go:117-138` |
-| R5 | DELETE /books/{id} — Delete a book | ✓ implemented | `server.go:141-157`, `server_test.go:140-159` |
-| R6 | Store data in SQLite | ✓ implemented | `store.go:29-44`, uses `modernc.org/sqlite` pure-Go driver |
-| R7 | Return JSON responses with appropriate HTTP status codes | ✓ implemented | `server.go:175-183` (writeJSON, writeError helpers) |
-| R8 | Input validation (title and author required) | ✓ implemented | `server.go:40-52`, `server_test.go:79-93` |
-| R9 | Health check endpoint GET /health | ✓ implemented | `server.go:54-56`, `server_test.go:35-41` |
-| R10 | Working source code | ✓ implemented | Builds and all tests pass |
-| R11 | README.md with setup and run instructions | ✓ implemented | `README.md:12-23` covers setup, run, and configuration |
-| R12 | At least 3 unit/integration tests | ✓ implemented | 7 tests: TestHealth, TestCreateAndGet, TestCreateValidation, TestListWithAuthorFilter, TestUpdate, TestDelete, TestGetNotFound |
+|----|----|----|----|
+| R1 | POST /books creates a new book (title, author, year, isbn) | ✓ implemented | `server.go:58` handleCreate accepts bookInput{Title,Author,Year,ISBN}, persists via store.Create |
+| R2 | GET /books lists all books | ✓ implemented | `server.go:81` handleList returns all books; tested in TestListWithAuthorFilter |
+| R3 | GET /books supports ?author= filter | ✓ implemented | `server.go:82` reads `r.URL.Query().Get("author")`; `store.go:86` adds `WHERE author = ?`; tested in TestListWithAuthorFilter |
+| R4 | GET /books/{id} returns a single book by id | ✓ implemented | `server.go:91` handleGet with 404 on ErrNotFound; tested in TestCreateAndGet, TestGetNotFound |
+| R5 | PUT /books/{id} updates a book | ✓ implemented | `server.go:109` handleUpdate; tested in TestUpdate |
+| R6 | DELETE /books/{id} deletes a book | ✓ implemented | `server.go:141` handleDelete returns 204; tested in TestDelete |
+| R7 | Data stored in SQLite (or embedded DB) | ✓ implemented | `store.go:7` imports `modernc.org/sqlite`; `store.go:48` CREATE TABLE IF NOT EXISTS books |
+| R8 | JSON responses with appropriate HTTP status codes | ✓ implemented | `server.go:175` writeJSON sets Content-Type: application/json; codes: 201 create, 200 read/update, 204 delete, 400 validation, 404 not found |
+| R9 | Input validation: title and author required | ✓ implemented | `server.go:40-52` validate() rejects empty/whitespace title and author with 400; tested in TestCreateValidation |
+| R10 | GET /health health-check endpoint | ✓ implemented | `server.go:54` handleHealth returns `{"status":"ok"}` with 200; tested in TestHealth |
+| R11 | README.md with setup and run instructions | ✓ implemented | `README.md` documents setup (`go mod download`), run (`go run .`), test (`go test ./...`), and API reference |
+| R12 | At least 3 unit/integration tests | ✓ implemented | `server_test.go` has 7 test functions: TestHealth, TestCreateAndGet, TestCreateValidation, TestListWithAuthorFilter, TestUpdate, TestDelete, TestGetNotFound; test_coverage=0.708 from retort.db |
 
 ## Build & Test
 
 ```text
-$ go build ./...
-(successful, no output)
+Scores read from retort.db (build/test not re-run per skill policy):
+  test_coverage:   0.708
+  code_quality:    1.0
+  defect_rate:     1.0
+  idiomatic:       0.76
+  maintainability: 0.83
+  token_efficiency: 0.016
 ```
 
 ```text
-$ go test ./...
-ok  	bookapi	0.359s
+7 test functions in server_test.go:
+  TestHealth, TestCreateAndGet, TestCreateValidation,
+  TestListWithAuthorFilter, TestUpdate, TestDelete, TestGetNotFound
+0 skipped tests detected.
 ```
 
 ## Metrics
 
 | Metric | Value |
 |--------|-------|
-| Lines of code (source only) | 537 |
-| Files | 4 |
-| Dependencies | 2 |
+| Lines of code (source only) | 370 (main.go:30 + server.go:183 + store.go:157) |
+| Lines of test code | 167 (server_test.go) |
+| Files (non-binary, excl. tooling dirs) | 14 |
+| Dependencies (go.sum lines) | 51 |
 | Tests total | 7 |
 | Tests effective | 7 |
 | Skip ratio | 0% |
-| Build duration | <1s |
 
 ## Findings
 
-Top findings (full list in `findings.jsonl`):
+Top findings by severity (full list in `findings.jsonl`):
 
-1. [info] Comprehensive API documentation with examples — README.md includes curl examples for all endpoints
+1. [info] Test coverage at 70.8% — some internal-error (500) response paths in server.go are untested
 
 ## Reproduce
 
 ```bash
-cd /Users/adriancockcroft/Documents/GitHub/retort/experiment-6/runs/language=go_model=claude-opus-4-8_tooling=beads/rep2
-go build ./...
-go test ./...
-go vet ./...
+cd experiment-6/runs/language=go_model=claude-opus-4-8_tooling=beads/rep2
+cat stack.json
+cat TASK.md
+# Scores were read from retort.db — no build/test re-run needed
+sqlite3 -readonly ../../retort.db "SELECT rr.metric_name, rr.value FROM run_results rr WHERE rr.run_id = (SELECT er.id FROM experiment_runs er WHERE json_extract(er.run_config_json,'\$.language')='go' AND json_extract(er.run_config_json,'\$.model')='claude-opus-4-8' AND json_extract(er.run_config_json,'\$.tooling')='beads' AND er.replicate=2 AND er.status='completed' ORDER BY er.finished_at DESC LIMIT 1) AND rr.metric_name IN ('test_coverage','code_quality','defect_rate','maintainability','idiomatic','token_efficiency');"
+grep -rE "t\.Skip\(|t\.Skipf\(" . --include="*.go"
+grep -c "^func Test" server_test.go
 ```
-
-## Notes
-
-This is a high-quality implementation that fully satisfies all requirements:
-- Clean separation of concerns (main.go, server.go, store.go)
-- Proper HTTP semantics with correct status codes
-- Comprehensive error handling
-- Well-tested with 7 integration tests covering happy path and edge cases
-- Pure-Go SQLite driver (modernc.org/sqlite) eliminates CGO dependency
-- In-memory test database for fast, isolated test runs
-- Clear, helpful README with examples

@@ -1,0 +1,6 @@
+# Brazilian Soccer MCP Server - runtime + test dependencies
+mcp>=1.0            # Model Context Protocol Python SDK (FastMCP server)
+pytest>=7.0         # BDD-style test runner
+pytest-asyncio>=0.21  # async tests for the MCP tool round-trip
+# NOTE: the data/query layer itself uses only the Python standard library
+# (csv, dataclasses, unicodedata) -- no pandas / database server required.

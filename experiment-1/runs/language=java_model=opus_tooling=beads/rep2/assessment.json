@@ -1,14 +1,55 @@
 {
   "severity_counts": {
-    "critical": 0,
-    "high": 0,
+    "critical": 1,
+    "high": 10,
     "medium": 0,
     "low": 0,
     "info": 0
   },
-  "penalty_score": 1.0,
-  "top_findings": [],
-  "requirement_coverage": null,
-  "model": "unknown",
-  "evaluated_at": "2026-04-18T22:30:22Z"
+  "penalty_score": 0.0,
+  "top_findings": [
+    {
+      "id": "archive-incomplete",
+      "kind": "build_failure",
+      "severity": "critical",
+      "title": "Java source files missing from archive \u2014 zero .java files in workspace",
+      "evidence": "find . -name '*.java' returns 0 results; src/main/java/ and src/test/java/ directories absent. Only scaffolding remains: pom.xml, README.md, src/test/resources/application.properties. retort.db test_coverage=1.0 indicates code existed at scoring time.",
+      "suggestion": "Archive process may have excluded .java files; recover from original run environment or re-run"
+    },
+    {
+      "id": "R1",
+      "kind": "requirement_missing",
+      "severity": "high",
+      "title": "POST /books \u2014 cannot verify, source files absent from archive",
+      "evidence": "No .java files in workspace; no BookController class exists. retort.db test_coverage=1.0 suggests implementation existed at scoring time.",
+      "suggestion": "Recover Java source from original run environment"
+    },
+    {
+      "id": "R2",
+      "kind": "requirement_missing",
+      "severity": "high",
+      "title": "GET /books list \u2014 cannot verify, source files absent from archive",
+      "evidence": "No .java files in workspace. README.md documents this endpoint but code is absent.",
+      "suggestion": "Recover Java source from original run environment"
+    },
+    {
+      "id": "R3",
+      "kind": "requirement_missing",
+      "severity": "high",
+      "title": "GET /books ?author= filter \u2014 cannot verify, source files absent",
+      "evidence": "No controller code exists in archive to verify filtering. README.md documents ?author= support.",
+      "suggestion": "Recover Java source from original run environment"
+    },
+    {
+      "id": "R4",
+      "kind": "requirement_missing",
+      "severity": "high",
+      "title": "GET /books/{id} \u2014 cannot verify, source files absent from archive",
+      "evidence": "No .java files in workspace",
+      "suggestion": "Recover Java source from original run environment"
+    }
+  ],
+  "requirement_coverage": 0.0833,
+  "model": "opus",
+  "evaluated_at": "2026-06-03T08:10:31Z"
 }

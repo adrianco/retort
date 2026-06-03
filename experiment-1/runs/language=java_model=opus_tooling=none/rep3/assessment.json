@@ -1,14 +1,14 @@
 {
-  "severity_counts": {
-    "critical": 0,
-    "high": 0,
-    "medium": 0,
-    "low": 0,
-    "info": 0
-  },
-  "penalty_score": 1.0,
-  "top_findings": [],
-  "requirement_coverage": 1.0,
-  "model": "unknown",
-  "evaluated_at": "2026-05-21T17:30:58.418638Z"
+  "severity_counts": {"critical": 1, "high": 10, "medium": 0, "low": 0, "info": 0},
+  "penalty_score": 0.0,
+  "top_findings": [
+    {"id": "source-missing", "kind": "build_failure", "severity": "critical", "title": "No Java source files produced — agent generated only project scaffolding", "evidence": "find rep3/src -name '*.java' returns 0 files; only pom.xml, README.md, .gitignore, and src/test/resources/application.properties exist", "suggestion": "Agent must generate Java source files (controllers, models, repositories, application class) to implement the API"},
+    {"id": "R1", "kind": "requirement_missing", "severity": "high", "title": "POST /books endpoint missing — no controller code", "evidence": "No .java files in src/; no BookController or equivalent", "suggestion": "Create a Spring Boot @RestController with @PostMapping for /books"},
+    {"id": "R2", "kind": "requirement_missing", "severity": "high", "title": "GET /books list endpoint missing — no controller code", "evidence": "No .java files in src/; no list endpoint implementation", "suggestion": "Add @GetMapping for /books returning all books"},
+    {"id": "R3", "kind": "requirement_missing", "severity": "high", "title": "GET /books ?author= filter missing — no controller code", "evidence": "No .java files in src/; no query parameter handling", "suggestion": "Add @RequestParam author filter to GET /books"},
+    {"id": "R4", "kind": "requirement_missing", "severity": "high", "title": "GET /books/{id} endpoint missing — no controller code", "evidence": "No .java files in src/; no get-by-id implementation", "suggestion": "Add @GetMapping for /books/{id} with 404 handling"}
+  ],
+  "requirement_coverage": 0.0833,
+  "model": "opus",
+  "evaluated_at": "2026-06-03T23:00:00Z"
 }

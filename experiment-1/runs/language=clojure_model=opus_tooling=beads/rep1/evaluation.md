@@ -3,83 +3,82 @@
 ## Summary
 
 - **Factors:** language=clojure, model=opus, tooling=beads
-- **Status:** ok
-- **Requirements:** 11/11 implemented, 0 partial, 0 missing
-- **Tests:** 5 passed / 0 failed / 0 skipped (5 effective)
-- **Build:** pass — dependencies resolved, code compiles
-- **Lint:** unavailable — no linter configured for Clojure in this run
-- **Findings:** 12 items in `findings.jsonl` (0 critical, 0 high, 0 medium, 12 info/low)
+- **Status:** failed (no source code — workspace contains only skeleton/config files)
+- **Requirements:** 1/12 implemented, 0 partial, 11 missing
+- **Tests:** 0 passed / 0 failed / 0 skipped (0 effective)
+- **Build:** unavailable — no source code to build
+- **Lint:** unavailable — no source code to lint
+- **Architecture:** summary skill unavailable (no source code to analyze)
+- **Findings:** 12 items in `findings.jsonl` (11 critical, 1 high)
+
+## Note on Stored Scores
+
+The retort.db scores for this run (test_coverage=1.0, code_quality=0.833, defect_rate=1.0) **contradict** the actual workspace state. The archived workspace contains zero `.clj` source files — only project config (`deps.edn`), documentation (`README.md`), and retort metadata. The scores may have been computed against a transient workspace that was not fully archived, or against a different run.
 
 ## Requirements
 
 | ID | Requirement (short) | Status | Evidence |
-|----|----|----|
-| R1 | POST /books endpoint for creating books | ✓ implemented | `src/books/handler.clj:35-43` |
-| R2 | GET /books with ?author= filter | ✓ implemented | `src/books/handler.clj:45-48` |
-| R3 | GET /books/{id} single book retrieval | ✓ implemented | `src/books/handler.clj:50-55` |
-| R4 | PUT /books/{id} update endpoint | ✓ implemented | `src/books/handler.clj:57-69` |
-| R5 | DELETE /books/{id} delete endpoint | ✓ implemented | `src/books/handler.clj:71-76` |
-| R6 | SQLite database storage | ✓ implemented | `src/books/db.clj:1-16` |
-| R7 | JSON responses with appropriate status codes | ✓ implemented | `src/books/handler.clj:7-11` |
-| R8 | Input validation (title and author required) | ✓ implemented | `src/books/handler.clj:20-27` |
-| R9 | GET /health health check endpoint | ✓ implemented | `src/books/handler.clj:80` |
-| R10 | README.md with setup and run instructions | ✓ implemented | `README.md` comprehensive |
-| R11 | At least 3 unit/integration tests | ✓ implemented | 5 tests in `test/books/handler_test.clj` |
+|----|----|----|----|
+| R1 | POST /books creates a book | ✗ missing | No .clj files in workspace; `src/books/handler.clj` absent |
+| R2 | GET /books lists all books | ✗ missing | No .clj files in workspace |
+| R3 | GET /books ?author= filter | ✗ missing | No .clj files in workspace |
+| R4 | GET /books/{id} single book | ✗ missing | No .clj files in workspace |
+| R5 | PUT /books/{id} updates book | ✗ missing | No .clj files in workspace |
+| R6 | DELETE /books/{id} deletes book | ✗ missing | No .clj files in workspace |
+| R7 | SQLite embedded DB storage | ✗ missing | `deps.edn` declares sqlite-jdbc dep but no code uses it |
+| R8 | JSON responses + HTTP status codes | ✗ missing | No .clj files in workspace |
+| R9 | Input validation (title/author required) | ✗ missing | No .clj files in workspace |
+| R10 | GET /health endpoint | ✗ missing | No .clj files in workspace |
+| R11 | README with setup/run instructions | ✓ implemented | `README.md` documents JDK/Clojure prereqs, run/test commands, endpoints |
+| R12 | At least 3 tests | ✗ missing | No test files; `test/books/handler_test.clj` absent |
 
 ## Build & Test
 
 ```text
-clojure -M:test
-
-Running tests in #{"test"}
-
-Testing books.handler-test
-WARNING: A restricted method in java.lang.System has been called
-WARNING: java.lang.System::load has been called by org.sqlite.SQLiteJDBCLoader in an unnamed module
-WARNING: Use --enable-native-access=ALL-UNNAMED to avoid a warning for callers in this module
-WARNING: Restricted methods will be blocked in a future release unless native access is enabled
-
-Ran 5 tests containing 20 assertions.
-0 failures, 0 errors.
+Build: not attempted — no source code exists in the workspace
 ```
+
+```text
+Tests: not attempted — no test files exist in the workspace
+```
+
+Stored scores from retort.db (contradicted by workspace state):
+- test_coverage = 1.0
+- code_quality = 0.833
+- defect_rate = 1.0
+- maintainability = 0.950
+- idiomatic = 0.760
+- token_efficiency = 0.500
 
 ## Metrics
 
 | Metric | Value |
 |--------|-------|
-| Lines of code (source only) | 149 |
-| Test lines | 85 |
-| Files (source + config) | 16 |
-| Dependencies | 8 |
-| Tests total | 5 |
-| Tests effective | 5 |
-| Skip ratio | 0% |
+| Lines of code (source only) | 0 |
+| Files | 8 (all config/docs) |
+| Dependencies | 8 (declared in deps.edn) |
+| Tests total | 0 |
+| Tests effective | 0 |
+| Skip ratio | N/A |
+| Build duration | N/A |
 
 ## Findings
 
-All 11 requirements fully implemented. No issues detected. Comprehensive test coverage with 5 integration tests validating all CRUD operations, filtering, validation, and error handling. See `findings.jsonl` for detailed breakdown.
+Top 5 by severity (full list in `findings.jsonl`):
 
-## Architecture
+1. [critical] POST /books endpoint missing — no source code
+2. [critical] GET /books list endpoint missing — no source code
+3. [critical] GET /books ?author= filter missing — no source code
+4. [critical] GET /books/{id} endpoint missing — no source code
+5. [critical] PUT /books/{id} endpoint missing — no source code
 
-The implementation follows a clean, modular architecture:
-
-- **`src/books/core.clj`** — Jetty server entrypoint with Ring middleware setup (params, keyword-params)
-- **`src/books/handler.clj`** — Compojure route definitions, JSON serialization, input validation, and HTTP response handling
-- **`src/books/db.clj`** — SQLite database access layer using next.jdbc with prepared statements for SQL injection prevention
-
-The design cleanly separates HTTP routing (handler), database access (db), and server startup (core). Input validation occurs before database operations. All endpoints return proper JSON with appropriate HTTP status codes (201 for creation, 200 for success, 204 for delete, 400 for validation errors, 404 for not found).
+11 of 12 findings are critical severity — the entire implementation is absent from the archived workspace. Only R11 (README) is satisfied.
 
 ## Reproduce
 
 ```bash
 cd experiment-1/runs/language=clojure_model=opus_tooling=beads/rep1
-clojure -M:test
+find . -name "*.clj" -o -name "*.cljc"   # confirms no source files
+cat deps.edn                               # shows declared but unused dependencies
+cat README.md                              # references nonexistent source files
 ```
-
-## Notes
-
-- All tests pass with 20 assertions validating the full API surface
-- Input validation properly enforces title and author as required fields
-- Database queries use parameterized statements preventing SQL injection
-- The API correctly handles edge cases (missing book IDs, invalid JSON, missing required fields)
-- README provides clear setup, run, and example usage instructions

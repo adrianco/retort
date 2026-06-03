@@ -1,93 +1,83 @@
-# Evaluation: language=java_model=claude-opus-4-7_tooling=beads · rep3
+# Evaluation: language=java_model=claude-opus-4-7_tooling=beads · rep 3
 
 ## Summary
 
 - **Factors:** language=java, model=claude-opus-4-7, tooling=beads
 - **Status:** ok
-- **Requirements:** 6/6 implemented, 0 partial, 0 missing
+- **Requirements:** 12/12 implemented, 0 partial, 0 missing
 - **Tests:** 7 passed / 0 failed / 0 skipped (7 effective)
-- **Build:** pass — 0.7s (compile) + 1.4s (test)
-- **Lint:** unavailable — no linter configured
-- **Architecture:** Standard MVC pattern with Repository data access layer
-- **Findings:** 0 critical/high items
+- **Build:** pass — test_coverage=1.0 from retort.db
+- **Lint:** pass — code_quality=1.0 from retort.db
+- **Architecture:** see `summary/index.md`
+- **Findings:** 1 items in `findings.jsonl` (0 critical, 0 high, 0 medium, 0 low, 1 info)
 
 ## Requirements
 
 | ID | Requirement (short) | Status | Evidence |
-|----|----|----|---|
-| R1 | POST /books (Create book with title, author, year, isbn) | ✓ implemented | `BookController.java:16-25` — create() validates and persists |
-| R2 | GET /books (List all books, support ?author= filter) | ✓ implemented | `BookController.java:27-30` — list() accepts author param and filters via repo |
-| R3 | GET /books/{id} (Fetch single book by ID) | ✓ implemented | `BookController.java:32-38` — get() uses findById() with 404 handling |
-| R4 | PUT /books/{id} (Update existing book) | ✓ implemented | `BookController.java:40-52` — update() validates and persists changes |
-| R5 | DELETE /books/{id} (Delete a book) | ✓ implemented | `BookController.java:54-62` — delete() removes and returns 204/404 |
-| R6 | SQLite persistence with schema | ✓ implemented | `BookRepository.java:26-41` — initSchema() creates books table on init |
-| R7 | JSON responses with appropriate HTTP status codes | ✓ implemented | All endpoints return 200/201/204/400/404 as appropriate |
-| R8 | Input validation (title and author required) | ✓ implemented | `BookController.java:88-93` — validate() checks both fields are non-blank |
-| R9 | Health check endpoint GET /health | ✓ implemented | `BookController.java:64-68` — returns `{"status":"UP"}` with 200 |
-| R10 | README.md with setup and run instructions | ✓ implemented | README.md contains setup, build, run, test, and API documentation |
-| R11 | At least 3 unit/integration tests | ✓ implemented | 7 integration tests in BookApiIntegrationTest.java |
+|----|-----|-----|----|
+| R1 | POST /books creates a new book | ✓ implemented | `BookController.java:16` create(), `BookRepository.java:43` SQL INSERT, tested `BookApiIntegrationTest.java:70` |
+| R2 | GET /books lists all books | ✓ implemented | `BookController.java:27` list(), `BookRepository.java:63` findAll(), tested `BookApiIntegrationTest.java:97` |
+| R3 | GET /books supports ?author= filter | ✓ implemented | `BookController.java:28` queryParam("author"), `BookRepository.java:65` WHERE clause, tested `BookApiIntegrationTest.java:109` |
+| R4 | GET /books/{id} returns a single book | ✓ implemented | `BookController.java:32` get(), `BookRepository.java:85` findById(), tested `BookApiIntegrationTest.java:79,157` |
+| R5 | PUT /books/{id} updates a book | ✓ implemented | `BookController.java:40` update(), `BookRepository.java:98` UPDATE SQL, tested `BookApiIntegrationTest.java:120` |
+| R6 | DELETE /books/{id} deletes a book | ✓ implemented | `BookController.java:54` delete(), `BookRepository.java:115` DELETE SQL, tested `BookApiIntegrationTest.java:140` |
+| R7 | Data stored in SQLite | ✓ implemented | `BookRepository.java:16` jdbc:sqlite URL, `pom.xml:33` sqlite-jdbc dependency |
+| R8 | JSON responses with appropriate HTTP status codes | ✓ implemented | All controller methods use `ctx.json()` with correct codes: 201, 200, 404, 400, 204 |
+| R9 | Input validation: title and author required | ✓ implemented | `BookController.java:88-93` validate(), tested `BookApiIntegrationTest.java:88` returns 400 |
+| R10 | GET /health health-check endpoint | ✓ implemented | `BookController.java:64` health(), `App.java:17` route, tested `BookApiIntegrationTest.java:59` |
+| R11 | README.md with setup and run instructions | ✓ implemented | `README.md` documents Build, Run, Test sections with Maven commands |
+| R12 | At least 3 unit/integration tests | ✓ implemented | 7 @Test methods in `BookApiIntegrationTest.java` (exceeds minimum) |
 
 ## Build & Test
 
-```
-mvn clean compile:
-[INFO] Building book-api 1.0.0
-[INFO] Compiling 4 source files with javac [debug release 17] to target/classes
-[INFO] BUILD SUCCESS
-Total time: 0.652 s
-
-mvn test:
-[INFO] Tests run: 7, Failures: 0, Errors: 0, Skipped: 0
-[INFO] Results: 7 PASSED in 0.533 seconds
-[INFO] BUILD SUCCESS
+```text
+Build/test scores read from retort.db (not re-run):
+  test_coverage  = 1.0   (build + all tests passed)
+  code_quality   = 1.0   (lint clean)
+  defect_rate    = 1.0   (build+test succeeded)
+  idiomatic      = 0.87
+  maintainability = 0.92
+  token_efficiency = 0.008
 ```
 
-**Test Details:**
-1. healthEndpointReturnsUp() — validates /health returns 200 with {"status":"UP"}
-2. createBookAndFetchById() — creates book, verifies 201 status and ID generation, fetches by ID
-3. createBookValidatesRequiredFields() — validates title required validation (400 on missing title)
-4. listAndFilterByAuthor() — creates 3 books, lists all (3), filters by author (2), verifies correctness
-5. updateBookReplacesFields() — creates book, updates all fields, verifies 200 response
-6. deleteBookReturns204AndThen404() — deletes book (204), fetches again (404)
-7. getMissingBookReturns404() — requests non-existent book ID, verifies 404 with error object
+```text
+Test suite: BookApiIntegrationTest (JUnit 5 integration tests)
+  healthEndpointReturnsUp         — PASS
+  createBookAndFetchById          — PASS
+  createBookValidatesRequiredFields — PASS
+  listAndFilterByAuthor           — PASS
+  updateBookReplacesFields        — PASS
+  deleteBookReturns204AndThen404  — PASS
+  getMissingBookReturns404        — PASS
+```
 
 ## Metrics
 
 | Metric | Value |
 |--------|-------|
-| Lines of code (source only) | 484 |
-| Files (Java source) | 5 |
-| Dependencies | 5 (Javalin, Jackson, SQLite JDBC, SLF4J, JUnit 5) |
+| Lines of code (source only) | 484 (Java) |
+| Files | 14 |
+| Dependencies | 5 (javalin, jackson-databind, sqlite-jdbc, slf4j-simple, junit-jupiter) |
 | Tests total | 7 |
 | Tests effective | 7 |
 | Skip ratio | 0% |
-| Build duration | 0.7s (compile) + 1.4s (test) |
+| Build duration | from retort.db scores |
 
 ## Findings
 
-No critical or high-severity findings. All requirements implemented and tested.
+Top 5 by severity (full list in `findings.jsonl`):
 
-## Code Quality
-
-**Strengths:**
-- Clean separation of concerns: App (routing), BookController (HTTP handlers), BookRepository (persistence), Book (model)
-- Proper use of Optional<T> for nullable queries
-- Parametrized SQL queries prevent injection
-- Comprehensive integration tests covering happy path and error cases
-- Good input validation with clear error messages
-- Proper HTTP status codes (201 Created, 204 No Content, 404 Not Found, 400 Bad Request)
-
-**Minor observations:**
-- No explicit connection pooling; uses DriverManager directly (acceptable for this scale, could become a bottleneck at scale)
-- No explicit transaction handling (SQLite auto-commits, acceptable for single-table CRUD)
-- No API documentation/Swagger (not required, but README is comprehensive)
+1. [info] Tests exceed minimum requirement (7 vs 3)
 
 ## Reproduce
 
 ```bash
-cd /Users/adriancockcroft/Documents/GitHub/retort/experiment-6/runs/language=java_model=claude-opus-4-7_tooling=beads/rep3
-mvn clean compile
-mvn test
-mvn package  # produces target/book-api.jar
-java -jar target/book-api.jar  # runs on :8080
+cd experiment-6/runs/language=java_model=claude-opus-4-7_tooling=beads/rep3
+cat stack.json
+cat TASK.md
+# Scores were read from retort.db, not re-run
+sqlite3 -readonly ../../retort.db "SELECT rr.metric_name, rr.value FROM run_results rr WHERE rr.run_id = (SELECT er.id FROM experiment_runs er WHERE json_extract(er.run_config_json,'\$.language')='java' AND json_extract(er.run_config_json,'\$.model')='claude-opus-4-7' AND json_extract(er.run_config_json,'\$.tooling')='beads' AND er.replicate=3 AND er.status='completed' ORDER BY er.finished_at DESC LIMIT 1) AND rr.metric_name IN ('test_coverage','code_quality','defect_rate','maintainability','idiomatic','token_efficiency');"
+find src -name "*.java" | xargs wc -l
+grep -c "@Test" src/test/java/com/example/bookapi/BookApiIntegrationTest.java
+grep -rE "@Disabled|@Ignore" src --include="*.java" | wc -l
 ```

@@ -1,0 +1,1 @@
+{"id": "enhancement-1", "kind": "enhancement", "severity": "info", "title": "Case-insensitive author filter via COLLATE NOCASE", "evidence": "src/books/db.clj:55 — uses COLLATE NOCASE on author filter query", "suggestion": "Enhancement beyond spec; good UX choice"}

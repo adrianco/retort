@@ -1,0 +1,1 @@
+{"id": "enhancement-1", "kind": "enhancement", "severity": "info", "title": "No connection pooling — new JDBC connection per request", "evidence": "BookRepository.java:28-29 — connect() calls DriverManager.getConnection on every operation", "suggestion": "Consider a connection pool (HikariCP) or a single shared connection for better throughput under load"}

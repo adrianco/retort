@@ -1,1 +1,1 @@
-{"id": "lint-1", "kind": "lint_warning", "severity": "low", "title": "Line too long in app.py", "evidence": "app.py:157 — 89 characters exceeds 88 char limit", "suggestion": "Break the line or adjust line length configuration"}
+{"id": "dep-manifest", "kind": "enhancement", "severity": "info", "title": "No dependency manifest file (requirements.txt or pyproject.toml)", "evidence": "README.md:9 documents Flask dependency but no requirements.txt or pyproject.toml exists in workspace", "suggestion": "Add a requirements.txt with flask pinned version for reproducible installs"}

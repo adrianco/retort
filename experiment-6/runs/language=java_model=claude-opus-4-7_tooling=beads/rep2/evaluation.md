@@ -4,80 +4,75 @@
 
 - **Factors:** language=java, model=claude-opus-4-7, tooling=beads
 - **Status:** ok
-- **Requirements:** 13/13 implemented, 0 partial, 0 missing
+- **Requirements:** 12/12 implemented, 0 partial, 0 missing
 - **Tests:** 7 passed / 0 failed / 0 skipped (7 effective)
-- **Build:** pass — 3.102s
-- **Lint:** unavailable — N/A
+- **Build:** pass — test_coverage=1.0 from retort.db (build+tests passed)
+- **Lint:** pass — code_quality=1.0 from retort.db
+- **Architecture:** summary skill not invoked (inline evaluation)
 - **Findings:** 1 item in `findings.jsonl` (0 critical, 0 high, 0 medium, 0 low, 1 info)
 
 ## Requirements
 
 | ID | Requirement (short) | Status | Evidence |
-|----|----|----|----|
-| R1 | POST /books — Create a new book | ✓ implemented | `src/main/java/com/example/booksapi/BookController.java:21-26` |
-| R2 | GET /books — List all books with ?author= filter | ✓ implemented | `src/main/java/com/example/booksapi/BookController.java:28-34` |
-| R3 | GET /books/{id} — Get a single book by ID | ✓ implemented | `src/main/java/com/example/booksapi/BookController.java:36-41` |
-| R4 | PUT /books/{id} — Update a book | ✓ implemented | `src/main/java/com/example/booksapi/BookController.java:43-54` |
-| R5 | DELETE /books/{id} — Delete a book | ✓ implemented | `src/main/java/com/example/booksapi/BookController.java:56-63` |
-| R6 | Use specified language and framework | ✓ implemented | Spring Boot 3.4.1, Java 21, pom.xml configured |
-| R7 | Store data in SQLite | ✓ implemented | `src/main/resources/application.properties:1-4` SQLite JDBC driver configured |
-| R8 | Return JSON with appropriate HTTP status codes | ✓ implemented | 201 Created, 200 OK, 204 No Content, 404 Not Found, 400 Bad Request in controller |
-| R9 | Include input validation (title, author required) | ✓ implemented | `src/main/java/com/example/booksapi/Book.java:16-20` @NotBlank constraints |
-| R10 | Health check endpoint: GET /health | ✓ implemented | `src/main/java/com/example/booksapi/HealthController.java` |
-| R11 | Working source code | ✓ implemented | Compiles without errors, 174 LOC |
-| R12 | README.md with setup and run instructions | ✓ implemented | Comprehensive README with examples and endpoints table |
-| R13 | At least 3 unit/integration tests | ✓ implemented | 7 tests covering all endpoints, validation, filtering, and 404 cases |
+|----|-----|-----|----|
+| R1 | POST /books creates a new book (title, author, year, isbn) | ✓ implemented | `BookController.java:22` — `@PostMapping` accepting `@Valid @RequestBody Book`; fields in `Book.java:16-24` |
+| R2 | GET /books lists all books | ✓ implemented | `BookController.java:29` — `@GetMapping` returning `repository.findAll()` |
+| R3 | GET /books supports ?author= filter | ✓ implemented | `BookController.java:30-31` — `@RequestParam author` with `repository.findByAuthor(author)`; `BookRepository.java:8` |
+| R4 | GET /books/{id} returns a single book | ✓ implemented | `BookController.java:37-40` — `@GetMapping("/{id}")` with 404 on missing |
+| R5 | PUT /books/{id} updates a book | ✓ implemented | `BookController.java:44-53` — `@PutMapping("/{id}")` updates all fields, 404 on missing |
+| R6 | DELETE /books/{id} deletes a book | ✓ implemented | `BookController.java:57-62` — `@DeleteMapping("/{id}")` with 204 response, 404 on missing |
+| R7 | Data stored in SQLite | ✓ implemented | `application.properties:1` — `jdbc:sqlite:books.db`; `pom.xml:43` — sqlite-jdbc dependency; `pom.xml:47` — hibernate-community-dialects |
+| R8 | JSON responses with appropriate HTTP status codes | ✓ implemented | 201 Created (`BookController.java:25`), 200 OK (`BookController.java:39,51`), 204 No Content (`BookController.java:62`), 404 Not Found (`BookController.java:40,53,59`), 400 Bad Request (`ValidationExceptionHandler.java:23`) |
+| R9 | Input validation: title and author required | ✓ implemented | `Book.java:16-19` — `@NotBlank` on title and author; `ValidationExceptionHandler.java:15-25` returns 400 with field errors |
+| R10 | GET /health health-check endpoint | ✓ implemented | `HealthController.java:10-14` — returns `{"status":"ok"}` |
+| R11 | README.md with setup and run instructions | ✓ implemented | `README.md` — build/run commands, endpoint table, curl examples, status code docs |
+| R12 | At least 3 unit/integration tests | ✓ implemented | `BookControllerTests.java` — 7 `@Test` methods: health, create+persist, validation 400, filter by author, update, delete, 404 |
 
 ## Build & Test
 
-```
-mvn clean compile
-Compiling 7 Java source files...
-[INFO] BUILD SUCCESS
+```text
+Build/test scores from retort.db (not re-run):
+  test_coverage = 1.0 (build + all tests passed)
+  code_quality  = 1.0
+  defect_rate   = 1.0
 ```
 
-```
-mvn test
-[INFO] Tests run: 7, Failures: 0, Errors: 0, Skipped: 0
-[INFO] Results:
-[INFO] Tests run: 7, Failures: 0, Errors: 0, Skipped: 0
-[INFO] BUILD SUCCESS
+```text
+Test suite: BookControllerTests.java
+  7 @Test methods, 0 @Disabled/@Ignore
+  - healthEndpointReturnsOk
+  - createBookReturns201AndPersists
+  - createBookWithoutTitleReturns400
+  - listBooksFiltersByAuthor
+  - updateBookChangesFields
+  - deleteBookRemovesIt
+  - getMissingBookReturns404
 ```
 
 ## Metrics
 
 | Metric | Value |
 |--------|-------|
-| Lines of code (source only) | 174 |
-| Files | 7 |
-| Dependencies | 6 |
+| Lines of code (source only) | 289 (Java) |
+| Files | 19 |
+| Dependencies | 6 (Maven) |
 | Tests total | 7 |
 | Tests effective | 7 |
 | Skip ratio | 0% |
-| Build duration | 3.1s |
-
-## Test Coverage
-
-The test suite covers:
-
-1. **healthEndpointReturnsOk** — Verifies GET /health returns `{"status":"ok"}`
-2. **createBookReturns201AndPersists** — Verifies POST /books creates book with 201 status and Location header
-3. **createBookWithoutTitleReturns400** — Verifies validation rejects missing title with 400 and field error
-4. **listBooksFiltersByAuthor** — Verifies GET /books lists all books and ?author= parameter filters correctly
-5. **updateBookChangesFields** — Verifies PUT /books/{id} updates book fields
-6. **deleteBookRemovesIt** — Verifies DELETE /books/{id} removes book and subsequent GET returns 404
-7. **getMissingBookReturns404** — Verifies GET /books/{id} returns 404 for non-existent IDs
+| Build duration | N/A (scores from DB) |
 
 ## Findings
 
-Top findings (full list in `findings.jsonl`):
+Top 5 by severity (full list in `findings.jsonl`):
 
-1. [info] Comprehensive error handling with field-level validation feedback — ValidationExceptionHandler provides structured feedback on validation failures
+1. [info] Test uses in-memory SQLite rather than file-backed DB for integration tests
 
 ## Reproduce
 
 ```bash
-cd /Users/adriancockcroft/Documents/GitHub/retort/experiment-6/runs/language=java_model=claude-opus-4-7_tooling=beads/rep2
-mvn clean compile
-mvn test
+cd experiment-6/runs/language=java_model=claude-opus-4-7_tooling=beads/rep2
+cat scores.json 2>/dev/null || sqlite3 -readonly ../../retort.db "SELECT rr.metric_name, rr.value FROM run_results rr WHERE rr.run_id = (SELECT er.id FROM experiment_runs er WHERE json_extract(er.run_config_json,'\$.language')='java' AND json_extract(er.run_config_json,'\$.model')='claude-opus-4-7' AND json_extract(er.run_config_json,'\$.tooling')='beads' AND er.replicate=2 AND er.status='completed' ORDER BY er.finished_at DESC LIMIT 1);"
+grep -rE "@Disabled|@Ignore" src/test --include="*.java" | wc -l
+grep -c "@Test" src/test/java/com/example/booksapi/BookControllerTests.java
+find . -name "*.java" -not -path "*/target/*" | xargs wc -l
 ```

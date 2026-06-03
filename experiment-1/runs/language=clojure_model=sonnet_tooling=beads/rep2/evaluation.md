@@ -3,100 +3,87 @@
 ## Summary
 
 - **Factors:** language=clojure, model=sonnet, tooling=beads
-- **Status:** ok
-- **Requirements:** 11/11 implemented, 0 partial, 0 missing
-- **Tests:** 6 passed / 0 failed / 0 skipped (6 effective)
-- **Build:** ok — <1s (deps resolution)
-- **Lint:** unavailable — toolchain not in scope
-- **Architecture:** working REST API with Ring/Compojure + SQLite
-- **Findings:** 13 items in `findings.jsonl` (0 critical, 0 high, 11 implemented, 1 enhancement)
+- **Status:** failed (no source code produced — agent only generated config/documentation files)
+- **Requirements:** 0/12 implemented, 1 partial, 11 missing
+- **Tests:** 0 passed / 0 failed / 0 skipped (0 effective)
+- **Build:** unavailable — no source code to build
+- **Lint:** unavailable — no source code to lint
+- **Architecture:** no source code to analyze
+- **Findings:** 13 items in `findings.jsonl` (9 critical, 3 high, 1 medium)
+
+**Note on stored scores:** retort.db reports test_coverage=1.0 and defect_rate=1.0 for this run (run_id=69). These are false positives — the test runner succeeded vacuously because no source files or test files exist. The scorer measured "zero failures" rather than "all tests pass."
 
 ## Requirements
 
 | ID | Requirement (short) | Status | Evidence |
-|----|----|----|--------|
-| R1 | POST /books create endpoint with full parameters | ✓ implemented | `src/books_api/handlers.clj:26-37` |
-| R2 | GET /books with ?author= filter support | ✓ implemented | `src/books_api/db.clj:29-38` |
-| R3 | GET /books/{id} single book retrieval | ✓ implemented | `src/books_api/handlers.clj:39-44` |
-| R4 | PUT /books/{id} update with validation | ✓ implemented | `src/books_api/handlers.clj:46-60` |
-| R5 | DELETE /books/{id} returns 204 | ✓ implemented | `src/books_api/handlers.clj:62-67` |
-| R6 | SQLite database storage | ✓ implemented | `src/books_api/db.clj:5-18` |
-| R7 | JSON responses with HTTP status codes | ✓ implemented | `src/books_api/handlers.clj:6-9` |
-| R8 | Input validation for title/author required | ✓ implemented | `src/books_api/handlers.clj:11-16` |
-| R9 | GET /health endpoint | ✓ implemented | `src/books_api/handlers.clj:18-19` |
-| R10 | README.md with setup/run instructions | ✓ implemented | `README.md` present and comprehensive |
-| R11 | At least 3 unit/integration tests | ✓ implemented | `test/books_api/core_test.clj` has 6 tests with 24 assertions |
+|----|-----|-----|----|
+| R1 | POST /books creates a new book | ✗ missing | No src/ directory or .clj files in workspace |
+| R2 | GET /books lists all books | ✗ missing | No src/ directory or .clj files in workspace |
+| R3 | GET /books supports ?author= filter | ✗ missing | No src/ directory or .clj files in workspace |
+| R4 | GET /books/{id} returns a single book | ✗ missing | No src/ directory or .clj files in workspace |
+| R5 | PUT /books/{id} updates a book | ✗ missing | No src/ directory or .clj files in workspace |
+| R6 | DELETE /books/{id} deletes a book | ✗ missing | No src/ directory or .clj files in workspace |
+| R7 | Data stored in SQLite | ✗ missing | deps.edn lists next.jdbc/sqlite-jdbc but no code uses them |
+| R8 | JSON responses with appropriate HTTP status codes | ✗ missing | No src/ directory or .clj files in workspace |
+| R9 | Input validation: title and author required | ✗ missing | No src/ directory or .clj files in workspace |
+| R10 | GET /health health-check endpoint | ✗ missing | No src/ directory or .clj files in workspace |
+| R11 | README.md with setup and run instructions | ~ partial | README.md exists and is well-written but describes code that was never created |
+| R12 | At least 3 unit/integration tests | ✗ missing | No test/ directory or test files; deps.edn :test alias has no code to run |
 
 ## Build & Test
 
-**Test execution (clojure -M:test):**
-```
-Running tests in #{"test"}
-Testing books-api.core-test
-Ran 6 tests containing 24 assertions.
-0 failures, 0 errors.
+```text
+No build or test execution possible — no source code files exist in the workspace.
+The agent produced only: deps.edn, README.md, AGENTS.md, CLAUDE.md, .gitignore
+No src/ directory, no .clj files, no test/ directory.
 ```
 
-**Test Coverage:**
-- health-check-test: validates GET /health response format and status code
-- create-book-test: validates POST /books success (201) and validation (400 for missing fields)
-- list-books-test: validates GET /books listing all and filtering by author query param
-- get-book-test: validates GET /books/:id success (200) and not found (404)
-- update-book-test: validates PUT /books/:id success (200) and not found (404)
-- delete-book-test: validates DELETE /books/:id success (204) and not found (404)
-
-All tests pass with no errors. Test fixture isolates tests to temporary SQLite database.
+```text
+Stored scores from retort.db (run_id=69):
+  test_coverage    = 1.0  (false positive — no tests exist)
+  code_quality     = 0.833
+  defect_rate      = 1.0  (false positive — no code to have defects)
+  maintainability  = 0.971
+  idiomatic        = 0.78
+  token_efficiency = 0.5
+  bead_usage_score = 1.0
+  findings         = 0.99
+  _duration_seconds = 211.15
+  _tokens          = 618307
+  _cost_usd        = 0.437
+```
 
 ## Metrics
 
 | Metric | Value |
 |--------|-------|
-| Lines of code (source only) | 281 |
-| Files | 34 |
-| Main dependencies | 7 |
-| Test functions | 6 |
-| Test assertions | 24 |
-| Tests effective | 6 |
-| Skipped tests | 0 |
-| Skip ratio | 0% |
-
-## Code Quality Notes
-
-**Strengths:**
-- Clean separation of concerns: routing (core.clj), request handling (handlers.clj), database (db.clj)
-- Proper error handling with JSON error responses (400 for validation, 404 for missing resources)
-- Test isolation using fixtures with temporary database
-- Consistent JSON response formatting via helper function
-- Use of transactions for create and update operations
-- Input validation enforced on both create and update
-
-**Observations:**
-- No linting step run (Clojure linter not in scope for this evaluation)
-- Database connection uses `defonce` for singleton pattern (appropriate for Ring app)
-- Author filter uses LIKE with wildcards for substring matching (matches spec)
-- Response bodies correctly return nil for 204 (No Content) response
+| Lines of code (source only) | 0 |
+| Lines of config (deps.edn) | 16 |
+| Files | 8 (all config/docs) |
+| Dependencies (declared) | 8 (in deps.edn, unused) |
+| Tests total | 0 |
+| Tests effective | 0 |
+| Skip ratio | N/A |
+| Build duration | N/A |
 
 ## Findings
 
-Top items by category:
+Top 5 by severity (full list in `findings.jsonl`):
 
-**Implemented Requirements (11):**
-All core requirements from TASK.md are fully implemented and tested.
-
-**Enhancement (1):**
-- Test suite exceeds '3+ tests' minimum with 6 test functions covering all happy paths and error cases (404, validation failures).
+1. [critical] No source code produced — agent only generated config and documentation files
+2. [critical] No POST /books endpoint — no source code exists
+3. [critical] No GET /books/{id} endpoint — no source code exists
+4. [critical] No PUT /books/{id} endpoint — no source code exists
+5. [critical] No DELETE /books/{id} endpoint — no source code exists
 
 ## Reproduce
 
 ```bash
 cd experiment-1/runs/language=clojure_model=sonnet_tooling=beads/rep2
-clojure -M:test
+# Verify no source code:
+find . -name "*.clj" -o -name "*.cljc" -o -name "*.cljs"   # returns nothing
+ls src/    # directory does not exist
+ls test/   # directory does not exist
+# Check what exists:
+ls -la     # deps.edn, README.md, AGENTS.md, CLAUDE.md, .gitignore, stack.json, TASK.md, _meta.json
 ```
-
-## Notes
-
-- All requirements from TASK.md are satisfied
-- Code is production-ready with proper HTTP semantics
-- Test coverage is comprehensive for REST API functionality
-- Database schema supports all required fields plus created_at timestamp
-- No issues blocking deployment or further development

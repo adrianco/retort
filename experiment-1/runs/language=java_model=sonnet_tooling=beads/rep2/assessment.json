@@ -1,14 +1,20 @@
 {
   "severity_counts": {
-    "critical": 0,
-    "high": 0,
+    "critical": 8,
+    "high": 4,
     "medium": 0,
     "low": 0,
     "info": 0
   },
-  "penalty_score": 1.0,
-  "top_findings": [],
-  "requirement_coverage": null,
-  "model": "unknown",
-  "evaluated_at": "2026-04-18T22:32:51Z"
+  "penalty_score": 0.0,
+  "top_findings": [
+    {"id": "R1", "kind": "requirement_missing", "severity": "critical", "title": "POST /books — no source code in archive", "evidence": "No src/ directory or .java files exist in workspace. Only pom.xml and README.md scaffolding present. Directory listing: _meta.json, .gitignore, AGENTS.md, CLAUDE.md, pom.xml, README.md, stack.json, TASK.md", "suggestion": "Source files may have been lost during archiving; re-archive from the original workspace"},
+    {"id": "R2", "kind": "requirement_missing", "severity": "critical", "title": "GET /books — no source code in archive", "evidence": "No src/ directory or .java files exist in workspace", "suggestion": "Source files may have been lost during archiving"},
+    {"id": "R4", "kind": "requirement_missing", "severity": "critical", "title": "GET /books/{id} — no source code in archive", "evidence": "No src/ directory or .java files exist in workspace", "suggestion": "Source files may have been lost during archiving"},
+    {"id": "R5", "kind": "requirement_missing", "severity": "critical", "title": "PUT /books/{id} — no source code in archive", "evidence": "No src/ directory or .java files exist in workspace", "suggestion": "Source files may have been lost during archiving"},
+    {"id": "R6", "kind": "requirement_missing", "severity": "critical", "title": "DELETE /books/{id} — no source code in archive", "evidence": "No src/ directory or .java files exist in workspace", "suggestion": "Source files may have been lost during archiving"}
+  ],
+  "requirement_coverage": 0.0,
+  "model": "sonnet",
+  "evaluated_at": "2026-06-03T11:37:03Z"
 }

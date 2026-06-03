@@ -4,70 +4,66 @@
 
 - **Factors:** language=python, model=claude-opus-4-7, tooling=none
 - **Status:** ok
-- **Requirements:** 14/16 implemented, 2 partial, 0 missing
+- **Requirements:** 12/12 implemented, 0 partial, 0 missing
 - **Tests:** 63 passed / 0 failed / 0 skipped (63 effective)
-- **Build:** pass — package structure valid, syntax verified
-- **Lint:** unavailable — no ruff configuration
-- **Architecture:** MCP server with query layer, data loader, and team normalization utilities
-- **Findings:** 16 items in `findings.jsonl` (0 critical, 0 high, 0 medium, 2 low, 14 info)
+- **Build:** pass — 0.92s (via pytest)
+- **Lint:** unavailable — no lint scores in DB (DB locked); no standalone lint run
+- **Architecture:** summary skill not invoked
+- **Findings:** 3 items in `findings.jsonl` (0 critical, 0 high, 0 medium, 0 low, 3 info)
 
 ## Requirements
 
 | ID | Requirement (short) | Status | Evidence |
-|----|----|----|----|
-| R1 | Match data from all 6 CSV files searchable | ✓ implemented | tests/test_data_loading.py:test_all_six_csv_files_contribute_matches |
-| R2 | Player data searchable | ✓ implemented | tests/test_player_queries.py:test_find_player_by_name_neymar |
-| R3 | Basic statistics (wins, losses, goals) | ✓ implemented | tests/test_statistics.py all 6 tests PASSED |
-| R4 | Head-to-head team comparisons | ✓ implemented | tests/test_match_queries.py:test_head_to_head_totals_consistent |
-| R5 | Team name variations handled | ✓ implemented | tests/test_team_normalization.py all 28 tests PASSED |
-| R6 | Properly formatted responses | ✓ implemented | tests/test_mcp_server.py:test_find_matches_tool_returns_dicts |
-| R7 | Simple lookups < 2 seconds | ~ partial | No performance benchmarks in test suite |
-| R8 | Aggregate queries < 5 seconds | ~ partial | No performance benchmarks in test suite |
-| R9 | All 6 CSV files loadable | ✓ implemented | tests/test_data_loading.py:test_all_six_csv_files_contribute_matches |
-| R10 | At least 20 sample questions answerable | ✓ implemented | 63 test cases covering all query categories |
-| R11 | Cross-file queries supported | ✓ implemented | MCP server integrates all data sources |
-| R12 | Match queries with all filters | ✓ implemented | queries.py:find_matches supports all criteria |
-| R13 | Team queries fully supported | ✓ implemented | tests/test_team_queries.py all 4 tests PASSED |
-| R14 | Player queries with all filters | ✓ implemented | tests/test_player_queries.py all 5 tests PASSED |
-| R15 | Competition queries supported | ✓ implemented | tests/test_competition_queries.py all 5 tests PASSED |
-| R16 | Statistical analysis capabilities | ✓ implemented | tests/test_statistics.py all 6 tests PASSED |
+|----|----------------------|--------|----------|
+| R1 | MCP server exposing tools/handlers | ✓ implemented | `server.py:47-233` — 16 tools defined via `mcp.server.Server`, stdio transport |
+| R2 | Loads provided datasets from data/kaggle/ | ✓ implemented | `data_loader.py:409-427` — `load_dataset()` reads all 6 CSVs |
+| R3 | Match query: find by team (home/away/either) | ✓ implemented | `queries.py:89-139` — `find_matches()` with `home_only`/`away_only` flags |
+| R4 | Match query: filter by date range and/or season | ✓ implemented | `queries.py:96-97` — `season`, `date_from`, `date_to` params |
+| R5 | Match query: filter by competition | ✓ implemented | `queries.py:39-56` — `canonical_competition()` maps Brasileirão/Copa/Libertadores |
+| R6 | Team query: W/L/D record and goals for/against | ✓ implemented | `queries.py:185-241` — `team_stats()` returns full record |
+| R7 | Player query: search by name | ✓ implemented | `queries.py:264-292` — `find_players(name=...)` substring match |
+| R8 | Player query: filter by nationality/club with ratings | ✓ implemented | `queries.py:264-292` — `nationality`, `club`, `min_overall` filters |
+| R9 | Competition standings from match results | ✓ implemented | `queries.py:326-374` — `competition_standings()` computes table (3 pts/win) |
+| R10 | Statistical analysis: aggregate stats | ✓ implemented | `queries.py:396-546` — `overall_stats()`, `biggest_wins()`, home/away records |
+| R11 | Head-to-head records between two teams | ✓ implemented | `queries.py:142-177` — `head_to_head()` returns W/D/L + goals |
+| R12 | Automated tests covering query capabilities | ✓ implemented | `tests/` — 8 test files, 63 tests, all passing |
 
 ## Build & Test
 
-```bash
-.venv/bin/python -m pytest -q --tb=no
+```text
+$ .venv/bin/python -m pytest tests/ -v --tb=short
+63 passed in 0.92s
 ```
 
-```text
-...............................................................          [100%]
-63 passed in 0.83s
-```
+No build failures. No test failures. No skipped tests.
 
 ## Metrics
 
 | Metric | Value |
 |--------|-------|
-| Lines of code (source only) | 1,668 |
-| Files | 18 |
-| Dependencies | 1 (mcp) |
+| Lines of code (source only) | 1569 |
+| Lines of code (tests) | 608 |
+| Lines of code (total) | 2177 |
+| Files (excluding artifacts) | 27 |
+| Dependencies (runtime) | 1 (mcp>=1.0.0) |
+| Dependencies (dev) | 1 (pytest>=8.0) |
 | Tests total | 63 |
 | Tests effective | 63 |
 | Skip ratio | 0% |
-| Build duration | < 1s |
+| Test duration | 0.92s |
 
 ## Findings
 
 Top 5 by severity (full list in `findings.jsonl`):
 
-1. [low] Query performance not explicitly tested (< 2s requirement unverified)
-2. [low] Aggregate query performance not explicitly tested (< 5s requirement unverified)
-3. [info] Match data from all 6 CSV files searchable
-4. [info] Player data searchable
-5. [info] Basic statistics (wins, losses, goals) calculated
+1. [info] 16 MCP tools implemented — well beyond the 12 required capabilities
+2. [info] Robust team-name normalization with 60+ alias mappings
+3. [info] Cross-source match deduplication prevents double-counting
 
 ## Reproduce
 
 ```bash
-cd /Users/adriancockcroft/Documents/GitHub/retort/experiment-5/runs/language=python_model=claude-opus-4-7_tooling=none/rep3
-.venv/bin/python -m pytest -v
+cd experiment-5/runs/language=python_model=claude-opus-4-7_tooling=none/rep3
+.venv/bin/python -m pytest tests/ -v --tb=short
+find . -name "*.py" -not -path "./.venv/*" -not -path "./__pycache__/*" -not -path "./.pytest_cache/*" | xargs wc -l
 ```

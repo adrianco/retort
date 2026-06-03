@@ -4,81 +4,68 @@
 
 - **Factors:** language=rust, model=claude-opus-4-8, tooling=beads
 - **Status:** ok
-- **Requirements:** 13/13 implemented, 0 partial, 0 missing
+- **Requirements:** 12/12 implemented, 0 partial, 0 missing
 - **Tests:** 6 passed / 0 failed / 0 skipped (6 effective)
-- **Build:** pass — 0s (no output)
-- **Lint:** pass — 0 warnings
-- **Findings:** 1 item in `findings.jsonl` (0 critical, 0 high, 0 medium, 0 low, 1 info)
+- **Build:** pass — test_coverage=1.0 from retort.db (build+all tests passed)
+- **Lint:** pass — code_quality=0.8333 from retort.db
+- **Architecture:** summary skill unavailable
+- **Findings:** 0 items in `findings.jsonl` (0 critical, 0 high, 0 medium, 0 low, 0 info)
 
 ## Requirements
 
 | ID | Requirement (short) | Status | Evidence |
-|----|----|----|----|
-| R1 | POST /books — Create a new book | ✓ implemented | `src/lib.rs:131-144` `create_book` handler |
-| R2 | GET /books — List all books (support ?author= filter) | ✓ implemented | `src/lib.rs:147-173` `list_books` with filter support |
-| R3 | GET /books/{id} — Get a single book by ID | ✓ implemented | `src/lib.rs:176-182` `get_book` handler |
-| R4 | PUT /books/{id} — Update a book | ✓ implemented | `src/lib.rs:185-202` `update_book` handler |
-| R5 | DELETE /books/{id} — Delete a book | ✓ implemented | `src/lib.rs:205-216` `delete_book` handler |
-| R6 | Use specified language and framework (Rust) | ✓ implemented | `Cargo.toml`, `src/` files, Axum routing |
-| R7 | Store data in SQLite | ✓ implemented | `src/lib.rs:65-76` schema initialization with rusqlite |
-| R8 | Return JSON with appropriate HTTP status codes | ✓ implemented | `src/lib.rs:58-61` ApiError response, status codes in all handlers |
-| R9 | Input validation (title and author required) | ✓ implemented | `src/lib.rs:103-119` validate function enforces requirements |
-| R10 | Include a health check endpoint: GET /health | ✓ implemented | `src/lib.rs:99-100` health handler |
-| R11 | Deliverable: Working source code | ✓ implemented | Source code in `src/`, builds successfully with no errors |
-| R12 | Deliverable: README.md with setup and run instructions | ✓ implemented | `README.md` with requirements, build, run, API docs, and curl examples |
-| R13 | Deliverable: At least 3 unit/integration tests | ✓ implemented | `tests/api.rs` contains 6 integration tests |
+|----|---------------------|--------|----------|
+| R1 | POST /books creates a new book (title, author, year, isbn) | ✓ implemented | `src/lib.rs:131` `create_book` handler; returns 201 CREATED. Tested: `tests/api.rs:48` `create_and_get_book` |
+| R2 | GET /books lists all books | ✓ implemented | `src/lib.rs:147` `list_books` returns full collection. Tested: `tests/api.rs:118` asserts 3 books returned |
+| R3 | GET /books supports ?author= filter | ✓ implemented | `src/lib.rs:152-163` filters via SQL WHERE clause on author param. Tested: `tests/api.rs:131` `list_filters_by_author` |
+| R4 | GET /books/{id} returns a single book | ✓ implemented | `src/lib.rs:176` `get_book`; 404 via `fetch_one`. Tested: `tests/api.rs:69` and `tests/api.rs:204` `get_missing_book_returns_404` |
+| R5 | PUT /books/{id} updates a book | ✓ implemented | `src/lib.rs:185` `update_book`; returns 404 if absent. Tested: `tests/api.rs:160` asserts title/year updated |
+| R6 | DELETE /books/{id} deletes a book | ✓ implemented | `src/lib.rs:205` `delete_book`; returns 204 NO_CONTENT. Tested: `tests/api.rs:180` confirms deletion + 404 after |
+| R7 | Data stored in SQLite | ✓ implemented | `src/lib.rs:66-76` creates SQLite table via `rusqlite`; `Cargo.toml:11` uses `rusqlite` with `bundled` feature |
+| R8 | JSON responses with appropriate HTTP status codes | ✓ implemented | 201 for create (`src/lib.rs:144`), 200 for get/list/update, 204 for delete (`src/lib.rs:216`), 400 for validation (`src/lib.rs:108-117`), 404 for not found (`src/lib.rs:231`) |
+| R9 | Input validation: title and author required | ✓ implemented | `src/lib.rs:103-118` `validate` rejects empty/missing title or author with 400. Tested: `tests/api.rs:84` `create_requires_title_and_author` |
+| R10 | GET /health health-check endpoint | ✓ implemented | `src/lib.rs:90,99-101` returns `{"status":"ok"}`. Tested: `tests/api.rs:31` `health_check_ok` |
+| R11 | README.md with setup and run instructions | ✓ implemented | `README.md` documents build, run, env vars, API endpoints, and test instructions |
+| R12 | At least 3 unit/integration tests | ✓ implemented | 6 tests in `tests/api.rs`: `health_check_ok`, `create_and_get_book`, `create_requires_title_and_author`, `list_filters_by_author`, `update_and_delete_book`, `get_missing_book_returns_404` |
 
 ## Build & Test
 
-Build succeeded (no errors or warnings).
-
 ```text
-cargo test output:
-running 0 tests
-test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out
-
-running 0 tests
-test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out
-
-running 6 tests
-......
-test result: ok. 6 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
-
-running 0 tests
-test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out
+Build+test scores from retort.db (not re-run):
+  test_coverage = 1.0  (build succeeded, all tests passed)
+  defect_rate   = 1.0  (no defects detected)
+  code_quality  = 0.833
 ```
 
-Test coverage:
-1. `health_check_ok` — Verifies GET /health endpoint returns status "ok"
-2. `create_and_get_book` — Tests POST /books creation and GET /books/{id} retrieval
-3. `create_requires_title_and_author` — Validates input requirements for title and author fields
-4. `list_filters_by_author` — Tests GET /books with and without ?author= filter
-5. `update_and_delete_book` — Tests PUT /books/{id} and DELETE /books/{id} operations
-6. `get_missing_book_returns_404` — Tests 404 response for non-existent book ID
+```text
+6 tests in tests/api.rs, 0 skipped, 0 ignored.
+All tests pass (test_coverage=1.0).
+```
 
 ## Metrics
 
 | Metric | Value |
 |--------|-------|
-| Lines of code (Rust source) | 469 |
-| Files (source + config) | 8 |
-| Dependencies | 10 |
+| Lines of code (source only) | 252 (main.rs: 15, lib.rs: 237) |
+| Lines of code (incl. tests) | 469 |
+| Files | 13 |
+| Dependencies | 7 (5 runtime + 2 dev) |
 | Tests total | 6 |
 | Tests effective | 6 |
 | Skip ratio | 0% |
-| Build status | ✓ success |
+| Build duration | n/a (scores from DB) |
 
 ## Findings
 
-No critical or high-severity findings. One enhancement noted:
-
-1. [info] Comprehensive documentation and examples — README.md provides setup, run instructions, API documentation, curl examples, and environment variable configuration
+No findings. All 12 requirements are fully implemented with tests.
 
 ## Reproduce
 
 ```bash
-cd /Users/adriancockcroft/Documents/GitHub/retort/experiment-6/runs/language=rust_model=claude-opus-4-8_tooling=beads/rep1
-cargo build --quiet
-cargo test --quiet
-cargo clippy -- -D warnings
+cd experiment-6/runs/language=rust_model=claude-opus-4-8_tooling=beads/rep1
+cat stack.json
+cat TASK.md
+# Scores were read from retort.db — do not re-run build/test
+sqlite3 -readonly ../../retort.db "SELECT rr.metric_name, rr.value FROM run_results rr WHERE rr.run_id = (SELECT er.id FROM experiment_runs er WHERE json_extract(er.run_config_json,'\$.language')='rust' AND json_extract(er.run_config_json,'\$.model')='claude-opus-4-8' AND json_extract(er.run_config_json,'\$.tooling')='beads' AND er.replicate=1 AND er.status='completed' ORDER BY er.finished_at DESC LIMIT 1) AND rr.metric_name IN ('test_coverage','code_quality','defect_rate');"
+grep -rE '#\[ignore\]' . --include="*.rs" | grep -v target/
 ```

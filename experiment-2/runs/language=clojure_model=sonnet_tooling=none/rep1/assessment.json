@@ -1,14 +1,23 @@
 {
   "severity_counts": {
     "critical": 0,
-    "high": 0,
+    "high": 1,
     "medium": 0,
     "low": 0,
     "info": 0
   },
-  "penalty_score": 1.0,
-  "top_findings": [],
-  "requirement_coverage": null,
-  "model": "unknown",
-  "evaluated_at": "2026-04-18T22:21:42Z"
+  "penalty_score": 0.9,
+  "top_findings": [
+    {
+      "id": "R4",
+      "kind": "requirement_partial",
+      "severity": "high",
+      "title": "No date-range filtering \u2014 only season (year) filter implemented",
+      "evidence": "src/brazilian_soccer_mcp/data.clj:186 search-matches accepts :season (integer year) but has no :start-date/:end-date params; src/brazilian_soccer_mcp/tools.clj:33-37 search_matches inputSchema has season but no date-range fields; TASK.md:157-159 lists 'By date range' and 'By season' as separate filter capabilities",
+      "suggestion": "Add :date-from and :date-to keyword params to search-matches and expose date_start/date_end in the search_matches tool inputSchema"
+    }
+  ],
+  "requirement_coverage": 0.9583,
+  "model": "sonnet",
+  "evaluated_at": "2026-06-02T20:22:45Z"
 }

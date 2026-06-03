@@ -1,0 +1,21 @@
+# Brazilian Soccer MCP Server - project + tooling configuration.
+[project]
+name = "brazilian-soccer-mcp"
+version = "1.0.0"
+description = "MCP server providing a knowledge-graph interface over Brazilian soccer datasets"
+requires-python = ">=3.9"
+dependencies = ["mcp>=1.2.0"]
+
+[project.optional-dependencies]
+test = ["pytest>=7.0"]
+
+[project.scripts]
+brazilian-soccer-mcp = "soccer_mcp.server:main"
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+python_files = ["test_*.py"]
+addopts = "-q"
+
+[tool.setuptools]
+packages = ["soccer_mcp"]

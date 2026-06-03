@@ -6,18 +6,18 @@
     "low": 0,
     "info": 0
   },
-  "penalty_score": 0.9,
+  "penalty_score": 0.9000,
   "top_findings": [
     {
       "id": "test-fail",
       "kind": "test_failure",
       "severity": "high",
-      "title": "Tests failed: 1 failures",
-      "evidence": "npm test --silent returned 1 failures",
-      "suggestion": "Fix failing tests"
+      "title": "Test suite failed (exit code 1)",
+      "evidence": "retort.db: test_coverage=0.0862; prior evaluation confirmed npm test exited with code 1, 0 passed / 1 suite failed",
+      "suggestion": "Likely a native-module build issue with better-sqlite3; verify node-gyp / compilation prerequisites are available"
     }
   ],
-  "requirement_coverage": null,
-  "model": "unknown",
-  "evaluated_at": "2026-05-21T17:30:05Z"
+  "requirement_coverage": 1.0,
+  "model": "opus",
+  "evaluated_at": "2026-06-03T20:00:00Z"
 }

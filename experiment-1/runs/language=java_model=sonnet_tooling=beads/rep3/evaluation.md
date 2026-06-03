@@ -3,102 +3,89 @@
 ## Summary
 
 - **Factors:** language=java, model=sonnet, tooling=beads
-- **Status:** ok
-- **Requirements:** 11/11 implemented, 0 partial, 0 missing
-- **Tests:** 10 passed / 0 failed / 0 skipped (10 effective)
-- **Build:** pass — 3.6s
-- **Lint:** unavailable — N/A
-- **Dependencies:** 7
-- **Findings:** 11 items in `findings.jsonl` (0 critical, 0 high, 11 info)
+- **Status:** failed (no Java source code generated — only pom.xml and README.md scaffolding exist)
+- **Requirements:** 1/12 implemented, 0 partial, 11 missing
+- **Tests:** 0 passed / 0 failed / 0 skipped (0 effective)
+- **Build:** pass (vacuous — test_coverage=1.0 from retort.db, but no source to compile or tests to run)
+- **Lint:** unavailable — no source files to lint
+- **Architecture:** summary skill not invoked — no source code to analyze
+- **Findings:** 12 items in `findings.jsonl` (1 critical, 11 high)
 
 ## Requirements
 
 | ID | Requirement (short) | Status | Evidence |
-|----|----|----|
-| R1 | POST /books — Create a new book | ✓ implemented | `BookController.java:25-29` createBook() returns 201 |
-| R2 | GET /books — List all books with author filter | ✓ implemented | `BookController.java:31-37` listBooks() supports @RequestParam author |
-| R3 | GET /books/{id} — Get a single book by ID | ✓ implemented | `BookController.java:39-44` getBook() handles path variable |
-| R4 | PUT /books/{id} — Update a book | ✓ implemented | `BookController.java:46-55` updateBook() updates existing records |
-| R5 | DELETE /books/{id} — Delete a book | ✓ implemented | `BookController.java:57-64` deleteBook() returns 204 |
-| R6 | Use specified language and framework | ✓ implemented | `pom.xml` uses spring-boot-starter-parent with Java 17 |
-| R7 | Store data in SQLite or equivalent | ✓ implemented | `application.properties:1` jdbc:sqlite:books.db |
-| R8 | Return JSON with appropriate HTTP status codes | ✓ implemented | 201 (CREATE), 200 (OK), 404 (NOT FOUND), 204 (NO CONTENT) |
-| R9 | Input validation (title and author required) | ✓ implemented | `Book.java:14,18` @NotBlank annotations |
-| R10 | Health check endpoint GET /health | ✓ implemented | `BookController.java:20-23` returns {status: ok} |
-| R11 | Deliverables: source code, README.md, 3+ tests | ✓ implemented | README.md provided; 10 tests in BookControllerTest |
+|----|-----|-----|----|
+| R1 | POST /books creates a new book | ✗ missing | No Java source files in workspace |
+| R2 | GET /books lists all books | ✗ missing | No Java source files in workspace |
+| R3 | GET /books supports ?author= filter | ✗ missing | No Java source files in workspace |
+| R4 | GET /books/{id} returns single book | ✗ missing | No Java source files in workspace |
+| R5 | PUT /books/{id} updates a book | ✗ missing | No Java source files in workspace |
+| R6 | DELETE /books/{id} deletes a book | ✗ missing | No Java source files in workspace |
+| R7 | Data stored in SQLite | ✗ missing | pom.xml has sqlite-jdbc dep but no entity/repo/config |
+| R8 | JSON responses with HTTP status codes | ✗ missing | No controllers exist |
+| R9 | Input validation: title and author required | ✗ missing | pom.xml has validation starter but no Java code uses it |
+| R10 | GET /health health-check endpoint | ✗ missing | No Java source files in workspace |
+| R11 | README.md with setup and run instructions | ✓ implemented | `README.md` — 78 lines, documents all endpoints, build, run, and test commands |
+| R12 | At least 3 unit/integration tests | ✗ missing | No test files exist |
 
 ## Build & Test
 
-```
-mvn clean compile
-[INFO] Compiling 5 source files with javac [debug release 17] to target/classes
-[INFO] BUILD SUCCESS
-[INFO] Total time: 3.566 s
-```
+```text
+Stored scores from retort.db (build/test not re-run per skill policy):
+  test_coverage  = 1.0
+  code_quality   = 1.0
+  defect_rate    = 1.0
+  idiomatic      = 0.88
+  maintainability = 0.97
+  token_efficiency = 0.5
 
+Note: test_coverage=1.0 is vacuous — with 0 source files and 0 tests,
+Maven reports 0 failures. This does NOT indicate a working implementation.
 ```
-mvn test
-[INFO] Tests run: 10, Failures: 0, Errors: 0, Skipped: 0
-[INFO] BUILD SUCCESS
-[INFO] Total time: 12.853 s
-```
-
-### Test Coverage
-
-All 10 tests passed successfully:
-- healthEndpointReturnsOk
-- createBookReturns201WithValidData
-- createBookReturns400WhenTitleMissing
-- createBookReturns400WhenAuthorMissing
-- listBooksReturnsAllBooks
-- listBooksFiltersByAuthor
-- getBookByIdReturnsBook
-- getBookByIdReturns404ForUnknownId
-- updateBookReturnsUpdatedBook
-- deleteBookReturns204
 
 ## Metrics
 
 | Metric | Value |
 |--------|-------|
-| Lines of code (source only) | 300 |
-| Files (source + test) | 7 |
-| Dependencies | 7 |
-| Tests total | 10 |
-| Tests effective | 10 |
-| Skip ratio | 0% |
-| Build duration | 3.6s |
-| Test duration | 12.9s |
-
-## Architecture
-
-### Project Structure
-- **BooksApplication** - Spring Boot entry point
-- **Book** - JPA entity with validation annotations
-- **BookRepository** - JPA repository with custom findByAuthorIgnoreCase query
-- **BookController** - REST controller exposing all 6 required endpoints
-- **GlobalExceptionHandler** - Exception handling for validation errors
-- **application.properties** - Database and server configuration
-
-### Design Notes
-- Clean separation of concerns (entity, repository, controller)
-- Spring Data JPA for database abstraction
-- SQLite for persistent storage with automatic schema creation (ddl-auto=update)
-- H2 in-memory database for testing
-- Request validation using @Valid and @NotBlank annotations
-- Centralized exception handling for consistent error responses
+| Lines of code (source only) | 0 (Java) |
+| Lines of code (scaffolding) | 144 (pom.xml: 66, README.md: 78) |
+| Files | 8 (all scaffolding/meta — no source) |
+| Dependencies (pom.xml) | 7 |
+| Tests total | 0 |
+| Tests effective | 0 |
+| Skip ratio | N/A |
+| Build duration | N/A (score from DB) |
 
 ## Findings
 
-All requirements implemented. No critical or high-severity issues detected. The implementation is complete, well-structured, and fully tested.
+Top 5 by severity (full list in `findings.jsonl`):
 
-## Reproduction
+1. [critical] No Java source code generated — entire src/ directory is missing
+2. [high] POST /books endpoint not implemented (R1)
+3. [high] GET /books list endpoint not implemented (R2)
+4. [high] GET /books ?author= filter not implemented (R3)
+5. [high] GET /books/{id} endpoint not implemented (R4)
+
+… plus 7 more high-severity findings (R5–R10, R12).
+
+## Reproduce
 
 ```bash
-cd experiment-1/runs/language=java_model=sonnet_tooling=beads/rep3/
-mvn clean compile
-mvn test
-mvn spring-boot:run
-```
+cd experiment-1/runs/language=java_model=sonnet_tooling=beads/rep3
 
-The API server will start on http://localhost:8080 with all endpoints ready to use.
+# Verify no source code
+find . -name "*.java" | wc -l   # → 0
+ls -la                           # only pom.xml, README.md, scaffolding
+
+# Scores were read from retort.db:
+sqlite3 -readonly ../../retort.db "
+  SELECT rr.metric_name, rr.value
+  FROM run_results rr
+  WHERE rr.run_id = (
+    SELECT er.id FROM experiment_runs er
+    WHERE json_extract(er.run_config_json,'$.language')='java'
+      AND json_extract(er.run_config_json,'$.model')='sonnet'
+      AND json_extract(er.run_config_json,'$.tooling')='beads'
+      AND er.replicate=3 AND er.status='completed'
+    ORDER BY er.finished_at DESC LIMIT 1);"
+```

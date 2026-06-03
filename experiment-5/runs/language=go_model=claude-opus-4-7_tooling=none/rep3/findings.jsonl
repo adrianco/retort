@@ -1,0 +1,1 @@
+{"id": "test-skip-1", "kind": "skipped_test", "severity": "medium", "title": "TestPlayersByName is conditionally skipped", "evidence": "internal/query/query_test.go:147 t.Skip(\"Neymar not present in FIFA dataset shipped with repo\")", "suggestion": "Use a player name guaranteed to exist in the dataset instead of Neymar, or load a fixture"}

@@ -3,105 +3,81 @@
 ## Summary
 
 - **Factors:** language=java, model=opus, tooling=none
-- **Status:** ok
-- **Requirements:** 13/13 implemented, 0 partial, 0 missing
-- **Tests:** 5 passed / 0 failed / 0 skipped (5 effective)
-- **Build:** pass — 3.076s
-- **Lint:** unavailable — Java toolchain linting not configured
-- **Architecture:** Spring Boot 3.4.1 REST API with SQLite persistence via JPA/Hibernate
-- **Findings:** 13 items in `findings.jsonl` (0 critical, 0 high, 13 info)
+- **Status:** failed (no Java source files produced — agent generated only project scaffolding)
+- **Requirements:** 1/12 implemented, 1 partial, 10 missing
+- **Tests:** 0 passed / 0 failed / 0 skipped (0 effective)
+- **Build:** unavailable — no source files to compile
+- **Lint:** unavailable — no source files to lint
+- **Architecture:** no source code to analyze; summary skill not applicable
+- **Findings:** 12 items in `findings.jsonl` (1 critical, 10 high, 1 medium)
+
+**Stored scores (retort.db):** test_coverage=1.0, code_quality=1.0, defect_rate=1.0, maintainability=0.967, idiomatic=0.67, token_efficiency=0.5. These scores are contradicted by the workspace state — the archive contains no Java source files, so tests could not have meaningfully passed. The scorer likely saw an empty test suite (0 tests = 0 failures = "pass").
 
 ## Requirements
 
 | ID | Requirement (short) | Status | Evidence |
-|----|----|----|-----|
-| R1 | POST /books — Create a new book | ✓ implemented | `BookController.java:23-28` |
-| R2 | GET /books — List all books with author filter | ✓ implemented | `BookController.java:30-36` |
-| R3 | GET /books/{id} — Get a single book by ID | ✓ implemented | `BookController.java:38-43` |
-| R4 | PUT /books/{id} — Update a book | ✓ implemented | `BookController.java:45-54` |
-| R5 | DELETE /books/{id} — Delete a book | ✓ implemented | `BookController.java:56-63` |
-| R6 | Java + Spring Boot framework | ✓ implemented | `pom.xml:4-8` |
-| R7 | SQLite database storage | ✓ implemented | `pom.xml:30-33, Book.java:@Entity` |
-| R8 | JSON responses with HTTP status codes | ✓ implemented | `BookController uses ResponseEntity` |
-| R9 | Input validation for required fields | ✓ implemented | `Book.java:13,16 @NotBlank, ValidationExceptionHandler.java` |
-| R10 | Health check endpoint GET /health | ✓ implemented | `BookController.java:18-21` |
-| R11 | Working source code delivered | ✓ implemented | `All 6 .java files compile` |
-| R12 | README.md with setup and run instructions | ✓ implemented | `README.md:1-36` |
-| R13 | At least 3 unit/integration tests | ✓ implemented | `5 tests in BookControllerTest.java` |
+|----|----|----|----|
+| R1 | POST /books creates a new book | ✗ missing | No .java files in src/ |
+| R2 | GET /books lists all books | ✗ missing | No .java files in src/ |
+| R3 | GET /books ?author= filter | ✗ missing | No .java files in src/ |
+| R4 | GET /books/{id} returns single book | ✗ missing | No .java files in src/ |
+| R5 | PUT /books/{id} updates a book | ✗ missing | No .java files in src/ |
+| R6 | DELETE /books/{id} deletes a book | ✗ missing | No .java files in src/ |
+| R7 | Data stored in SQLite | ~ partial | pom.xml has sqlite-jdbc dep; application.properties configures it; no @Entity/@Repository |
+| R8 | JSON responses with HTTP status codes | ✗ missing | No controllers exist |
+| R9 | Input validation (title, author required) | ✗ missing | No validation code |
+| R10 | GET /health endpoint | ✗ missing | No health controller |
+| R11 | README.md with setup/run instructions | ✓ implemented | `README.md` — documents setup, run, test, and endpoints |
+| R12 | At least 3 unit/integration tests | ✗ missing | No test .java files; only src/test/resources/application.properties |
 
 ## Build & Test
 
-### Build Output
-```
-[INFO] Scanning for projects...
-[INFO] -----------------------< com.example:books-api >------------------------
-[INFO] Building books-api 1.0.0
-[INFO] --- clean:3.4.0:clean (default-clean) @ books-api ---
-[INFO] --- resources:3.3.1:resources (default-resources) @ books-api ---
-[INFO] --- compiler:3.13.0:compile (default-compile) @ books-api ---
-[INFO] Compiling 5 source files with javac [debug parameters release 21] to target/classes
-[INFO] BUILD SUCCESS
-[INFO] Total time:  3.076 s
+```text
+No Java source files exist in the workspace.
+The agent produced only project scaffolding:
+  - pom.xml (Spring Boot 3.4.1 + SQLite + JPA + validation dependencies)
+  - README.md (setup and run instructions)
+  - .gitignore (target/, *.db, IDE files)
+  - src/test/resources/application.properties (SQLite in-memory config)
+
+Build and test cannot be run — there is nothing to compile.
 ```
 
-### Test Output
-```
-[INFO] T E S T S
-[INFO] -------------------------------------------------------
-[INFO] Running com.example.books.BookControllerTest
-[INFO] Tests run: 5, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 8.290 s
-[INFO] Results:
-[INFO] Tests run: 5, Failures: 0, Errors: 0, Skipped: 0
-[INFO] BUILD SUCCESS
-[INFO] Total time:  12.519 s
+```text
+Stored test_coverage=1.0 from retort.db is misleading:
+with zero test classes, Maven reports 0 tests run / 0 failures,
+which the scorer interprets as a passing suite.
 ```
 
 ## Metrics
 
 | Metric | Value |
 |--------|-------|
-| Lines of code (source only) | 233 |
-| Files | 15 |
-| Dependencies | 6 |
-| Tests total | 5 |
-| Tests effective | 5 |
-| Skip ratio | 0% |
-| Build duration | 3.076s |
-| Test duration | 8.290s |
+| Lines of code (Java source) | 0 |
+| Lines total (XML + MD + properties) | 113 |
+| Files | 7 |
+| Dependencies (pom.xml) | 6 |
+| Tests total | 0 |
+| Tests effective | 0 |
+| Skip ratio | N/A |
+| Build duration | N/A |
 
 ## Findings
 
-All 13 requirements implemented successfully. No issues found.
+Top 5 by severity (full list in `findings.jsonl`):
 
-Top findings:
-1. [info] R1: POST /books — Create a new book
-2. [info] R2: GET /books — List all books with author filter
-3. [info] R3: GET /books/{id} — Get a single book by ID
-4. [info] R4: PUT /books/{id} — Update a book
-5. [info] R5: DELETE /books/{id} — Delete a book
-
-(Full list in `findings.jsonl`)
+1. [critical] No Java source files produced — agent generated only project scaffolding
+2. [high] R1: POST /books endpoint missing — no controller code
+3. [high] R2: GET /books list endpoint missing — no controller code
+4. [high] R3: GET /books ?author= filter missing — no controller code
+5. [high] R4: GET /books/{id} endpoint missing — no controller code
 
 ## Reproduce
 
 ```bash
 cd experiment-1/runs/language=java_model=opus_tooling=none/rep3
-mvn clean compile
-mvn test
+find . -name "*.java"                # confirms zero Java source files
+find src -type f                      # shows only src/test/resources/application.properties
+cat pom.xml                           # Spring Boot project skeleton present
+cat README.md                         # documentation present
 ```
-
-## Notes
-
-**Strengths:**
-- All 13 requirements fully implemented
-- Clean architecture following Spring Boot conventions
-- Comprehensive validation with custom exception handler
-- 100% test pass rate with good coverage (health, create, validation, filter, update, delete)
-- Proper use of HTTP status codes (201 for create, 404 for not found, 204 for delete)
-- Well-documented README with examples
-
-**Code Quality:**
-- Proper separation of concerns (Entity, Repository, Controller)
-- Input validation using standard annotations (@NotBlank)
-- Exception handling with custom handler for validation errors
-- Uses ResponseEntity for flexible response building

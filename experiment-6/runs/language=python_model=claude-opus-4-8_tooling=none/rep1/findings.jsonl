@@ -1,1 +1,1 @@
-{"id": "build-fail", "kind": "build_failure", "severity": "critical", "title": "Build failed", "evidence": "python -m py_compile **/*.py exited with code 127", "suggestion": "Fix build errors before running tests"}
+{"id": "lint-1", "kind": "lint_warning", "severity": "low", "title": "Inline import of urllib.parse.unquote inside do_GET", "evidence": "app.py:119 — `from urllib.parse import unquote` inside function body rather than at module top", "suggestion": "Move the import to the top of the file with other imports"}

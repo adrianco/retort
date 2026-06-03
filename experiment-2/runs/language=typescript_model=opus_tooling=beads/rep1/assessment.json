@@ -1,14 +1,11 @@
 {
-  "severity_counts": {
-    "critical": 0,
-    "high": 0,
-    "medium": 0,
-    "low": 0,
-    "info": 0
-  },
-  "penalty_score": 1.0,
-  "top_findings": [],
-  "requirement_coverage": null,
-  "model": "unknown",
-  "evaluated_at": "2026-04-18T22:30:43Z"
+  "severity_counts": {"critical": 1, "high": 1, "medium": 0, "low": 0, "info": 0},
+  "penalty_score": 0.6500,
+  "top_findings": [
+    {"id": "test-gate", "kind": "test_failure", "severity": "critical", "title": "Test gate failed: test_coverage=0.0 — tests did not execute", "evidence": "retort.db test_coverage=0.0. Archive lacks data/kaggle/ directory and node_modules/, preventing build and test execution.", "suggestion": "Ensure CSV data files and npm dependencies are available at scoring time"},
+    {"id": "R12", "kind": "requirement_partial", "severity": "high", "title": "12 tests written but none executed", "evidence": "test/queries.test.ts:1-107 defines 12 test cases covering all query functions, but test_coverage=0.0 from retort.db means none ran", "suggestion": "Fix test environment (data/kaggle/ + node_modules) so tests execute"}
+  ],
+  "requirement_coverage": 0.9167,
+  "model": "opus",
+  "evaluated_at": "2026-06-03T09:15:00Z"
 }

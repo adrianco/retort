@@ -1,1 +1,14 @@
-{"severity_counts": {"critical": 0, "high": 0, "medium": 0, "low": 0, "info": 0}, "penalty_score": 1.0, "top_findings": [], "requirement_coverage": 1.0, "model": "unknown", "evaluated_at": "2026-04-18T22:25:53.226758Z"}
+{
+  "severity_counts": {"critical": 1, "high": 11, "medium": 0, "low": 0, "info": 0},
+  "penalty_score": 0.0,
+  "top_findings": [
+    {"id": "archive-incomplete", "kind": "build_failure", "severity": "critical", "title": "Production source code missing from archive — src/main does not exist", "evidence": "Only src/test/ exists (5 files, 691 LOC); no src/main/java directory. Tests import com.braziliansoccer.mcp.data.DataLoader, com.braziliansoccer.mcp.tools.MatchTools, com.braziliansoccer.mcp.model.Match, etc. but these classes are absent from the archive. retort.db test_coverage=1.0 confirms code existed at scoring time.", "suggestion": "Re-archive from the original workspace to include src/main; prior evaluation cited 9 source files / 1560 LOC that are now gone"},
+    {"id": "R1", "kind": "requirement_partial", "severity": "high", "title": "MCP server entrypoint not verifiable — source missing from archive", "evidence": "pom.xml:108 declares mainClass=com.braziliansoccer.mcp.BrazilianSoccerMcpServer; MCP SDK dependency at pom.xml:28 (io.modelcontextprotocol.sdk:mcp:0.10.0). Server class not present in archive. test_coverage=1.0 suggests it compiled.", "suggestion": "Re-archive to include src/main; pom.xml and test structure suggest MCP server was implemented"},
+    {"id": "R2", "kind": "requirement_partial", "severity": "high", "title": "Data loading from data/kaggle/ not verifiable — DataLoader class missing", "evidence": "DataLoaderTest.java:4 imports com.braziliansoccer.mcp.data.DataLoader; tests load 6 CSVs (loadBrasileiraoMatches, loadCopaDoBrasilMatches, loadLibertadoresMatches, loadExtendedMatches, loadHistoricalMatches, loadPlayers). test_coverage=1.0 but source absent.", "suggestion": "Re-archive to verify DataLoader implementation reads CSV files from data/kaggle/"},
+    {"id": "R3", "kind": "requirement_partial", "severity": "high", "title": "Match query by team not verifiable — MatchTools class missing", "evidence": "MatchToolsTest.java:56 calls matchTools.searchMatches(\"Palmeiras\", 2022, null, null, null, null); test passes (test_coverage=1.0) but MatchTools.java absent from archive.", "suggestion": "Re-archive to verify MatchTools.searchMatches implementation"},
+    {"id": "R4", "kind": "requirement_partial", "severity": "high", "title": "Date range and season filter not verifiable — source missing", "evidence": "MatchToolsTest.java:102 calls searchMatches(null, null, null, \"2019-01-01\", \"2019-12-31\", 50); season filter tested at line 56 with season=2022. test_coverage=1.0 but implementation absent.", "suggestion": "Re-archive to verify date range and season filtering in MatchTools"}
+  ],
+  "requirement_coverage": 0.0,
+  "model": "sonnet",
+  "evaluated_at": "2026-06-02T16:00:00Z"
+}

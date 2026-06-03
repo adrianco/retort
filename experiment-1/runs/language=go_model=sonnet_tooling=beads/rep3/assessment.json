@@ -3,12 +3,12 @@
     "critical": 0,
     "high": 0,
     "medium": 0,
-    "low": 1,
-    "info": 1
+    "low": 0,
+    "info": 0
   },
-  "penalty_score": 0.99,
+  "penalty_score": 1.0,
   "top_findings": [],
-  "requirement_coverage": 0.0,
-  "model": "unknown",
-  "evaluated_at": "2026-04-18T22:28:14Z"
+  "requirement_coverage": 1.0,
+  "model": "sonnet",
+  "evaluated_at": "2026-06-03T17:26:47Z"
 }

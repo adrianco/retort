@@ -1,14 +1,14 @@
 {
-  "severity_counts": {
-    "critical": 0,
-    "high": 0,
-    "medium": 0,
-    "low": 0,
-    "info": 0
-  },
-  "penalty_score": 1.0,
-  "top_findings": [],
-  "requirement_coverage": null,
-  "model": "unknown",
-  "evaluated_at": "2026-05-21T17:29:32Z"
+  "severity_counts": {"critical": 8, "high": 3, "medium": 0, "low": 0, "info": 0},
+  "penalty_score": 0.0,
+  "top_findings": [
+    {"id": "archive-incomplete", "kind": "build_failure", "severity": "critical", "title": "Java source and test files missing from archive — 0 .java files committed", "evidence": "git ls-files shows only src/test/resources/application.properties under src/; find -name '*.java' returns nothing; git log confirms no .java files were ever committed", "suggestion": "Investigate archival pipeline — _meta.json shows succeeded:true and retort.db has test_coverage=1.0, so code likely existed but was not git-committed by the agent"},
+    {"id": "R1", "kind": "requirement_missing", "severity": "critical", "title": "POST /books — no source code in archive", "evidence": "0 .java files in workspace; README.md:29 documents the endpoint but no controller exists", "suggestion": "Recover source from agent workspace or re-run"},
+    {"id": "R2", "kind": "requirement_missing", "severity": "critical", "title": "GET /books — no source code in archive", "evidence": "0 .java files in workspace; README.md:49 documents the endpoint", "suggestion": "Recover source from agent workspace or re-run"},
+    {"id": "R4", "kind": "requirement_missing", "severity": "critical", "title": "GET /books/{id} — no source code in archive", "evidence": "0 .java files in workspace; README.md:57 documents the endpoint", "suggestion": "Recover source from agent workspace or re-run"},
+    {"id": "R5", "kind": "requirement_missing", "severity": "critical", "title": "PUT /books/{id} — no source code in archive", "evidence": "0 .java files in workspace; README.md:63 documents the endpoint", "suggestion": "Recover source from agent workspace or re-run"}
+  ],
+  "requirement_coverage": 0.1667,
+  "model": "sonnet",
+  "evaluated_at": "2026-06-03T11:35:49Z"
 }

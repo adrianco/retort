@@ -1,60 +1,74 @@
-# Evaluation: language=java_model=opus_tooling=beads · rep3
+# Evaluation: language=java_model=opus_tooling=beads · rep 3
 
 ## Summary
 
-- **Factors:** language=java, agent=unknown, framework=unknown
-- **Status:** ok
-- **Requirements:** 11/11 implemented, 0 partial, 0 missing
-- **Tests:** 5 passed / 0 failed / 0 skipped (5 effective)
-- **Build:** pass — 5.3s
-- **Lint:** unavailable
-- **Architecture:** Javalin REST API with SQLite backend
-- **Findings:** 11 items in `findings.jsonl` (0 critical, 0 high, 0 medium, 0 low, 11 info)
+- **Factors:** language=java, model=opus, tooling=beads
+- **Status:** failed (no Java source code — entire implementation missing)
+- **Requirements:** 1/12 implemented, 0 partial, 11 missing
+- **Tests:** 0 passed / 0 failed / 0 skipped (0 effective)
+- **Build:** unavailable — no source files to compile
+- **Lint:** unavailable — no source files to lint
+- **Architecture:** no source code to analyze; summary skill not applicable
+- **Findings:** 12 items in `findings.jsonl` (1 critical, 11 high)
 
 ## Requirements
 
 | ID | Requirement (short) | Status | Evidence |
-|----|----|----|----| 
-| R1 | POST /books endpoint | ✓ implemented | App.java, BooksApiTest.java:60-71 |
-| R2 | GET /books with author filter | ✓ implemented | App.java, BooksApiTest.java:81-96 |
-| R3 | GET /books/{id} endpoint | ✓ implemented | App.java, BooksApiTest.java:68-70 |
-| R4 | PUT /books/{id} update | ✓ implemented | App.java, BooksApiTest.java:87-90 |
-| R5 | DELETE /books/{id} endpoint | ✓ implemented | App.java, BooksApiTest.java:98-99 |
-| R6 | SQLite database storage | ✓ implemented | pom.xml, BookRepository.java |
-| R7 | JSON responses with proper status codes | ✓ implemented | App.java with appropriate HttpStatus codes |
-| R8 | Input validation (title, author required) | ✓ implemented | App.java validation, BooksApiTest.java:74-78 |
-| R9 | GET /health endpoint | ✓ implemented | App.java, BooksApiTest.java:53-57 |
-| R10 | README.md with setup instructions | ✓ implemented | README.md exists |
-| R11 | At least 3 unit/integration tests | ✓ implemented | BooksApiTest.java: 5 tests |
+|----|----------------------|--------|----------|
+| R1 | POST /books creates a new book | ✗ missing | no src/ directory; zero .java files |
+| R2 | GET /books lists all books | ✗ missing | no src/ directory; zero .java files |
+| R3 | GET /books supports ?author= filter | ✗ missing | no src/ directory; zero .java files |
+| R4 | GET /books/{id} returns a single book | ✗ missing | no src/ directory; zero .java files |
+| R5 | PUT /books/{id} updates a book | ✗ missing | no src/ directory; zero .java files |
+| R6 | DELETE /books/{id} deletes a book | ✗ missing | no src/ directory; zero .java files |
+| R7 | Data stored in SQLite | ✗ missing | sqlite-jdbc in pom.xml:29 but no code uses it |
+| R8 | JSON responses with HTTP status codes | ✗ missing | no src/ directory; zero .java files |
+| R9 | Input validation: title and author required | ✗ missing | no src/ directory; zero .java files |
+| R10 | GET /health health-check endpoint | ✗ missing | no src/ directory; zero .java files |
+| R11 | README.md with setup and run instructions | ✓ implemented | `README.md` — documents build, run, endpoints, status codes |
+| R12 | At least 3 unit/integration tests | ✗ missing | no src/test/ directory; zero test files |
 
 ## Build & Test
 
+```text
+No build or test execution possible — zero Java source files exist in the workspace.
+The agent created pom.xml (Maven build config) and README.md but never generated
+any src/main/java/ or src/test/java/ directories or .java files.
 ```
-mvn clean test
-Tests run: 5, Failures: 0, Errors: 0, Skipped: 0
-BUILD SUCCESS - Total time: 5.270s
-```
+
+Note: retort.db reports test_coverage=1.0, code_quality=1.0, defect_rate=1.0 for this run.
+These scores are misleading — the scorers returned perfect scores because there was nothing
+to fail, not because the implementation is correct.
 
 ## Metrics
 
 | Metric | Value |
 |--------|-------|
-| Lines of code (source only) | 224 |
-| Source files | 3 |
-| Test files | 1 |
-| Dependencies (Maven) | 5 |
-| Tests total | 5 |
-| Tests effective | 5 |
-| Skip ratio | 0% |
-| Build duration | 5.3s |
+| Lines of code (Java source) | 0 |
+| Lines of code (all files) | 300 (pom.xml, README, config) |
+| Files | 9 |
+| Dependencies (pom.xml) | 5 (javalin, jackson, sqlite-jdbc, slf4j, junit) |
+| Tests total | 0 |
+| Tests effective | 0 |
+| Skip ratio | N/A |
+| Build duration | N/A |
 
 ## Findings
 
-All 11 requirements successfully implemented. Build and tests pass without errors. Architecture similar to rep1 but with improved test organization combining related operations into comprehensive test methods.
+Top 5 by severity (full list in `findings.jsonl`):
+
+1. [critical] No Java source code in workspace — entire implementation missing
+2. [high] POST /books endpoint not implemented
+3. [high] GET /books list endpoint not implemented
+4. [high] GET /books ?author= filter not implemented
+5. [high] GET /books/{id} endpoint not implemented
 
 ## Reproduce
 
 ```bash
-cd /home/codespace/gt/retort/refinery/rig/experiment-1/runs/language=java_model=opus_tooling=beads/rep3
-mvn clean test
+cd experiment-1/runs/language=java_model=opus_tooling=beads/rep3
+find . -name "*.java"                          # confirms zero source files
+find . -type f | sort                          # lists all 9 files
+cat stack.json                                 # {"language": "java", ...}
+cat pom.xml                                    # build config exists but nothing to build
 ```

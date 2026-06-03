@@ -1,14 +1,20 @@
 {
   "severity_counts": {
-    "critical": 0,
-    "high": 0,
+    "critical": 1,
+    "high": 10,
     "medium": 0,
     "low": 0,
     "info": 0
   },
-  "penalty_score": 1.0,
-  "top_findings": [],
-  "requirement_coverage": null,
-  "model": "unknown",
-  "evaluated_at": "2026-05-21T17:29:19Z"
+  "penalty_score": 0.0,
+  "top_findings": [
+    {"id": "archive-incomplete", "kind": "build_failure", "severity": "critical", "title": "Archive missing all Java source files — cannot verify implementation", "evidence": "find src/ -name '*.java' returns 0 files; only src/test/resources/application.properties exists; DB scores (test_coverage=1.0, code_quality=1.0, defect_rate=1.0) confirm code existed at scoring time", "suggestion": "Re-archive the run workspace to include all .java source files from src/main/java/ and src/test/java/"},
+    {"id": "R1", "kind": "requirement_partial", "severity": "high", "title": "POST /books — cannot verify from archive; DB test_coverage=1.0 suggests implemented", "evidence": "No .java files in archive; README.md:32-40 describes POST /books with 201/400 responses; DB test_coverage=1.0", "suggestion": "Re-archive workspace to enable source-level verification"},
+    {"id": "R2", "kind": "requirement_partial", "severity": "high", "title": "GET /books — cannot verify from archive; DB test_coverage=1.0 suggests implemented", "evidence": "No .java files in archive; README.md:44-49 describes GET /books; DB test_coverage=1.0", "suggestion": "Re-archive workspace to enable source-level verification"},
+    {"id": "R3", "kind": "requirement_partial", "severity": "high", "title": "GET /books ?author= filter — cannot verify from archive", "evidence": "No .java files in archive; README.md:47 describes ?author= filter with case-insensitive matching; DB test_coverage=1.0", "suggestion": "Re-archive workspace to enable source-level verification"},
+    {"id": "R4", "kind": "requirement_partial", "severity": "high", "title": "GET /books/{id} — cannot verify from archive", "evidence": "No .java files in archive; README.md:53-57 describes GET /books/{id} with 200/404; DB test_coverage=1.0", "suggestion": "Re-archive workspace to enable source-level verification"}
+  ],
+  "requirement_coverage": 0.0833,
+  "model": "sonnet",
+  "evaluated_at": "2026-06-03T19:40:00Z"
 }

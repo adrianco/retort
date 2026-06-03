@@ -1,14 +1,31 @@
 {
   "severity_counts": {
-    "critical": 0,
-    "high": 0,
+    "critical": 1,
+    "high": 1,
     "medium": 0,
-    "low": 1,
-    "info": 1
+    "low": 0,
+    "info": 0
   },
-  "penalty_score": 0.99,
-  "top_findings": [],
-  "requirement_coverage": 1.0,
-  "model": "unknown",
-  "evaluated_at": "2026-04-18T22:38:16.544142Z"
+  "penalty_score": 0.65,
+  "top_findings": [
+    {
+      "id": "test-gate-fail",
+      "kind": "test_failure",
+      "severity": "critical",
+      "title": "Test gate failure: test_coverage=0.0 \u2014 tests did not execute",
+      "evidence": "retort.db run_id=17: test_coverage=0.0, defect_rate=0.0. All mechanical scores are 0.0, indicating the test harness did not run successfully during scoring.",
+      "suggestion": "Verify the scoring environment had fastapi, pytest, and httpx installed; re-run retort score for this cell."
+    },
+    {
+      "id": "R12",
+      "kind": "requirement_partial",
+      "severity": "high",
+      "title": "12 tests exist but did not execute (test_coverage=0.0)",
+      "evidence": "test_api.py contains 12 test functions (test_health_check, test_create_book, etc.) but test_coverage=0.0 from retort.db indicates they never ran.",
+      "suggestion": "Run pytest test_api.py -v in an environment with fastapi/httpx installed to verify tests pass."
+    }
+  ],
+  "requirement_coverage": 0.9167,
+  "model": "sonnet",
+  "evaluated_at": "2026-06-03T20:55:38Z"
 }

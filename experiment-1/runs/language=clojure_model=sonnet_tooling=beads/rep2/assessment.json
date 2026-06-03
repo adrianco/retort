@@ -1,14 +1,14 @@
 {
-  "severity_counts": {
-    "critical": 0,
-    "high": 0,
-    "medium": 0,
-    "low": 1,
-    "info": 11
-  },
-  "penalty_score": 0.99,
-  "top_findings": [],
-  "requirement_coverage": 1.0,
-  "model": "unknown",
-  "evaluated_at": "2026-04-18T22:23:24.925522Z"
+  "severity_counts": {"critical": 9, "high": 3, "medium": 0, "low": 0, "info": 0},
+  "penalty_score": 0.0,
+  "top_findings": [
+    {"id": "R1", "kind": "requirement_missing", "severity": "critical", "title": "No POST /books endpoint — no source code exists", "evidence": "No src/ directory or .clj files in workspace; only deps.edn and README.md were produced", "suggestion": "Agent must create src/books_api/core.clj with Ring/Compojure routes implementing POST /books"},
+    {"id": "R2", "kind": "requirement_missing", "severity": "critical", "title": "No GET /books endpoint — no source code exists", "evidence": "No src/ directory or .clj files in workspace", "suggestion": "Implement GET /books route returning JSON collection"},
+    {"id": "R4", "kind": "requirement_missing", "severity": "critical", "title": "No GET /books/{id} endpoint — no source code exists", "evidence": "No src/ directory or .clj files in workspace", "suggestion": "Implement get-by-id route with 404 handling"},
+    {"id": "R5", "kind": "requirement_missing", "severity": "critical", "title": "No PUT /books/{id} endpoint — no source code exists", "evidence": "No src/ directory or .clj files in workspace", "suggestion": "Implement update route for books"},
+    {"id": "R6", "kind": "requirement_missing", "severity": "critical", "title": "No DELETE /books/{id} endpoint — no source code exists", "evidence": "No src/ directory or .clj files in workspace", "suggestion": "Implement delete route for books"}
+  ],
+  "requirement_coverage": 0.0,
+  "model": "sonnet",
+  "evaluated_at": "2026-06-03T18:30:00Z"
 }

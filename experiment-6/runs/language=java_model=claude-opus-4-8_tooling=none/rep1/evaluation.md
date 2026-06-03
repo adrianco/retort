@@ -6,70 +6,64 @@
 - **Status:** ok
 - **Requirements:** 12/12 implemented, 0 partial, 0 missing
 - **Tests:** 6 passed / 0 failed / 0 skipped (6 effective)
-- **Build:** pass — 2.7s
-- **Lint:** unavailable
-- **Architecture:** Spring Boot REST API with JPA/Hibernate ORM
-- **Findings:** 1 item in `findings.jsonl` (0 critical, 0 high, 1 info)
+- **Build:** pass — via `mvn test` (includes compile + test), BUILD SUCCESS
+- **Lint:** unavailable — no separate lint step; code_quality derived from build success
+- **Architecture:** summary skill not invoked (standalone evaluation)
+- **Findings:** 1 items in `findings.jsonl` (0 critical, 0 high, 0 medium, 0 low, 1 info)
 
 ## Requirements
 
 | ID | Requirement (short) | Status | Evidence |
-|----|----|----|----|
-| R1 | POST /books — Create new book | ✓ implemented | `src/main/java/com/example/bookcollection/BookController.java:29-34` |
-| R2 | GET /books — List all books with author filter | ✓ implemented | `src/main/java/com/example/bookcollection/BookController.java:36-42` |
-| R3 | GET /books/{id} — Get single book by ID | ✓ implemented | `src/main/java/com/example/bookcollection/BookController.java:44-47` |
-| R4 | PUT /books/{id} — Update book | ✓ implemented | `src/main/java/com/example/bookcollection/BookController.java:49-57` |
-| R5 | DELETE /books/{id} — Delete book | ✓ implemented | `src/main/java/com/example/bookcollection/BookController.java:59-66` |
-| R6 | Use specified language and framework | ✓ implemented | Java + Spring Boot (pom.xml:1-57) |
-| R7 | Store data in SQLite/embedded DB | ✓ implemented | `pom.xml:38-41` uses H2 database |
-| R8 | JSON responses with appropriate HTTP status | ✓ implemented | All endpoints use ResponseEntity with appropriate status codes |
-| R9 | Input validation (title, author required) | ✓ implemented | `BookRequest` uses `@Valid`, test validates error handling (BookControllerTest:60-66) |
-| R10 | Health check endpoint: GET /health | ✓ implemented | `src/main/java/com/example/bookcollection/HealthController.java:11` |
-| R11 | README.md with setup/run instructions | ✓ implemented | `README.md` present in workspace |
-| R12 | At least 3 unit/integration tests | ✓ implemented | 6 tests in `BookControllerTest.java` |
+|----|---------------------|--------|----------|
+| R1 | POST /books creates a new book (title, author, year, isbn) | ✓ implemented | `BookController.java:30` — `@PostMapping` accepts `BookRequest` with all four fields, persists via `repository.save()` |
+| R2 | GET /books lists all books | ✓ implemented | `BookController.java:37` — `@GetMapping` returns `repository.findAll()` |
+| R3 | GET /books supports ?author= filter | ✓ implemented | `BookController.java:38-39` — checks `author` param, delegates to `repository.findByAuthorIgnoreCase(author)` |
+| R4 | GET /books/{id} returns a single book | ✓ implemented | `BookController.java:44-46` — `@GetMapping("/{id}")` with 404 via `BookNotFoundException` |
+| R5 | PUT /books/{id} updates a book | ✓ implemented | `BookController.java:49-56` — `@PutMapping("/{id}")` updates all fields and saves |
+| R6 | DELETE /books/{id} deletes a book | ✓ implemented | `BookController.java:59-65` — `@DeleteMapping("/{id}")` with existence check, returns 204 |
+| R7 | Data stored in SQLite (or embedded DB equivalent) | ✓ implemented | `pom.xml:39` H2 dependency; `application.properties` uses `jdbc:h2:file:./data/books` for persistent embedded storage |
+| R8 | JSON responses with appropriate HTTP status codes | ✓ implemented | `BookController.java` returns 201 (create), 200 (read/update), 204 (delete); `GlobalExceptionHandler.java` returns 400/404 with JSON bodies |
+| R9 | Input validation: title and author required | ✓ implemented | `BookRequest.java:10-11` — `@NotBlank` on title and author; `GlobalExceptionHandler.java:24` handles `MethodArgumentNotValidException` |
+| R10 | GET /health endpoint | ✓ implemented | `HealthController.java:11-14` — returns `{"status": "UP"}` |
+| R11 | README.md with setup and run instructions | ✓ implemented | `README.md` — 133 lines, documents setup, build, run, API endpoints, examples, and project layout |
+| R12 | At least 3 unit/integration tests | ✓ implemented | `BookControllerTest.java` — 6 `@SpringBootTest` integration tests: create (201), validation (400), list+filter, CRUD lifecycle, 404, health |
 
 ## Build & Test
 
 ```text
 mvn test
-
-[INFO] Results:
-[INFO]
-[INFO] Tests run: 6, Failures: 0, Errors: 0, Skipped: 0
-[INFO]
-[INFO] BUILD SUCCESS
-[INFO] Total time:  2.733 s
+...
+Tests run: 6, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 2.104 s -- in com.example.bookcollection.BookControllerTest
+Tests run: 6, Failures: 0, Errors: 0, Skipped: 0
+BUILD SUCCESS
 ```
 
-Test cases:
-1. `createBookReturns201AndPersists` - POST returns 201 with persisted data
-2. `createBookWithoutTitleReturns400` - POST validation rejects missing title
-3. `listBooksFiltersByAuthor` - GET with author param filters correctly
-4. `getUpdateAndDeleteLifecycle` - Full CRUD lifecycle works correctly
-5. `getMissingBookReturns404` - GET returns 404 for missing ID
-6. `healthEndpointReturnsUp` - Health endpoint returns UP status
+Note: retort.db was inaccessible (error 14); test results obtained by running `mvn test` directly as fallback.
 
 ## Metrics
 
 | Metric | Value |
 |--------|-------|
-| Lines of code (source only) | 412 |
-| Files | 9 |
-| Dependencies (direct) | 5 |
+| Lines of code (source only) | 412 (283 main + 129 test) |
+| Files | 18 |
+| Dependencies | 5 (spring-boot-starter-web, spring-boot-starter-data-jpa, spring-boot-starter-validation, h2, spring-boot-starter-test) |
 | Tests total | 6 |
 | Tests effective | 6 |
-| Skip ratio | 0% |
-| Build duration | 2.7s |
+| Skip ratio | 0.0% |
+| Build duration | ~2s (test phase) |
 
 ## Findings
 
-None beyond informational (1 item in `findings.jsonl`):
+Top 5 by severity (full list in `findings.jsonl`):
 
-1. [info] H2 database used instead of SQLite — both satisfy embedded DB requirement
+1. [info] Uses H2 instead of SQLite (acceptable embedded DB equivalent per TASK.md allowance)
 
 ## Reproduce
 
 ```bash
-cd /Users/adriancockcroft/Documents/GitHub/retort/experiment-6/runs/language=java_model=claude-opus-4-8_tooling=none/rep1
-mvn clean test
+cd experiment-6/runs/language=java_model=claude-opus-4-8_tooling=none/rep1
+cat stack.json
+cat TASK.md
+mvn test
+find src -name "*.java" -exec wc -l {} +
 ```

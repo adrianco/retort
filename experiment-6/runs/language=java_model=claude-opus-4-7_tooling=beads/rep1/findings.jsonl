@@ -1,1 +1,0 @@
-{"id": "build", "kind": "info", "severity": "info", "title": "Build successful with no warnings", "evidence": "mvn clean compile succeeded", "suggestion": "No action needed"}

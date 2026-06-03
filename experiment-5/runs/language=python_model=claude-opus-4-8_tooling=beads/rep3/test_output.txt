@@ -1,0 +1,63 @@
+============================= test session starts ==============================
+platform darwin -- Python 3.14.5, pytest-9.0.3, pluggy-1.6.0 -- /private/tmp/claude-501/retort-local-3jqbq5qy/retort-3a5b0a06f263/.venv/bin/python3
+cachedir: .pytest_cache
+rootdir: /Users/adriancockcroft/Documents/GitHub/retort/experiment-5/runs/language=python_model=claude-opus-4-8_tooling=beads/rep3
+configfile: pytest.ini (WARNING: ignoring pytest config in pyproject.toml!)
+plugins: cov-7.1.0, asyncio-1.4.0, anyio-4.13.0
+asyncio: mode=Mode.AUTO, debug=False, asyncio_default_fixture_loop_scope=None, asyncio_default_test_loop_scope=function
+collecting ... collected 52 items
+
+tests/test_competition_and_stats.py::TestStandings::test_2019_brasileirao_champion_is_flamengo PASSED [  1%]
+tests/test_competition_and_stats.py::TestStandings::test_standings_points_consistency PASSED [  3%]
+tests/test_competition_and_stats.py::TestStandings::test_standings_ordered_by_points PASSED [  5%]
+tests/test_competition_and_stats.py::TestStandings::test_historical_season_from_novo_source PASSED [  7%]
+tests/test_competition_and_stats.py::TestListCompetitions::test_lists_core_competitions_with_seasons PASSED [  9%]
+tests/test_competition_and_stats.py::TestStatistics::test_average_goals_per_match_is_reasonable PASSED [ 11%]
+tests/test_competition_and_stats.py::TestStatistics::test_biggest_wins_sorted_by_margin PASSED [ 13%]
+tests/test_competition_and_stats.py::TestStatistics::test_best_home_record PASSED [ 15%]
+tests/test_competition_and_stats.py::TestStatistics::test_best_away_record PASSED [ 17%]
+tests/test_data_loading.py::TestDateParsing::test_iso_format PASSED      [ 19%]
+tests/test_data_loading.py::TestDateParsing::test_brazilian_format PASSED [ 21%]
+tests/test_data_loading.py::TestDateParsing::test_datetime_with_time PASSED [ 23%]
+tests/test_data_loading.py::TestDateParsing::test_missing_or_invalid PASSED [ 25%]
+tests/test_data_loading.py::TestGraphLoading::test_all_six_files_contribute PASSED [ 26%]
+tests/test_data_loading.py::TestGraphLoading::test_matches_and_players_counts_are_substantial PASSED [ 28%]
+tests/test_data_loading.py::TestGraphLoading::test_competitions_present PASSED [ 30%]
+tests/test_data_loading.py::TestGraphLoading::test_primary_dedup_one_brasileirao_source_per_season PASSED [ 32%]
+tests/test_data_loading.py::TestGraphLoading::test_team_index_lookup PASSED [ 34%]
+tests/test_match_queries.py::TestFindMatches::test_find_matches_between_two_teams PASSED [ 36%]
+tests/test_match_queries.py::TestFindMatches::test_find_matches_by_team_and_season PASSED [ 38%]
+tests/test_match_queries.py::TestFindMatches::test_find_matches_home_only PASSED [ 40%]
+tests/test_match_queries.py::TestFindMatches::test_find_matches_by_competition PASSED [ 42%]
+tests/test_match_queries.py::TestHeadToHead::test_fla_flu_head_to_head_totals_are_consistent PASSED [ 44%]
+tests/test_match_queries.py::TestHeadToHead::test_last_meeting_returns_most_recent PASSED [ 46%]
+tests/test_match_queries.py::TestHeadToHead::test_head_to_head_symmetry PASSED [ 48%]
+tests/test_mcp_server.py::test_all_expected_tools_registered PASSED      [ 50%]
+tests/test_mcp_server.py::test_tool_call_round_trip_returns_json PASSED  [ 51%]
+tests/test_mcp_server.py::TestPerformanceBudget::test_simple_lookup_under_2s PASSED [ 53%]
+tests/test_mcp_server.py::TestPerformanceBudget::test_aggregate_query_under_5s PASSED [ 55%]
+tests/test_mcp_server.py::TestPerformanceBudget::test_full_graph_load_under_5s PASSED [ 57%]
+tests/test_mcp_server.py::TestSampleQuestionCoverage::test_twenty_plus_sample_questions PASSED [ 59%]
+tests/test_mcp_server.py::TestSampleQuestionCoverage::test_cross_file_query_player_plus_match PASSED [ 61%]
+tests/test_normalization.py::TestSuffixStripping::test_unambiguous_team_merges_across_suffix_forms PASSED [ 63%]
+tests/test_normalization.py::TestSuffixStripping::test_full_legal_name_maps_to_short_name PASSED [ 65%]
+tests/test_normalization.py::TestAmbiguousTeams::test_same_base_different_state_stay_distinct[Atl\xe9tico-MG-Atl\xe9tico-PR] PASSED [ 67%]
+tests/test_normalization.py::TestAmbiguousTeams::test_same_base_different_state_stay_distinct[Atl\xe9tico-MG-Atl\xe9tico-GO] PASSED [ 69%]
+tests/test_normalization.py::TestAmbiguousTeams::test_same_base_different_state_stay_distinct[Am\xe9rica-MG-Am\xe9rica-RN] PASSED [ 71%]
+tests/test_normalization.py::TestAmbiguousTeams::test_atletico_mineiro_full_name_matches_mg_suffix PASSED [ 73%]
+tests/test_normalization.py::TestAmbiguousTeams::test_athletico_spelling_variant_unifies PASSED [ 75%]
+tests/test_normalization.py::TestAccentsAndDisplay::test_accent_folding PASSED [ 76%]
+tests/test_normalization.py::TestAccentsAndDisplay::test_display_preserves_accents PASSED [ 78%]
+tests/test_player_queries.py::TestPlayerSearch::test_search_by_name PASSED [ 80%]
+tests/test_player_queries.py::TestPlayerSearch::test_find_all_brazilian_players PASSED [ 82%]
+tests/test_player_queries.py::TestPlayerSearch::test_top_brazilian_players_sorted_descending PASSED [ 84%]
+tests/test_player_queries.py::TestPlayerSearch::test_search_by_position PASSED [ 86%]
+tests/test_player_queries.py::TestPlayerSearch::test_min_overall_filter PASSED [ 88%]
+tests/test_player_queries.py::TestBrazilianPlayersByClub::test_grouped_by_club_with_averages PASSED [ 90%]
+tests/test_team_queries.py::TestTeamRecord::test_team_statistics_have_all_fields PASSED [ 92%]
+tests/test_team_queries.py::TestTeamRecord::test_corinthians_home_record_2022_matches_spec_shape PASSED [ 94%]
+tests/test_team_queries.py::TestTeamRecord::test_points_calculation PASSED [ 96%]
+tests/test_team_queries.py::TestTeamRecord::test_venue_split_sums_to_overall PASSED [ 98%]
+tests/test_team_queries.py::TestCompareTeams::test_compare_returns_both_records_and_h2h PASSED [100%]
+
+============================== 52 passed in 2.36s ==============================

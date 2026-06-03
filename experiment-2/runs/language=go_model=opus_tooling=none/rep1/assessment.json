@@ -1,52 +1,23 @@
 {
   "severity_counts": {
     "critical": 0,
-    "high": 2,
-    "medium": 6,
+    "high": 1,
+    "medium": 0,
     "low": 0,
-    "info": 11
+    "info": 0
   },
-  "penalty_score": 0.62,
+  "penalty_score": 0.9000,
   "top_findings": [
     {
-      "id": "missing-integration",
-      "kind": "missing_test",
+      "id": "R4",
+      "kind": "requirement_partial",
       "severity": "high",
-      "title": "No MCP protocol integration tests",
-      "evidence": "No tests of main.go RPC handler or tool invocations against schema",
-      "suggestion": "Add integration tests for initialize, tools/list, tools/call RPC methods"
-    },
-    {
-      "id": "sample-questions",
-      "kind": "missing_test",
-      "severity": "high",
-      "title": "No sample question tests (target: 20+)",
-      "evidence": "TASK.md requires 'at least 20 sample questions can be answered'; no test coverage",
-      "suggestion": "Add test file with 20+ example queries from each requirement category"
-    },
-    {
-      "id": "R7",
-      "kind": "requirement_unverified",
-      "severity": "medium",
-      "title": "\u26a0 Simple lookups respond in < 2 seconds \u2014 cannot verify",
-      "evidence": "Performance tests not in test suite"
-    },
-    {
-      "id": "R8",
-      "kind": "requirement_unverified",
-      "severity": "medium",
-      "title": "\u26a0 Aggregate queries respond in < 5 seconds \u2014 cannot verify",
-      "evidence": "Performance tests not in test suite"
-    },
-    {
-      "id": "R9",
-      "kind": "requirement_unverified",
-      "severity": "medium",
-      "title": "\u26a0 No timeout errors \u2014 cannot verify",
-      "evidence": "No timeout handling or stress tests"
+      "title": "Date range filter missing — only season filter implemented",
+      "evidence": "main.go:55 matches_by_team tool accepts season and competition but no start_date/end_date params; query.go:83 has MatchesBySeason but no date range function",
+      "suggestion": "Add date range parameters (start_date, end_date) to matches_by_team tool and implement DateRange filtering in query.go"
     }
   ],
-  "requirement_coverage": 0.6666666666666666,
+  "requirement_coverage": 0.9167,
   "model": "unknown",
-  "evaluated_at": "2026-04-18T22:24:01Z"
+  "evaluated_at": "2026-06-02T22:00:00Z"
 }

@@ -6,81 +6,70 @@
 - **Status:** ok
 - **Requirements:** 12/12 implemented, 0 partial, 0 missing
 - **Tests:** 6 passed / 0 failed / 0 skipped (6 effective)
-- **Build:** pass — 0.51s
-- **Lint:** pass — 0 warnings
-- **Architecture:** REST API with embedded SQLite database using axum framework
-- **Findings:** 2 items in `findings.jsonl` (0 critical, 0 high, 0 medium, 0 low, 2 info)
+- **Build:** pass (derived from `cargo test`) — 0.39s
+- **Lint:** unavailable (derived; no separate lint run)
+- **Architecture:** see `summary/index.md`
+- **Findings:** 1 items in `findings.jsonl` (0 critical, 0 high, 0 medium, 0 low, 1 info)
 
 ## Requirements
 
 | ID | Requirement (short) | Status | Evidence |
-|----|----|----|-----|
-| R1 | POST /books — Create a new book (title, author, year, isbn) | ✓ implemented | `src/handlers.rs:24-33`, tests confirm creation with all fields |
-| R2 | GET /books — List all books (support ?author= filter) | ✓ implemented | `src/handlers.rs:35-42`, `src/models.rs:24-27`, filter logic in `src/db.rs:71-91` |
-| R3 | GET /books/{id} — Get a single book by ID | ✓ implemented | `src/handlers.rs:44-51`, database lookup in `src/db.rs:62-69` |
-| R4 | PUT /books/{id} — Update a book | ✓ implemented | `src/handlers.rs:53-63`, update logic in `src/db.rs:93-109` |
-| R5 | DELETE /books/{id} — Delete a book | ✓ implemented | `src/handlers.rs:65-72`, delete logic in `src/db.rs:111-117` |
-| R6 | Store data in SQLite | ✓ implemented | `src/db.rs` uses rusqlite with schema in `src/db.rs:6-16` |
-| R7 | Return JSON responses with appropriate HTTP status codes | ✓ implemented | `src/error.rs:21-31` maps errors to StatusCode; handlers return proper codes (201 Created, 204 No Content, etc.) |
-| R8 | Include input validation (title and author are required) | ✓ implemented | `src/handlers.rs:17-22` validates required fields; tests confirm BAD_REQUEST on missing fields |
-| R9 | Include a health check endpoint: GET /health | ✓ implemented | `src/handlers.rs:13-15`, route defined in `src/lib.rs:16` |
-| R10 | Working source code in the workspace directory | ✓ implemented | All source files present in `src/`, build and tests pass |
-| R11 | A README.md with setup and run instructions | ✓ implemented | `README.md` includes setup, environment variables, endpoint documentation, and example requests |
-| R12 | At least 3 unit/integration tests | ✓ implemented | 6 tests: health check, create validation, list/filter, get/update/delete lifecycle, etc. |
+|----|----|----|----| 
+| R1 | POST /books creates a new book (title, author, year, isbn) | ✓ implemented | `src/handlers.rs:24-33` create_book handler; `src/db.rs:41-59` insert; returns 201 CREATED |
+| R2 | GET /books lists all books | ✓ implemented | `src/handlers.rs:35-42` list_books; `src/db.rs:71-90` list function |
+| R3 | GET /books supports ?author= filter | ✓ implemented | `src/models.rs:22-27` ListQuery; `src/db.rs:72-78` filters by author param |
+| R4 | GET /books/{id} returns a single book | ✓ implemented | `src/handlers.rs:44-49` get_book; `src/db.rs:62-69` returns NotFound on miss |
+| R5 | PUT /books/{id} updates a book | ✓ implemented | `src/handlers.rs:53-62` update_book; `src/db.rs:93-109` update function |
+| R6 | DELETE /books/{id} deletes a book | ✓ implemented | `src/handlers.rs:65-71` delete_book; `src/db.rs:111-117` delete function |
+| R7 | Data stored in SQLite | ✓ implemented | `Cargo.toml:11` rusqlite with bundled feature; `src/db.rs:19-23` opens file-based Connection |
+| R8 | JSON responses with appropriate HTTP status codes | ✓ implemented | 201 Created (`handlers.rs:32`), 200 OK (implicit), 204 No Content (`handlers.rs:71`), 404/400 (`error.rs:23-29`) |
+| R9 | Input validation: title and author required | ✓ implemented | `src/handlers.rs:17-22` require_field rejects empty/missing; tested in `create_book_validates_required_fields` |
+| R10 | GET /health health-check endpoint | ✓ implemented | `src/handlers.rs:13-15` returns `{"status":"ok"}`; `src/lib.rs:16` route registered |
+| R11 | README.md with setup and run instructions | ✓ implemented | `README.md` (93 lines) covers requirements, setup, run, endpoints, examples, tests |
+| R12 | At least 3 unit/integration tests | ✓ implemented | 6 integration tests in `tests/integration.rs`, all pass |
 
 ## Build & Test
 
 ```text
-$ cargo build --quiet
-(No output — build succeeded)
+cargo test (fallback — retort.db unavailable)
+```
 
-$ cargo test --quiet
-running 0 tests
-test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
-
-running 0 tests
-test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
-
+```text
 running 6 tests
-......
-test result: ok. 6 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+test health_endpoint_returns_ok ... ok
+test create_book_validates_required_fields ... ok
+test create_book_returns_created_and_assigns_id ... ok
+test get_missing_book_returns_404 ... ok
+test list_books_supports_author_filter ... ok
+test get_update_delete_book_lifecycle ... ok
 
-running 0 tests
-test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+test result: ok. 6 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.01s
 ```
 
 ## Metrics
 
 | Metric | Value |
 |--------|-------|
-| Lines of code (source only, excluding tests) | 442 |
-| Files (source + config, excluding target/.git) | 13 |
-| Dependencies | 16 |
+| Lines of code (source only) | 442 (.rs files) |
+| Files | 14 |
+| Dependencies | 13 (10 runtime + 3 dev) |
 | Tests total | 6 |
 | Tests effective | 6 |
 | Skip ratio | 0% |
-| Build duration | 0.51s |
+| Build duration | 0.39s |
 
 ## Findings
 
-All requirements met. Two informational enhancements noted:
+Top 5 by severity (full list in `findings.jsonl`):
 
-1. [info] Comprehensive error handling with thiserror — ApiError enum with proper HTTP status code mapping
-2. [info] Router setup follows axum best practices — clean Router configuration with proper state management
-
-## Code Quality
-
-- **Clippy linting:** No warnings (cargo clippy -- -D warnings passed)
-- **Error handling:** Comprehensive with proper HTTP status codes (404 Not Found, 400 Bad Request, 201 Created, 204 No Content)
-- **Async/await:** Properly structured using tokio runtime
-- **Database:** Transaction-safe SQLite operations with proper error handling
-- **Testing:** Integration tests with in-memory database, comprehensive coverage of happy path and error cases
+1. [info] DB scores unavailable — evaluated via cargo test fallback
 
 ## Reproduce
 
 ```bash
-cd "/Users/adriancockcroft/Documents/GitHub/retort/experiment-6/runs/language=rust_model=claude-opus-4-7_tooling=none/rep1"
-cargo build --quiet
-cargo test --quiet
-cargo clippy -- -D warnings
+cd experiment-6/runs/language=rust_model=claude-opus-4-7_tooling=none/rep1
+cargo test
+find . -name "*.rs" -not -path "*/target/*" | xargs wc -l
+find . -type f -not -path "*/target/*" -not -path "*/.git/*" | wc -l
+grep -cE "^\S+ = " Cargo.toml
 ```

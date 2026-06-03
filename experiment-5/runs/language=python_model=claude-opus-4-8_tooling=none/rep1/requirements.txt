@@ -1,0 +1,7 @@
+# Runtime dependency: the Model Context Protocol SDK (provides FastMCP).
+# The data/query layers use only the Python standard library, so the package
+# and its tests run even without this installed.
+mcp>=1.0.0
+
+# Test dependency
+pytest>=7.0

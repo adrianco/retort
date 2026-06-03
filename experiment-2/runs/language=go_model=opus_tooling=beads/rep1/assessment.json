@@ -1,14 +1,11 @@
 {
-  "severity_counts": {
-    "critical": 0,
-    "high": 0,
-    "medium": 0,
-    "low": 0,
-    "info": 0
-  },
-  "penalty_score": 1.0,
-  "top_findings": [],
-  "requirement_coverage": 1.0,
-  "model": "unknown",
-  "evaluated_at": "2026-04-18T22:22:26Z"
+  "severity_counts": {"critical": 0, "high": 2, "medium": 0, "low": 0, "info": 0},
+  "penalty_score": 0.8000,
+  "top_findings": [
+    {"id": "R2", "kind": "requirement_partial", "severity": "high", "title": "Data loading package missing from archive — cannot verify CSV loading from data/kaggle/", "evidence": "cmd/brsoccer-mcp/main.go:8-9 imports brsoccer/internal/data; main.go:16 calls data.Load(*dataDir). All source files reference data.DB, data.Match, data.Player, data.TeamMatches, data.NormalizeTeam — but internal/data/ directory does not exist in archive. defect_rate=1.0 from retort.db confirms build succeeded during original run.", "suggestion": "Ensure internal/data package is included in archived workspace; the data loading logic and CSV parsing cannot be verified without it"},
+    {"id": "archive-incomplete", "kind": "build_failure", "severity": "high", "title": "Archived workspace missing internal/data package — code cannot compile from archive", "evidence": "internal/ contains only mcp/ and query/ directories; no data/ directory. All 10 Go files import brsoccer/internal/data (types: DB, Match, Player; functions: TeamMatches, NormalizeTeam, Load). go.sum also missing. Archive cannot reproduce build.", "suggestion": "Archive process should preserve all source packages including internal/data/ and go.sum"}
+  ],
+  "requirement_coverage": 0.9167,
+  "model": "opus",
+  "evaluated_at": "2026-06-02T20:27:37Z"
 }

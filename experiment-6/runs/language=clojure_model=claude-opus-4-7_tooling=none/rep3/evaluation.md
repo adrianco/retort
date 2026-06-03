@@ -4,70 +4,73 @@
 
 - **Factors:** language=clojure, model=claude-opus-4-7, tooling=none
 - **Status:** ok
-- **Requirements:** 13/13 implemented, 0 partial, 0 missing
-- **Tests:** 6 passed / 0 failed / 0 skipped (6 effective)
-- **Build:** pass — clojure CLI available
-- **Lint:** unavailable — no linter configured
-- **Findings:** 0 items in `findings.jsonl`
+- **Requirements:** 12/12 implemented, 0 partial, 0 missing
+- **Tests:** 7 passed / 0 failed / 0 skipped (7 effective)
+- **Build:** pass — test_coverage=1.0 from retort.db (build+tests succeeded)
+- **Lint:** pass — code_quality=0.833 from retort.db
+- **Architecture:** see `summary/index.md`
+- **Findings:** 2 items in `findings.jsonl` (0 critical, 0 high, 0 medium, 0 low, 2 info)
 
 ## Requirements
 
 | ID | Requirement (short) | Status | Evidence |
-|----|----|----|----| 
-| R1 | POST /books — Create a new book | ✓ implemented | `src/books/handler.clj:52-59`, `src/books/db.clj:32-39`, test `create-and-get-book` |
-| R2 | GET /books — List all books with author filter | ✓ implemented | `src/books/handler.clj:40-43`, `src/books/db.clj:24-27`, test `list-and-filter-by-author` |
-| R3 | GET /books/{id} — Get a single book by ID | ✓ implemented | `src/books/handler.clj:45-50`, `src/books/db.clj:29-30`, test `create-and-get-book` |
-| R4 | PUT /books/{id} — Update a book | ✓ implemented | `src/books/handler.clj:61-71`, `src/books/db.clj:41-46`, test `update-and-delete-book` |
-| R5 | DELETE /books/{id} — Delete a book | ✓ implemented | `src/books/handler.clj:73-78`, `src/books/db.clj:48-50`, test `update-and-delete-book` |
-| R6 | Use the specified language and framework | ✓ implemented | `deps.edn` specifies Clojure, Ring, Compojure, Cheshire |
-| R7 | Store data in SQLite | ✓ implemented | `src/books/db.clj` uses next.jdbc + sqlite-jdbc |
-| R8 | Return JSON responses with appropriate HTTP status codes | ✓ implemented | `src/books/handler.clj:13`, (status 201), (status 400), (status 404) |
-| R9 | Include input validation (title and author required) | ✓ implemented | `src/books/handler.clj:25-33` (validate-book), test `create-validation-errors` |
-| R10 | Include a health check endpoint: GET /health | ✓ implemented | `src/books/handler.clj:82`, test `health-endpoint` |
-| R11 | Working source code in the workspace directory | ✓ implemented | `src/` directory with handler.clj, db.clj, core.clj |
-| R12 | A README.md with setup and run instructions | ✓ implemented | `README.md` with run/test/API documentation |
-| R13 | At least 3 unit/integration tests | ✓ implemented | 6 tests total in `test/books/handler_test.clj` |
+|----|----|----|----|
+| R1 | POST /books creates a new book | ✓ implemented | `src/books/handler.clj:52` create-handler, `src/books/db.clj:32` create-book!, tested `test/books/handler_test.clj:41` |
+| R2 | GET /books lists all books | ✓ implemented | `src/books/handler.clj:40` list-handler, `src/books/db.clj:24` list-books, tested `test/books/handler_test.clj:66` |
+| R3 | GET /books ?author= filter | ✓ implemented | `src/books/handler.clj:41-42` extracts author param, `src/books/db.clj:25` WHERE author = ?, tested `test/books/handler_test.clj:72` |
+| R4 | GET /books/{id} returns single book | ✓ implemented | `src/books/handler.clj:45` get-handler, `src/books/db.clj:29` get-book, tested `test/books/handler_test.clj:49` and `:88` |
+| R5 | PUT /books/{id} updates a book | ✓ implemented | `src/books/handler.clj:61` update-handler, `src/books/db.clj:41` update-book!, tested `test/books/handler_test.clj:77` |
+| R6 | DELETE /books/{id} deletes a book | ✓ implemented | `src/books/handler.clj:73` delete-handler, `src/books/db.clj:48` delete-book!, tested `test/books/handler_test.clj:84` |
+| R7 | Data stored in SQLite | ✓ implemented | `src/books/db.clj:7` dbtype "sqlite", `deps.edn:9` org.xerial/sqlite-jdbc |
+| R8 | JSON responses with appropriate HTTP status codes | ✓ implemented | wrap-json-response at `handler.clj:94`; status codes 200/201/204/400/404 used throughout |
+| R9 | Input validation: title and author required | ✓ implemented | `src/books/handler.clj:25-33` validate-book, tested `test/books/handler_test.clj:53-64` |
+| R10 | GET /health endpoint | ✓ implemented | `src/books/handler.clj:82`, tested `test/books/handler_test.clj:36` |
+| R11 | README.md with setup and run instructions | ✓ implemented | `README.md` covers prerequisites, run, test, and full API docs |
+| R12 | At least 3 unit/integration tests | ✓ implemented | 7 deftest functions in `test/books/handler_test.clj`; test_coverage=1.0 from retort.db |
 
 ## Build & Test
 
+```text
+Build + test scores from retort.db (not re-run):
+  test_coverage:  1.0   (build + all tests passed)
+  code_quality:   0.833
+  defect_rate:    1.0   (build+test succeeded)
+  idiomatic:      0.65
+  maintainability: 0.941
 ```
-clj -M:test
 
-Running tests in #{"test"}
-
-Testing books.handler-test
-Ran 6 tests containing 22 assertions.
-0 failures, 0 errors.
+```text
+7 deftest functions, 0 skipped:
+  health-endpoint, create-and-get-book, create-validation-errors,
+  list-and-filter-by-author, update-and-delete-book, get-missing-returns-404
+  (create-validation-errors contains 3 sub-tests via testing blocks)
 ```
 
 ## Metrics
 
 | Metric | Value |
 |--------|-------|
-| Lines of code (source only) | 265 |
-| Files | 9 |
-| Dependencies | 8 |
-| Tests total | 6 |
-| Tests effective | 6 |
+| Lines of code (source only) | 157 |
+| Files | 6 |
+| Dependencies | 11 (9 main + 2 test) |
+| Tests total | 7 |
+| Tests effective | 7 |
 | Skip ratio | 0% |
-
-## Code Quality
-
-The generated code demonstrates:
-- **Well-structured handlers** with clear separation of concerns (db.clj, handler.clj, core.clj)
-- **Comprehensive input validation** with descriptive error messages
-- **Proper HTTP semantics** (201 for create, 204 for delete, 400 for validation errors, 404 for not found)
-- **Parameterized queries** preventing SQL injection via next.jdbc
-- **Clean test suite** with fixtures for database isolation (fresh-db-fixture)
-- **Full CRUD coverage** with additional filtering and validation tests
+| Build duration | n/a (scores from retort.db) |
 
 ## Findings
 
-No issues found. All requirements implemented, all tests passing, code quality is good.
+Top 5 by severity (full list in `findings.jsonl`):
+
+1. [info] code_quality score 0.83 — minor lint observations
+2. [info] README states tests use in-memory SQLite but tests use temp file
 
 ## Reproduce
 
 ```bash
-cd /Users/adriancockcroft/Documents/GitHub/retort/experiment-6/runs/language=clojure_model=claude-opus-4-7_tooling=none/rep3
-clj -M:test
+cd experiment-6/runs/language=clojure_model=claude-opus-4-7_tooling=none/rep3
+cat stack.json
+cat scores.json  # if present, otherwise query retort.db
+# Tests: clojure -M:test
+# Run: clojure -M:run
 ```

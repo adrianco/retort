@@ -4,135 +4,78 @@
 
 - **Factors:** language=python, model=claude-opus-4-8, tooling=beads
 - **Status:** ok
-- **Requirements:** 10/10 implemented, 0 partial, 0 missing
+- **Requirements:** 12/12 implemented, 0 partial, 0 missing
 - **Tests:** 52 passed / 0 failed / 0 skipped (52 effective)
-- **Build:** pass — 0.3s
-- **Lint:** unavailable (ruff not available)
-- **Architecture:** Modular MCP server with 6 core modules
-- **Findings:** 12 items in `findings.jsonl` (0 critical, 0 high, all positive/info)
+- **Build:** pass (derived from test run) — 0.88s
+- **Lint:** unavailable (no stored code_quality score; linter not run)
+- **Architecture:** summary skill not invoked
+- **Findings:** 6 items in `findings.jsonl` (0 critical, 0 high, 0 medium, 0 low, 6 info)
 
 ## Requirements
 
+Source: `experiment-5/REQUIREMENTS.json` (pinned, 12 requirements)
+
 | ID | Requirement (short) | Status | Evidence |
-|----|----|----|----|----|
-| R1 | Match data search from all CSV files | ✓ implemented | `brazilian_soccer_mcp/data_loader.py:391` — all 6 files loaded |
-| R2 | Player data search and filtering | ✓ implemented | `brazilian_soccer_mcp/query_engine.py:301-343` — search_players() |
-| R3 | Basic statistics calculation | ✓ implemented | `brazilian_soccer_mcp/query_engine.py:187-236` — team_record() |
-| R4 | Team head-to-head comparison | ✓ implemented | `brazilian_soccer_mcp/query_engine.py:238-280` — head_to_head() |
-| R5 | Team name variation handling | ✓ implemented | `brazilian_soccer_mcp/normalize.py:228` — normalize_team() |
-| R6 | Competition queries & standings | ✓ implemented | `brazilian_soccer_mcp/query_engine.py:397-450` — standings(), competition_winner() |
-| R7 | Statistical analysis | ✓ implemented | `brazilian_soccer_mcp/query_engine.py:480-520` — biggest_wins(), league_statistics() |
-| R8 | Date format handling | ✓ implemented | `brazilian_soccer_mcp/normalize.py:95-140` — parse_date() |
-| R9 | UTF-8 & accent support | ✓ implemented | `brazilian_soccer_mcp/normalize.py:48-85` — strip_accents() |
-| R10 | Cross-file queries | ✓ implemented | `brazilian_soccer_mcp/query_engine.py:356-375` — club_player_summary() |
+|----|----|----|----| 
+| R1 | MCP server exposing tools/handlers | ✓ implemented | `server.py:177-184` — `build_mcp()` creates FastMCP, registers 17 tools via `mcp.server.fastmcp`; `run_server.py` entry point |
+| R2 | Loads data/kaggle/ datasets | ✓ implemented | `data_loader.py:347-380` — `_LOADERS` dict maps all 5 match CSVs + `_load_players` for fifa_data.csv; `load_store()` reads from `data/kaggle/` |
+| R3 | Match query: find by team (home/away/either) | ✓ implemented | `query_engine.py:140-171` — `find_matches(team=, home_only=, away_only=)`; `_select()`:107-113 handles all three modes |
+| R4 | Match query: filter by date range/season | ✓ implemented | `query_engine.py:86-106` — `_select()` accepts `season`, `date_from`, `date_to`; `test_match_queries.py:30-35` verifies season filter |
+| R5 | Match query: filter by competition | ✓ implemented | `query_engine.py:43-67` — `_COMPETITION_ALIASES` covers Brasileirao, Copa do Brasil, Libertadores; `test_match_queries.py:37-41` verifies |
+| R6 | Team query: W/L/D record and goals | ✓ implemented | `query_engine.py:189-236` — `team_record()` returns wins, draws, losses, goals_for, goals_against, goal_difference, points, win_rate |
+| R7 | Player query: search by name | ✓ implemented | `query_engine.py:301-343` — `search_players(name=)` does case-insensitive, accent-folded substring match; `test_player_queries.py:34-36` |
+| R8 | Player query: filter by nationality/club with ratings | ✓ implemented | `query_engine.py:301-343` — `search_players(nationality=, club=, position=, min_overall=)`; returns overall, potential, position; `test_player_queries.py:16-47` |
+| R9 | Competition query: season standings from results | ✓ implemented | `query_engine.py:397-448` — `standings()` computes full league table from canonical matches with Pts/W/D/L/GF/GA/GD; `test_competition_queries.py:16-40` |
+| R10 | Statistical analysis: aggregate stats | ✓ implemented | `query_engine.py:474-502` — `league_statistics()` computes avg_goals_per_match, home/away win rates; `biggest_wins()`:504-519; `test_statistics.py` |
+| R11 | Head-to-head records between two teams | ✓ implemented | `query_engine.py:238-272` — `head_to_head()` returns W/L/D, goals, full match list; `test_team_queries.py:39-44` verifies totals |
+| R12 | Automated tests covering query capabilities | ✓ implemented | 52 tests across 7 files (test_match_queries, test_team_queries, test_player_queries, test_competition_queries, test_statistics, test_mcp_server, test_normalization); all pass |
 
 ## Build & Test
 
-```
-Source code compilation (py_compile):
-✓ All source files compile successfully
+Build and test scores not found in `retort.db` or `scores.json` for this run. Fallback: ran test suite directly.
 
-Test execution (pytest):
-============================= test session starts ==============================
-platform darwin -- Python 3.14.5, pytest-9.0.3
-rootdir: /Users/adriancockcroft/Documents/GitHub/retort/experiment-5/runs/language=python_model=claude-opus-4-8_tooling=beads/rep2
-collected 52 items
+```text
+$ .venv/bin/python -m pytest tests/ -v --tb=short
 
 tests/test_competition_queries.py ......                                 [ 11%]
 tests/test_match_queries.py .......                                      [ 25%]
 tests/test_mcp_server.py .......                                         [ 38%]
 tests/test_normalization.py ............                                 [ 61%]
-tests/test_player_queries.py .......                                      [ 75%]
+tests/test_player_queries.py .......                                     [ 75%]
 tests/test_statistics.py .......                                         [ 88%]
 tests/test_team_queries.py ......                                        [100%]
 
-============================== 52 passed in 0.95s ==============================
+============================== 52 passed in 0.88s ==============================
 ```
 
 ## Metrics
 
 | Metric | Value |
 |--------|-------|
-| Lines of code (source only) | 1,638 |
-| Files (source) | 6 |
-| Files (total, excl. venv) | 16 |
+| Lines of code (Python, all .py) | 2,114 |
+| Source files (excl. tests) | 6 (1,638 lines) |
+| Test files | 8 (476 lines) |
+| Project files (excl. venv/caches) | 37 |
 | Dependencies | 2 (mcp>=1.0.0, pytest>=7.0) |
 | Tests total | 52 |
 | Tests effective | 52 |
 | Skip ratio | 0% |
-| Build duration | 0.3s |
-| Data files | 6 CSV files (43,771 rows total) |
-| MCP tools exposed | 17 |
-
-## Data Coverage
-
-| Data Source | Records | Status |
-|-------------|---------|--------|
-| Brasileirao_Matches.csv | 4,180 | ✓ loaded |
-| Brazilian_Cup_Matches.csv | 1,337 | ✓ loaded |
-| Libertadores_Matches.csv | 1,255 | ✓ loaded |
-| BR-Football-Dataset.csv | 10,296 | ✓ loaded |
-| novo_campeonato_brasileiro.csv | 6,886 | ✓ loaded |
-| fifa_data.csv | 18,207 | ✓ loaded |
-| **Total** | **43,161** | **✓ 100%** |
-
-## Test Coverage Summary
-
-- **Match Queries** (7 tests): find_matches by team/opponent/season/competition, date range filtering, team name variation resolution, limit enforcement
-- **Team Queries** (6 tests): team season record, home/away record scopes, points formula, head-to-head record consistency, team comparison bundles
-- **Competition Queries** (6 tests): standings calculation, competition winner, relegated teams identification, league statistics
-- **Player Queries** (7 tests): search by name/nationality/club/position/rating, get_player lookup, Brazilian clubs summary, multiple filter combinations
-- **Normalization** (12 tests): team name canonicalization (with/without state suffix), date parsing (ISO/Brazilian/datetime formats), accent handling
-- **Statistics** (7 tests): biggest wins, best record ranking, home/away win rates, league goal averages, top scoring teams
-- **MCP Server** (7 tests): FastMCP tool registration, tool call wrappers, formatter output validation
-
-## Architecture
-
-The implementation is well-structured with clear separation of concerns:
-
-1. **data_loader.py** (391 LOC) — CSV loading, in-memory DataStore, de-duplication
-2. **query_engine.py** (583 LOC) — 25+ query methods across 5 requirement categories
-3. **normalize.py** (228 LOC) — Team name canonicalization, date/accent handling
-4. **server.py** (194 LOC) — FastMCP tool wrappers and entry point
-5. **formatters.py** (195 LOC) — Human-readable output rendering
-6. **__init__.py** (47 LOC) — Public API exports
-
-All modules have clear docstrings and follow consistent patterns.
+| Test duration | 0.88s |
 
 ## Findings
 
-### All Requirements Satisfied
-- ✓ All 10 functional requirements from TASK.md implemented and tested
-- ✓ All 6 CSV data files successfully loaded and queryable
-- ✓ 17 MCP tools exposed covering all query categories
-- ✓ 52 tests passing, 0 skipped, 0 failures
+Top findings by severity (full list in `findings.jsonl`):
 
-### Code Quality
-- ✓ Clean module separation (6 focused modules)
-- ✓ Comprehensive test coverage (454 test LOC, 52 tests)
-- ✓ Defensive parsing for multiple date/name formats
-- ✓ No compile errors or warnings
-
-### API Completeness
-- ✓ Match queries: find_matches, last_match
-- ✓ Team queries: team_record, head_to_head, compare_teams, competitions_for_team
-- ✓ Player queries: search_players, get_player, brazilian_clubs_summary
-- ✓ Competition queries: standings, competition_winner, relegated_teams
-- ✓ Statistics: league_statistics, biggest_wins, best_record, top_scoring_team
-- ✓ Data: data_summary
-
-## Notes
-
-- Build is very fast (0.3s) and production-ready
-- All data loads from bundled CSV files (no external API required)
-- MCP server can be launched immediately with `brazilian-soccer-mcp` or `python -m brazilian_soccer_mcp.server`
-- Performance: test suite completes in <1s, indicating fast query execution
+1. [info] No stored scores in retort.db or scores.json — used fallback test run
+2. [info] date_from/date_to filtering not directly tested (code implements it)
+3. [info] pytest.importorskip('mcp') conditional skip — not triggered (test passed)
+4. [info] Robust canonical-source deduplication across overlapping datasets (enhancement)
+5. [info] Comprehensive team-name normalization with 28+ alias mappings (enhancement)
+6. [info] 17 MCP tools exposed, exceeds minimum spec (enhancement)
 
 ## Reproduce
 
 ```bash
-cd /Users/adriancockcroft/Documents/GitHub/retort/experiment-5/runs/language=python_model=claude-opus-4-8_tooling=beads/rep2
-source .venv/bin/activate
-python -m pytest -v
-python -m py_compile brazilian_soccer_mcp/*.py
+cd experiment-5/runs/language=python_model=claude-opus-4-8_tooling=beads/rep2
+.venv/bin/python -m pytest tests/ -v --tb=short
 ```

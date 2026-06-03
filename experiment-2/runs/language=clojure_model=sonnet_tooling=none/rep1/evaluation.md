@@ -4,93 +4,72 @@
 
 - **Factors:** language=clojure, model=sonnet, tooling=none
 - **Status:** ok
-- **Requirements:** 12/12 implemented, 0 partial, 0 missing
+- **Requirements:** 11/12 implemented, 1 partial, 0 missing
 - **Tests:** 24 passed / 0 failed / 0 skipped (24 effective)
-- **Build:** pass — <1s
-- **Lint:** unavailable — (clj-kondo not available)
-- **Findings:** 15 items in `findings.jsonl` (0 critical, 0 high, 0 medium, 15 low/info)
+- **Build:** pass (test_coverage=1.0 from retort.db)
+- **Lint:** pass (code_quality=0.8333 from retort.db)
+- **Architecture:** summary skill unavailable
+- **Findings:** 1 item in `findings.jsonl` (0 critical, 1 high, 0 medium)
 
 ## Requirements
 
 | ID | Requirement (short) | Status | Evidence |
 |----|----|----|----|
-| R1 | Search and return match data from all CSV files | ✓ implemented | `src/brazilian_soccer_mcp/data.clj:81-92` loads all 6 CSV files |
-| R2 | Search and return player data | ✓ implemented | `src/brazilian_soccer_mcp/data.clj:318-349` search-players function |
-| R3 | Calculate basic statistics (wins, losses, goals) | ✓ implemented | `src/brazilian_soccer_mcp/data.clj:245-271` team-stats function |
-| R4 | Compare teams head-to-head | ✓ implemented | `src/brazilian_soccer_mcp/data.clj:207-241` head-to-head functions |
-| R5 | Handle team name variations correctly | ✓ implemented | `src/brazilian_soccer_mcp/data.clj:21-36` normalize-team-name |
-| R6 | Return properly formatted responses | ✓ implemented | `src/brazilian_soccer_mcp/tools.clj:7-24` formatting helpers |
-| R7 | MCP protocol support (initialize, tools/list, tools/call) | ✓ implemented | `src/brazilian_soccer_mcp/core.clj:40-71` handle-request |
-| R8 | League standings calculation | ✓ implemented | `src/brazilian_soccer_mcp/data.clj:280-288` competition-standings |
-| R9 | Biggest wins/victories analysis | ✓ implemented | `src/brazilian_soccer_mcp/data.clj:292-299` biggest-wins |
-| R10 | All 6 CSV files loadable and queryable | ✓ implemented | `test/brazilian_soccer_mcp/core_test.clj:58-76` verifies load |
-| R11 | Cross-file queries work (player + match data) | ✓ implemented | `src/brazilian_soccer_mcp/data.clj:all-matches merges all sources |
-| R12 | At least 20 sample questions answerable | ✓ implemented | Tools cover all question types from TASK.md |
+| R1 | MCP server exposing tools/handlers | ✓ implemented | `src/brazilian_soccer_mcp/core.clj:10-71` — JSON-RPC MCP server with initialize, tools/list, tools/call, ping; 7 tools registered via `tools/tools` |
+| R2 | Loads datasets from data/kaggle/ | ✓ implemented | `src/brazilian_soccer_mcp/data.clj:81-92` — `load-all-data!` reads all 6 CSVs (Brasileirao, Copa Brasil, Libertadores, BR-Football, historico, FIFA) |
+| R3 | Match query: find by team (home/away/either) | ✓ implemented | `src/brazilian_soccer_mcp/data.clj:176-206` — `search-matches` with `:team`, `:home-team`, `:away-team` params; `tools.clj:29-38` exposes as `search_matches` |
+| R4 | Match query: filter by date range and/or season | ~ partial | `data.clj:186,199` — filters by `:season` (integer year) only; no `:start-date`/`:end-date` params exist. `tools.clj:35` — inputSchema has `season` but no date-range fields. TASK.md lists "By date range" and "By season" as separate capabilities. |
+| R5 | Match query: filter by competition | ✓ implemented | `data.clj:200-203` — accent-insensitive competition substring filter spanning Brasileirão, Copa do Brasil, Libertadores |
+| R6 | Team query: W/L/D record and goals for/against | ✓ implemented | `data.clj:245-271` — `team-stats` computes W/L/D, goals-for/against, home/away breakdown; `tools.clj:119-138` formats as `get_team_stats` |
+| R7 | Player query: search by name | ✓ implemented | `data.clj:318-349` — `search-players` with `:name` substring filter; `tools.clj:158-170` exposes as `search_players` |
+| R8 | Player query: filter by nationality/club with ratings | ✓ implemented | `data.clj:330-347` — `:nationality`, `:club`, `:min-overall`, `:position` filters; returns overall/potential/position/club attributes |
+| R9 | Competition standings from match results | ✓ implemented | `data.clj:280-288` — `competition-standings` computes points via 3-1-0 system from match results, sorted by points then goal difference |
+| R10 | Statistical analysis: aggregate stats | ✓ implemented | `data.clj:353-373` — `global-stats` (avg goals/match, home/away win rates, draw rate); `data.clj:292-299` — `biggest-wins` by goal difference |
+| R11 | Head-to-head records between two teams | ✓ implemented | `data.clj:207-241` — `head-to-head` returns all matches, `head-to-head-stats` returns W/L/D summary; `tools.clj:102-117` exposes as `get_head_to_head` |
+| R12 | Automated tests covering query capabilities | ✓ implemented | `test/brazilian_soccer_mcp/core_test.clj` — 24 deftest functions covering MCP protocol (4), data loading (2), match queries (5), player queries (3), tool integration (8), JSON round-trip (1); test_coverage=1.0 |
 
 ## Build & Test
 
 ```text
-clojure -M:test
+Build/test scores from retort.db (not re-run):
+  test_coverage = 1.0 (build + all tests passed)
+  code_quality  = 0.8333
+  defect_rate   = 1.0
+  idiomatic     = 0.77
+  maintainability = 0.70
+  token_efficiency = 0.50
+```
 
-Testing brazilian-soccer-mcp.core-test
-
-Ran 24 tests containing 70 assertions.
-0 failures, 0 errors.
+```text
+24 deftest definitions in test/brazilian_soccer_mcp/core_test.clj
+0 skipped, 0 disabled
+24 effective tests
 ```
 
 ## Metrics
 
 | Metric | Value |
 |--------|-------|
-| Lines of code (source only) | 947 |
-| Files (source + config) | 15 |
-| Dependencies | 4 |
+| Lines of code (source only) | 678 (core.clj:100, data.clj:373, tools.clj:205) |
+| Lines of test code | 269 (core_test.clj:258, test_runner.clj:11) |
+| Files | 16 |
+| Dependencies | 3 (clojure 1.11.1, data.csv 1.1.0, cheshire 5.13.0) |
 | Tests total | 24 |
 | Tests effective | 24 |
-| Skip ratio | 0% |
-| Build duration | <1s |
+| Skip ratio | 0.0% |
 
 ## Findings
 
-All 15 findings are positive (info severity):
+Top findings by severity (full list in `findings.jsonl`):
 
-1. [info] All 6 CSV files load and are queryable
-2. [info] Full MCP protocol support (initialize, tools/list, tools/call, notifications)
-3. [info] Team name normalization handles state suffixes, accents, case-insensitivity
-4. [info] All functional requirements implemented
-5. [info] High-quality test coverage (24 tests, 70 assertions, 0 failures)
-6. [info] No skipped or disabled tests
-7. [info] Build compiles cleanly (exit code 0)
-8. [info] Cross-file query support verified
-9. [info] Match data queries fully implemented
-10. [info] Player data queries fully implemented
-11. [info] Statistics and standings calculations working
-12. [info] Head-to-head comparison queries implemented
-13. [info] Biggest wins analysis implemented
-14. [info] Response formatting consistent across all tools
-15. [info] Data coverage verified (all datasets loadable)
-
-See `findings.jsonl` for structured details.
+1. [high] R4 — No date-range filtering; only season (year) filter implemented (`data.clj:186`, `tools.clj:33-37`)
 
 ## Reproduce
 
 ```bash
 cd experiment-2/runs/language=clojure_model=sonnet_tooling=none/rep1/
-clojure -M:test
+# Scores were read from retort.db — no re-run needed
+# To verify manually: clojure -M:test
+grep -c "deftest" test/brazilian_soccer_mcp/core_test.clj
+wc -l src/brazilian_soccer_mcp/*.clj test/brazilian_soccer_mcp/*.clj
 ```
-
----
-
-## Notes
-
-**Strengths:**
-- Complete implementation of all required functionality
-- Comprehensive test suite with no failures or skips
-- Robust data handling with normalization for Brazilian Portuguese names
-- Clean MCP protocol implementation
-- All 6 CSV data sources properly integrated
-
-**Observations:**
-- No linter available (clj-kondo not in toolchain) — lint evaluation unavailable
-- Performance requirements (< 2s for simple lookups, < 5s for aggregates) not explicitly tested, but implementation uses efficient data structures
-- All 12 functional requirements verified as implemented

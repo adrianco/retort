@@ -3,100 +3,85 @@
 ## Summary
 
 - **Factors:** language=python, model=sonnet, tooling=none
-- **Detected:** framework=FastAPI (auto-detected from imports, not in stack.json)
-- **Status:** ok
-- **Requirements:** 10/10 implemented, 0 partial, 0 missing
-- **Tests:** 12 passed / 0 failed / 0 skipped (12 effective)
-- **Build:** pass — 0.57s
-- **Lint:** 1 warning (unused import)
+- **Status:** failed (test_coverage=0.0 — tests did not execute)
+- **Requirements:** 11/12 implemented, 1 partial, 0 missing
+- **Tests:** 0 passed / 0 failed / 0 skipped (0 effective) — test gate failure, test_coverage=0.0 from retort.db
+- **Build:** fail — test_coverage=0.0 from retort.db (run_id=17)
+- **Lint:** unavailable — code_quality=0.0 from retort.db
 - **Architecture:** see `summary/index.md`
-- **Findings:** 2 items in `findings.jsonl` (0 critical, 0 high, 1 low, 1 info)
+- **Findings:** 2 items in `findings.jsonl` (1 critical, 1 high)
 
 ## Requirements
 
 | ID | Requirement (short) | Status | Evidence |
-|----|----|----|----:|
-| R1 | POST /books — Create a new book | ✓ implemented | `main.py:72-82`, test_create_book passes |
-| R2 | GET /books — List all books with ?author= filter | ✓ implemented | `main.py:85-94`, test_list_books_filter_by_author passes |
-| R3 | GET /books/{id} — Get a single book by ID | ✓ implemented | `main.py:97-103`, test_get_book passes |
-| R4 | PUT /books/{id} — Update a book | ✓ implemented | `main.py:106-121`, test_update_book passes |
-| R5 | DELETE /books/{id} — Delete a book | ✓ implemented | `main.py:124-131`, test_delete_book passes |
-| R6 | Use specified language and framework | ✓ implemented | main.py uses FastAPI (Python) |
-| R7 | Store data in SQLite | ✓ implemented | `main.py:1,7,18-29` uses sqlite3 |
-| R8 | JSON responses with appropriate status codes | ✓ implemented | FastAPI auto-serializes to JSON, status codes: 201, 200, 404, 204, 422 |
-| R9 | Input validation (title, author required) | ✓ implemented | `main.py:35-46` (BookCreate validators), `main.py:49-60` (BookUpdate validators) |
-| R10 | Health check endpoint GET /health | ✓ implemented | `main.py:67-69`, test_health_check passes |
-| R11 | At least 3 unit/integration tests | ✓ implemented | 12 comprehensive tests covering all endpoints |
-| R12 | README.md with setup and run instructions | ✓ implemented | README.md present with pip install, uvicorn, pytest instructions |
+|----|----------------------|--------|----------|
+| R1 | POST /books creates a new book | ✓ implemented | `main.py:72-82` — `create_book` accepts title, author, year, isbn via `BookCreate` model, returns 201 |
+| R2 | GET /books lists all books | ✓ implemented | `main.py:85-94` — `list_books` returns all rows |
+| R3 | GET /books ?author= filter | ✓ implemented | `main.py:86-91` — `author` query param with LIKE filter |
+| R4 | GET /books/{id} single book | ✓ implemented | `main.py:97-103` — `get_book` with 404 on missing |
+| R5 | PUT /books/{id} updates | ✓ implemented | `main.py:106-121` — `update_book` partial update, 404 on missing |
+| R6 | DELETE /books/{id} deletes | ✓ implemented | `main.py:124-131` — `delete_book` with 204, 404 on missing |
+| R7 | SQLite storage | ✓ implemented | `main.py:1,7,12-29` — `sqlite3` module, `books.db`, CREATE TABLE |
+| R8 | JSON + correct HTTP status codes | ✓ implemented | 201 create, 200 get/list/update, 204 delete, 404 not found, 400 no fields |
+| R9 | Input validation (title, author required) | ✓ implemented | `main.py:35-47` — pydantic `BookCreate` with `field_validator` rejecting empty strings |
+| R10 | GET /health endpoint | ✓ implemented | `main.py:67-69` — returns `{"status": "ok"}` |
+| R11 | README.md with setup/run instructions | ✓ implemented | `README.md` — pip install, uvicorn command, endpoint table, curl examples |
+| R12 | At least 3 unit/integration tests | ~ partial | `test_api.py` has 12 test functions but test_coverage=0.0 — tests did not execute |
 
 ## Build & Test
 
 ```text
-pytest -v test_api.py
-============================= test session starts ==============================
-platform linux -- Python 3.12.1, pytest-8.3.3, pluggy-1.6.0
-collected 12 items
-
-test_api.py::test_health_check PASSED                                    [  8%]
-test_api.py::test_create_book PASSED                                     [ 16%]
-test_api.py::test_create_book_missing_required_fields PASSED             [ 25%]
-test_api.py::test_create_book_empty_title PASSED                         [ 33%]
-test_api.py::test_list_books PASSED                                      [ 41%]
-test_api.py::test_list_books_filter_by_author PASSED                     [ 50%]
-test_api.py::test_get_book PASSED                                        [ 58%]
-test_api.py::test_get_book_not_found PASSED                              [ 66%]
-test_api.py::test_update_book PASSED                                     [ 75%]
-test_api.py::test_update_book_not_found PASSED                           [ 83%]
-test_api.py::test_delete_book PASSED                                     [ 91%]
-test_api.py::test_delete_book_not_found PASSED                           [100%]
-
-======================== 12 passed in 0.57s ========================
+Build/test not re-run — using stored scores from retort.db (run_id=17).
+test_coverage=0.0 (tests did not execute)
+code_quality=0.0
+defect_rate=0.0
+All mechanical scores returned 0.0, indicating the scoring environment
+failed to run the test suite (likely missing dependencies).
 ```
 
-Lint output:
 ```text
-F401 [*] `main.DATABASE` imported but unused in test_api.py:3
+Test functions in test_api.py (12 total, 0 skipped):
+  test_health_check
+  test_create_book
+  test_create_book_missing_required_fields
+  test_create_book_empty_title
+  test_list_books
+  test_list_books_filter_by_author
+  test_get_book
+  test_get_book_not_found
+  test_update_book
+  test_update_book_not_found
+  test_delete_book
+  test_delete_book_not_found
 ```
 
 ## Metrics
 
 | Metric | Value |
 |--------|-------|
-| Lines of code (Python only, excluding tests) | 131 |
-| Total lines of Python code | 239 |
-| Python files | 2 |
-| Dependencies | 4 |
+| Lines of code (source only) | 239 (main.py: 130, test_api.py: 109) |
+| Files | 10 |
+| Dependencies | 4 (fastapi, uvicorn, pytest, httpx) |
 | Tests total | 12 |
-| Tests effective | 12 |
+| Tests effective | 0 (test_coverage=0.0) |
 | Skip ratio | 0% |
-| Test execution duration | 0.57s |
+| Build duration | 79.8s (_duration_seconds from retort.db) |
 
 ## Findings
 
-Full list in `findings.jsonl`:
+Top 2 by severity (full list in `findings.jsonl`):
 
-1. [info] Framework auto-detected as FastAPI — stack.json has framework=unknown
-2. [low] Unused import in test_api.py — `from main import DATABASE` is imported but never used
-
-## Code Quality Notes
-
-**Strengths:**
-- All CRUD operations fully implemented and tested
-- Comprehensive test suite with 12 tests covering happy path and error cases
-- Proper validation for required fields (title, author must not be empty)
-- Appropriate HTTP status codes (201 for create, 404 for not found, 204 for delete)
-- Clean code structure with FastAPI conventions followed
-- Good error handling with HTTPException for not-found cases
-- Proper use of pydantic models for validation
-
-**Areas for improvement:**
-- Remove unused import from test_api.py to pass linting
-- stack.json should reflect the detected framework (FastAPI)
+1. [critical] Test gate failure: test_coverage=0.0 — tests did not execute
+2. [high] 12 tests exist but did not execute (test_coverage=0.0)
 
 ## Reproduce
 
 ```bash
-cd experiment-1/runs/language=python_model=sonnet_tooling=none/rep2/
-pip install -r requirements.txt
-pytest test_api.py -v
+cd experiment-1/runs/language=python_model=sonnet_tooling=none/rep2
+cat stack.json
+cat scores.json 2>/dev/null || echo "scores.json absent"
+sqlite3 -readonly ../../retort.db "SELECT rr.metric_name, rr.value FROM run_results rr WHERE rr.run_id=17;"
+grep -rE "pytest.skip|@pytest.mark.skip|xfail" . --include="*.py" | wc -l
+wc -l main.py test_api.py README.md requirements.txt
+grep -cE "^def test_" test_api.py
 ```

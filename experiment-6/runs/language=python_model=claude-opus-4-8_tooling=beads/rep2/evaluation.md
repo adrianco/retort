@@ -4,48 +4,52 @@
 
 - **Factors:** language=python, model=claude-opus-4-8, tooling=beads
 - **Status:** ok
-- **Requirements:** 11/11 implemented, 0 partial, 0 missing
+- **Requirements:** 12/12 implemented, 0 partial, 0 missing
 - **Tests:** 7 passed / 0 failed / 0 skipped (7 effective)
-- **Build:** pass — 0.1s
-- **Lint:** pass with warnings — 5 low-severity style issues
-- **Findings:** 5 items in `findings.jsonl` (0 critical, 0 high, 0 medium, 5 low)
+- **Build:** pass — test_coverage=0.99 from retort.db (defect_rate=1.0)
+- **Lint:** code_quality=0.667 from retort.db
+- **Architecture:** summary skill unavailable
+- **Findings:** 1 item in `findings.jsonl` (0 critical, 0 high, 0 medium, 0 low, 1 info)
 
 ## Requirements
 
 | ID | Requirement (short) | Status | Evidence |
-|----|----|----|----|
-| R1 | POST /books — Create a new book | ✓ implemented | `app/main.py:36-45` |
-| R2 | GET /books — List all books with ?author= filter | ✓ implemented | `app/main.py:48-57` |
-| R3 | GET /books/{id} — Get a single book by ID | ✓ implemented | `app/main.py:60-66` |
-| R4 | PUT /books/{id} — Update a book | ✓ implemented | `app/main.py:69-82` |
-| R5 | DELETE /books/{id} — Delete a book | ✓ implemented | `app/main.py:85-94` |
-| R6 | Store data in SQLite | ✓ implemented | `app/db.py:40-53` |
-| R7 | Return JSON with appropriate HTTP status codes | ✓ implemented | status 201 (create), 200 (read/update), 204 (delete), 404 (not found), 422 (validation) |
-| R8 | Input validation (title and author required) | ✓ implemented | `app/models.py:9-10,14-19` with Field validation and field_validator |
-| R9 | Health check endpoint: GET /health | ✓ implemented | `app/main.py:31-33` |
-| R10 | README.md with setup and run instructions | ✓ implemented | `README.md` covers setup, run, examples, status codes, tests, structure |
-| R11 | At least 3 unit/integration tests | ✓ implemented | 7 tests in `tests/test_books.py` |
+|----|----------------------|--------|----------|
+| R1 | POST /books creates a new book (title, author, year, isbn) | ✓ implemented | `app/main.py:37` `create_book` accepts BookCreate with all four fields; tested by `test_create_and_get_book` |
+| R2 | GET /books lists all books | ✓ implemented | `app/main.py:49` `list_books` returns all rows; tested by `test_list_and_author_filter` |
+| R3 | GET /books supports ?author= filter | ✓ implemented | `app/main.py:51-56` filters by `author` query param; tested by `test_list_and_author_filter` (verifies 2 of 3 returned) |
+| R4 | GET /books/{id} returns a single book | ✓ implemented | `app/main.py:60` `get_book` with 404 on missing; tested by `test_create_and_get_book`, `test_get_missing_book_returns_404` |
+| R5 | PUT /books/{id} updates a book | ✓ implemented | `app/main.py:69` `update_book` with 404 check; tested by `test_update_book` |
+| R6 | DELETE /books/{id} deletes a book | ✓ implemented | `app/main.py:85` `delete_book` returns 204, 404 on missing; tested by `test_delete_book` |
+| R7 | Data stored in SQLite | ✓ implemented | `app/db.py` uses `sqlite3`, creates `books` table with `CREATE TABLE IF NOT EXISTS`; tests use temp DB via `tempfile.mkstemp` |
+| R8 | JSON responses with appropriate HTTP status codes | ✓ implemented | FastAPI `response_model=Book`, status codes 201/200/204/404; tests verify all codes |
+| R9 | Input validation: title and author required | ✓ implemented | `app/models.py:9-10` `Field(..., min_length=1)` + `field_validator` rejecting blank; tested by `test_missing_required_fields_returns_422` |
+| R10 | GET /health health-check endpoint | ✓ implemented | `app/main.py:32` returns `{"status": "ok"}`; tested by `test_health` |
+| R11 | README.md with setup and run instructions | ✓ implemented | `README.md` documents setup (venv, pip install), run (uvicorn), examples, status codes, and project structure |
+| R12 | At least 3 unit/integration tests | ✓ implemented | 7 test functions in `tests/test_books.py`; test_coverage=0.99 from retort.db |
 
 ## Build & Test
 
 ```text
-$ python -m py_compile app/*.py tests/*.py
-(no errors)
+Build and test scores read from retort.db (not re-run):
+  test_coverage    = 0.99  (build + all tests passed)
+  defect_rate      = 1.0   (build+test succeeded)
+  code_quality     = 0.667 (lint score)
+  idiomatic        = 0.7
+  maintainability  = 0.268
+  token_efficiency = 1.0
+```
 
-$ pytest -v
-============================= test session starts ==============================
-platform darwin -- Python 3.14.5, pytest-9.0.3, pluggy-1.6.0
-collected 7 items
-
-tests/test_books.py::test_health PASSED
-tests/test_books.py::test_create_and_get_book PASSED
-tests/test_books.py::test_missing_required_fields_returns_422 PASSED
-tests/test_books.py::test_list_and_author_filter PASSED
-tests/test_books.py::test_update_book PASSED
-tests/test_books.py::test_delete_book PASSED
-tests/test_books.py::test_get_missing_book_returns_404 PASSED
-
-======================== 7 passed in 0.18s =========================
+```text
+7 test functions in tests/test_books.py:
+  test_health
+  test_create_and_get_book
+  test_missing_required_fields_returns_422
+  test_list_and_author_filter
+  test_update_book
+  test_delete_book
+  test_get_missing_book_returns_404
+0 skipped, 0 xfail markers found.
 ```
 
 ## Metrics
@@ -53,38 +57,25 @@ tests/test_books.py::test_get_missing_book_returns_404 PASSED
 | Metric | Value |
 |--------|-------|
 | Lines of code (source only) | 265 |
-| Files | 13 |
+| Files | 14 |
+| Dependencies | 5 (fastapi, uvicorn, pydantic, pytest, httpx) |
 | Tests total | 7 |
 | Tests effective | 7 |
 | Skip ratio | 0% |
-| Build status | ok |
 
 ## Findings
 
-Lint warnings only (all low severity, stylistic):
+Top findings by severity (full list in `findings.jsonl`):
 
-1. [low] Use `list` instead of `List` for type annotation — app/main.py:4,48,49
-2. [low] Use `X | None` instead of Optional — app/main.py:49, app/models.py:11,12
-3. [low] Import block is unsorted — tests/test_books.py:3-10
-4. [low] Line too long (89 > 88) — tests/test_books.py:33
-5. [low] Line too long (92 > 88) — tests/test_books.py:86
-
-Full list in `findings.jsonl`.
-
-## Observations
-
-- **Complete implementation:** All 11 requirements are fully implemented and tested.
-- **Excellent test coverage:** 7 integration tests cover the happy path, error cases (404, 422), and author filtering.
-- **Clean architecture:** Well-separated concerns (db.py, models.py, main.py) with context managers for database connections.
-- **Minor style issues only:** All findings are low-severity linting suggestions (type hints modernization, line length) — no functional issues.
-- **Framework choice:** FastAPI with Pydantic validates input elegantly and generates OpenAPI docs automatically.
-- **Database:** SQLite with proper schema creation on startup, row factory for dict-like access, and test isolation via temporary databases.
+1. [info] Moderate code_quality score (0.67) from stored lint results
 
 ## Reproduce
 
 ```bash
-cd "/Users/adriancockcroft/Documents/GitHub/retort/experiment-6/runs/language=python_model=claude-opus-4-8_tooling=beads/rep2"
-source .venv/bin/activate
-python -m py_compile app/*.py tests/*.py
-python -m pytest -v
+cd experiment-6/runs/language=python_model=claude-opus-4-8_tooling=beads/rep2
+cat stack.json
+# Scores were read from retort.db, not re-run
+sqlite3 -readonly ../../retort.db "SELECT rr.metric_name, rr.value FROM run_results rr WHERE rr.run_id = (SELECT er.id FROM experiment_runs er WHERE json_extract(er.run_config_json,'$.language')='python' AND json_extract(er.run_config_json,'$.model')='claude-opus-4-8' AND json_extract(er.run_config_json,'$.tooling')='beads' AND er.replicate=2 AND er.status='completed' ORDER BY er.finished_at DESC LIMIT 1);"
+grep -rE "pytest.skip|@pytest.mark.skip|xfail" tests/ --include="*.py" | wc -l
+grep -c "^def test_" tests/test_books.py
 ```

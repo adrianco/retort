@@ -4,51 +4,45 @@
 
 - **Factors:** language=rust, model=claude-opus-4-7, tooling=beads
 - **Status:** ok
-- **Requirements:** 13/13 implemented, 0 partial, 0 missing
+- **Requirements:** 12/12 implemented, 0 partial, 0 missing
 - **Tests:** 5 passed / 0 failed / 0 skipped (5 effective)
-- **Build:** pass — 0.97s
-- **Lint:** pass — 0 warnings
-- **Findings:** 1 item in `findings.jsonl` (0 critical, 0 high, 0 medium, 0 low, 1 info)
+- **Build:** pass (cargo test includes build) — 0.54s
+- **Lint:** derived (no separate lint run; build succeeded with no warnings)
+- **Architecture:** see `summary/index.md`
+- **Findings:** 1 items in `findings.jsonl` (0 critical, 0 high, 0 medium, 0 low, 1 info)
 
 ## Requirements
 
 | ID | Requirement (short) | Status | Evidence |
-|----|----|----|----| 
-| R1 | POST /books — Create a new book | ✓ implemented | `src/handlers.rs:18-57`, test: `tests/api.rs:41-84` |
-| R2 | GET /books — List all books with ?author= filter | ✓ implemented | `src/handlers.rs:59-77`, test: `tests/api.rs:110-164` |
-| R3 | GET /books/{id} — Get a single book by ID | ✓ implemented | `src/handlers.rs:79-92` |
-| R4 | PUT /books/{id} — Update a book | ✓ implemented | `src/handlers.rs:94-148`, test: `tests/api.rs:166-228` |
-| R5 | DELETE /books/{id} — Delete a book | ✓ implemented | `src/handlers.rs:150-164`, test: `tests/api.rs:166-228` |
-| R6 | Use specified language and framework | ✓ implemented | `Cargo.toml` specifies axum 0.7 and tokio 1 |
-| R7 | Store data in SQLite | ✓ implemented | `src/db.rs` initializes SQLite pool; schema creation in place |
-| R8 | Return JSON responses with appropriate HTTP status codes | ✓ implemented | `src/error.rs:21-34` maps errors to correct status codes (200, 201, 204, 400, 404, 500) |
-| R9 | Include input validation (title and author required) | ✓ implemented | `src/handlers.rs:22-35` validates title/author on POST; `src/handlers.rs:107-126` validates on PUT |
-| R10 | Include health check endpoint: GET /health | ✓ implemented | `src/handlers.rs:14-16`, `src/lib.rs:15`, test: `tests/api.rs:21-38` |
-| R11 | Working source code in workspace directory | ✓ implemented | All source in `src/` and tests in `tests/`, builds and tests pass |
-| R12 | README.md with setup and run instructions | ✓ implemented | `README.md` contains build, test, run commands and endpoint documentation |
-| R13 | At least 3 unit/integration tests | ✓ implemented | 5 tests in `tests/api.rs` cover health check, CRUD, filtering, validation |
+|----|----|----|----|
+| R1 | POST /books creates a new book (title, author, year, isbn) | ✓ implemented | `src/handlers.rs:18-57` — `create_book` accepts all four fields, inserts via sqlx, returns 201 |
+| R2 | GET /books lists all books | ✓ implemented | `src/handlers.rs:59-77` — `list_books` queries all rows, returns 200 |
+| R3 | GET /books supports ?author= filter | ✓ implemented | `src/handlers.rs:63-74` — `ListQuery.author` filters; test `list_books_filters_by_author` verifies |
+| R4 | GET /books/{id} returns a single book | ✓ implemented | `src/handlers.rs:79-92` — `get_book` fetches by id, 404 if absent |
+| R5 | PUT /books/{id} updates a book | ✓ implemented | `src/handlers.rs:94-148` — partial update with validation on empty title/author |
+| R6 | DELETE /books/{id} deletes a book | ✓ implemented | `src/handlers.rs:150-164` — returns 204 on success, 404 if not found |
+| R7 | Data stored in SQLite | ✓ implemented | `src/db.rs:1-33` — `sqlx::sqlite::SqlitePool`, `CREATE TABLE IF NOT EXISTS books` |
+| R8 | JSON responses with appropriate HTTP status codes | ✓ implemented | 201 Created, 200 OK, 204 No Content, 400 Bad Request, 404 Not Found, 500 ISE via `src/error.rs` |
+| R9 | Input validation: title and author required | ✓ implemented | `src/handlers.rs:22-35` — rejects empty/missing title/author with 400; test `create_book_missing_title_returns_400` verifies |
+| R10 | GET /health health-check endpoint | ✓ implemented | `src/handlers.rs:14-16` — returns `{"status":"ok"}` with 200; test `health_check_returns_ok` verifies |
+| R11 | README.md with setup and run instructions | ✓ implemented | `README.md` — 91 lines covering setup, run, test, endpoints, examples, project layout |
+| R12 | At least 3 unit/integration tests | ✓ implemented | `tests/api.rs` — 5 integration tests, all passing |
 
 ## Build & Test
 
 ```text
-cargo build --quiet
-(Build succeeded with no output, 0.97s)
+cargo test --manifest-path Cargo.toml
 ```
 
 ```text
-cargo test --quiet
-running 0 tests
-running 0 tests
 running 5 tests
-.....
-test result: ok. 5 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out
+test health_check_returns_ok ... ok
+test create_book_missing_title_returns_400 ... ok
+test create_and_get_book ... ok
+test update_and_delete_book ... ok
+test list_books_filters_by_author ... ok
 
-Passed tests:
-- health_check_returns_ok
-- create_and_get_book
-- create_book_missing_title_returns_400
-- list_books_filters_by_author
-- update_and_delete_book
+test result: ok. 5 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.01s
 ```
 
 ## Metrics
@@ -56,23 +50,24 @@ Passed tests:
 | Metric | Value |
 |--------|-------|
 | Lines of code (source only) | 544 |
-| Files (excluding target, .git, .beads) | 22 |
-| Direct dependencies | 10 |
+| Files | 17 |
+| Dependencies | 10 runtime + 3 dev = 13 |
 | Tests total | 5 |
 | Tests effective | 5 |
 | Skip ratio | 0% |
-| Build duration | 0.97s |
-| Lint warnings | 0 |
+| Build duration | 0.54s |
 
 ## Findings
 
-1. [info] Well-structured error handling — clean error handling pattern is a best practice
+Top 5 by severity (full list in `findings.jsonl`):
+
+1. [info] Scores read via cargo test fallback (retort.db locked)
 
 ## Reproduce
 
 ```bash
-cd /Users/adriancockcroft/Documents/GitHub/retort/experiment-6/runs/language=rust_model=claude-opus-4-7_tooling=beads/rep3
-cargo build --quiet
-cargo test --quiet
-cargo clippy -- -D warnings
+cd experiment-6/runs/language=rust_model=claude-opus-4-7_tooling=beads/rep3
+cargo test
+find . -type f -name "*.rs" -not -path "*/target/*" | xargs wc -l
+grep -rE "#\[ignore\]" . --include="*.rs"
 ```

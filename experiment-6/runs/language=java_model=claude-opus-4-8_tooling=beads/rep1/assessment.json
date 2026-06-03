@@ -6,9 +6,9 @@
     "low": 0,
     "info": 0
   },
-  "penalty_score": 1.0000,
+  "penalty_score": 1.0,
   "top_findings": [],
   "requirement_coverage": 1.0,
   "model": "claude-opus-4-8",
-  "evaluated_at": "2026-05-31T00:19:00Z"
+  "evaluated_at": "2026-06-03T21:10:07Z"
 }

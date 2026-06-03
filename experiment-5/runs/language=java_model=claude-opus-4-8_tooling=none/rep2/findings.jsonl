@@ -1,0 +1,1 @@
+{"id": "R12-note", "kind": "enhancement", "severity": "info", "title": "Tests use real Kaggle datasets, not synthetic stubs", "evidence": "src/test/java/com/brazilsoccer/mcp/TestData.java:24 loads SoccerData.load(Path.of(\"data\"))", "suggestion": "Good practice for integration coverage; consider adding a small synthetic fallback for CI portability"}

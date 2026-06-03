@@ -1,0 +1,8 @@
+{
+  "severity_counts": {"critical": 0, "high": 0, "medium": 0, "low": 0, "info": 0},
+  "penalty_score": 1.0000,
+  "top_findings": [],
+  "requirement_coverage": 1.0,
+  "model": "claude-opus-4-7",
+  "evaluated_at": "2026-06-03T17:45:00Z"
+}

@@ -3,121 +3,85 @@
 ## Summary
 
 - **Factors:** language=typescript, model=opus, tooling=beads
-- **Status:** ok
-- **Requirements:** 6/12 implemented, 4 partial, 2 cannot-verify
-- **Tests:** 12 passed / 0 failed / 0 skipped (12 effective)
-- **Build:** pass — 1s
-- **Lint:** unavailable — no lint script
-- **Code metrics:** 827 lines, 5 source files, 4 dependencies
-- **Findings:** 13 items in `findings.jsonl` (0 critical, 0 high, 4 medium, 1 low, 8 info)
+- **Status:** failed (test_coverage=0.0 — tests did not execute in scoring environment)
+- **Requirements:** 11/12 implemented, 1 partial, 0 missing
+- **Tests:** 0 passed / 0 failed / 0 skipped (0 effective) — test_coverage=0.0 from retort.db
+- **Build:** fail — test_coverage=0.0 indicates build/test pipeline did not complete
+- **Lint:** unavailable — code_quality=0.0 from retort.db
+- **Architecture:** MCP server with 7 tools, custom CSV parser, team name normalization
+- **Findings:** 2 items in `findings.jsonl` (1 critical, 1 high, 0 medium, 0 low, 0 info)
 
 ## Requirements
 
-| ID | Requirement | Status | Evidence |
-|----|----|----|----|----|
-| R1 | Match data search from all CSV files | ✓ implemented | `src/data.ts:87-125` loads 5 CSV datasets |
-| R2 | Player data search | ✓ implemented | `src/data.ts:150+` loads FIFA data; tool in `index.ts:86-98` |
-| R3 | Calculate statistics (wins/losses/goals) | ✓ implemented | `src/queries.ts:49-101` teamStats; test:56-61 |
-| R4 | Team head-to-head comparison | ✓ implemented | `src/queries.ts:115-142` headToHead function |
-| R5 | Handle team name variations | ✓ implemented | `src/data.ts:32-55` normalizeTeam + fuzzy matching |
-| R6 | Return properly formatted responses | ✓ implemented | `src/index.ts:164-166` returns JSON |
-| R7 | Simple lookups < 2 seconds | ~ partial | Tests show 55-80ms per query but no real MCP latency tested |
-| R8 | Aggregate queries < 5 seconds | ~ partial | Unit tests pass but end-to-end timing not measured |
-| R9 | No timeout errors | ~ partial | Tests pass without timeout but no stress tests |
-| R10 | All 6 CSV files loadable | ~ partial | Code loads 5 files; spec lists 6 |
-| R11 | At least 20 sample questions answerable | ✗ cannot-verify | Tests cover 12 query functions but not 20 question types |
-| R12 | Cross-file queries (player+match) | ✗ cannot-verify | Functions tested separately, not integrated |
+| ID | Requirement (short) | Status | Evidence |
+|----|----|----|----|
+| R1 | MCP server exposing tools/handlers | ✓ implemented | `src/index.ts:2-7,124-178` — Server from `@modelcontextprotocol/sdk`, 7 tools registered via ListToolsRequestSchema/CallToolRequestSchema |
+| R2 | Loads datasets from data/kaggle/ | ✓ implemented | `src/data.ts:87-165` — reads all 6 CSVs (Brasileirao_Matches, Brazilian_Cup_Matches, Libertadores_Matches, BR-Football-Dataset, novo_campeonato_brasileiro, fifa_data) |
+| R3 | Match query: find by team (home, away, either) | ✓ implemented | `src/queries.ts:17-20` — findMatches filters by `team`, `homeTeam`, `awayTeam` |
+| R4 | Match query: filter by date range/season | ✓ implemented | `src/queries.ts:22-24` — `dateFrom`, `dateTo`, `season` filters |
+| R5 | Match query: filter by competition | ✓ implemented | `src/queries.ts:21` — competition filter with case-insensitive includes across Brasileirão, Copa do Brasil, Libertadores |
+| R6 | Team query: W/L/D record + goals for/against | ✓ implemented | `src/queries.ts:49-101` — `teamStats()` returns wins, draws, losses, goalsFor, goalsAgainst, home/away splits, points |
+| R7 | Player query: search by name | ✓ implemented | `src/queries.ts:220-225` — `findPlayers()` name filter with case-insensitive includes |
+| R8 | Player query: filter by nationality/club with ratings | ✓ implemented | `src/queries.ts:226-229` — nationality, club, position, minOverall filters; returns overall, potential ratings |
+| R9 | Competition: season standings from matches | ✓ implemented | `src/queries.ts:156-208` — `standings()` computes W/L/D/points/GD from match results, sorted by points then GD |
+| R10 | Statistical analysis: aggregate stats | ✓ implemented | `src/queries.ts:246-270` `overallStats()` (avg goals/match, home/away win rates) + `src/queries.ts:272-280` `biggestWins()` |
+| R11 | Head-to-head records between two teams | ✓ implemented | `src/queries.ts:115-142` — `headToHead()` returns W/L/D, goals, and recent matches |
+| R12 | Automated tests covering query capabilities | ~ partial | `test/queries.test.ts` has 12 tests covering all 7 query functions, BUT test_coverage=0.0 — tests did not execute |
 
 ## Build & Test
 
 ```text
-Build:
-$ npm run build
-> tsc
-(exit code 0)
+Stored scores from retort.db (tests NOT re-run per skill constraints):
+  test_coverage=0.0  (build+tests did NOT execute)
+  code_quality=0.0
+  defect_rate=0.0
+  maintainability=0.0
+  idiomatic=0.0
+  token_efficiency=0.0
 
-Tests:
-$ npm test --silent
-✔ data loads matches and players (1.262467ms)
-✔ normalizeTeam strips state suffix (0.207727ms)
-✔ teamMatches handles accents and case (0.250598ms)
-✔ findMatches finds Flamengo vs Fluminense (80.958808ms)
-✔ findMatches filters by season (58.627401ms)
-✔ teamStats returns sensible numbers for Palmeiras (79.939123ms)
-✔ headToHead for two teams (55.665015ms)
-✔ standings compute for a Brasileirão season (4.504939ms)
-✔ findPlayers by name (5.113274ms)
-✔ findPlayers by nationality Brazil (5.369182ms)
-✔ overallStats returns rates summing to 1 (8.522465ms)
-✔ biggestWins sorted by goal diff (10.25925ms)
-ℹ tests 12
-ℹ pass 12
-ℹ fail 0
-ℹ skipped 0
+All scores are zero, indicating the scoring pipeline could not build/run this
+project — most likely due to missing data/kaggle/ CSV files and/or npm install
+failure in the scoring environment.
+
+Test file: test/queries.test.ts (12 tests using node:test)
+Test command: node --test --import tsx test/*.test.ts
 ```
 
 ## Metrics
 
 | Metric | Value |
 |--------|-------|
-| Lines of code (source only) | 827 |
-| Files (source+test) | 5 |
-| Dependencies | 4 |
-| Tests total | 12 |
-| Tests passed | 12 |
-| Tests effective | 12 |
-| Skip ratio | 0% |
-| Build duration | 1s |
+| Lines of code (TypeScript only) | 827 |
+| Files (total excl. node_modules) | 20 |
+| Source files (.ts) | 5 |
+| Dependencies | 4 (1 runtime + 3 dev) |
+| Tests written | 12 |
+| Tests effective | 0 (did not execute) |
+| Skip ratio | 0% (no skipped tests in source) |
+| Build duration | N/A (scorer failed) |
 
 ## Findings
 
-Full list in `findings.jsonl`:
+Top findings by severity (full list in `findings.jsonl`):
 
-**Implemented (6):**
-1. [info] Match data search from all CSV files
-2. [info] Player data search capability
-3. [info] Calculate team statistics
-4. [info] Team head-to-head comparison
-5. [info] Handle team name variations
-6. [info] Return properly formatted responses
+1. [critical] Test gate failed: test_coverage=0.0 — tests did not execute
+2. [high] 12 tests written but none executed
 
-**Partial implementations (4):**
-1. [medium] Performance: simple lookups < 2s — Unit tests pass but no real MCP transport latency measured
-2. [medium] Performance: aggregate queries < 5s — Compute is fast but end-to-end server latency unknown
-3. [medium] No timeout errors — Tests pass without timeout but no stress/exhaustion testing
-4. [low] All 6 CSV files loadable — Code loads 5 files; spec lists 6 (may include FIFA as 6th)
+## Code Quality Notes
 
-**Cannot verify (2):**
-1. [medium] At least 20 sample questions answerable — Only 12 query functions tested, not 20 question variations
-2. [medium] Cross-file queries (player+match) — Functions tested separately, integration not demonstrated
-
-**Other findings:**
-- [info] Build succeeds with `npm run build`
-- [info] All 12 tests pass
-- [info] No lint script defined in package.json
-
-## Architecture
-
-The implementation follows MCP (Model Context Protocol) server pattern:
-
-**Modules:**
-- `csv.ts` — CSV parsing utility
-- `data.ts` — Data loading and normalization (SoccerData class)
-- `queries.ts` — 7 query functions for matches, teams, players, stats
-- `index.ts` — MCP server with tool handlers
-- `queries.test.ts` — 12 unit tests covering core functionality
-
-**Key design:**
-- Team name normalization handles state suffixes (-SP), accents, and fuzzy matching via Unicode decomposition
-- Unified Match type unifies 5 different CSV schemas
-- Query functions take filter objects and return arrays or computed stats
-- MCP server wraps queries as named tools with JSON input/output schemas
+Despite the test execution failure, the implementation is well-structured:
+- Custom RFC-compliant CSV parser handles quoted fields and CRLF (`src/csv.ts`)
+- Team name normalization strips state suffixes, handles accents via NFD decomposition (`src/data.ts:32-55`)
+- All 6 required CSV files are loaded with schema-appropriate field mapping
+- Query functions are cleanly separated from MCP server wiring
+- Tests cover all 7 query tools with assertions on correctness invariants
 
 ## Reproduce
 
 ```bash
 cd experiment-2/runs/language=typescript_model=opus_tooling=beads/rep1
-npm install --no-audit --no-fund
-npm run build
-npm test --silent
+# Verify stored scores:
+sqlite3 -readonly ../../retort.db "SELECT rr.metric_name, rr.value FROM run_results rr WHERE rr.run_id = (SELECT er.id FROM experiment_runs er WHERE json_extract(er.run_config_json,'\$.language')='typescript' AND json_extract(er.run_config_json,'\$.model')='opus' AND json_extract(er.run_config_json,'\$.tooling')='beads' AND er.replicate=1 AND er.status='completed' ORDER BY er.finished_at DESC LIMIT 1) AND rr.metric_name IN ('test_coverage','code_quality','defect_rate');"
+# Check for skipped tests:
+grep -rE '\.skip\(|xit\(|xdescribe\(|it\.todo\(' test/ --include="*.ts" 2>/dev/null | wc -l
 ```

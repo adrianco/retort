@@ -1,4 +1,0 @@
-{"id": "build", "kind": "info", "severity": "info", "title": "Build successful", "evidence": "clj -M:test completed with 0 failures", "suggestion": "N/A"}
-{"id": "R1-R10", "kind": "enhancement", "severity": "info", "title": "All core requirements implemented", "evidence": "All 10 API endpoints working, validation in place, SQLite schema correct", "suggestion": "N/A"}
-{"id": "test-coverage", "kind": "info", "severity": "info", "title": "6 comprehensive test cases covering main flows", "evidence": "handler_test.clj: 6 deftest blocks covering health, CRUD, filtering, validation, error handling", "suggestion": "N/A"}
-{"id": "error-handling", "kind": "enhancement", "severity": "info", "title": "Robust error handling for JSON and validation", "evidence": "handler.clj:86-91 wrap-json-error, validate-book checks all required fields", "suggestion": "N/A"}

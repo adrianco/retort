@@ -3,134 +3,101 @@
 ## Summary
 
 - **Factors:** language=clojure, model=opus, tooling=beads
-- **Status:** ok
-- **Requirements:** 13/13 implemented, 0 partial, 0 missing
-- **Tests:** 8 passed / 0 failed / 0 skipped (8 effective)
-- **Build:** available (clojure -P succeeded)
-- **Dependencies:** 8 declared (ring, compojure, next.jdbc, sqlite-jdbc, cheshire, clojure)
-- **Findings:** 1 item in `findings.jsonl` (0 critical, 0 high, 0 medium, 0 low, 1 info)
+- **Status:** cannot-verify (source files missing from archive)
+- **Requirements:** 1/12 implemented, 11 cannot-verify (indirect evidence from DB scores + README)
+- **Tests:** unavailable (test files absent from archive; test_coverage=1.0 from retort.db)
+- **Build:** unavailable (no source to build; test_coverage=1.0 and defect_rate=1.0 from retort.db suggest build succeeded at scoring time)
+- **Lint:** unavailable (no source files in archive; code_quality=0.8333 from retort.db)
+- **Architecture:** summary skill unavailable (no source to analyze)
+- **Findings:** 12 items in `findings.jsonl` (1 critical, 9 high, 2 medium)
+
+## Archive Integrity
+
+**CRITICAL: The archive is incomplete.** The `src/` and `test/` directories referenced by `deps.edn` are absent. Only configuration and documentation files are present (deps.edn, README.md, TASK.md, stack.json, _meta.json, CLAUDE.md, AGENTS.md, .gitignore). The retort.db scores (test_coverage=1.0, defect_rate=1.0) and `_meta.json` (`"succeeded": true`) indicate the implementation existed and passed all tests at scoring time. The source was likely lost during archival.
+
+## Stored Scores (retort.db)
+
+| Metric | Value |
+|--------|-------|
+| test_coverage | 1.0 |
+| code_quality | 0.8333 |
+| defect_rate | 1.0 |
+| maintainability | 0.9433 |
+| idiomatic | 0.87 |
+| token_efficiency | 0.5 |
 
 ## Requirements
 
-| ID | Requirement | Status | Evidence |
+Uses pinned requirement list from `experiment-1/REQUIREMENTS.json` (12 requirements).
+
+| ID | Requirement (short) | Status | Evidence |
 |----|----|----|----|
-| R1 | POST /books — Create a new book (title, author, year, isbn) | ✓ implemented | `src/books/handler.clj:35-40, test/books/handler_test.clj:44-54` |
-| R2 | GET /books — List all books with ?author= filter | ✓ implemented | `src/books/handler.clj:42-46, test/books/handler_test.clj:65-78` |
-| R3 | GET /books/{id} — Get a single book by ID | ✓ implemented | `src/books/handler.clj:48-54, test/books/handler_test.clj:44-54` |
-| R4 | PUT /books/{id} — Update a book | ✓ implemented | `src/books/handler.clj:56-65, test/books/handler_test.clj:80-87` |
-| R5 | DELETE /books/{id} — Delete a book | ✓ implemented | `src/books/handler.clj:67-73, test/books/handler_test.clj:95-101` |
-| R6 | Use the specified language and framework | ✓ implemented | `deps.edn: Ring 1.12.1, Jetty 1.12.1, Compojure 1.7.1, Clojure 1.11.3` |
-| R7 | Store data in SQLite (or language-equivalent embedded DB) | ✓ implemented | `src/books/db.clj:6-8: next.jdbc with sqlite-jdbc 3.46.0.0` |
-| R8 | Return JSON responses with appropriate HTTP status codes | ✓ implemented | `src/books/handler.clj:9-13: wrap-json-response, status codes 201/200/400/404/204` |
-| R9 | Include input validation (title and author are required) | ✓ implemented | `src/books/handler.clj:19-33: validate-book validates required fields` |
-| R10 | Include a health check endpoint: GET /health | ✓ implemented | `src/books/handler.clj:78, test/books/handler_test.clj:39-42` |
-| R11 | Working source code in the workspace directory | ✓ implemented | `src/books/core.clj, handler.clj, db.clj all present and functional` |
-| R12 | A README.md with setup and run instructions | ✓ implemented | `README.md: includes setup, run, endpoints, example, test commands` |
-| R13 | At least 3 unit/integration tests | ✓ implemented | `test/books/handler_test.clj: 8 test functions covering all endpoints` |
+| R1 | POST /books creates a new book | ? cannot-verify | No src/ in archive; README.md documents endpoint; test_coverage=1.0 |
+| R2 | GET /books lists all books | ? cannot-verify | No src/ in archive; README.md documents endpoint; test_coverage=1.0 |
+| R3 | GET /books ?author= filter | ? cannot-verify | No src/ in archive; README.md documents filter; test_coverage=1.0 |
+| R4 | GET /books/{id} returns single book | ? cannot-verify | No src/ in archive; README.md documents endpoint; test_coverage=1.0 |
+| R5 | PUT /books/{id} updates a book | ? cannot-verify | No src/ in archive; README.md documents endpoint; test_coverage=1.0 |
+| R6 | DELETE /books/{id} deletes a book | ? cannot-verify | No src/ in archive; README.md documents endpoint; test_coverage=1.0 |
+| R7 | Data stored in SQLite / embedded DB | ? cannot-verify | `deps.edn`: sqlite-jdbc 3.46.0.0 + next.jdbc 1.3.939 declared; no source to verify usage |
+| R8 | JSON responses with HTTP status codes | ? cannot-verify | `deps.edn`: ring-json 0.5.1 + cheshire 5.13.0 declared; no handler source |
+| R9 | Input validation (title, author required) | ? cannot-verify | No handler source; README.md notes required fields; test_coverage=1.0 |
+| R10 | GET /health endpoint | ? cannot-verify | No handler source; README.md documents /health; test_coverage=1.0 |
+| R11 | README.md with setup and run instructions | ✓ implemented | `README.md`: setup (clojure -P), run (clojure -M:run), test (clojure -X:test), endpoints table, examples |
+| R12 | At least 3 unit/integration tests | ? cannot-verify | No test/ directory; test_coverage=1.0 suggests tests existed at scoring time |
 
 ## Build & Test
 
-**Clojure dependency pre-fetch:**
-```
-clojure -P
-(completed successfully)
+```text
+Build/test commands cannot be run — source files absent from archive.
+deps.edn declares: clojure -M:run (server), clojure -X:test (tests)
+retort.db scores: test_coverage=1.0, defect_rate=1.0 (build+tests passed at scoring time)
 ```
 
-**Test results:**
-```
-Running tests in #{"test"}
+## Skipped Tests
 
-Testing books.handler-test
-SLF4J: No SLF4J providers were found.
-SLF4J: Defaulting to no-operation (NOP) logger implementation
-
-Ran 8 tests containing 21 assertions.
-0 failures, 0 errors.
-```
+Cannot analyze — no test files in archive.
 
 ## Metrics
 
 | Metric | Value |
 |--------|-------|
-| Lines of code (Clojure source) | 263 |
-| Total files | 33 |
-| Dependencies declared | 8 |
-| Tests total | 8 |
-| Tests effective | 8 |
-| Skip ratio | 0% |
-| Test assertions | 21 |
-
-## API Implementation
-
-The implementation provides a fully functional REST API with the following endpoints:
-
-| Method | Path | Handler | Status |
-|--------|------|---------|--------|
-| GET | `/health` | Health check | 200 OK |
-| POST | `/books` | Create book | 201 Created or 400 Bad Request |
-| GET | `/books` | List books (with optional ?author= filter) | 200 OK |
-| GET | `/books/{id}` | Get book by ID | 200 OK or 404 Not Found |
-| PUT | `/books/{id}` | Update book | 200 OK or 404 Not Found |
-| DELETE | `/books/{id}` | Delete book | 204 No Content or 404 Not Found |
-
-### Key Implementation Details
-
-1. **Database Layer** (`src/books/db.clj`):
-   - SQLite with next.jdbc library
-   - Automatic table creation on startup
-   - Query and update operations with ID auto-increment
-
-2. **HTTP Handler** (`src/books/handler.clj`):
-   - Ring middleware for JSON request/response bodies
-   - Input validation for required fields (title, author)
-   - Proper HTTP status codes
-   - ID parsing with error handling
-
-3. **Server** (`src/books/core.clj`):
-   - Jetty adapter for HTTP server
-   - Configurable port (default 3000) via PORT env var
-   - Configurable database path via DB_PATH env var
+| Lines of code (source only) | 0 (source files absent) |
+| Files (in archive) | 8 (excluding evaluation outputs) |
+| Dependencies (from deps.edn) | 8 main + 2 test |
+| Tests total | unavailable |
+| Tests effective | unavailable |
+| Skip ratio | unavailable |
+| Build duration | unavailable |
 
 ## Findings
 
-Top findings (full list in `findings.jsonl`):
+Top 5 by severity (full list in `findings.jsonl`):
 
-1. [info] Comprehensive test coverage exceeds minimum requirement — 8 tests covering health, CRUD operations, validation, filtering, and 404 cases
-
-## Test Coverage Analysis
-
-The test suite comprehensively covers:
-- ✓ Health endpoint (`health-endpoint`)
-- ✓ Create and retrieve (`create-and-get-book`)
-- ✓ Input validation (`create-validates-required-fields`)
-- ✓ List with filtering (`list-books-with-filter`)
-- ✓ Update operations (`update-book`, `update-missing-returns-404`)
-- ✓ Delete operations (`delete-book`)
-- ✓ 404 error handling (`get-missing-returns-404`)
-- ✓ All 21 assertions pass with 0 failures
+1. [critical] Source and test files missing from archive — no src/ or test/ directories
+2. [high] R1: POST /books — cannot verify, source absent
+3. [high] R2: GET /books — cannot verify, source absent
+4. [high] R3: GET /books ?author= filter — cannot verify, source absent
+5. [high] R4: GET /books/{id} — cannot verify, source absent
 
 ## Reproduce
 
 ```bash
 cd experiment-1/runs/language=clojure_model=opus_tooling=beads/rep2
 
-# Pre-fetch dependencies
-clojure -P
+# Verify archive contents
+find . -type f -not -path "*/.git/*" | sort
 
-# Run tests
-clojure -X:test
+# Check stored scores
+sqlite3 -readonly ../../retort.db "
+  SELECT rr.metric_name, rr.value
+  FROM run_results rr
+  WHERE rr.run_id = (
+      SELECT er.id FROM experiment_runs er
+      WHERE json_extract(er.run_config_json,'$.language')='clojure'
+        AND json_extract(er.run_config_json,'$.model')='opus'
+        AND json_extract(er.run_config_json,'$.tooling')='beads'
+        AND er.replicate=2 AND er.status='completed'
+      ORDER BY er.finished_at DESC LIMIT 1);"
 
-# Run server
-clojure -M:run
-
-# Example API calls
-curl -X POST http://localhost:3000/books \
-  -H 'Content-Type: application/json' \
-  -d '{"title":"Dune","author":"Frank Herbert","year":1965,"isbn":"9780441013593"}'
-
-curl http://localhost:3000/books?author=Frank%20Herbert
+# NOTE: Cannot run build/test — source files missing
 ```
-
-## Summary
-
-This Clojure implementation successfully fulfills all 13 requirements with a clean, production-ready REST API using Ring, Jetty, and Compojure. The test suite is comprehensive with 8 tests, 21 assertions, and 100% pass rate. SQLite persistence is properly implemented with next.jdbc. No defects or missing features were identified.

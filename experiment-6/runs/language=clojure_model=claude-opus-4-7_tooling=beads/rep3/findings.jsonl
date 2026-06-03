@@ -1,0 +1,1 @@
+{"id": "unused-dep-1", "kind": "lint_warning", "severity": "low", "title": "Unused dependency: metosin/muuntaja", "evidence": "deps.edn:6 declares metosin/muuntaja 0.6.10 but no source file imports the muuntaja namespace", "suggestion": "Remove metosin/muuntaja from :deps in deps.edn to reduce dependency footprint"}

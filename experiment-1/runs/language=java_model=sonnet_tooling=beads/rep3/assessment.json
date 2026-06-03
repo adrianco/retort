@@ -1,14 +1,14 @@
 {
-  "severity_counts": {
-    "critical": 0,
-    "high": 0,
-    "medium": 0,
-    "low": 0,
-    "info": 0
-  },
-  "penalty_score": 1.0,
-  "top_findings": [],
-  "requirement_coverage": 1.0,
-  "model": "unknown",
-  "evaluated_at": "2026-04-18T22:34:11.075210Z"
+  "severity_counts": {"critical": 1, "high": 11, "medium": 0, "low": 0, "info": 0},
+  "penalty_score": 0.0,
+  "top_findings": [
+    {"id": "no-source", "kind": "build_failure", "severity": "critical", "title": "No Java source code generated — entire src/ directory is missing", "evidence": "find rep3/ -name '*.java' returns 0 files; no src/ directory exists. Only pom.xml and README.md were created.", "suggestion": "Agent must generate Java source files under src/main/java/ implementing the Spring Boot application"},
+    {"id": "R1", "kind": "requirement_missing", "severity": "high", "title": "POST /books endpoint not implemented", "evidence": "No Java source files exist in the workspace — no controller, service, or repository classes", "suggestion": "Implement a BookController with a @PostMapping /books handler"},
+    {"id": "R2", "kind": "requirement_missing", "severity": "high", "title": "GET /books list endpoint not implemented", "evidence": "No Java source files exist in the workspace", "suggestion": "Implement a @GetMapping /books handler returning all books"},
+    {"id": "R3", "kind": "requirement_missing", "severity": "high", "title": "GET /books ?author= filter not implemented", "evidence": "No Java source files exist in the workspace", "suggestion": "Add @RequestParam author filter to the list endpoint"},
+    {"id": "R4", "kind": "requirement_missing", "severity": "high", "title": "GET /books/{id} endpoint not implemented", "evidence": "No Java source files exist in the workspace", "suggestion": "Implement a @GetMapping /books/{id} handler with 404 handling"}
+  ],
+  "requirement_coverage": 0.0833,
+  "model": "sonnet",
+  "evaluated_at": "2026-06-03T20:53:15Z"
 }

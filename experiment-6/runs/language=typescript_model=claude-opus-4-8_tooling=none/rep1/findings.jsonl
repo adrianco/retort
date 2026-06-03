@@ -1,0 +1,1 @@
+{"id": "enhancement-1", "kind": "enhancement", "severity": "info", "title": "Uses experimental node:sqlite module", "evidence": "src/db.ts:1 — import { DatabaseSync } from 'node:sqlite'; runtime warning: (node:13848) ExperimentalWarning: SQLite is an experimental feature", "suggestion": "Node built-in SQLite is experimental; README.md documents the Node 22.5+ requirement"}

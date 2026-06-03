@@ -1,14 +1,14 @@
 {
-  "severity_counts": {
-    "critical": 0,
-    "high": 0,
-    "medium": 0,
-    "low": 0,
-    "info": 13
-  },
-  "penalty_score": 1.0,
-  "top_findings": [],
-  "requirement_coverage": 1.0,
-  "model": "unknown",
-  "evaluated_at": "2026-04-18T22:23:11.671856Z"
+  "severity_counts": {"critical": 1, "high": 11, "medium": 0, "low": 0, "info": 0},
+  "penalty_score": 0.0,
+  "top_findings": [
+    {"id": "build-fail", "kind": "build_failure", "severity": "critical", "title": "No Clojure source code generated — build cannot succeed", "evidence": "No .clj files exist in workspace; src/ and test/ directories are absent. Only scaffolding produced: deps.edn, tests.edn, README.md", "suggestion": "Agent must generate actual Clojure source files implementing the API"},
+    {"id": "R1", "kind": "requirement_missing", "severity": "high", "title": "POST /books not implemented", "evidence": "No .clj source files in workspace — no route handler code exists", "suggestion": "Implement books.core or books.handler with POST /books route"},
+    {"id": "R2", "kind": "requirement_missing", "severity": "high", "title": "GET /books (list all) not implemented", "evidence": "No .clj source files in workspace — no route handler code exists", "suggestion": "Implement GET /books list route"},
+    {"id": "R3", "kind": "requirement_missing", "severity": "high", "title": "GET /books ?author= filter not implemented", "evidence": "No .clj source files in workspace — no route handler code exists", "suggestion": "Implement author query parameter filtering on GET /books"},
+    {"id": "R4", "kind": "requirement_missing", "severity": "high", "title": "GET /books/{id} not implemented", "evidence": "No .clj source files in workspace — no route handler code exists", "suggestion": "Implement GET /books/:id route returning single book or 404"}
+  ],
+  "requirement_coverage": 0.0833,
+  "model": "sonnet",
+  "evaluated_at": "2026-06-03T17:21:47Z"
 }

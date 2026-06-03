@@ -1,60 +1,89 @@
-# Evaluation: language=java_model=opus_tooling=beads · rep2
+# Evaluation: language=java_model=opus_tooling=beads · rep 2
 
 ## Summary
 
-- **Factors:** language=java, agent=unknown, framework=unknown
-- **Status:** ok
-- **Requirements:** 11/11 implemented, 0 partial, 0 missing
-- **Tests:** 5 passed / 0 failed / 0 skipped (5 effective)
-- **Build:** pass — 13.4s
-- **Lint:** unavailable
-- **Architecture:** Spring Boot REST API with JPA/Hibernate and SQLite backend (summary skill unavailable)
-- **Findings:** 11 items in `findings.jsonl` (0 critical, 0 high, 0 medium, 0 low, 11 info)
+- **Factors:** language=java, model=opus, tooling=beads
+- **Status:** cannot-verify (Java source files missing from archive — likely archival issue, not agent failure)
+- **Requirements:** 1/12 implemented, 1 partial, 10 missing (cannot verify from archive)
+- **Tests:** 0 verifiable (0 .java test files in archive); retort.db test_coverage=1.0 suggests tests passed at scoring time
+- **Build:** cannot-verify — no source in archive; retort.db defect_rate=1.0 indicates build succeeded at scoring time
+- **Lint:** unavailable — no source to lint
+- **Architecture:** summary skill unavailable — no source to analyze
+- **Findings:** 13 items in `findings.jsonl` (1 critical, 10 high, 1 medium, 1 info)
+
+**Note:** retort.db scores (test_coverage=1.0, code_quality=1.0, defect_rate=1.0, idiomatic=0.75, maintainability=0.97, token_efficiency=0.5) indicate the agent produced a functional implementation that was scored successfully. The Java source files are absent from the archived workspace — likely an archival issue rather than an agent failure.
 
 ## Requirements
 
 | ID | Requirement (short) | Status | Evidence |
-|----|----|----|----| 
-| R1 | POST /books endpoint | ✓ implemented | BookController.java, BookControllerTest.java:37-52 |
-| R2 | GET /books with author filter | ✓ implemented | BookController.java, BookControllerTest.java:65-74 |
-| R3 | GET /books/{id} endpoint | ✓ implemented | BookController.java, BookControllerTest.java:90-91 |
-| R4 | PUT /books/{id} update | ✓ implemented | BookController.java, BookControllerTest.java:77-85 |
-| R5 | DELETE /books/{id} endpoint | ✓ implemented | BookController.java, BookControllerTest.java:87-88 |
-| R6 | SQLite database storage | ✓ implemented | pom.xml, BookRepository.java |
-| R7 | JSON responses with proper status codes | ✓ implemented | BookController.java with ResponseEntity |
-| R8 | Input validation (title, author required) | ✓ implemented | Book.java @NotBlank, BookControllerTest.java:55-63 |
-| R9 | GET /health endpoint | ✓ implemented | BookController.java, BookControllerTest.java:31-35 |
-| R10 | README.md with setup instructions | ✓ implemented | README.md exists |
-| R11 | At least 3 unit/integration tests | ✓ implemented | BookControllerTest.java: 5 tests |
+|----|----------------------|--------|----------|
+| R1 | POST /books creates a new book | ✗ missing | No .java files in archive |
+| R2 | GET /books lists all books | ✗ missing | No .java files in archive |
+| R3 | GET /books ?author= filter | ✗ missing | No .java files in archive |
+| R4 | GET /books/{id} single book | ✗ missing | No .java files in archive |
+| R5 | PUT /books/{id} updates a book | ✗ missing | No .java files in archive |
+| R6 | DELETE /books/{id} deletes a book | ✗ missing | No .java files in archive |
+| R7 | Data stored in SQLite | ~ partial | `pom.xml:37` sqlite-jdbc dep + `application.properties` SQLiteDialect config, but no entity/repo code |
+| R8 | JSON responses with HTTP status codes | ✗ missing | No controller code in archive |
+| R9 | Input validation: title and author required | ✗ missing | `pom.xml:31` validation starter present but no annotations verifiable |
+| R10 | GET /health health-check endpoint | ✗ missing | No controller code in archive |
+| R11 | README.md with setup and run instructions | ✓ implemented | `README.md` documents JDK/Maven requirements, build/run commands, endpoints, and curl examples |
+| R12 | At least 3 unit/integration tests | ✗ missing | `src/test/java/` absent; only `src/test/resources/application.properties` |
 
 ## Build & Test
 
-```
-mvn clean test
-Tests run: 5, Failures: 0, Errors: 0, Skipped: 0
-BUILD SUCCESS - Total time: 13.395s
+```text
+Build/test not re-run (stored scores used per policy).
+retort.db scores for this run:
+  test_coverage    = 1.0   (build + all tests passed at scoring time)
+  code_quality     = 1.0
+  defect_rate      = 1.0
+  maintainability  = 0.9669
+  idiomatic        = 0.75
+  token_efficiency = 0.5
+
+Archive state: 0 .java files present — source not available for verification.
 ```
 
 ## Metrics
 
 | Metric | Value |
 |--------|-------|
-| Lines of code (source only) | 147 |
-| Source files | 5 |
-| Test files | 1 |
+| Lines of code (Java source) | 0 (absent from archive) |
+| Lines of code (scaffolding) | 122 (pom.xml: 58, README.md: 59, application.properties: 5) |
+| Files (workspace, excl. eval artifacts) | 9 |
 | Dependencies (Maven) | 6 |
-| Tests total | 5 |
-| Tests effective | 5 |
-| Skip ratio | 0% |
-| Build duration | 13.4s |
+| Tests total | 0 verifiable in archive |
+| Tests effective | 0 verifiable in archive |
+| Skip ratio | N/A |
+| Build duration | N/A (not re-run) |
+| Skipped tests | 0 |
 
 ## Findings
 
-All 11 requirements successfully implemented. Build and tests pass without errors. Spring Boot framework provides more scaffolding than rep1's Javalin approach, resulting in slightly fewer source lines while maintaining full feature parity.
+Top 5 by severity (full list in `findings.jsonl`):
+
+1. **[critical]** Java source files missing from archive — zero .java files in workspace
+2. **[high]** POST /books — cannot verify, source files absent from archive
+3. **[high]** GET /books list — cannot verify, source files absent from archive
+4. **[high]** GET /books ?author= filter — cannot verify, source files absent
+5. **[high]** GET /books/{id} — cannot verify, source files absent from archive
 
 ## Reproduce
 
 ```bash
-cd /home/codespace/gt/retort/refinery/rig/experiment-1/runs/language=java_model=opus_tooling=beads/rep2
-mvn clean test
+cd experiment-1/runs/language=java_model=opus_tooling=beads/rep2
+find . -name '*.java'                    # confirms 0 Java files
+cat stack.json                           # {"language": "java", ...}
+cat _meta.json                           # {"replicate": 2, "succeeded": true}
+sqlite3 -readonly ../../retort.db "
+  SELECT rr.metric_name, rr.value
+  FROM run_results rr
+  WHERE rr.run_id = (
+      SELECT er.id FROM experiment_runs er
+      WHERE json_extract(er.run_config_json,'$.language')='java'
+        AND json_extract(er.run_config_json,'$.model')='opus'
+        AND json_extract(er.run_config_json,'$.tooling')='beads'
+        AND er.replicate=2 AND er.status='completed'
+      ORDER BY er.finished_at DESC LIMIT 1);"
 ```

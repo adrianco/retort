@@ -1,14 +1,23 @@
 {
   "severity_counts": {
-    "critical": 0,
+    "critical": 1,
     "high": 0,
     "medium": 0,
     "low": 0,
     "info": 0
   },
-  "penalty_score": 1.0,
-  "top_findings": [],
-  "requirement_coverage": null,
-  "model": "unknown",
-  "evaluated_at": "2026-04-18T22:28:36Z"
+  "penalty_score": 0.75,
+  "top_findings": [
+    {
+      "id": "archive-1",
+      "kind": "doc_missing",
+      "severity": "critical",
+      "title": "Main application source files missing from archive",
+      "evidence": "src/main/java/ does not exist; only src/test/java/com/example/BookApiTest.java is present. Test references App.start() at BookApiTest.java:34 and new BookDao() at BookApiTest.java:32, confirming main classes existed at build time.",
+      "suggestion": "Re-archive the run workspace to include src/main source files; without them code review and rebuild are impossible"
+    }
+  ],
+  "requirement_coverage": 0.9167,
+  "model": "opus",
+  "evaluated_at": "2026-06-03T08:11:05Z"
 }

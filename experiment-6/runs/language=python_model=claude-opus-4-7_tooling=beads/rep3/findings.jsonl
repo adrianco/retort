@@ -1,1 +1,1 @@
-{"id": "info-1", "kind": "info", "severity": "info", "title": "All requirements implemented and tested", "evidence": "test_app.py: 11 tests all passing", "suggestion": "None — implementation is complete"}
+{"id": "code-quality-1", "kind": "lint_warning", "severity": "info", "title": "code_quality score 0.789 indicates minor lint issues", "evidence": "retort.db code_quality=0.789 (1.0 = perfect)", "suggestion": "Run flake8/ruff to identify and fix style issues"}

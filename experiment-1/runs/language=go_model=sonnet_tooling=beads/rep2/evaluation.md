@@ -6,74 +6,78 @@
 - **Status:** ok
 - **Requirements:** 12/12 implemented, 0 partial, 0 missing
 - **Tests:** 7 passed / 0 failed / 0 skipped (7 effective)
-- **Build:** pass — 0.5s
-- **Lint:** pass — 0 warnings (go vet)
-- **Architecture:** summary skill unavailable
-- **Findings:** 12 items in `findings.jsonl` (0 critical, 0 high, 0 medium, 0 low, 12 info)
+- **Build:** pass — test_coverage=0.648, defect_rate=1.0 from retort.db
+- **Lint:** pass — code_quality=1.0 from retort.db
+- **Architecture:** summary skill not invoked
+- **Findings:** 2 items in `findings.jsonl` (0 critical, 0 high, 0 medium, 1 low, 1 info)
 
 ## Requirements
 
 | ID | Requirement (short) | Status | Evidence |
 |----|----|----|----|
-| R1 | POST /books creates books with all fields | ✓ implemented | `main.go:71-88`, `db.go:31-45` |
-| R2 | GET /books lists books with author filter | ✓ implemented | `main.go:91-103`, `db.go:47-72` |
-| R3 | GET /books/{id} retrieves single book | ✓ implemented | `main.go:105-117`, `db.go:74-83` |
-| R4 | PUT /books/{id} updates book | ✓ implemented | `main.go:119-140`, `db.go:85-102` |
-| R5 | DELETE /books/{id} deletes book | ✓ implemented | `main.go:142-152`, `db.go:104-117` |
-| R6 | Store data in SQLite | ✓ implemented | `db.go:7`, modern sqlite driver |
-| R7 | JSON responses with correct status codes | ✓ implemented | `main.go:25-33`, proper status codes |
-| R8 | Input validation (title and author required) | ✓ implemented | `main.go:77-82`, `main.go:125-130` |
-| R9 | GET /health endpoint | ✓ implemented | `main.go:35-37`, `main.go:157` |
-| R10 | Working source code in workspace | ✓ implemented | `go build` passes |
-| R11 | README.md with setup and run instructions | ✓ implemented | Complete documentation present |
-| R12 | At least 3 unit/integration tests | ✓ implemented | 7 tests in `main_test.go` |
+| R1 | POST /books creates a new book | ✓ implemented | `main.go:71` createBook handler, `db.go:31` dbCreateBook — accepts title, author, year, isbn; returns 201 |
+| R2 | GET /books lists all books | ✓ implemented | `main.go:91` listBooks, `db.go:47` dbListBooks — returns full collection |
+| R3 | GET /books supports ?author= filter | ✓ implemented | `main.go:92` reads query param, `db.go:50-56` WHERE clause filters by author |
+| R4 | GET /books/{id} returns a single book | ✓ implemented | `main.go:105` getBook, returns 404 via `sql.ErrNoRows` check |
+| R5 | PUT /books/{id} updates a book | ✓ implemented | `main.go:119` updateBook, `db.go:85` dbUpdateBook — validates then updates |
+| R6 | DELETE /books/{id} deletes a book | ✓ implemented | `main.go:142` deleteBook — returns 204 No Content, 404 if absent |
+| R7 | Data stored in SQLite | ✓ implemented | `db.go:7` imports `modernc.org/sqlite`, `db.go:10` initDB opens SQLite file |
+| R8 | JSON responses with appropriate HTTP status codes | ✓ implemented | `main.go:25-28` writeJSON sets Content-Type; 201/200/204/400/404 used correctly |
+| R9 | Input validation: title and author required | ✓ implemented | `main.go:77-81` TrimSpace + empty check, returns 400 |
+| R10 | GET /health health-check endpoint | ✓ implemented | `main.go:35-37` handleHealth returns `{"status":"ok"}` with 200 |
+| R11 | README.md with setup and run instructions | ✓ implemented | `README.md` documents setup, build, run, test, and all API endpoints |
+| R12 | At least 3 unit/integration tests | ✓ implemented | 7 test functions in `main_test.go`: TestHealth, TestCreateAndGetBook, TestCreateBook_ValidationError, TestListBooks_AuthorFilter, TestUpdateBook, TestDeleteBook, TestGetBook_NotFound |
 
 ## Build & Test
 
 ```text
-go build ./...
-(compiled successfully)
+Scores from retort.db (build/test/lint not re-run per skill spec):
+  test_coverage  = 0.648
+  code_quality   = 1.0
+  defect_rate    = 1.0  (build+test succeeded)
+  idiomatic      = 0.68
+  maintainability = 0.939
+  token_efficiency = 0.5
+```
 
-go test ./... -v
-=== RUN   TestHealth
---- PASS: TestHealth (0.00s)
-=== RUN   TestCreateAndGetBook
---- PASS: TestCreateAndGetBook (0.00s)
-=== RUN   TestCreateBook_ValidationError
---- PASS: TestCreateBook_ValidationError (0.00s)
-=== RUN   TestListBooks_AuthorFilter
---- PASS: TestListBooks_AuthorFilter (0.00s)
-=== RUN   TestUpdateBook
---- PASS: TestUpdateBook (0.00s)
-=== RUN   TestDeleteBook
---- PASS: TestDeleteBook (0.00s)
-=== RUN   TestGetBook_NotFound
---- PASS: TestGetBook_NotFound (0.00s)
-PASS
-ok  	bookapi	(cached)
+```text
+7 test functions, 0 skipped:
+  TestHealth
+  TestCreateAndGetBook
+  TestCreateBook_ValidationError
+  TestListBooks_AuthorFilter
+  TestUpdateBook
+  TestDeleteBook
+  TestGetBook_NotFound
 ```
 
 ## Metrics
 
 | Metric | Value |
 |--------|-------|
-| Lines of code (source only) | 493 |
-| Files | 13 |
-| Dependencies | 14 |
+| Lines of code (source only) | 292 (main.go:175 + db.go:117) |
+| Lines of code (incl. tests) | 493 |
+| Files | 10 |
+| Dependencies | 10 (go.mod, all indirect) |
 | Tests total | 7 |
 | Tests effective | 7 |
 | Skip ratio | 0% |
-| Build duration | 0.5s |
+| Build duration | n/a (scores from DB) |
 
 ## Findings
 
-All requirements implemented successfully. No issues found. See `findings.jsonl` for detailed assessment.
+Top 2 by severity (full list in `findings.jsonl`):
+
+1. [low] Missing go.sum file for reproducible builds
+2. [info] All go.mod dependencies marked indirect
 
 ## Reproduce
 
 ```bash
 cd experiment-1/runs/language=go_model=sonnet_tooling=beads/rep2
-go build ./...
-go test ./... -v
-go vet ./...
+cat stack.json
+cat scores.json  # or query retort.db
+grep -rE "t\.Skip\(|t\.Skipf\(" . --include="*.go" | wc -l
+grep -c "func Test" main_test.go
+find . -name "*.go" -exec wc -l {} +
 ```

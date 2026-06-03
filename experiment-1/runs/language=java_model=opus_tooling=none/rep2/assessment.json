@@ -1,14 +1,14 @@
 {
-  "severity_counts": {
-    "critical": 0,
-    "high": 0,
-    "medium": 0,
-    "low": 0,
-    "info": 0
-  },
-  "penalty_score": 1.0,
-  "top_findings": [],
-  "requirement_coverage": null,
-  "model": "unknown",
-  "evaluated_at": "2026-04-18T22:30:03Z"
+  "severity_counts": {"critical": 1, "high": 9, "medium": 0, "low": 0, "info": 0},
+  "penalty_score": 0.0,
+  "top_findings": [
+    {"id": "archive-incomplete", "kind": "build_failure", "severity": "critical", "title": "Archive missing all Java source files — no src/ directory", "evidence": "find experiment-1/runs/language=java_model=opus_tooling=none/rep2 -type f shows only pom.xml, README.md, TASK.md, _meta.json, stack.json — no .java files", "suggestion": "Investigate archiving pipeline; retort.db test_coverage=1.0 suggests source existed at run time but was not captured"},
+    {"id": "R1", "kind": "requirement_missing", "severity": "high", "title": "POST /books — source absent from archive", "evidence": "No .java files in archive; cannot verify endpoint implementation", "suggestion": "Re-archive from original workspace if available"},
+    {"id": "R2", "kind": "requirement_missing", "severity": "high", "title": "GET /books list all — source absent from archive", "evidence": "No .java files in archive; cannot verify endpoint implementation", "suggestion": "Re-archive from original workspace if available"},
+    {"id": "R3", "kind": "requirement_missing", "severity": "high", "title": "GET /books ?author= filter — source absent from archive", "evidence": "No .java files in archive; cannot verify filter implementation", "suggestion": "Re-archive from original workspace if available"},
+    {"id": "R4", "kind": "requirement_missing", "severity": "high", "title": "GET /books/{id} — source absent from archive", "evidence": "No .java files in archive; cannot verify endpoint implementation", "suggestion": "Re-archive from original workspace if available"}
+  ],
+  "requirement_coverage": 0.25,
+  "model": "opus",
+  "evaluated_at": "2026-06-03T08:14:22Z"
 }

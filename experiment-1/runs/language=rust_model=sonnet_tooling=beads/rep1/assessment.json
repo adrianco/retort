@@ -4,11 +4,28 @@
     "high": 0,
     "medium": 0,
     "low": 0,
-    "info": 0
+    "info": 2
   },
-  "penalty_score": 1.0000,
-  "top_findings": [],
+  "penalty_score": 1.0,
+  "top_findings": [
+    {
+      "id": "enhancement-1",
+      "kind": "enhancement",
+      "severity": "info",
+      "title": "Update endpoint validates empty title/author beyond spec",
+      "evidence": "src/main.rs:107-122 — update_book rejects empty-string title/author, though spec only requires validation on create",
+      "suggestion": "No action needed — this is a defensive enhancement beyond R9"
+    },
+    {
+      "id": "enhancement-2",
+      "kind": "enhancement",
+      "severity": "info",
+      "title": "Mutex-based connection sharing limits concurrency",
+      "evidence": "src/main.rs:18 — type AppState = Arc<Mutex<Connection>>; single connection behind a mutex serializes all DB access",
+      "suggestion": "Consider r2d2 or deadpool connection pool for production use"
+    }
+  ],
   "requirement_coverage": 1.0,
-  "model": "unknown",
-  "evaluated_at": "2026-04-18T21:00:00Z"
+  "model": "sonnet",
+  "evaluated_at": "2026-06-03T22:00:00Z"
 }

@@ -1,14 +1,55 @@
 {
   "severity_counts": {
-    "critical": 0,
-    "high": 0,
+    "critical": 1,
+    "high": 9,
     "medium": 0,
     "low": 0,
     "info": 0
   },
-  "penalty_score": 1.0,
-  "top_findings": [],
-  "requirement_coverage": null,
-  "model": "unknown",
-  "evaluated_at": "2026-04-18T22:21:55Z"
+  "penalty_score": 0.0,
+  "top_findings": [
+    {
+      "id": "archive-1",
+      "kind": "build_failure",
+      "severity": "critical",
+      "title": "Source and test files missing from archive — no src/ or test/ directories",
+      "evidence": "find -type f in run_dir shows only config/doc files (deps.edn, README.md, TASK.md, stack.json, etc.); deps.edn :paths [\"src\" \"resources\"] and :extra-paths [\"test\"] reference directories that do not exist in the archive",
+      "suggestion": "Re-archive the run workspace to include all generated .clj source and test files"
+    },
+    {
+      "id": "R1",
+      "kind": "requirement_partial",
+      "severity": "high",
+      "title": "POST /books — cannot verify, source absent from archive",
+      "evidence": "No src/ in archive; README.md:31 documents POST /books endpoint; test_coverage=1.0 from retort.db",
+      "suggestion": "Re-archive with source files to enable verification"
+    },
+    {
+      "id": "R2",
+      "kind": "requirement_partial",
+      "severity": "high",
+      "title": "GET /books — cannot verify, source absent from archive",
+      "evidence": "No src/ in archive; README.md:32 documents GET /books endpoint; test_coverage=1.0 from retort.db",
+      "suggestion": "Re-archive with source files to enable verification"
+    },
+    {
+      "id": "R3",
+      "kind": "requirement_partial",
+      "severity": "high",
+      "title": "GET /books ?author= filter — cannot verify, source absent from archive",
+      "evidence": "No src/ in archive; README.md:32 documents ?author= filter support; test_coverage=1.0 from retort.db",
+      "suggestion": "Re-archive with source files to enable verification"
+    },
+    {
+      "id": "R4",
+      "kind": "requirement_partial",
+      "severity": "high",
+      "title": "GET /books/{id} — cannot verify, source absent from archive",
+      "evidence": "No src/ in archive; README.md:33 documents endpoint; test_coverage=1.0 from retort.db",
+      "suggestion": "Re-archive with source files to enable verification"
+    }
+  ],
+  "requirement_coverage": 0.0833,
+  "model": "opus",
+  "evaluated_at": "2026-06-03T15:30:00Z"
 }

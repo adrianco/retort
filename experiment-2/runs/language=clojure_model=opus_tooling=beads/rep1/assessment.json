@@ -1,55 +1,17 @@
 {
   "severity_counts": {
     "critical": 0,
-    "high": 9,
+    "high": 2,
     "medium": 0,
     "low": 0,
     "info": 0
   },
-  "penalty_score": 0.1,
+  "penalty_score": 0.8000,
   "top_findings": [
-    {
-      "id": "R1",
-      "kind": "requirement_missing",
-      "severity": "high",
-      "title": "Requirement not implemented: Neymar Jr - Overall: 92, Position: LW, Club: Paris Saint-Germain",
-      "evidence": "No matching code found",
-      "suggestion": "Implement this requirement"
-    },
-    {
-      "id": "R2",
-      "kind": "requirement_missing",
-      "severity": "high",
-      "title": "Requirement not implemented: Alisson - Overall: 89, Position: GK, Club: Liverpool",
-      "evidence": "No matching code found",
-      "suggestion": "Implement this requirement"
-    },
-    {
-      "id": "R3",
-      "kind": "requirement_missing",
-      "severity": "high",
-      "title": "Requirement not implemented: Casemiro - Overall: 89, Position: CDM, Club: Real Madrid",
-      "evidence": "No matching code found",
-      "suggestion": "Implement this requirement"
-    },
-    {
-      "id": "R4",
-      "kind": "requirement_missing",
-      "severity": "high",
-      "title": "Requirement not implemented: Flamengo - 90 pts (28W, 6D, 4L) - Champion",
-      "evidence": "No matching code found",
-      "suggestion": "Implement this requirement"
-    },
-    {
-      "id": "R5",
-      "kind": "requirement_missing",
-      "severity": "high",
-      "title": "Requirement not implemented: Santos - 74 pts (22W, 8D, 8L)",
-      "evidence": "No matching code found",
-      "suggestion": "Implement this requirement"
-    }
+    {"id": "R4", "kind": "requirement_partial", "severity": "high", "title": "Date range filtering not exposed via MCP; season filtering broken in MCP layer", "evidence": "query.clj:55-60 defines matches-by-date-range but no MCP tool exposes start/end date parameters. Additionally, mcp.clj:83 uses cond->> to thread matches through (q/matches-by-season season), but cond->> appends the accumulated value as the last arg, calling (matches-by-season season-int matches-vec) instead of (matches-by-season matches-vec season-int). The competition and team filters on lines 85-86 correctly use anonymous fn wrappers (#(...)) but season does not. Season filtering works when called directly (query_test.clj:39) but fails via MCP dispatch.", "suggestion": "Add date_start/date_end params to team_matches tool schema and wire to matches-by-date-range. Fix mcp.clj:83 to use an anonymous fn: (#(q/matches-by-season % season)) matching the pattern used for competition and team."},
+    {"id": "season-filter-bug", "kind": "lint_warning", "severity": "high", "title": "filter-matches cond->> passes season with wrong argument order to matches-by-season", "evidence": "mcp.clj:83 — `season (q/matches-by-season season)` inside cond->> threads the match collection as the last arg, producing (matches-by-season season-value matches-coll). But matches-by-season (query.clj:48-49) expects [matches season]. Affects team_matches, team_record, standings, biggest_wins, and statistics MCP tools when season param is provided. Tests pass because query_test.clj calls matches-by-season directly with correct arg order, never exercising the MCP dispatch path.", "suggestion": "Change mcp.clj:83 from `season (q/matches-by-season season)` to `season (#(q/matches-by-season % season))` to match the pattern used for competition and team on lines 85-86."}
   ],
-  "requirement_coverage": 0.0,
-  "model": "unknown",
-  "evaluated_at": "2026-05-21T17:18:29Z"
+  "requirement_coverage": 0.9167,
+  "model": "opus",
+  "evaluated_at": "2026-06-02T23:59:00Z"
 }

@@ -4,98 +4,74 @@
 
 - **Factors:** language=typescript, model=claude-opus-4-7, tooling=none
 - **Status:** ok
-- **Requirements:** 11/11 implemented, 0 partial, 0 missing
+- **Requirements:** 12/12 implemented, 0 partial, 0 missing
 - **Tests:** 15 passed / 0 failed / 0 skipped (15 effective)
-- **Build:** pass — 1s
-- **Lint:** unavailable — 0 warnings
-- **Findings:** 13 items in `findings.jsonl` (0 critical, 0 high, 0 medium, 0 low, 13 info)
+- **Build:** pass — defect_rate=1.0 from retort.db
+- **Lint:** code_quality=0.7333 from retort.db
+- **Architecture:** see `summary/index.md`
+- **Findings:** 2 items in `findings.jsonl` (0 critical, 0 high, 1 medium, 1 low)
 
 ## Requirements
 
 | ID | Requirement (short) | Status | Evidence |
-|----|----|----|
-| R1 | POST /books endpoint with validation | ✓ implemented | `src/app.ts:71-84` |
-| R2 | GET /books with ?author= filter | ✓ implemented | `src/app.ts:86-97` |
-| R3 | GET /books/{id} single book retrieval | ✓ implemented | `src/app.ts:99-110` |
-| R4 | PUT /books/{id} update endpoint | ✓ implemented | `src/app.ts:112-132` |
-| R5 | DELETE /books/{id} delete endpoint | ✓ implemented | `src/app.ts:134-144` |
-| R6 | Input validation (title/author required) | ✓ implemented | `src/app.ts:13-40` |
-| R7 | GET /health endpoint | ✓ implemented | `src/app.ts:54-56` |
-| R8 | SQLite storage | ✓ implemented | `src/db.ts:12-19` |
-| R9 | HTTP status codes | ✓ implemented | `src/app.ts:200,201,204,400,404,500` |
-| R10 | README.md documentation | ✓ implemented | `README.md` |
-| R11 | At least 3 tests | ✓ implemented | `tests/books.test.ts:15 tests` |
+|----|----------------------|--------|----------|
+| R1 | POST /books creates a new book (title, author, year, isbn) | ✓ implemented | `src/app.ts:57-70` — POST route inserts all four fields via prepared statement |
+| R2 | GET /books lists all books | ✓ implemented | `src/app.ts:72-85` — returns all rows ordered by id |
+| R3 | GET /books supports ?author= filter | ✓ implemented | `src/app.ts:73-78` — checks `req.query.author` and filters with WHERE clause |
+| R4 | GET /books/{id} returns a single book | ✓ implemented | `src/app.ts:87-99` — parameterized route with 404 handling |
+| R5 | PUT /books/{id} updates a book | ✓ implemented | `src/app.ts:101-126` — validates input, checks existence, updates all fields |
+| R6 | DELETE /books/{id} deletes a book | ✓ implemented | `src/app.ts:128-138` — deletes by id, returns 204, 404 if not found |
+| R7 | Data stored in SQLite | ✓ implemented | `src/db.ts:1-24` — better-sqlite3 with WAL mode; `src/server.ts:6` defaults to `books.db` file |
+| R8 | JSON responses with appropriate HTTP status codes | ✓ implemented | All routes return JSON; codes: 201 (create), 200 (read/update), 204 (delete), 400 (validation), 404 (not found) |
+| R9 | Input validation: title and author required | ✓ implemented | `src/app.ts:12-47` — `validateBookInput` rejects empty/missing title or author with 400 |
+| R10 | GET /health endpoint | ✓ implemented | `src/app.ts:53-55` — returns `{"status":"ok"}` with 200 |
+| R11 | README.md with setup and run instructions | ✓ implemented | `README.md` — documents npm install, dev/prod run, test, env vars, and all endpoints |
+| R12 | At least 3 unit/integration tests | ✓ implemented | `tests/books.test.ts` — 15 test cases covering all endpoints including validation edge cases |
 
 ## Build & Test
 
+```text
+# Build (from retort.db scores — not re-run)
+defect_rate=1.0 → build + all tests succeeded
+test_coverage=0.9102 → tests ran with ~91% coverage
 ```
-> books-api@1.0.0 build
-> tsc
 
-(exit code 0)
-```
-
-```
-PASS tests/books.test.ts
-  Books API
-    GET /health
-      ✓ returns 200 with ok status (207 ms)
-    POST /books
-      ✓ creates a book and returns 201 (7 ms)
-      ✓ returns 400 when title is missing (1 ms)
-      ✓ returns 400 when author is missing (1 ms)
-      ✓ returns 400 when year is not an integer (1 ms)
-    GET /books
-      ✓ returns an empty list initially (1 ms)
-      ✓ lists all books (2 ms)
-      ✓ filters by author (4 ms)
-    GET /books/:id
-      ✓ returns the book when it exists (2 ms)
-      ✓ returns 404 when the book does not exist (1 ms)
-    PUT /books/:id
-      ✓ updates an existing book (1 ms)
-      ✓ returns 404 for missing book (1 ms)
-      ✓ returns 400 for invalid input on update (1 ms)
-    DELETE /books/:id
-      ✓ deletes an existing book (2 ms)
-      ✓ returns 404 for missing book (1 ms)
-
-Test Suites: 1 passed, 1 total
-Tests:       15 passed, 15 total
-Snapshots:   0 total
-Time:        0.942 s
+```text
+# Test framework: Jest with ts-jest (jest --runInBand)
+# 15 test cases in tests/books.test.ts
+# Covers: health check, CRUD operations, validation (missing title/author, invalid year),
+#         author filtering, 404 handling on get/update/delete
 ```
 
 ## Metrics
 
 | Metric | Value |
 |--------|-------|
-| Lines of code (TypeScript) | 346 |
-| Files (excluding node_modules) | 13 |
-| Dependencies (npm packages) | 12 |
+| Lines of code (source only) | 352 (TS/JS) |
+| Files | 13 |
+| Dependencies | 12 (2 runtime + 10 dev) |
 | Tests total | 15 |
 | Tests effective | 15 |
 | Skip ratio | 0% |
-| Build duration | 1s |
+| test_coverage (retort.db) | 0.9102 |
+| code_quality (retort.db) | 0.7333 |
+| idiomatic (retort.db) | 0.68 |
+| maintainability (retort.db) | 0.6851 |
+| token_efficiency (retort.db) | 1.0 |
 
 ## Findings
 
-All 11 requirements fully implemented:
-1. [info] POST /books endpoint creates books with validation
-2. [info] GET /books endpoint lists all books with author filter support
-3. [info] GET /books/{id} endpoint retrieves single book by ID
-4. [info] PUT /books/{id} endpoint updates existing books
-5. [info] DELETE /books/{id} endpoint deletes books
+Top findings by severity (full list in `findings.jsonl`):
 
-Enhancements:
-- Global error handler for invalid JSON payloads
-- Comprehensive test coverage with edge cases
+1. [medium] Code quality score below threshold (0.73) — lint/style issues likely present
+2. [low] Test coverage at 91% — minor edge-case gaps remain
 
 ## Reproduce
 
 ```bash
-cd /Users/adriancockcroft/Documents/GitHub/retort/experiment-6/runs/language=typescript_model=claude-opus-4-7_tooling=none/rep3
-npm install --no-audit --no-fund
-npm run build
-npm test
+cd experiment-6/runs/language=typescript_model=claude-opus-4-7_tooling=none/rep3
+cat scores.json 2>/dev/null || sqlite3 -readonly ../../retort.db "SELECT metric_name, value FROM run_results WHERE run_id = (SELECT id FROM experiment_runs WHERE json_extract(run_config_json,'$.language')='typescript' AND json_extract(run_config_json,'$.model')='claude-opus-4-7' AND json_extract(run_config_json,'$.tooling')='none' AND replicate=3 AND status='completed' ORDER BY finished_at DESC LIMIT 1);"
+cat REQUIREMENTS.json 2>/dev/null || cat ../../REQUIREMENTS.json
+grep -rE '\.skip\(|xit\(|xdescribe\(|it\.todo\(' tests/ --include="*.ts" 2>/dev/null | wc -l
+find . -type f -not -path "*/node_modules/*" -not -path "*/dist/*" | wc -l
 ```

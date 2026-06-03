@@ -1,55 +1,8 @@
 {
-  "severity_counts": {
-    "critical": 0,
-    "high": 0,
-    "medium": 0,
-    "low": 0,
-    "info": 12
-  },
+  "severity_counts": {"critical": 0, "high": 0, "medium": 0, "low": 0, "info": 0},
   "penalty_score": 1.0,
-  "top_findings": [
-    {
-      "id": "R1",
-      "kind": "requirement_implemented",
-      "severity": "info",
-      "title": "Can search and return match data from all provided CSV files",
-      "evidence": "src/brazilian_soccer_mcp/data_loader.py:27-34 loads all 6 CSV files; find_matches tool in server.py:57-73 provides query interface; tests/test_data_loader.py::TestDataStoreLoads::test_all_six_files_loaded passes",
-      "suggestion": ""
-    },
-    {
-      "id": "R2",
-      "kind": "requirement_implemented",
-      "severity": "info",
-      "title": "Can search and return player data",
-      "evidence": "src/brazilian_soccer_mcp/data_loader.py:33 loads fifa_data.csv; find_players and top_brazilian_players tools in server.py:118-140 provide query interface; tests/test_bdd_queries.py::TestPlayerQueries passes all player tests",
-      "suggestion": ""
-    },
-    {
-      "id": "R3",
-      "kind": "requirement_implemented",
-      "severity": "info",
-      "title": "Can calculate basic statistics (wins, losses, goals)",
-      "evidence": "SoccerQueries.team_stats, standings, biggest_wins, average_goals_per_match methods in src/brazilian_soccer_mcp/queries.py; all statistical tests pass",
-      "suggestion": ""
-    },
-    {
-      "id": "R4",
-      "kind": "requirement_implemented",
-      "severity": "info",
-      "title": "Can compare teams head-to-head",
-      "evidence": "src/brazilian_soccer_mcp/queries.py::SoccerQueries.head_to_head; head_to_head tool in server.py:75-88; tests/test_bdd_queries.py::TestTeamQueries::test_head_to_head_symmetric passes",
-      "suggestion": ""
-    },
-    {
-      "id": "R5",
-      "kind": "requirement_implemented",
-      "severity": "info",
-      "title": "Handles team name variations correctly",
-      "evidence": "src/brazilian_soccer_mcp/team_names.py implements normalize() and loose_key() functions; tests/test_team_names.py verifies handling of accents, state suffixes, variants (Athletico vs Atletico); tests/test_bdd_queries.py::TestDataQuality passes all name normalization tests",
-      "suggestion": ""
-    }
-  ],
+  "top_findings": [],
   "requirement_coverage": 1.0,
   "model": "claude-opus-4-7",
-  "evaluated_at": "2026-05-30T09:49:46.275612+00:00"
+  "evaluated_at": "2026-06-03T17:00:00Z"
 }

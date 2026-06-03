@@ -1,14 +1,20 @@
 {
   "severity_counts": {
-    "critical": 0,
-    "high": 0,
+    "critical": 1,
+    "high": 11,
     "medium": 0,
     "low": 0,
     "info": 0
   },
-  "penalty_score": 1.0,
-  "top_findings": [],
-  "requirement_coverage": null,
-  "model": "unknown",
-  "evaluated_at": "2026-04-18T21:49:59Z"
+  "penalty_score": 0.0,
+  "top_findings": [
+    {"id": "source-missing", "kind": "build_failure", "severity": "critical", "title": "No Java source files in workspace", "evidence": "find src -type f -name '*.java' returns 0 results; only src/test/resources/application.properties exists. Workspace has pom.xml, README.md, and config but zero .java files", "suggestion": "Agent failed to emit Java source code; only scaffolding (pom.xml, README.md, test properties) was archived"},
+    {"id": "R1", "kind": "requirement_missing", "severity": "high", "title": "POST /books endpoint missing — no controller code", "evidence": "No Java source files in workspace; no BookController or equivalent exists under src/main/java/", "suggestion": "Implement a Spring Boot @RestController with @PostMapping for /books"},
+    {"id": "R2", "kind": "requirement_missing", "severity": "high", "title": "GET /books list endpoint missing", "evidence": "No Java source files in workspace; no controller with @GetMapping for /books", "suggestion": "Implement a @GetMapping(\"/books\") handler returning all books"},
+    {"id": "R3", "kind": "requirement_missing", "severity": "high", "title": "GET /books ?author= filter missing", "evidence": "No Java source files; no query parameter handling code exists", "suggestion": "Add @RequestParam(required=false) String author to the list endpoint"},
+    {"id": "R4", "kind": "requirement_missing", "severity": "high", "title": "GET /books/{id} endpoint missing", "evidence": "No Java source files; no get-by-id route exists", "suggestion": "Implement @GetMapping(\"/books/{id}\") with 404 for missing books"}
+  ],
+  "requirement_coverage": 0.0833,
+  "model": "sonnet",
+  "evaluated_at": "2026-06-03T19:40:00Z"
 }

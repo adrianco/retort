@@ -3,89 +3,74 @@
 ## Summary
 
 - **Factors:** language=clojure, model=opus, tooling=none
-- **Status:** ok
-- **Requirements:** 11/11 implemented, 0 partial, 0 missing
-- **Tests:** 6 passed / 0 failed / 0 skipped (6 effective)
-- **Build:** pass — 8s
-- **Lint:** unavailable — no linting tool configured
-- **Findings:** 12 items in `findings.jsonl` (0 critical, 0 high, 11 info)
+- **Status:** failed (archive incomplete — no source code files present)
+- **Requirements:** 1/12 implemented, 0 partial, 11 missing
+- **Tests:** 0 passed / 0 failed / 0 skipped (0 effective)
+- **Build:** unavailable — no source files to build
+- **Lint:** unavailable — no source files to lint
+- **Architecture:** summary skill unavailable (no source to analyze)
+- **Findings:** 13 items in `findings.jsonl` (1 critical, 12 high)
+
+**Note:** retort.db reports test_coverage=1.0, code_quality=0.83, defect_rate=1.0 for this run, but the archive contains zero Clojure source or test files. Only `deps.edn` and `README.md` are present. The scores may have been computed against a workspace state that was not fully archived, or the archive was corrupted/truncated after scoring.
 
 ## Requirements
 
 | ID | Requirement (short) | Status | Evidence |
 |----|----|----|-----|
-| R1 | POST /books endpoint with validation | ✓ implemented | `src/books/handler.clj:28-32, create-book` |
-| R2 | GET /books with author filter support | ✓ implemented | `src/books/handler.clj:34-35, list-books; test validates filter` |
-| R3 | GET /books/{id} endpoint | ✓ implemented | `src/books/handler.clj:37-42, get-book` |
-| R4 | PUT /books/{id} endpoint | ✓ implemented | `src/books/handler.clj:44-51, update-book` |
-| R5 | DELETE /books/{id} endpoint | ✓ implemented | `src/books/handler.clj:53-58, delete-book` |
-| R6 | JSON responses with HTTP status codes | ✓ implemented | `src/books/handler.clj:10-13, json helper function` |
-| R7 | Input validation (title, author required) | ✓ implemented | `src/books/handler.clj:15-20, validate function` |
-| R8 | SQLite embedded database | ✓ implemented | `src/books/db.clj:6-8, SQLite datasource + deps.edn` |
-| R9 | Health check endpoint GET /health | ✓ implemented | `src/books/handler.clj:62, GET /health` |
-| R10 | README.md with setup/run instructions | ✓ implemented | `README.md present with commands and port info` |
-| R11 | At least 3 unit/integration tests | ✓ implemented | `test/books/handler_test.clj: 6 tests covering all endpoints` |
+| R1 | POST /books creates a new book | ✗ missing | No .clj files in workspace; src/ absent |
+| R2 | GET /books lists all books | ✗ missing | No .clj files in workspace; src/ absent |
+| R3 | GET /books ?author= filter | ✗ missing | No .clj files in workspace; src/ absent |
+| R4 | GET /books/{id} returns single book | ✗ missing | No .clj files in workspace; src/ absent |
+| R5 | PUT /books/{id} updates a book | ✗ missing | No .clj files in workspace; src/ absent |
+| R6 | DELETE /books/{id} deletes a book | ✗ missing | No .clj files in workspace; src/ absent |
+| R7 | Data stored in SQLite | ✗ missing | deps.edn declares sqlite-jdbc but no source implements it |
+| R8 | JSON responses with HTTP status codes | ✗ missing | No .clj files in workspace; src/ absent |
+| R9 | Input validation: title and author required | ✗ missing | No .clj files in workspace; src/ absent |
+| R10 | GET /health endpoint | ✗ missing | No .clj files in workspace; src/ absent |
+| R11 | README.md with setup and run instructions | ✓ implemented | `README.md` documents setup, run, and test commands |
+| R12 | At least 3 unit/integration tests | ✗ missing | No test/ directory; 0 test files found |
 
 ## Build & Test
 
 ```text
-clojure -M:test
+Build: not run — no source files present in archive
+Stored scores from retort.db: test_coverage=1.0, code_quality=0.83, defect_rate=1.0
+These scores contradict the archive state (0 source files).
+```
 
-Running tests in #{"test"}
-
-Testing books.handler-test
-Ran 6 tests containing 17 assertions.
-0 failures, 0 errors.
+```text
+Tests: not run — no test files present in archive
 ```
 
 ## Metrics
 
 | Metric | Value |
 |--------|-------|
-| Lines of code (source + test) | 219 |
-| Files | 9 |
-| Dependencies | 9 |
-| Tests total | 6 |
-| Tests effective | 6 |
-| Skip ratio | 0% |
-| Build duration | 8s |
-
-## Code Structure
-
-The implementation follows a clean layered architecture:
-
-- **core.clj** (13 lines): Entry point, initializes database and starts Jetty server on port 3000
-- **handler.clj** (74 lines): HTTP handler functions with validation, routing via Compojure, middleware stack
-- **db.clj** (52 lines): Database layer using next.jdbc, SQL operations (CRUD) on SQLite books table
-- **handler_test.clj** (83 lines): Integration tests using ring-mock, covers all endpoints and edge cases
-
-### Key Design Decisions
-
-1. **Database**: SQLite via next.jdbc provides simple embedded persistence without external dependencies
-2. **HTTP Framework**: Ring + Compojure for routing and middleware composition (JSON, params, keyword conversion)
-3. **Testing**: ring-mock for handler testing without starting a live server, fresh temp database per test
-4. **Validation**: Centralized validate function ensures required fields (title, author) are non-empty
-5. **Error Handling**: Proper HTTP status codes (201 Created, 204 No Content, 400 Bad Request, 404 Not Found)
+| Lines of code (source only) | 0 |
+| Lines of config (deps.edn + README.md) | 47 |
+| Files (project, excl. meta) | 2 |
+| Dependencies (deps.edn) | 7 |
+| Tests total | 0 |
+| Tests effective | 0 |
+| Skip ratio | N/A |
+| Build duration | N/A |
 
 ## Findings
 
-All 11 requirements fully implemented. Test coverage is comprehensive:
-- **health-test**: Health endpoint verification
-- **create-and-get-test**: Book creation with ID generation and retrieval
-- **validation-test**: Required field validation
-- **list-filter-test**: List all books and filter by author
-- **update-delete-test**: Update existing books, 204 status on delete
-- **not-found-test**: 404 handling for missing books
+Top 5 by severity (full list in `findings.jsonl`):
+
+1. [critical] Archive incomplete — no Clojure source files in workspace
+2. [high] POST /books endpoint missing — no source code
+3. [high] GET /books list endpoint missing — no source code
+4. [high] GET /books ?author= filter missing — no source code
+5. [high] GET /books/{id} endpoint missing — no source code
 
 ## Reproduce
 
 ```bash
 cd experiment-1/runs/language=clojure_model=opus_tooling=none/rep2
-clojure -M:test
-```
-
-**To run the server:**
-```bash
-clojure -M:run
-# curl http://localhost:3000/health
+find . -name "*.clj" | wc -l          # 0 — no source files
+cat deps.edn                            # config present but no implementation
+cat README.md                           # README present
+sqlite3 -readonly ../../retort.db "SELECT rr.metric_name, rr.value FROM run_results rr WHERE rr.run_id = (SELECT er.id FROM experiment_runs er WHERE json_extract(er.run_config_json,'$.language')='clojure' AND json_extract(er.run_config_json,'$.model')='opus' AND json_extract(er.run_config_json,'$.tooling')='none' AND er.replicate=2 AND er.status='completed' ORDER BY er.finished_at DESC LIMIT 1);"
 ```

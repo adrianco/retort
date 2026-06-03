@@ -1,14 +1,55 @@
 {
   "severity_counts": {
-    "critical": 0,
-    "high": 0,
+    "critical": 1,
+    "high": 11,
     "medium": 0,
     "low": 0,
     "info": 0
   },
-  "penalty_score": 1.0,
-  "top_findings": [],
-  "requirement_coverage": 1.0,
-  "model": "unknown",
-  "evaluated_at": "2026-04-18T22:30:45Z"
+  "penalty_score": 0.0,
+  "top_findings": [
+    {
+      "id": "no-source",
+      "kind": "build_failure",
+      "severity": "critical",
+      "title": "No Java source code in workspace \u2014 entire implementation missing",
+      "evidence": "find . -name '*.java' returns 0 files; no src/ directory exists. Only pom.xml, README.md, and config files present (9 files total)",
+      "suggestion": "Agent created build scaffolding but never wrote any Java source code; the run is fundamentally incomplete"
+    },
+    {
+      "id": "R1",
+      "kind": "requirement_missing",
+      "severity": "high",
+      "title": "POST /books endpoint not implemented",
+      "evidence": "No src/ directory exists; zero .java files in workspace",
+      "suggestion": "Create src/main/java/com/example/books/ with route handler for POST /books"
+    },
+    {
+      "id": "R2",
+      "kind": "requirement_missing",
+      "severity": "high",
+      "title": "GET /books list endpoint not implemented",
+      "evidence": "No src/ directory exists; zero .java files in workspace",
+      "suggestion": "Implement a GET /books route returning the full collection"
+    },
+    {
+      "id": "R3",
+      "kind": "requirement_missing",
+      "severity": "high",
+      "title": "GET /books ?author= filter not implemented",
+      "evidence": "No src/ directory exists; zero .java files in workspace",
+      "suggestion": "Add ?author= query parameter filtering to GET /books"
+    },
+    {
+      "id": "R4",
+      "kind": "requirement_missing",
+      "severity": "high",
+      "title": "GET /books/{id} endpoint not implemented",
+      "evidence": "No src/ directory exists; zero .java files in workspace",
+      "suggestion": "Implement a GET /books/{id} route returning a single book or 404"
+    }
+  ],
+  "requirement_coverage": 0.0833,
+  "model": "opus",
+  "evaluated_at": "2026-06-03T20:52:33Z"
 }

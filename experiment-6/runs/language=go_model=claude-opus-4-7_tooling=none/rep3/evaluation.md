@@ -4,89 +4,83 @@
 
 - **Factors:** language=go, model=claude-opus-4-7, tooling=none
 - **Status:** ok
-- **Requirements:** 11/11 implemented, 0 partial, 0 missing
+- **Requirements:** 12/12 implemented, 0 partial, 0 missing
 - **Tests:** 10 passed / 0 failed / 0 skipped (10 effective)
-- **Build:** pass — 0.8s
-- **Lint:** pass — 0 warnings
-- **Findings:** 1 item in `findings.jsonl` (0 critical, 0 high, 0 medium)
+- **Build:** pass — test_coverage=0.707, defect_rate=1.0 from retort.db
+- **Lint:** pass — code_quality=1.0 from retort.db, 0 warnings
+- **Architecture:** summary skill not invoked (simple single-package app)
+- **Findings:** 2 items in `findings.jsonl` (0 critical, 0 high, 0 medium, 0 low, 2 info)
 
 ## Requirements
 
 | ID | Requirement (short) | Status | Evidence |
-|----|----|----|----|
-| R1 | POST /books — Create a new book | ✓ implemented | `handlers.go:116-130`, `store.go:44-58` |
-| R2 | GET /books — List all books with author filter | ✓ implemented | `handlers.go:84-92`, `store.go:60-87` |
-| R3 | GET /books/{id} — Get a single book by ID | ✓ implemented | `handlers.go:133-144`, `store.go:89-101` |
-| R4 | PUT /books/{id} — Update a book | ✓ implemented | `handlers.go:146-165`, `store.go:103-120` |
-| R5 | DELETE /books/{id} — Delete a book | ✓ implemented | `handlers.go:167-177`, `store.go:122-135` |
-| R6 | GET /health — Health check endpoint | ✓ implemented | `handlers.go:37-47` |
-| R7 | Store data in SQLite | ✓ implemented | `main.go:22`, `store.go:31-42` (CREATE TABLE IF NOT EXISTS) |
-| R8 | Return JSON with appropriate HTTP status codes | ✓ implemented | `handlers.go:27-35` (writeJSON, writeError), status codes in handlers |
-| R9 | Input validation (title and author required) | ✓ implemented | `handlers.go:106-114` (validateBook function) |
-| R10 | README.md with setup and run instructions | ✓ implemented | `README.md` with setup, run, test, and API documentation |
-| R11 | At least 3 unit/integration tests | ✓ implemented | 10 tests in `handlers_test.go` |
+|----|---------------------|--------|----------|
+| R1 | POST /books creates a new book (title, author, year, isbn) | ✓ implemented | `handlers.go:116` createBook; `store.go:9-15` Book struct with all four fields; returns 201 |
+| R2 | GET /books lists all books | ✓ implemented | `handlers.go:84` listBooks; `store.go:60-87` List query returns all rows |
+| R3 | GET /books supports ?author= filter | ✓ implemented | `handlers.go:85` reads `author` query param; `store.go:65-66` WHERE clause filters by author |
+| R4 | GET /books/{id} returns a single book | ✓ implemented | `handlers.go:133` getBook; `store.go:89-101` Get by id, returns 404 if absent |
+| R5 | PUT /books/{id} updates a book | ✓ implemented | `handlers.go:146` updateBook; `store.go:103-120` Update with RowsAffected check |
+| R6 | DELETE /books/{id} deletes a book | ✓ implemented | `handlers.go:167` deleteBook; returns 204 No Content on success, 404 if missing |
+| R7 | Data stored in SQLite | ✓ implemented | `main.go:9` imports `modernc.org/sqlite`; `store.go:32-40` CREATE TABLE IF NOT EXISTS |
+| R8 | JSON responses with appropriate HTTP status codes | ✓ implemented | `handlers.go:27-31` writeJSON sets Content-Type; uses 201/200/204/400/404/405/503 correctly |
+| R9 | Input validation: title and author required | ✓ implemented | `handlers.go:106-113` validateBook rejects empty title/author with 400 |
+| R10 | GET /health health-check endpoint | ✓ implemented | `handlers.go:37-47` handleHealth pings DB, returns {"status":"ok"} or {"status":"unhealthy"} |
+| R11 | README.md with setup and run instructions | ✓ implemented | `README.md` (114 lines) covers setup, run, test, API docs with examples |
+| R12 | At least 3 unit/integration tests | ✓ implemented | `handlers_test.go` contains 10 test functions (well exceeds the 3 required) |
 
 ## Build & Test
 
+```text
+Scores from retort.db (build/test not re-run per skill protocol):
+  test_coverage  = 0.707  (build + tests ran successfully)
+  defect_rate    = 1.0    (build + test succeeded)
+  code_quality   = 1.0    (lint clean)
+  idiomatic      = 0.87
+  maintainability = 0.889
 ```
-$ go build ./...
-(no output — successful build)
 
-$ go test ./... -v
-=== RUN   TestHealth
---- PASS: TestHealth (0.00s)
-=== RUN   TestCreateAndGetBook
---- PASS: TestCreateAndGetBook (0.00s)
-=== RUN   TestCreateBookValidation
-=== RUN   TestCreateBookValidation/missing_title
-=== RUN   TestCreateBookValidation/missing_author
-=== RUN   TestCreateBookValidation/both_empty
---- PASS: TestCreateBookValidation (0.00s)
-    --- PASS: TestCreateBookValidation/missing_title (0.00s)
-    --- PASS: TestCreateBookValidation/missing_author (0.00s)
-    --- PASS: TestCreateBookValidation/both_empty (0.00s)
-=== RUN   TestListBooksWithAuthorFilter
---- PASS: TestListBooksWithAuthorFilter (0.00s)
-=== RUN   TestUpdateBook
---- PASS: TestUpdateBook (0.00s)
-=== RUN   TestDeleteBook
---- PASS: TestDeleteBook (0.00s)
-=== RUN   TestGetBookNotFound
---- PASS: TestGetBookNotFound (0.00s)
-=== RUN   TestInvalidIDReturns400
---- PASS: TestInvalidIDReturns400 (0.00s)
-=== RUN   TestMethodNotAllowed
---- PASS: TestMethodNotAllowed (0.00s)
-=== RUN   TestMalformedJSON
---- PASS: TestMalformedJSON (0.00s)
-PASS
-ok  	bookapi	0.364s
-
-$ go vet ./...
-(no output — no issues)
+```text
+Test functions in handlers_test.go:
+  TestHealth
+  TestCreateAndGetBook
+  TestCreateBookValidation (3 subtests: missing title, missing author, both empty)
+  TestListBooksWithAuthorFilter
+  TestUpdateBook
+  TestDeleteBook
+  TestGetBookNotFound
+  TestInvalidIDReturns400
+  TestMethodNotAllowed
+  TestMalformedJSON
+Skipped: 0
 ```
 
 ## Metrics
 
 | Metric | Value |
 |--------|-------|
-| Lines of code (source only) | 600 |
-| Files (Go) | 4 |
-| Dependencies | 49 |
+| Lines of code (source only) | 357 (main.go:38 + handlers.go:177 + store.go:142) |
+| Lines of test code | 243 (handlers_test.go) |
+| Files | 12 |
+| Dependencies (go.sum entries) | 49 |
 | Tests total | 10 |
 | Tests effective | 10 |
 | Skip ratio | 0% |
-| Build duration | 0.8s |
 
 ## Findings
 
-All requirements implemented and tested — no issues found.
+Top findings by severity (full list in `findings.jsonl`):
+
+1. [info] Test suite exceeds spec (10 tests vs 3 required)
+2. [info] Robust error handling beyond spec (strict JSON parsing, invalid ID handling, method-not-allowed)
 
 ## Reproduce
 
 ```bash
-cd /Users/adriancockcroft/Documents/GitHub/retort/experiment-6/runs/language=go_model=claude-opus-4-7_tooling=none/rep3
-go build ./...
-go test ./... -v
-go vet ./...
+cd experiment-6/runs/language=go_model=claude-opus-4-7_tooling=none/rep3
+cat stack.json
+cat TASK.md
+# Scores were read from retort.db (immutable mode):
+sqlite3 "file://../../retort.db?immutable=1" "SELECT rr.metric_name, rr.value FROM run_results rr WHERE rr.run_id = (SELECT er.id FROM experiment_runs er WHERE json_extract(er.run_config_json,'\$.language')='go' AND json_extract(er.run_config_json,'\$.model')='claude-opus-4-7' AND json_extract(er.run_config_json,'\$.tooling')='none' AND er.replicate=3 AND er.status='completed' ORDER BY er.finished_at DESC LIMIT 1) AND rr.metric_name IN ('test_coverage','code_quality','defect_rate','maintainability','idiomatic','token_efficiency');"
+grep -rE "t\.Skip\(|t\.Skipf\(" . --include="*.go"
+grep -c "^func Test" handlers_test.go
 ```

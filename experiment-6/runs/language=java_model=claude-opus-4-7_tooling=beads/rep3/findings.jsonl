@@ -1,1 +1,1 @@
-{"id": "R1", "kind": "requirement_missing", "severity": "info", "title": "Requirement extraction from TASK.md", "evidence": "TASK.md parsed into 6 core REST endpoint requirements", "suggestion": "N/A - for tracking purposes"}
+{"id": "enhancement-1", "kind": "enhancement", "severity": "info", "title": "Tests exceed minimum requirement (7 vs 3)", "evidence": "BookApiIntegrationTest.java has 7 @Test methods covering health, CRUD, validation, filtering, and 404 cases", "suggestion": "No action needed — exceeds R12 minimum of 3 tests"}

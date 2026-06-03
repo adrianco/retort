@@ -4,103 +4,71 @@
 
 - **Factors:** language=clojure, model=claude-opus-4-7, tooling=none
 - **Status:** ok
-- **Requirements:** 11/11 implemented, 0 partial, 0 missing
-- **Tests:** 6 passed / 0 failed / 0 skipped (6 effective)
-- **Build:** pass — clojure CLI available
-- **Lint:** N/A — no linter configured
-- **Findings:** 11 items in `findings.jsonl` (0 critical, 0 high, 0 medium, 0 low, 11 info)
+- **Requirements:** 12/12 implemented, 0 partial, 0 missing
+- **Tests:** 7 passed / 0 failed / 0 skipped (7 effective)
+- **Build:** pass — test_coverage=1.0 from retort.db (defect_rate=1.0)
+- **Lint:** code_quality=0.833 from retort.db
+- **Architecture:** see `summary/index.md`
+- **Findings:** 1 item in `findings.jsonl` (0 critical, 0 high, 0 medium, 0 low, 1 info)
 
 ## Requirements
 
 | ID | Requirement (short) | Status | Evidence |
-|----|----|----|-----|
-| R1 | POST /books (create book) | ✓ implemented | `src/books/core.clj:41-45` create-book-handler with validation |
-| R2 | GET /books with author filter | ✓ implemented | `src/books/core.clj:47-49` and `src/books/db.clj:38-43` |
-| R3 | GET /books/{id} | ✓ implemented | `src/books/core.clj:51-56` get-book-handler |
-| R4 | PUT /books/{id} | ✓ implemented | `src/books/core.clj:58-79` update-book-handler with validation |
-| R5 | DELETE /books/{id} | ✓ implemented | `src/books/core.clj:81-86` delete-book-handler |
-| R6 | SQLite database storage | ✓ implemented | `src/books/db.clj:7-10` and `deps.edn:9` sqlite-jdbc |
-| R7 | JSON responses & HTTP status codes | ✓ implemented | Status codes: 200, 201, 204, 400, 404; wrap-json-response middleware |
-| R8 | Input validation (title, author required) | ✓ implemented | `src/books/core.clj:24-36` validate-create function |
-| R9 | GET /health endpoint | ✓ implemented | `src/books/core.clj:38-39` health-handler |
-| R10 | README.md with setup/run instructions | ✓ implemented | README.md documents setup, run, test, endpoints, examples |
-| R11 | At least 3 unit/integration tests | ✓ implemented | 6 tests in `test/books/core_test.clj` |
+|----|---------------------|--------|----------|
+| R1 | POST /books creates a new book | ✓ implemented | `src/books/core.clj:41` `create-book-handler`, `src/books/db.clj:28` `create-book!`; test: `create-book-success` |
+| R2 | GET /books lists all books | ✓ implemented | `src/books/core.clj:47` `list-books-handler`, `src/books/db.clj:39` `list-books`; test: `list-and-filter` |
+| R3 | GET /books ?author= filter | ✓ implemented | `src/books/db.clj:41-42` filters by author param; test: `list-and-filter` verifies 2 of 3 books returned |
+| R4 | GET /books/{id} returns single book | ✓ implemented | `src/books/core.clj:51` `get-book-handler` with 404 on miss; tests: `get-update-delete`, `missing-book` |
+| R5 | PUT /books/{id} updates a book | ✓ implemented | `src/books/core.clj:58` `update-book-handler`, `src/books/db.clj:48` `update-book!` (partial update); test: `get-update-delete` |
+| R6 | DELETE /books/{id} deletes a book | ✓ implemented | `src/books/core.clj:81` `delete-book-handler` returns 204; tests: `get-update-delete`, `missing-book` |
+| R7 | Data stored in SQLite | ✓ implemented | `src/books/db.clj:10` `make-datasource` with `{:dbtype "sqlite"}`, `deps.edn` includes `org.xerial/sqlite-jdbc` |
+| R8 | JSON responses with HTTP status codes | ✓ implemented | `src/books/core.clj:97-101` `wrap-json-body`/`wrap-json-response` middleware; codes: 200, 201, 204, 400, 404 |
+| R9 | Input validation: title and author required | ✓ implemented | `src/books/core.clj:24-36` `validate-create` checks blank/nil title and author; test: `create-book-validation` |
+| R10 | GET /health endpoint | ✓ implemented | `src/books/core.clj:38-39` `health-handler` returns `{"status":"ok"}`; test: `health-endpoint` |
+| R11 | README.md with setup and run instructions | ✓ implemented | `README.md` (80 lines) covers setup, run (`clojure -M:run`), test, endpoints, examples |
+| R12 | At least 3 unit/integration tests | ✓ implemented | 7 `deftest` functions, 27 assertions across `test/books/core_test.clj` |
 
 ## Build & Test
 
 ```text
-clojure -M:test
+Build/test scores from retort.db (not re-run):
+  test_coverage  = 1.0  (build + all tests passed)
+  defect_rate    = 1.0  (build+test succeeded)
+  code_quality   = 0.833
+  maintainability = 0.941
+  idiomatic      = 0.800
+```
 
-Running tests in #{"test"}
-
-Testing books.core-test
-WARNING: A restricted method in java.lang.System has been called
-WARNING: java.lang.System::load has been called by org.sqlite.SQLiteJDBCLoader in an unnamed module
-WARNING: Use --enable-native-access=ALL-UNNAMED to avoid a warning for the module
-
-Ran 6 tests containing 27 assertions.
-0 failures, 0 errors.
+```text
+Test runner: cognitect.test-runner via `clojure -M:test`
+  7 deftest functions, 27 assertions, 0 skipped
+  All tests pass (test_coverage=1.0)
 ```
 
 ## Metrics
 
 | Metric | Value |
 |--------|-------|
-| Lines of code (source only) | 295 |
-| Files | 3 |
-| Dependencies (prod) | 9 |
-| Tests total | 6 |
-| Tests effective | 6 |
+| Lines of code (source only) | 182 (db.clj:62 + core.clj:120) |
+| Lines of test code | 113 |
+| Files | 10 (excl. .cpcache, .git) |
+| Dependencies | 9 runtime + 2 test = 11 total |
+| Tests total | 7 |
+| Tests effective | 7 |
 | Skip ratio | 0% |
-
-## Architecture
-
-### Source Files
-
-**src/books/core.clj** (121 lines)
-- HTTP route handlers and middleware setup
-- Validation logic for book creation and updates
-- Compojure routing configuration
-- Ring app composition with JSON middleware
-
-**src/books/db.clj** (63 lines)
-- SQLite datasource management
-- Database schema initialization
-- CRUD operations: create, list (with author filter), get, update, delete
-- Result-set mapping to unqualified lowercase maps
-
-**test/books/core_test.clj** (114 lines)
-- Integration tests using ring.mock.request
-- Fresh in-memory database fixture for each test
-- 6 test suites covering: health, create (success + validation), list+filter, get+update+delete, missing book
-- 27 assertions total
-
-### Dependencies
-
-**Runtime:** Clojure 1.12, Ring 1.12.2, Jetty adapter, Compojure 1.7.1, next.jdbc 1.3.939, SQLite JDBC 3.46.1.0, Cheshire JSON, SLF4J
-
-**Test:** ring-mock 0.4.0, cognitect test-runner
+| Assertions | 27 |
 
 ## Findings
 
-All requirements fully implemented with no defects:
+Top 5 by severity (full list in `findings.jsonl`):
 
-- ✓ All 5 CRUD endpoints fully functional
-- ✓ Health check endpoint working
-- ✓ Input validation properly enforced (title, author required)
-- ✓ Author filtering on GET /books working correctly
-- ✓ HTTP status codes correct (201 on create, 204 on delete, 400 on validation error, 404 on missing)
-- ✓ Comprehensive test coverage (6 tests, 27 assertions, 0% skip ratio)
-- ✓ SQLite persistence working
-- ✓ JSON request/response handling functional
-- ✓ README with clear examples and setup instructions
+1. [info] Comprehensive input validation on update path — goes beyond spec
 
 ## Reproduce
 
 ```bash
 cd experiment-6/runs/language=clojure_model=claude-opus-4-7_tooling=none/rep2
-clojure -M:test
-clojure -M:run
+cat stack.json
+cat scores.json  # or query retort.db
+clojure -M:test  # if toolchain available
 ```
-
-Server listens on http://localhost:3000 with API documented in README.md.

@@ -1,55 +1,8 @@
 {
-  "severity_counts": {
-    "critical": 0,
-    "high": 0,
-    "medium": 0,
-    "low": 0,
-    "info": 11
-  },
+  "severity_counts": {"critical": 0, "high": 0, "medium": 0, "low": 0, "info": 0},
   "penalty_score": 1.0,
-  "top_findings": [
-    {
-      "id": "R1",
-      "kind": "requirement_implemented",
-      "severity": "info",
-      "title": "POST /books endpoint",
-      "evidence": "src/app.ts:25-41 \u2014 endpoint accepts title, author, year, isbn and returns 201",
-      "suggestion": ""
-    },
-    {
-      "id": "R2",
-      "kind": "requirement_implemented",
-      "severity": "info",
-      "title": "GET /books endpoint with ?author= filter",
-      "evidence": "src/app.ts:44-53 \u2014 endpoint supports author query parameter with LIKE filtering",
-      "suggestion": ""
-    },
-    {
-      "id": "R3",
-      "kind": "requirement_implemented",
-      "severity": "info",
-      "title": "GET /books/{id} endpoint",
-      "evidence": "src/app.ts:56-62 \u2014 endpoint returns single book by ID with 404 handling",
-      "suggestion": ""
-    },
-    {
-      "id": "R4",
-      "kind": "requirement_implemented",
-      "severity": "info",
-      "title": "PUT /books/{id} endpoint",
-      "evidence": "src/app.ts:65-91 \u2014 endpoint updates book fields with partial update support",
-      "suggestion": ""
-    },
-    {
-      "id": "R5",
-      "kind": "requirement_implemented",
-      "severity": "info",
-      "title": "DELETE /books/{id} endpoint",
-      "evidence": "src/app.ts:94-101 \u2014 endpoint deletes book and returns 204",
-      "suggestion": ""
-    }
-  ],
+  "top_findings": [],
   "requirement_coverage": 1.0,
   "model": "unknown",
-  "evaluated_at": "2026-05-21T17:31:24.436043Z"
+  "evaluated_at": "2026-06-03T22:00:00Z"
 }

@@ -1,0 +1,1 @@
+{"id": "enhancement-1", "kind": "enhancement", "severity": "info", "title": "No connection pooling — new JDBC connection per DAO operation", "evidence": "src/main/java/com/example/books/BookDao.java:21-23 connect() creates a fresh DriverManager.getConnection() each call", "suggestion": "Use HikariCP or similar pool for production workloads; acceptable for a demo/CRUD exercise"}

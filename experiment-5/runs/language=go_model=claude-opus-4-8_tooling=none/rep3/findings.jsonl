@@ -1,0 +1,1 @@
+{"id": "test-skip-1", "kind": "skipped_test", "severity": "medium", "title": "TestScenario_PlayersByClub is skipped at runtime", "evidence": "internal/soccer/query_test.go:279 — t.Skip(\"no Flamengo players >=70 in this FIFA snapshot\")", "suggestion": "Lower min_overall threshold or add test players to fixture data so the test exercises the club filter path"}

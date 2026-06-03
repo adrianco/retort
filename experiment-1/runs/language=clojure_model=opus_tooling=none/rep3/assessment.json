@@ -1,14 +1,14 @@
 {
-  "severity_counts": {
-    "critical": 0,
-    "high": 0,
-    "medium": 0,
-    "low": 0,
-    "info": 0
-  },
-  "penalty_score": 1.0,
-  "top_findings": [],
-  "requirement_coverage": null,
-  "model": "unknown",
-  "evaluated_at": "2026-04-18T22:22:02Z"
+  "severity_counts": {"critical": 1, "high": 11, "medium": 0, "low": 0, "info": 0},
+  "penalty_score": 0.0,
+  "top_findings": [
+    {"id": "archive-incomplete", "kind": "build_failure", "severity": "critical", "title": "Source code missing from archive — src/ and test/ directories not persisted", "evidence": "find . -name '*.clj' returns 0 files; only deps.edn and README.md exist. _meta.json reports succeeded:true, retort.db has test_coverage=1.0 — code existed at test time but was not archived.", "suggestion": "Investigate archival pipeline — all 3 reps of language=clojure_model=opus_tooling=none show the same pattern."},
+    {"id": "R1", "kind": "requirement_partial", "severity": "high", "title": "POST /books — cannot verify from archive, source missing", "evidence": "README.md:18 documents endpoint; test_coverage=1.0 in retort.db. No .clj files in archive.", "suggestion": "Re-archive the run workspace with source files included."},
+    {"id": "R2", "kind": "requirement_partial", "severity": "high", "title": "GET /books list — cannot verify from archive, source missing", "evidence": "README.md:19 documents endpoint; test_coverage=1.0 in retort.db. No .clj files in archive.", "suggestion": "Re-archive the run workspace with source files included."},
+    {"id": "R3", "kind": "requirement_partial", "severity": "high", "title": "GET /books ?author= filter — cannot verify from archive, source missing", "evidence": "README.md:19 documents filter; test_coverage=1.0 in retort.db. No .clj files in archive.", "suggestion": "Re-archive the run workspace with source files included."},
+    {"id": "R4", "kind": "requirement_partial", "severity": "high", "title": "GET /books/{id} — cannot verify from archive, source missing", "evidence": "README.md:20 documents endpoint; test_coverage=1.0 in retort.db. No .clj files in archive.", "suggestion": "Re-archive the run workspace with source files included."}
+  ],
+  "requirement_coverage": 0.0833,
+  "model": "opus",
+  "evaluated_at": "2026-06-03T09:00:00Z"
 }

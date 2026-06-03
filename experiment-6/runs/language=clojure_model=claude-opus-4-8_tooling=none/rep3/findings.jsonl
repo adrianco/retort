@@ -1,0 +1,1 @@
+{"id": "info-test-runner", "kind": "enhancement", "severity": "info", "title": "Test runner wrapper timeout command unavailable", "evidence": "test_output.txt:1 — '(eval):1: command not found: timeout'; test_coverage=1.0 from retort.db confirms tests passed via scorer", "suggestion": "Install coreutils for the timeout command or use an alternative wrapper"}

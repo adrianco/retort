@@ -1,0 +1,10 @@
+{
+  "severity_counts": {"critical": 0, "high": 1, "medium": 0, "low": 0, "info": 0},
+  "penalty_score": 0.9000,
+  "top_findings": [
+    {"id": "R4", "kind": "requirement_partial", "severity": "high", "title": "No date range filtering on match queries", "evidence": "src/queries.rs:18-26 — MatchFilter has season: Option<i32> but no start_date/end_date fields. TASK.md requires 'filter by date range and/or season'; only season is implemented.", "suggestion": "Add start_date and end_date fields to MatchFilter and wire them through find_matches and the MCP tool schema."}
+  ],
+  "requirement_coverage": 0.9167,
+  "model": "claude-opus-4-7",
+  "evaluated_at": "2026-06-03T22:00:00Z"
+}
