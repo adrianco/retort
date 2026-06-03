@@ -1,4 +1,4 @@
-# How Reliable Is Your AI Coding Stack? I Measured It — and Nearly Published the Wrong Answer
+# How Reliable Is Your AI Coding Stack? I Measured It
 
 *June 2026 — Adrian Cockcroft*
 
@@ -6,7 +6,7 @@
 
 Every few weeks a new frontier model tops the leaderboards. Sites like **[llm-stats.com](https://llm-stats.com/)** rank them well across many benchmarks — but they answer a question most engineering teams aren't asking. They hold the *stack* constant: one prompt, one harness, a fixed benchmark. They don't tell you whether the newest model is worth 4× the cost **in Rust**, how *reliably* each model gets a Go MCP server completely right, or how long any of it takes.
 
-Those are the variables that decide a real project. So I built **[retort](https://github.com/adrianco/retort)** to measure them — six experiments, 198 scored runs, across two tasks, six languages, and four Claude models. This post is about what I found, and about the bug that almost made me publish the exact opposite conclusion.
+Those are the variables that decide a real project. So I built **[retort](https://github.com/adrianco/retort)** to measure them — six experiments, 198 scored runs, across two tasks, six languages, and four Claude models. Here's what I found.
 
 ## The metric that matters: how often is it *completely* right?
 
@@ -29,18 +29,9 @@ Three things jump out:
 
 So the real decision isn't "which model is best" — it's **how much reliability you need and what you'll pay for it**, and that depends on whether your task is a CRUD API or a knowledge-graph server. The leading stack is **task- and language-dependent**, which is exactly what a single leaderboard rank can't capture. (Per-language tables — where the cheap models win some languages and fail others — are in the [README](README.md).)
 
-## The part where I was almost wrong
+## How it's measured
 
-Here's the uncomfortable bit. The **first** version of this post said the opposite: "newer isn't better, Sonnet is the value play, you're overpaying for 4.8." I had the data, the tables, the charts. I nearly shipped it.
-
-Then, checking a footnote, I noticed an evaluation flagging a run for missing a requirement that read *"simple lookups respond in < 2 seconds."* That was never in my requirement checklist — it was a performance SLA the grader had invented. Digging in, I found the evaluator had two compounding problems:
-
-- It was **grading against requirements it extracted itself**, non-deterministically — the *same code* scored 0.33 on one pass and 1.0 on the next. (A cheap grader model was the culprit.)
-- Worse, when a grading run hit a usage limit and silently failed, my pipeline **read the previous grade from disk and treated it as fresh** — so 124 of 198 results were stale, carried over from the noisy old evaluator.
-
-The stale grades were biased *low* — that invented "< 2 second" requirement auto-failed runs that were actually complete — and they happened to drag down the newest models most. Fix the evaluator (pin the checklist so the denominator is constant, judge with a stronger model, take a second opinion, and never read a grade you didn't just write), re-run all 198, and the conclusion **flipped**: newer is more reliable, not less.
-
-The lesson isn't "LLM evals are hard" (though they are). It's that **a measurement tool is only as trustworthy as its own plumbing** — and the failure was silent. That's the whole reason to build something like retort rather than eyeball a few runs: it makes the comparison reproducible, and it makes bugs like this *findable*.
+Each run gets its own isolated workspace; the agent implements the task, and the code is then built and tested in place. The spec check is the strict part: an independent eval verifies the code against a **fixed requirement checklist** for the task, and a run only counts as a pass if it implements *all* of it and its tests actually run. To keep that grading reproducible, the checklist is pinned (so the denominator is constant across runs), a strong model does the judging, and a borderline result gets a second opinion before it's recorded. Every number above is that gate applied across 198 runs — not a hand-picked sample.
 
 ## Try it on your own stack
 

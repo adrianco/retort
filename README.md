@@ -130,7 +130,7 @@ The combined dataset across all six is in [`master.csv`](master.csv) (and `maste
 
 All run data — per-run source, tests, scores, and the spec-eval output — is committed under `experiment-N/runs/`, combined in `master.db` / `master.csv` (`retort aggregate`).
 
-**Methodology / honesty notes.** Of ~260 archived runs, **198** are completed runs with a fresh, reproducible `requirement_coverage` (the rest failed the tests-gate or are shard duplicates). The spec gate reads a pinned `REQUIREMENTS.json` per task (constant denominator) and judges with **opus-4.6** + a second opinion. An earlier version of this writeup used a buggy eval that read stale, non-pinned grades and was biased *low* — it wrongly suggested "newer isn't better"; the corrected pinned data above reverses that. Cross-experiment model means mix language/tooling sets, so per-model conclusions lean on the larger within-task samples.
+**Methodology notes.** Of ~260 archived runs, **198** are completed runs with a reproducible `requirement_coverage` (the rest failed the tests-gate or are shard duplicates). The spec gate reads a pinned `REQUIREMENTS.json` per task (constant denominator) and judges with **opus-4.6** + a second opinion. Cross-experiment model means mix language/tooling sets, so per-model conclusions lean on the larger within-task samples.
 
 ---
 
