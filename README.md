@@ -115,14 +115,18 @@ Best `(model, tooling)` per language, ranked **pass-proportion → test coverage
 
 ## The experiments
 
-| # | Task | Models | Covered | Headline (clean data) |
-|---|---|---|---:|---|
-| 1 | REST-API | Opus-4.6, Sonnet | 56 | Both ~0.6 reliable; Java/Go/Rust strongest; cheap but not certain |
-| 2 | Brazil | Opus-4.6, Sonnet | 22 | Hard task exposes them — only ~half of runs fully correct |
-| 3 | Brazil | Opus-4.6, 4.7 | 7 | 4.7 more reliable but **3× slower, 5.5× pricier** |
-| 4 | Brazil | Opus-4.8 | 6 | First 4.8 data: fully correct, but slowest/priciest |
-| 5 | Brazil | Opus-4.7, 4.8 | 36 | **4.8 = 1.00 pass vs 4.7 = 0.85**, +47% time/cost |
-| 6 | REST-API | Opus-4.7, 4.8 | 71 | Both 1.00 — 4.7 the better value, 4.8 is overkill |
+Each row links to its **full per-cell results table** (every language × model × tooling, with pass-proportion, speed, cost, and quality, generated from `master.db`).
+
+| # | Task | Models | Covered | Results table | Headline (clean data) |
+|---|---|---|---:|---|---|
+| 1 | REST-API | Opus-4.6, Sonnet | 56 | **[results →](experiment-1/results.md)** | Both ~0.6 reliable; Java/Go/Rust strongest; cheap but not certain |
+| 2 | Brazil | Opus-4.6, Sonnet | 22 | **[results →](experiment-2/results.md)** | Hard task exposes them — only ~half of runs fully correct |
+| 3 | Brazil | Opus-4.6, 4.7 | 7 | **[results →](experiment-3/results.md)** | 4.7 more reliable but **3× slower, 5.5× pricier** |
+| 4 | Brazil | Opus-4.8 | 6 | **[results →](experiment-4/results.md)** | First 4.8 data: fully correct, but slowest/priciest |
+| 5 | Brazil | Opus-4.7, 4.8 | 36 | **[results →](experiment-5/results.md)** | **4.8 = 1.00 pass vs 4.7 = 0.85**, +47% time/cost |
+| 6 | REST-API | Opus-4.7, 4.8 | 71 | **[results →](experiment-6/results.md)** | Both 1.00 — 4.7 the better value, 4.8 is overkill |
+
+The combined dataset across all six is in [`master.csv`](master.csv) (and `master.db`), rebuildable with `retort aggregate`.
 
 All run data — per-run source, tests, scores, and the spec-eval output — is committed under `experiment-N/runs/`, combined in `master.db` / `master.csv` (`retort aggregate`).
 
