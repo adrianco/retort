@@ -575,3 +575,15 @@ class TestTestQualityScorer:
         ):
             score = scorer.score(artifacts, python_stack)
         assert score <= 1.0
+
+
+def test_test_coverage_parses_elixir_erlang_pass_rate():
+    """erlang (rebar3 eunit) + elixir (mix test) output -> pass-rate fallback,
+    so those runs aren't falsely zeroed by the tests-gate."""
+    from retort.scoring.scorers.test_coverage import _parse_test_pass_rate as p
+    assert p("5 tests, 0 failures", "elixir") == 1.0
+    assert abs(p("8 tests, 1 failure, 2 skipped", "elixir") - 5/8) < 1e-9
+    assert p("  All 12 tests passed.", "erlang") == 1.0
+    assert abs(p("Failed: 1.  Skipped: 0.  Passed: 11.", "erlang") - 11/12) < 1e-9
+    from retort.scoring.scorers.test_coverage import _TESTS_ONLY_COMMANDS
+    assert "elixir" in _TESTS_ONLY_COMMANDS and "erlang" in _TESTS_ONLY_COMMANDS

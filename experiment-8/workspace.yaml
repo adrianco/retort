@@ -1,0 +1,49 @@
+# Experiment 8 — Erlang + Elixir on the rest-api-crud task.
+# Extends the REST-API language matrix to two BEAM languages, comparing
+# opus-4.7 vs opus-4.8 (same models as exp-6) so erlang/elixir get a per-language
+# leading-stack entry. tooling dropped (constant none). Eval off by convention;
+# requirement_coverage added afterward via `retort reevaluate`.
+#
+# Run:
+#   export PATH="/opt/homebrew/bin:$PATH"   # erl, elixir/mix, rebar3
+#   PYTHONPATH=src .venv/bin/retort run --phase screening --config experiment-8/workspace.yaml --resume
+experiment:
+  name: experiment-8-erlang-elixir-rest-api
+  visibility: public
+
+factors:
+  language:
+    levels: [erlang, elixir]
+  model:
+    levels: [claude-opus-4-7, claude-opus-4-8]
+
+responses:
+  - code_quality
+  - token_efficiency
+  - test_coverage
+  - defect_rate
+  - maintainability
+  - idiomatic
+
+tasks:
+  - source: bundled://rest-api-crud
+
+playpen:
+  runner: local
+  replicates: 3
+  timeout_minutes: 45
+  max_turns: 200
+
+design:
+  screening_resolution: 3
+  significance_threshold: 0.10
+
+promotion:
+  screening_to_trial: { p_value: 0.10 }
+  trial_to_production: { posterior_confidence: 0.80 }
+
+evaluation:
+  enabled: false
+  model: claude-opus-4-6
+  min_severity_to_file: high
+  issue_tracker: beads

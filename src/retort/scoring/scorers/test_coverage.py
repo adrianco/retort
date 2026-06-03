@@ -41,6 +41,10 @@ _TESTS_ONLY_COMMANDS: dict[str, list[str]] = {
     "clojure": ["clojure", "-M:test"],
     # Rust: cargo-llvm-cov not always installed; fall back to plain test run.
     "rust": ["cargo", "test"],
+    # Elixir: mix test (fetch deps first so projects using Plug/Phoenix compile).
+    "elixir": ["mix", "do", "deps.get,", "test"],
+    # Erlang: rebar3 eunit fetches deps, compiles, and runs EUnit.
+    "erlang": ["rebar3", "eunit"],
 }
 
 # Regex to extract a percentage like "75%" from coverage output.
@@ -310,6 +314,24 @@ _TEST_PASS_PATTERNS: dict[str, list[re.Pattern[str]]] = {
         re.compile(
             r"test result:.*?(?P<passed>\d+)\s+passed;\s*(?P<failed>\d+)\s+failed"
         ),
+    ],
+    "elixir": [
+        # ExUnit summary:  "5 tests, 0 failures"  /  "8 tests, 1 failure, 2 skipped"
+        re.compile(
+            r"(?P<total>\d+)\s+tests?,\s+(?P<failures>\d+)\s+failures?"
+            r"(?:,\s*(?P<skipped>\d+)\s+(?:skipped|excluded))?"
+        ),
+    ],
+    "erlang": [
+        # EUnit success:  "  All 12 tests passed."
+        re.compile(r"All\s+(?P<passed>\d+)\s+tests?\s+passed"),
+        # EUnit with failures:  "Failed: 1.  Skipped: 0.  Passed: 11."
+        re.compile(
+            r"Failed:\s*(?P<failed>\d+)\.\s+Skipped:\s*(?P<skipped>\d+)\.\s+"
+            r"Passed:\s*(?P<passed>\d+)"
+        ),
+        # Generic "N tests, M failures" (some EUnit/CT formatters use it)
+        re.compile(r"(?P<total>\d+)\s+tests?,\s+(?P<failures>\d+)\s+failures?"),
     ],
 }
 
