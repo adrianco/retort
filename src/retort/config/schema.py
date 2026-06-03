@@ -8,7 +8,7 @@ from __future__ import annotations
 from enum import Enum
 from typing import Annotated, Any, Literal
 
-from pydantic import BaseModel, Field, model_validator
+from pydantic import BaseModel, Field, field_validator, model_validator
 
 
 # ---------------------------------------------------------------------------
@@ -16,6 +16,8 @@ from pydantic import BaseModel, Field, model_validator
 # ---------------------------------------------------------------------------
 
 Visibility = Literal["public", "private"]
+ThinkingMode = Literal["off", "minimal", "low", "medium", "high", "xhigh", "max"]
+LocalHarness = Literal["omp"]
 
 
 class ExperimentConfig(BaseModel):
@@ -71,11 +73,27 @@ class Factor(BaseModel):
 
     levels: Annotated[list[str], Field(min_length=1, description="Categorical levels for this factor")]
 
+    @field_validator("levels", mode="before")
+    @classmethod
+    def coerce_yaml_scalars(cls, value: Any) -> Any:
+        """Normalize YAML booleans like unquoted `off` into string levels."""
+        if isinstance(value, list):
+            return [_coerce_level_string(item) for item in value]
+        return value
+
     @model_validator(mode="after")
     def levels_unique(self) -> Factor:
         if len(self.levels) != len(set(self.levels)):
             raise ValueError("factor levels must be unique")
         return self
+
+
+def _coerce_level_string(value: Any) -> str:
+    if value is False:
+        return "off"
+    if value is True:
+        return "true"
+    return str(value)
 
 
 # ---------------------------------------------------------------------------
@@ -150,12 +168,67 @@ class LocalInferenceCost(BaseModel):
         return self.cost_for_run(duration_seconds) / token_count
 
 
+class LocalAgentConfig(BaseModel):
+    """Configuration for one local agent profile.
+
+    The profile name is the key under ``playpen.local_agents`` and can be any
+    experiment-specific label. ``harness`` selects the concrete CLI adapter.
+    """
+
+    harness: Annotated[
+        LocalHarness,
+        Field(description="Concrete local harness implementation"),
+    ]
+    model: Annotated[
+        str | None,
+        Field(default=None, description="Default model for this local agent profile"),
+    ]
+    thinking: Annotated[
+        ThinkingMode | None,
+        Field(default=None, description="Default OMP thinking mode for this profile"),
+    ]
+
+    @field_validator("thinking", mode="before")
+    @classmethod
+    def coerce_thinking_yaml_scalar(cls, value: Any) -> Any:
+        if value is False:
+            return "off"
+        return value
+
+
 class PlaypenConfig(BaseModel):
     """Configuration for experiment execution environment."""
 
     runner: Annotated[RunnerType, Field(default=RunnerType.docker)]
     replicates: Annotated[int, Field(default=3, ge=1, description="Runs per design point")]
     timeout_minutes: Annotated[int, Field(default=30, ge=1)]
+    model: Annotated[
+        str | None,
+        Field(
+            default=None,
+            description=(
+                "Global default local agent model when neither the design factor "
+                "nor local agent profile specifies one"
+            ),
+        ),
+    ]
+    thinking: Annotated[
+        ThinkingMode | None,
+        Field(
+            default=None,
+            description=(
+                "Global default OMP thinking mode when neither the design factor "
+                "nor local agent profile specifies one"
+            ),
+        ),
+    ]
+    local_agents: Annotated[
+        dict[str, LocalAgentConfig],
+        Field(
+            default_factory=dict,
+            description="Named local agent profiles keyed by agent factor level",
+        ),
+    ]
     max_turns: Annotated[int, Field(
         default=30, ge=1,
         description=(
@@ -166,6 +239,13 @@ class PlaypenConfig(BaseModel):
     )]
     cost_limit_usd: Annotated[float | None, Field(default=None, ge=0, description="Spend cap per screening phase")]
     local_inference_cost: Annotated[LocalInferenceCost | None, Field(default=None, description="Cost model for local inference hardware; enables cost_usd metric for local/offline models")]
+
+    @field_validator("thinking", mode="before")
+    @classmethod
+    def coerce_thinking_yaml_scalar(cls, value: Any) -> Any:
+        if value is False:
+            return "off"
+        return value
 
 
 # ---------------------------------------------------------------------------

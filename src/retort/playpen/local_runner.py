@@ -16,7 +16,7 @@ import time
 import uuid
 from pathlib import Path
 
-from retort.config.schema import LocalInferenceCost
+from retort.config.schema import LocalAgentConfig, LocalInferenceCost
 from retort.playpen.runner import PlaypenRunner, RunArtifacts, StackConfig, TaskSpec
 
 logger = logging.getLogger(__name__)
@@ -62,6 +62,9 @@ class LocalRunner:
         *,
         timeout_minutes: int = 30,
         max_turns: int = 30,
+        default_model: str | None = None,
+        default_thinking: str | None = None,
+        local_agents: dict[str, LocalAgentConfig] | None = None,
         work_dir: Path | None = None,
         eval_model: str | None = None,
         local_inference_cost: LocalInferenceCost | None = None,
@@ -69,6 +72,9 @@ class LocalRunner:
     ) -> None:
         self.timeout_minutes = timeout_minutes
         self.max_turns = max_turns
+        self.default_model = default_model
+        self.default_thinking = default_thinking
+        self.local_agents = local_agents or {}
         self.work_dir = work_dir or Path(tempfile.mkdtemp(prefix="retort-local-"))
         self._envs: dict[str, _EnvInfo] = {}
         # When set, invoke evaluate-run skill after each successful run.
@@ -164,33 +170,11 @@ class LocalRunner:
             )
             elapsed = time.monotonic() - start
 
-            # Parse token usage from JSON output
-            token_count = 0
-            cost_usd = 0.0
-            metadata = {}
             stdout_text = result.stdout or ""
-            try:
-                data = json.loads(stdout_text)
-                usage = data.get("usage", {})
-                token_count = (
-                    usage.get("input_tokens", 0)
-                    + usage.get("output_tokens", 0)
-                    + usage.get("cache_read_input_tokens", 0)
-                    + usage.get("cache_creation_input_tokens", 0)
-                )
-                cost_usd = data.get("total_cost_usd", 0.0)
-                metadata = {
-                    "input_tokens": str(usage.get("input_tokens", 0)),
-                    "output_tokens": str(usage.get("output_tokens", 0)),
-                    "cache_read_input_tokens": str(usage.get("cache_read_input_tokens", 0)),
-                    "cache_creation_input_tokens": str(usage.get("cache_creation_input_tokens", 0)),
-                    "total_cost_usd": str(cost_usd),
-                    "num_turns": str(data.get("num_turns", 0)),
-                    "duration_api_ms": str(data.get("duration_api_ms", 0)),
-                    "stop_reason": data.get("stop_reason", ""),
-                }
-            except (ValueError, KeyError):
-                pass  # Not JSON or missing fields
+            token_count, metadata = _parse_agent_usage(
+                self._agent_harness(stack.agent), stdout_text
+            )
+            cost_usd = _parse_float(metadata.get("total_cost_usd"), 0.0)
 
             # For local models, compute hardware cost when agent doesn't report API cost.
             if cost_usd == 0.0 and self.local_inference_cost is not None and elapsed > 0:
@@ -262,26 +246,9 @@ class LocalRunner:
         """Build the CLI command to invoke the agent."""
         agent = stack.agent if stack.agent != "unknown" else "claude-code"
         if agent == "claude-code":
-            prompt = (
-                f"You are working in {stack.language}. "
-                f"Read TASK.md in the current directory and implement everything it asks for. "
-                f"Write all code files to the current directory. "
-                f"Make sure the code builds and tests pass."
-            )
-
-            # Check for beads/tooling factor
-            tooling = stack.extra.get("tooling", "none")
-            if tooling == "beads":
-                prompt += (
-                    " Use bd (beads) for task tracking. "
-                    "Run bd init first, then bd create for each subtask, "
-                    "bd update --claim to claim work, and bd close when done."
-                )
-
-            # Inject named prompt if prompt factor is set and not "none"
             prompt_level = stack.extra.get("prompt", "none")
-            if prompt_level != "none":
-                prompt += " " + self._load_prompt_file(prompt_level)
+            prompt_injection = self._load_prompt_file(prompt_level) if prompt_level != "none" else ""
+            prompt = _build_agent_prompt(stack, prompt_injection)
 
             # Per-task max_turns wins over workspace-wide setting if set.
             effective_max_turns = task.max_turns if task.max_turns is not None else self.max_turns
@@ -307,12 +274,60 @@ class LocalRunner:
 
             return cmd
 
+        profile = self.local_agents.get(agent)
+        if profile is not None and profile.harness == "omp":
+            cmd = [
+                "omp",
+                "-p",
+                "--no-session",
+                "--mode",
+                "json",
+            ]
+
+            model = self._model_for(stack)
+            if model and model != "none":
+                cmd.extend(["--model", model])
+
+            thinking = self._thinking_for(stack)
+            if thinking:
+                cmd.extend(["--thinking", thinking])
+
+            prompt_level = stack.extra.get("prompt", "none")
+            prompt_injection = self._load_prompt_file(prompt_level) if prompt_level != "none" else ""
+            cmd.append(_build_agent_prompt(stack, prompt_injection))
+            return cmd
+
         # Unsupported agent — caller checks for None and surfaces the error.
+        supported = ["claude-code", *sorted(self.local_agents)]
         raise ValueError(
-            f"Agent {stack.agent!r} is not implemented. "
-            f"Only 'claude-code' is supported in this release. "
-            f"Check the 'agent' factor levels in your workspace config."
+            f"Agent {stack.agent!r} is not configured. "
+            f"Built-in/configured local agents: {supported}. "
+            f"Add it under playpen.local_agents or replace the agent factor level."
         )
+
+    def _model_for(self, stack: StackConfig) -> str:
+        """Return design-matrix model, profile default, then playpen default."""
+        profile = self.local_agents.get(stack.agent)
+        profile_model = profile.model if profile is not None else None
+        return str(stack.extra.get("model") or profile_model or self.default_model or "")
+
+    def _thinking_for(self, stack: StackConfig) -> str:
+        """Return design-matrix thinking, profile default, then playpen default."""
+        profile = self.local_agents.get(stack.agent)
+        profile_thinking = profile.thinking if profile is not None else None
+        thinking = stack.extra.get("thinking") or profile_thinking or self.default_thinking or ""
+        if str(thinking).lower() in {"", "none", "default", "off", "false"}:
+            return ""
+        return str(thinking)
+
+    def _agent_harness(self, agent: str) -> str:
+        """Return the telemetry/parser key for an agent name."""
+        if agent == "claude-code":
+            return "claude-code"
+        profile = self.local_agents.get(agent)
+        if profile is not None:
+            return profile.harness
+        return agent
 
     def _build_env(self, stack: StackConfig) -> dict[str, str]:
         """Build environment variables for the agent process."""
@@ -362,6 +377,132 @@ def _find_skill_path(skill_name: str, start: Path) -> Path | None:
         if candidate.is_file():
             return candidate
     return None
+
+
+def _build_agent_prompt(stack: StackConfig, prompt_injection: str = "") -> str:
+    """Build the common implementation prompt used by local coding agents."""
+    prompt = (
+        f"You are working in {stack.language}. "
+        f"Read TASK.md in the current directory and implement everything it "
+        f"asks for. "
+        f"Write all code files to the current directory. "
+        f"Make sure the code builds and tests pass."
+    )
+
+    tooling = stack.extra.get("tooling", "none")
+    if tooling == "beads":
+        prompt += (
+            " Use bd (beads) for task tracking. "
+            "Run bd init first, then bd create for each subtask, "
+            "bd update --claim to claim work, and bd close when done."
+        )
+
+    if prompt_injection:
+        prompt += " " + prompt_injection
+
+    return prompt
+
+
+def _parse_agent_usage(agent: str, stdout_text: str) -> tuple[int, dict[str, str]]:
+    """Parse token/cost metadata from known local-agent output formats."""
+    if agent == "claude-code":
+        return _parse_claude_usage(stdout_text)
+    if agent == "omp":
+        return _parse_omp_usage(stdout_text)
+    return 0, {}
+
+
+def _parse_float(value: str | None, default: float) -> float:
+    """Parse a float metadata field without letting bad telemetry abort a run."""
+    if value is None:
+        return default
+    try:
+        return float(value)
+    except (TypeError, ValueError):
+        return default
+
+
+def _parse_claude_usage(stdout_text: str) -> tuple[int, dict[str, str]]:
+    """Parse Claude Code's single JSON object output."""
+    try:
+        data = json.loads(stdout_text)
+        usage = data.get("usage", {})
+        token_count = (
+            usage.get("input_tokens", 0)
+            + usage.get("output_tokens", 0)
+            + usage.get("cache_read_input_tokens", 0)
+            + usage.get("cache_creation_input_tokens", 0)
+        )
+        cost_usd = data.get("total_cost_usd", 0.0)
+        metadata = {
+            "input_tokens": str(usage.get("input_tokens", 0)),
+            "output_tokens": str(usage.get("output_tokens", 0)),
+            "cache_read_input_tokens": str(usage.get("cache_read_input_tokens", 0)),
+            "cache_creation_input_tokens": str(
+                usage.get("cache_creation_input_tokens", 0)
+            ),
+            "total_cost_usd": str(cost_usd),
+            "num_turns": str(data.get("num_turns", 0)),
+            "duration_api_ms": str(data.get("duration_api_ms", 0)),
+            "stop_reason": data.get("stop_reason", ""),
+        }
+        return token_count, metadata
+    except (ValueError, KeyError):
+        return 0, {}
+
+
+def _parse_omp_usage(stdout_text: str) -> tuple[int, dict[str, str]]:
+    """Parse OMP's newline-delimited JSON events."""
+    usage: dict[str, int | float | dict[str, object]] = {}
+    provider = ""
+    model = ""
+    stop_reason = ""
+
+    for line in stdout_text.splitlines():
+        try:
+            event = json.loads(line)
+        except ValueError:
+            continue
+
+        message = event.get("message")
+        if not isinstance(message, dict):
+            continue
+        if event.get("type") != "message_end":
+            continue
+
+        provider = str(message.get("provider") or provider)
+        model = str(message.get("model") or model)
+        stop_reason = str(message.get("stopReason") or stop_reason)
+
+        message_usage = message.get("usage")
+        if isinstance(message_usage, dict):
+            usage = message_usage
+
+    if not usage:
+        return 0, {}
+
+    input_tokens = int(usage.get("input", 0) or 0)
+    output_tokens = int(usage.get("output", 0) or 0)
+    cache_read = int(usage.get("cacheRead", 0) or 0)
+    cache_write = int(usage.get("cacheWrite", 0) or 0)
+    fallback_total = input_tokens + output_tokens + cache_read + cache_write
+    total_tokens = int(usage.get("totalTokens", fallback_total) or 0)
+
+    cost = usage.get("cost")
+    total_cost = 0.0
+    if isinstance(cost, dict):
+        total_cost = float(cost.get("total", 0.0) or 0.0)
+
+    return total_tokens, {
+        "input_tokens": str(input_tokens),
+        "output_tokens": str(output_tokens),
+        "cache_read_input_tokens": str(cache_read),
+        "cache_creation_input_tokens": str(cache_write),
+        "total_cost_usd": str(total_cost),
+        "provider": provider,
+        "model": model,
+        "stop_reason": stop_reason,
+    }
 
 
 def _clone_org_repo(env_dir: Path, repo_url: str) -> None:

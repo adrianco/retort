@@ -32,7 +32,9 @@ factors:
   language:
     levels: [python, typescript, go]
   agent:
-    levels: [claude-code, cursor, copilot]
+    levels: [claude-code, qwen-local, pi-dense]
+  thinking:
+    levels: [off, minimal]
   framework:
     levels: [fastapi, nextjs, stdlib]
 
@@ -49,6 +51,13 @@ playpen:
   runner: docker
   replicates: 3
   timeout_minutes: 30
+  local_agents:
+    qwen-local:
+      harness: omp
+      model: moe
+    pi-dense:
+      harness: omp
+      model: dense
 
 design:
   screening_resolution: 3
@@ -569,6 +578,9 @@ def run_experiments(
         runner = LocalRunner(
             timeout_minutes=workspace_config.playpen.timeout_minutes,
             max_turns=workspace_config.playpen.max_turns,
+            default_model=workspace_config.playpen.model,
+            default_thinking=workspace_config.playpen.thinking,
+            local_agents=workspace_config.playpen.local_agents,
             local_inference_cost=workspace_config.playpen.local_inference_cost,
             prompts_dir=prompts_dir if prompts_dir.is_dir() else None,
         )
@@ -579,7 +591,7 @@ def run_experiments(
 
     # Fail fast: validate agent types before any runs start.
     if runner_type == "local":
-        _supported_agents = {"claude-code"}
+        _supported_agents = {"claude-code", *workspace_config.playpen.local_agents}
         for _rc in design.run_configs():
             _agent = _rc.get("agent", "claude-code") or "claude-code"
             if _agent not in _supported_agents and _agent != "unknown":

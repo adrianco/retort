@@ -327,6 +327,237 @@ class TestLocalRunnerModelVersioning:
         assert cmd[idx + 1] == MODEL_ALIASES["haiku"]
 
 
+class TestLocalRunnerOmpHarness:
+    def _profile(self, **kwargs):
+        from retort.config.schema import LocalAgentConfig
+
+        return LocalAgentConfig(harness="omp", **kwargs)
+
+    def test_builds_omp_command_with_model_factor(self, tmp_path):
+        from retort.playpen.local_runner import LocalRunner
+
+        runner = LocalRunner(
+            work_dir=tmp_path,
+            local_agents={"qwen-local": self._profile()},
+        )
+        stack = StackConfig(
+            language="python",
+            agent="qwen-local",
+            framework="stdlib",
+            extra={"model": "moe"},
+        )
+        task = TaskSpec(name="plain", description="d", prompt="hi")
+
+        cmd = runner._build_agent_command(stack, task)
+
+        assert cmd[:5] == ["omp", "-p", "--no-session", "--mode", "json"]
+        assert "--model" in cmd
+        assert cmd[cmd.index("--model") + 1] == "moe"
+        assert "You are working in python." in cmd[-1]
+        assert "Read TASK.md" in cmd[-1]
+
+    def test_builds_arbitrary_agent_name_with_omp_harness(self, tmp_path):
+        from retort.playpen.local_runner import LocalRunner
+
+        runner = LocalRunner(
+            work_dir=tmp_path,
+            local_agents={"pi-dense": self._profile(model="dense")},
+        )
+        stack = StackConfig(language="go", agent="pi-dense", framework="stdlib")
+        task = TaskSpec(name="plain", description="d", prompt="hi")
+
+        cmd = runner._build_agent_command(stack, task)
+
+        assert cmd[0] == "omp"
+        assert cmd[cmd.index("--model") + 1] == "dense"
+        assert "You are working in go." in cmd[-1]
+
+    def test_design_model_overrides_profile_and_default_model(self, tmp_path):
+        from retort.playpen.local_runner import LocalRunner
+
+        runner = LocalRunner(
+            work_dir=tmp_path,
+            default_model="global",
+            local_agents={"qwen-local": self._profile(model="dense")},
+        )
+        stack = StackConfig(
+            language="python",
+            agent="qwen-local",
+            framework="stdlib",
+            extra={"model": "moe"},
+        )
+        task = TaskSpec(name="plain", description="d", prompt="hi")
+
+        cmd = runner._build_agent_command(stack, task)
+
+        assert "--model" in cmd
+        assert cmd[cmd.index("--model") + 1] == "moe"
+        assert "dense" not in cmd
+        assert "global" not in cmd
+
+    def test_builds_omp_command_with_profile_thinking(self, tmp_path):
+        from retort.playpen.local_runner import LocalRunner
+
+        runner = LocalRunner(
+            work_dir=tmp_path,
+            local_agents={"qwen-local": self._profile(thinking="minimal")},
+        )
+        stack = StackConfig(language="python", agent="qwen-local", framework="stdlib")
+        task = TaskSpec(name="plain", description="d", prompt="hi")
+
+        cmd = runner._build_agent_command(stack, task)
+
+        assert "--thinking" in cmd
+        assert cmd[cmd.index("--thinking") + 1] == "minimal"
+
+    def test_design_thinking_off_omits_omp_flag(self, tmp_path):
+        from retort.playpen.local_runner import LocalRunner
+
+        runner = LocalRunner(
+            work_dir=tmp_path,
+            local_agents={"qwen-local": self._profile(thinking="minimal")},
+        )
+        stack = StackConfig(
+            language="python",
+            agent="qwen-local",
+            framework="stdlib",
+            extra={"thinking": "off"},
+        )
+        task = TaskSpec(name="plain", description="d", prompt="hi")
+
+        cmd = runner._build_agent_command(stack, task)
+
+        assert "--thinking" not in cmd
+
+    def test_parse_omp_usage_from_json_events(self):
+        from retort.playpen.local_runner import _parse_agent_usage
+
+        stdout = (
+            '{"type":"session","id":"s1"}\n'
+            '{"type":"message_end","message":{"provider":"llama.cpp",'
+            '"model":"gemma.gguf","usage":{"input":20,"output":5,'
+            '"cacheRead":3,"cacheWrite":2,"totalTokens":30,'
+            '"cost":{"total":0.0123}},"stopReason":"stop"}}\n'
+        )
+
+        token_count, metadata = _parse_agent_usage("omp", stdout)
+
+        assert token_count == 30
+        assert metadata["input_tokens"] == "20"
+        assert metadata["output_tokens"] == "5"
+        assert metadata["cache_read_input_tokens"] == "3"
+        assert metadata["cache_creation_input_tokens"] == "2"
+        assert metadata["total_cost_usd"] == "0.0123"
+        assert metadata["provider"] == "llama.cpp"
+        assert metadata["model"] == "gemma.gguf"
+        assert metadata["stop_reason"] == "stop"
+
+    def test_execute_omp_plain_output_succeeds_without_usage(self, tmp_path):
+        from unittest.mock import MagicMock, patch
+
+        from retort.playpen.local_runner import LocalRunner
+
+        runner = LocalRunner(
+            work_dir=tmp_path,
+            local_agents={"qwen-local": self._profile()},
+        )
+        stack = StackConfig(language="python", agent="qwen-local", framework="stdlib")
+        task = TaskSpec(name="plain", description="d", prompt="hi")
+        env_id = runner.provision(stack, task)
+
+        fake_result = MagicMock()
+        fake_result.returncode = 0
+        fake_result.stdout = "completed\n"
+        fake_result.stderr = ""
+        with patch("retort.playpen.local_runner.subprocess.run", return_value=fake_result):
+            artifacts = runner.execute(env_id, stack, task)
+
+        assert artifacts.succeeded is True
+        assert artifacts.stdout == "completed\n"
+        assert artifacts.token_count == 0
+
+    def test_omp_prompt_factor_injected(self, tmp_path):
+        from retort.playpen.local_runner import LocalRunner
+
+        prompts_dir = tmp_path / "prompts"
+        prompts_dir.mkdir()
+        (prompts_dir / "verbose.md").write_text("Be very explicit in your comments.")
+
+        runner = LocalRunner(
+            work_dir=tmp_path,
+            local_agents={"qwen-local": self._profile()},
+            prompts_dir=prompts_dir,
+        )
+        stack = StackConfig(
+            language="python",
+            agent="qwen-local",
+            framework="stdlib",
+            extra={"prompt": "verbose"},
+        )
+        task = TaskSpec(name="plain", description="d", prompt="hi")
+
+        cmd = runner._build_agent_command(stack, task)
+
+        assert "Be very explicit in your comments." in cmd[-1]
+
+    def test_omp_prompt_none_not_injected(self, tmp_path):
+        from retort.playpen.local_runner import LocalRunner
+
+        runner = LocalRunner(
+            work_dir=tmp_path,
+            local_agents={"qwen-local": self._profile()},
+        )
+        stack = StackConfig(
+            language="python",
+            agent="qwen-local",
+            framework="stdlib",
+            extra={"prompt": "none"},
+        )
+        task = TaskSpec(name="plain", description="d", prompt="hi")
+
+        cmd = runner._build_agent_command(stack, task)
+
+        # Prompt text is the last arg; it should contain no injected content
+        assert "none" not in cmd[-1]
+
+    def test_parse_omp_usage_last_message_end_wins(self):
+        from retort.playpen.local_runner import _parse_agent_usage
+
+        # Two message_end events — the second (final) one should win.
+        stdout = (
+            '{"type":"message_end","message":{"provider":"llama.cpp",'
+            '"model":"first.gguf","usage":{"input":10,"output":2,'
+            '"totalTokens":12,"cost":{"total":0.001}},"stopReason":"stop"}}\n'
+            '{"type":"message_end","message":{"provider":"mlx",'
+            '"model":"final.gguf","usage":{"input":20,"output":5,'
+            '"totalTokens":30,"cost":{"total":0.0123}},"stopReason":"end_turn"}}\n'
+        )
+
+        token_count, metadata = _parse_agent_usage("omp", stdout)
+
+        assert token_count == 30
+        assert metadata["provider"] == "mlx"
+        assert metadata["model"] == "final.gguf"
+        assert metadata["total_cost_usd"] == "0.0123"
+        assert metadata["stop_reason"] == "end_turn"
+
+    def test_parse_omp_usage_malformed_lines_skipped(self):
+        from retort.playpen.local_runner import _parse_agent_usage
+
+        stdout = (
+            "not json at all\n"
+            "{bad json}\n"
+            '{"type":"message_end","message":{"provider":"p","model":"m",'
+            '"usage":{"input":5,"output":5,"totalTokens":10,'
+            '"cost":{"total":0.005}},"stopReason":"stop"}}\n'
+        )
+
+        token_count, metadata = _parse_agent_usage("omp", stdout)
+
+        assert token_count == 10
+        assert metadata["provider"] == "p"
+
+
 class TestLocalInferenceCost:
     """Tests for LocalInferenceCost cost model and LocalRunner integration."""
 
