@@ -1,87 +1,59 @@
-# The Best AI Coding Stack Isn't the Newest Model — It Depends on Your Language and Task
+# How Reliable Is Your AI Coding Stack? I Measured It — and Nearly Published the Wrong Answer
 
 *June 2026 — Adrian Cockcroft*
 
 ---
 
-Every few weeks a new frontier model lands at the top of the leaderboards, and the implicit advice is "upgrade." Sites like **[llm-stats.com](https://llm-stats.com/)** do a great job ranking models across many benchmarks — but they answer a question most engineering teams aren't actually asking. They hold the *stack* constant: one prompt, one harness, a fixed benchmark. They don't tell you whether the newest model is worth 5× the cost **in Rust**, whether last year's model is the better value **for a Go MCP server**, or how long any of it takes.
+Every few weeks a new frontier model tops the leaderboards. Sites like **[llm-stats.com](https://llm-stats.com/)** rank them well across many benchmarks — but they answer a question most engineering teams aren't asking. They hold the *stack* constant: one prompt, one harness, a fixed benchmark. They don't tell you whether the newest model is worth 4× the cost **in Rust**, how *reliably* each model gets a Go MCP server completely right, or how long any of it takes.
 
-Those are the variables that decide a real project. So I built **[retort](https://github.com/adrianco/retort)** to measure them directly — and ran six experiments, ~200 scored runs, across two tasks, six languages, and four Claude models. The headline: **the best stack is task- and language-dependent, and it is frequently *not* the newest model.**
+Those are the variables that decide a real project. So I built **[retort](https://github.com/adrianco/retort)** to measure them — six experiments, 198 scored runs, across two tasks, six languages, and four Claude models. This post is about what I found, and about the bug that almost made me publish the exact opposite conclusion.
 
-## What retort does
+## The metric that matters: how often is it *completely* right?
 
-Retort applies statistical Design of Experiments (DoE) to AI coding agents. You give it factors — `language × model × tooling` — and a task, and it:
+Most scores grade on a curve — 80% test coverage, a clean linter run. But for shipping code, "mostly implemented" is a failure. So retort's headline metric is **pass-proportion**: run a stack N times, and count the fraction whose output *fully implements the spec* — every requirement on a fixed checklist, verified by an independent eval. Read it as **the probability that a single run comes out completely correct.** 3 of 3 → 1.00, 2 of 3 → 0.66. A run that misses even one requirement is a fail, not a 0.9.
 
-1. **Generates the design** (full factorial, or a fractional design if the grid is big), so every cell is a controlled comparison.
-2. **Runs each cell in an isolated playpen** — the agent (`claude -p`) implements the task in a fresh workspace, then the code is built and tested in place.
-3. **Scores it** — not just on quality and test coverage, but on whether it **provably implements the spec**. A run only passes if its tests actually run *and* a fixed requirement checklist is met. (More on why that gate took three tries to get right, below.)
-4. **Aggregates everything** into one `master.db` so you can ask cross-experiment questions and pick the leading stack for your problem.
+## The result
 
-The whole thing is driven in plain language — you describe the experiment to Claude Code and it designs the matrix, checks prerequisites, estimates the cost, and runs it. Install and usage are at the end.
+| Model | Brazil MCP (hard) | REST API (easy) | Speed (hard) | Cost (hard) |
+|---|---:|---:|---:|---:|
+| opus-4.6 | 0.47 | 0.59 | 309 s | $1.30 |
+| sonnet | 0.50 | 0.63 | 440 s | $1.10 |
+| opus-4.7 | 0.85 | **1.00** | 774 s | $4.92 |
+| **opus-4.8** | **1.00** | **1.00** | 1035 s | $5.54 |
 
-## The leading stack, by language and task
+Three things jump out:
 
-For each language I ranked the `(model, tooling)` cells by a deliberately practical priority: **does it implement the spec → do its tests pass → is it fast → is it cheap → is it clean.** Here's what won.
+1. **Newer genuinely is more reliable — and the gap is huge on hard tasks.** Opus-4.8 produced a completely-correct result **100% of the time, on both tasks.** The older, cheaper models (4.6 and Sonnet) got the hard task fully right only **about half the time.** On a difficult task, the cheap model is a coin-flip.
+2. **You pay through the nose for that reliability.** Opus-4.8 was **~3× slower and ~4× more expensive** than 4.6/Sonnet on the hard task. Reliability isn't free; it's a line item.
+3. **Opus-4.7 is the sweet spot, and on easy tasks the newest model is overkill.** On the REST API, 4.7 and 4.8 are *tied* at 100% — so paying for 4.8 buys nothing but a slower, costlier run. On the hard task 4.7 hits 85% for less money than 4.8's 100%.
 
-**On a hard task** (a Brazilian-soccer MCP server: CSV ingest, a knowledge graph, six query capabilities, BDD tests):
+So the real decision isn't "which model is best" — it's **how much reliability you need and what you'll pay for it**, and that depends on whether your task is a CRUD API or a knowledge-graph server. The leading stack is **task- and language-dependent**, which is exactly what a single leaderboard rank can't capture. (Per-language tables — where the cheap models win some languages and fail others — are in the [README](README.md).)
 
-| Language | Leading stack | ReqCov | Speed | Cost |
-|---|---|---:|---:|---:|
-| clojure | sonnet / beads | 1.00 | 410 s | $1.03 |
-| go | sonnet / none | 0.92 | 426 s | $1.18 |
-| java | opus-4.6 / none | 1.00 | 474 s | $1.73 |
-| python | sonnet / beads | 1.00 | 483 s | $1.25 |
-| rust | sonnet / none | 1.00 | 471 s | $1.14 |
-| typescript | sonnet / beads | 1.00 | 362 s | $0.93 |
+## The part where I was almost wrong
 
-**Sonnet and Opus-4.6 win almost everywhere** — and the newest models are nowhere in the table. Not because they're worse coders, but because they reach full requirement coverage at **~$1 and ~7 minutes**, while Opus 4.7 and 4.8 charge **~$5 and 12–17 minutes** for the *same or lower* coverage.
+Here's the uncomfortable bit. The **first** version of this post said the opposite: "newer isn't better, Sonnet is the value play, you're overpaying for 4.8." I had the data, the tables, the charts. I nearly shipped it.
 
-**On an easy task** (a REST CRUD API), almost every model nails the spec, so the ranking comes down to speed and cost — and there **Opus-4.7 wins as often as 4.8**, with 4.6 and Sonnet competitive on price. Full tables are in the [README](README.md).
+Then, checking a footnote, I noticed an evaluation flagging a run for missing a requirement that read *"simple lookups respond in < 2 seconds."* That was never in my requirement checklist — it was a performance SLA the grader had invented. Digging in, I found the evaluator had two compounding problems:
 
-## What we learned
+- It was **grading against requirements it extracted itself**, non-deterministically — the *same code* scored 0.33 on one pass and 1.0 on the next. (A cheap grader model was the culprit.)
+- Worse, when a grading run hit a usage limit and silently failed, my pipeline **read the previous grade from disk and treated it as fresh** — so 124 of 198 results were stale, carried over from the noisy old evaluator.
 
-**1. Newer is slower, much more expensive, and not reliably more accurate.** This is the controlled, apples-to-apples comparison — the same cells, two models:
+The stale grades were biased *low* — that invented "< 2 second" requirement auto-failed runs that were actually complete — and they happened to drag down the newest models most. Fix the evaluator (pin the checklist so the denominator is constant, judge with a stronger model, take a second opinion, and never read a grade you didn't just write), re-run all 198, and the conclusion **flipped**: newer is more reliable, not less.
 
-| Same cells, two models | ReqCov | Speed | Cost/run |
-|---|---:|---:|---:|
-| REST-API: Opus-4.7 vs 4.8 | **1.00** vs 1.00 | **165 s** vs 243 s | **$0.85** vs $0.96 |
-| Brazil: Opus-4.7 vs 4.8 | 0.67 vs **0.85** | **706 s** vs 1039 s | **$4.57** vs $5.60 |
-| Brazil: Opus-4.6 vs 4.7 | 0.98 vs **1.00** | **443 s** vs 1385 s | **$1.46** vs $8.13 |
-
-On the easy task, 4.7 and 4.8 are tied on accuracy — so paying for 4.8 buys *nothing* but a slower, pricier run. On the hard task, 4.8 genuinely beats 4.7 on spec coverage (0.85 vs 0.67) — but both cost ~$5 a run, while **Opus-4.6 hit 0.98 coverage for $1.46.** The cost-per-generation curve is brutal, and it is not buying proportional accuracy.
-
-**2. Passing tests is not the same as meeting the spec — and that gap is invisible to most metrics.** On the hard task, Opus-4.7 runs had **93% test coverage but only 67% requirement coverage**: green test suites for a half-built feature. Lint scores and test coverage both looked fine. The only thing that caught it was a gate that reads the actual requirement checklist and checks the code against it.
-
-Getting that gate to be trustworthy was its own saga. A single cheap LLM grader (haiku) was uselessly noisy — it scored the *identical* code 0.33 one run and 1.0 the next. The fix was three-part: **pin the requirement list per task** (so the denominator is constant), **judge with a stronger model** (Opus-4.6), and take a **"second opinion"** — only fail a run if two independent evals both find a gap. That turned a coin-flip into a reproducible number.
-
-**3. Sonnet is the value play on hard problems.** Full requirement coverage at ~$1 where the newest Opus models cost ~$5. If your task is genuinely hard and you're running many variants, that 5× matters.
-
-**4. Language dominates code quality; the model mostly moves cost and speed.** Across all experiments, ANOVA finds `code_quality` driven almost entirely by *language* — Java, Go, and Rust score high regardless of which model wrote the code. Switching models barely moves quality; it moves the bill and the clock.
-
-**5. Extra tooling didn't help these tasks.** Adding the `beads` issue-tracker tooling cost ~30% more wall-clock and 10–20% more money with no quality gain on these single-shot tasks, so it was dropped from the later experiments. It's built for multi-step coordination these tasks don't exercise — a reminder that "more scaffolding" isn't free.
-
-## The six experiments
-
-1. **REST-API, Opus-4.6 vs Sonnet** (56 runs) — near-tied coverage; Java/Go/Rust sweep quality; Python is tooling-sensitive.
-2. **Brazil, Opus-4.6 vs Sonnet** (22 runs) — the hard task; Opus-4.6 higher requirement coverage, Sonnet cleaner and cheaper.
-3. **Brazil, Opus-4.6 vs 4.7** (7 runs) — 4.7 marginally more complete but 3× slower and 5.5× pricier.
-4. **Brazil, Opus-4.8** (6 runs) — first 4.8 data; full coverage but the slowest, priciest runs of the whole program.
-5. **Brazil, Opus-4.7 vs 4.8, full factorial** (36 runs) — 4.8 beats 4.7 on coverage (0.85 vs 0.67) but +47% time and cost; both expensive.
-6. **REST-API, Opus-4.7 vs 4.8, full factorial** (71 runs) — accuracy tied at ~1.0; 4.7 is the better value.
-
-Every run's source, tests, scores, and spec-eval output are committed in the repo under `experiment-N/runs/`, and the combined data is in `master.db` / `master.csv`. (A note on honesty: cross-experiment model averages mix different language/tooling sets, so the model-version claims above all come from the *controlled within-experiment* comparisons.)
+The lesson isn't "LLM evals are hard" (though they are). It's that **a measurement tool is only as trustworthy as its own plumbing** — and the failure was silent. That's the whole reason to build something like retort rather than eyeball a few runs: it makes the comparison reproducible, and it makes bugs like this *findable*.
 
 ## Try it on your own stack
 
-The real value isn't my numbers — it's that you can get *your* numbers, on *your* task or codebase, in an afternoon. Install is a one-liner if you let Claude Code handle the C++ build dependency:
+The point of retort isn't my numbers — it's that you can get *yours*, on *your* task or codebase, in an afternoon:
 
 ```text
 $ claude
 > clone and install https://github.com/adrianco/retort here
+> then compare opus 4.6/4.7/4.8 across Go, Rust and Python on this task
 ```
 
-Then describe the experiment you want — "compare Opus 4.6/4.7/4.8 across Go, Rust and Python on this task" — and Claude designs the matrix, installs the toolchains, runs the cells (resuming across API usage-limit windows), and reports. Watch it live with `retort monitor`, and roll it all up with `retort aggregate`.
+Claude designs the experiment, installs the toolchains, runs the cells (resuming across usage-limit windows), and scores each one for whether it actually implements the spec. Watch it live with `retort monitor`; roll it up with `retort aggregate`.
 
-Leaderboards tell you which model is "best" in the abstract. Retort tells you which **stack** is best for the code you're actually shipping — and, often enough, it's not the one at the top of the leaderboard.
+Leaderboards tell you which model wins in the abstract. Retort tells you which **stack** wins for the code you're shipping — how reliably, how fast, and for how much — and sometimes the answer is the newest model, sometimes it's the one that's four times cheaper. You won't know until you measure it.
 
 *Code, data, and full per-run results: [github.com/adrianco/retort](https://github.com/adrianco/retort)*
