@@ -113,6 +113,24 @@ Best `(model, tooling)` per language, ranked **pass-proportion → test coverage
 
 ---
 
+## Factor analysis (ANOVA): what actually moves each metric
+
+The point of a designed experiment is that you can *decompose* the variance — for each response, how much is explained by language vs. model vs. tooling, and is it significant. Type-II ANOVA on the balanced experiments (cost/duration log-transformed, since they scale multiplicatively) gives a strikingly clean separation of concerns:
+
+| Response | Dominant factor (share of variance) | What it means |
+|---|---|---|
+| **code_quality** | **language ≈ 94–96%** (p < 10⁻⁴⁰) · model ~0% (n.s.) | Quality is the *language's*, not the model's. Java/Go/Rust score high whoever writes the code. |
+| **test_coverage** | **language ≈ 92–95%** (p < 10⁻¹⁵) · model ~0% | Same story — the language (and its test ecosystem) dominates. |
+| **duration** | **task ≈ 75%**; then *model* on a fixed hard task (37% in exp-5); language ~6% | The task sets the clock; on hard tasks the **newer model is the one that's slower**. |
+| **cost** | **task ≈ 82%**; **tooling +10%** (p < 0.001); language ~4% | The task sets the bill; `beads` tooling measurably *adds* cost. |
+| **requirement_coverage** | **model** (borderline, p ≈ 0.06); ceiling on easy task | The *only* metric where the model choice shows up — reliability is what you're buying with a newer model. |
+
+**The headline ANOVA insight:** *language* governs code quality and tests, *task* governs cost and time, and the *model* mostly governs spec-reliability (and, on hard tasks, speed). Picking a newer model to "write better code" is largely wasted — it writes *more reliably*, not more cleanly, and it costs you time and money to do so. (`beads` tooling shows up in exactly one place — extra cost and time — with no quality or coverage payoff, which is why it was dropped from the later experiments.)
+
+Reproduce with `retort report effects --db <experiment>/retort.db --metric <response>`.
+
+---
+
 ## The experiments
 
 Each row links to its **full per-cell results table** (every language × model × tooling, with pass-proportion, speed, cost, and quality, generated from `master.db`).

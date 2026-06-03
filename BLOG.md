@@ -29,6 +29,16 @@ Three things jump out:
 
 So the real decision isn't "which model is best" — it's **how much reliability you need and what you'll pay for it**, and that depends on whether your task is a CRUD API or a knowledge-graph server. The leading stack is **task- and language-dependent**, which is exactly what a single leaderboard rank can't capture. (Per-language tables — where the cheap models win some languages and fail others — are in the [README](README.md).)
 
+## What the variance actually comes from
+
+Because this is a designed experiment, I can decompose *where each metric's variation comes from* — language vs. model vs. tooling — with an ANOVA. The separation is almost suspiciously clean:
+
+- **Code quality and test coverage are ~95% explained by the *language*** (p < 10⁻⁴⁰) — and **~0% by the model.** Java, Go, and Rust score high no matter which model writes the code; the model barely moves it.
+- **Cost and run time are dominated by the *task*** (~75–82% of the variance) — and within a fixed hard task, by the *model* (the newer one is the slower one).
+- **Reliability is the *only* metric the model meaningfully drives.**
+
+In plain terms: **language governs how clean the code is, the task governs how much it costs, and the model governs how reliably it's correct.** So reaching for a newer model to get "better code" is mostly wasted spend — it buys you *reliability* (and a bigger bill), not cleaner code. That's the kind of thing you only see when you vary the whole stack and do the statistics, instead of reading one model off a leaderboard. (Extra tooling — a `beads` issue tracker — showed up in exactly one place: more cost and time, with no quality or reliability payoff.)
+
 ## How it's measured
 
 Each run gets its own isolated workspace; the agent implements the task, and the code is then built and tested in place. The spec check is the strict part: an independent eval verifies the code against a **fixed requirement checklist** for the task, and a run only counts as a pass if it implements *all* of it and its tests actually run. To keep that grading reproducible, the checklist is pinned (so the denominator is constant across runs), a strong model does the judging, and a borderline result gets a second opinion before it's recorded. Every number above is that gate applied across 198 runs — not a hand-picked sample.
