@@ -89,12 +89,15 @@ Aggregated per model per task (larger samples → robust):
 | sonnet | 0.50 | 0.63 | 440 s | $1.10 |
 | opus-4.7 | 0.85 | **1.00** | 774 s | $4.92 |
 | **opus-4.8** | **1.00** | **1.00** | 1035 s | $5.54 |
+| opus-4.8-fast² | **1.00** | **1.00** | 887 s | $8.72 |
 
 ¹ Brazil task. **Pass-proportion = fraction of that model's runs that fully implement the spec.**
+² Fast mode (`/fast`), 4 languages (clojure/go/python/rust). Cost is at fast mode's **2× per-token rate** ([announcement](https://www.anthropic.com/news/claude-opus-4-8)) — see [Fast mode](#fast-mode-speed-for-a-2x-price-premium).
 
 - **Newer *is* more reliable — markedly so on hard tasks.** Opus-4.8 produces a completely-correct result **100% of the time on both tasks**; 4.7 is 85% / 100%. The cheaper models (4.6, Sonnet) get the *hard* task completely right only **~half the time** — they're a coin-flip.
 - **You pay steeply for that reliability.** On the hard task Opus-4.8 is **~3× slower and ~4× pricier** than 4.6 / Sonnet.
 - **Opus-4.7 is the value-reliability sweet spot** — near-4.8 reliability for less, and **tied with 4.8 on the easy task**, where paying for 4.8 buys nothing.
+- **Fast mode is the same reliability at the highest price.** Opus-4.8 fast matches 4.8's 1.00/1.00 and shaves wall-clock, but its 2× per-token rate makes it the **costliest row here** ($8.72/run on the hard task) — you're buying latency, not value.
 - **On easy tasks, almost anything works**, so the cheapest reliable model wins (often 4.7 or even 4.6).
 - **It's a reliability-vs-cost decision, and it's task-dependent** — precisely what a leaderboard can't tell you.
 
@@ -102,18 +105,22 @@ Aggregated per model per task (larger samples → robust):
 
 Best `(model, tooling)` per language, ranked **pass-proportion → test coverage → speed → cost → code quality**. Pass shown as `passes/replicates`.
 
-**REST-API CRUD** (n = 3 per cell — robust): most models reach full coverage, so the cheapest reliable stack wins.
+**REST-API CRUD** (n = 3 per cell — robust): most stacks reach full coverage, so the ranking is decided by the speed tiebreaker (and cost only after that).
 
-| Language | Leading stack | Pass | Speed | Cost |
-|---|---|---:|---:|---:|
-| clojure | opus-4.7 / none | 3/3 | 188 s | $0.92 |
-| go | opus-4.8 / beads | 3/3 | 161 s | $0.72 |
-| java | opus-4.7 / none | 3/3 | 168 s | $0.83 |
-| python | opus-4.7 / none | 3/3 | 84 s | $0.50 |
-| rust | opus-4.6 / beads | 3/3 | 143 s | $0.48 |
-| typescript | opus-4.8 / none | 3/3 | 119 s | $0.47 |
+| Language | Leading stack | Pass | TestCov | Speed | Cost |
+|---|---|---:|---:|---:|---:|
+| clojure | opus-4.7 / none | 3/3 | 1.00 | 188 s | $0.92 |
+| go | opus-4.8 / beads | 3/3 | 0.71 | 161 s | $0.72 |
+| java | opus-4.7 / none | 3/3 | 1.00 | 168 s | $0.83 |
+| python | opus-4.7 / none | 3/3 | 1.00 | 84 s | $0.50 |
+| rust | **opus-4.8-fast** / none | 3/3 | 1.00 | 135 s | $1.06 |
+| typescript | opus-4.8 / none | 3/3 | 0.97 | 119 s | $0.47 |
+| erlang | opus-4.8 / none | 3/3 | 1.00 | 345 s | $1.35 |
+| elixir | opus-4.8 / none | 3/3 | 1.00 | 207 s | $0.85 |
 
-**Brazil MCP** (hard task; per-cell replication is thinner, so treat the model-level result above as the firmer guide): the only model that is reliable across *every* language here is **opus-4.8** (1.00) — at the cost/speed premium shown. The cheaper models succeed on some languages and fail on others, which is the whole point of measuring per-language rather than trusting one rank.
+> ⚠️ **Fast mode and the speed-before-cost ordering.** Because the ranking weights *speed* above *cost*, **fast mode is the ranked winner for Rust** — but only by an 8-second margin (135 s vs 143 s for `opus-4.6/beads`, the runner-up) at **more than 2× the price** ($1.06 vs $0.48, at fast mode's 2× rate). Fast mode is also the close runner-up for Clojure and Go: always a touch faster, always pricier. **If you weight cost at all, prefer the non-fast pick** — fast mode's speed edge on routine work rarely justifies double the bill. (See [Fast mode](#fast-mode-speed-for-a-2x-price-premium).)
+
+**Brazil MCP** (hard task; per-cell replication is thinner, so treat the model-level result above as the firmer guide): the only model that is reliable across *every* language here is **opus-4.8** (1.00) — at the cost/speed premium shown. The cheaper models succeed on some languages and fail on others, which is the whole point of measuring per-language rather than trusting one rank. **Fast mode is *not* a leading pick here**: on the hard task it matched 4.8's 1.00 reliability but, at the 2× rate, cost roughly double (~$8.70 vs ~$4.85/run on the shared languages) *without* being reliably faster — speeding up token output doesn't help a reasoning-bound task. Regular opus-4.8 dominates fast mode on Brazil.
 
 ### Results by language × task
 
