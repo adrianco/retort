@@ -946,3 +946,52 @@ class TestReevaluatePersist:
         self._make_db(db)
         cfg = {"language": "rust", "model": "x", "tooling": "none"}  # no such run
         assert _persist_requirement_coverage(db, cfg, 2, 1.0) is False
+
+    @staticmethod
+    def _make_db_no_tooling(path):
+        """A run whose run_config_json has NO tooling key (exp-7/8 shape)."""
+        import sqlite3, json
+        con = sqlite3.connect(path)
+        con.execute("CREATE TABLE experiment_runs (id INTEGER PRIMARY KEY, replicate INTEGER, "
+                    "status TEXT, finished_at TEXT, run_config_json TEXT)")
+        con.execute("CREATE TABLE run_results (id INTEGER PRIMARY KEY, run_id INTEGER, "
+                    "metric_name TEXT, value REAL)")
+        cfg = json.dumps({"language": "erlang", "model": "claude-opus-4-7"})  # no tooling
+        con.execute("INSERT INTO experiment_runs (id, replicate, status, finished_at, run_config_json) "
+                    "VALUES (1, 1, 'completed', '2026-06-04', ?)", (cfg,))
+        con.commit(); con.close()
+
+    def test_tooling_free_design_matches(self, tmp_path):
+        """Regression: a design without a tooling factor must still match.
+
+        run_config is {language, model} with no tooling; the matcher used to do
+        `json_extract(...,'$.tooling') = NULL` (never true in SQL), so reevaluate
+        found 0 runs and persisted nothing for exp-7/8. The IS NULL fix restores
+        matching.
+        """
+        from retort.cli import (
+            _run_completed_exists, _run_has_requirement_coverage,
+            _persist_requirement_coverage, _factor_match_sql,
+        )
+        db = tmp_path / "retort.db"
+        self._make_db_no_tooling(db)
+        cfg = {"language": "erlang", "model": "claude-opus-4-7"}  # no tooling key
+
+        # the SQL fragment uses IS NULL for the absent tooling factor
+        where, params = _factor_match_sql(cfg)
+        assert "tooling') IS NULL" in where
+        assert params == ["erlang", "claude-opus-4-7"]
+
+        assert _run_completed_exists(db, cfg, 1) is True
+        assert _run_has_requirement_coverage(db, cfg, 1) is False
+        assert _persist_requirement_coverage(db, cfg, 1, 1.0) is True
+        assert _run_has_requirement_coverage(db, cfg, 1) is True
+
+    def test_tooling_free_config_does_not_match_tooled_run(self, tmp_path):
+        """A {language,model} query must NOT match a row that has tooling set
+        (IS NULL only matches genuinely-absent tooling)."""
+        from retort.cli import _run_completed_exists
+        db = tmp_path / "retort.db"
+        self._make_db(db)  # this run HAS tooling=none
+        cfg = {"language": "go", "model": "claude-opus-4-8"}  # no tooling key
+        assert _run_completed_exists(db, cfg, 2) is False

@@ -57,6 +57,62 @@ class TestLocalTasks:
             load_task(f"local://{tmp_path}")
 
 
+class TestRegistry:
+    """The tasks/registry.yaml registry + bare-name resolution."""
+
+    def test_registry_lists_brazil_bench(self):
+        from retort.playpen.task_loader import list_registered_tasks
+
+        names = [t.name for t in list_registered_tasks()]
+        # brazil-bench used to be invisible (github-sourced, not bundled);
+        # the registry now lists it alongside the local tasks.
+        assert "brazil-bench" in names
+        assert "rest-api-crud" in names
+
+    def test_brazil_bench_has_no_local_and_resolves_to_github(self):
+        from retort.playpen.task_loader import list_registered_tasks
+
+        bz = next(t for t in list_registered_tasks() if t.name == "brazil-bench")
+        assert bz.local_present is False
+        assert bz.source.startswith("github://")
+        assert bz.template == bz.source
+
+    def test_bundled_task_prefers_local_fallback(self):
+        from retort.playpen.task_loader import list_registered_tasks
+
+        rest = next(t for t in list_registered_tasks() if t.name == "rest-api-crud")
+        assert rest.local_present is True
+        assert rest.template.startswith("github://")  # canonical home is github
+        assert rest.source == "bundled://rest-api-crud"  # but resolves local
+
+    def test_resolve_bare_name_to_local(self):
+        from retort.playpen.task_loader import resolve_task_source
+
+        assert resolve_task_source("rest-api-crud") == "bundled://rest-api-crud"
+
+    def test_resolve_bare_name_to_github(self):
+        from retort.playpen.task_loader import resolve_task_source
+
+        assert resolve_task_source("brazil-bench").startswith("github://")
+
+    def test_explicit_uri_passes_through(self):
+        from retort.playpen.task_loader import resolve_task_source
+
+        assert resolve_task_source("bundled://react-dashboard") == "bundled://react-dashboard"
+        assert resolve_task_source("github://o/r/s.md") == "github://o/r/s.md"
+
+    def test_unknown_bare_name_raises_with_registry_list(self):
+        from retort.playpen.task_loader import resolve_task_source
+
+        with pytest.raises(ValueError, match="Unknown task"):
+            resolve_task_source("does-not-exist")
+
+    def test_load_task_accepts_bare_registered_name(self):
+        # Bare name routes through the registry to the local mirror.
+        task = load_task("rest-api-crud")
+        assert task.name == "rest-api-crud"
+
+
 class TestGithubScheme:
     """github:// is a thin shorthand for git://github.com/<owner>/<repo>.
 

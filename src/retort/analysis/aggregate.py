@@ -49,9 +49,18 @@ def task_for(exp_dir: Path) -> str:
 def collect_runs(experiments_dir: Path) -> list[dict]:
     """One dict per run across all experiment DBs, wide (a column per metric)."""
     rows: list[dict] = []
-    for db in sorted(experiments_dir.glob("experiment-*/retort.db")):
-        exp = db.parent.name
-        task = task_for(db.parent)
+    # Match both top-level (experiment-8/retort.db) and one level of nesting
+    # (experiment-7/brazil/retort.db) — some experiments split one study across
+    # task sub-workspaces. Dedupe in case the patterns overlap.
+    db_paths = sorted(set(experiments_dir.glob("experiment-*/retort.db"))
+                      | set(experiments_dir.glob("experiment-*/*/retort.db")))
+    for db in db_paths:
+        parent = db.parent
+        # Nested DBs (parent is the task sub-dir) get a compound label so each
+        # row's `experiment` is unique, e.g. experiment-7-brazil.
+        exp = parent.name if parent.name.startswith("experiment-") \
+            else f"{parent.parent.name}-{parent.name}"
+        task = task_for(parent)
         con = sqlite3.connect(f"file:{db}?mode=ro", uri=True)
         con.row_factory = sqlite3.Row
         try:

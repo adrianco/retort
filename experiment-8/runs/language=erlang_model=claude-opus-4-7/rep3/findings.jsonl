@@ -1,0 +1,1 @@
+{"id": "R7-note", "kind": "enhancement", "severity": "info", "title": "Uses DETS instead of SQLite for embedded storage", "evidence": "src/book_store.erl:10 — dets:open_file/2 with {file, DbFile}", "suggestion": "DETS is the idiomatic Erlang equivalent of SQLite; acceptable per spec ('or language-equivalent embedded DB')"}

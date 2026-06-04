@@ -1,0 +1,1 @@
+{"id": "cov-1", "kind": "enhancement", "severity": "info", "title": "Code coverage at 72.5% — room to cover more paths", "evidence": "scores.json: test_coverage=0.725; all 7 tests pass (defect_rate=1.0) but not all code paths exercised", "suggestion": "Add tests for edge cases: invalid JSON body, negative IDs, concurrent requests, DB errors"}

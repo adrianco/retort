@@ -1,0 +1,44 @@
+# Retort task registry
+# =====================
+# The canonical home of every retort task is a GitHub *template* repository
+# (a repo with "Use this template" enabled, so a new task is a fork). This
+# registry maps each task name to that template, plus an optional local mirror
+# under tasks/<local>/ that resolution prefers when present — so experiments
+# run offline and fast while GitHub stays the source of truth.
+#
+# Resolution order (used by `retort run --task <name>` and by a bare
+# `source: <name>` in workspace.yaml):
+#   1. If the value contains "://" it is an explicit URI and used verbatim
+#      (bundled:// , local:// , git:// , github://).
+#   2. Otherwise it is looked up here by name: the local mirror is used if it
+#      exists, else the task loads live from `template`.
+#
+# To add a task: publish a GitHub template repo, then add a row below. Include
+# a `local:` mirror under tasks/ if you want it runnable offline. List the
+# registry any time with `retort tasks list`.
+#
+# NOTE: the `adrianco/retort-task-*` templates below are the canonical homes
+# for the bundled tasks; until they are published they resolve to their local
+# mirror (shown as "local fallback" by `retort tasks list`). brazil-bench has
+# no local mirror and loads live from its published template.
+
+tasks:
+  - name: rest-api-crud
+    template: github://adrianco/retort-task-rest-api-crud
+    local: rest-api-crud
+    description: CRUD REST API for a book catalog — the "easy" task (exp 1, 6, 7-bookshop, 8).
+
+  - name: brazil-bench
+    template: github://brazil-bench/benchmark-template/brazilian-soccer-mcp-guide.md
+    local: null
+    description: Brazilian-soccer MCP server built from a multi-file guide — the "hard" task (exp 2-5, 7-brazil).
+
+  - name: react-dashboard
+    template: github://adrianco/retort-task-react-dashboard
+    local: react-dashboard
+    description: React analytics dashboard single-page app.
+
+  - name: cli-data-pipeline
+    template: github://adrianco/retort-task-cli-data-pipeline
+    local: cli-data-pipeline
+    description: Command-line ETL data pipeline.
