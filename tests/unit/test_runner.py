@@ -510,6 +510,56 @@ class TestLocalRunnerOmpHarness:
         assert artifacts.metadata.get("num_turns") == "7"
         assert artifacts.token_count == 150
 
+    def test_fast_mode_doubles_reported_cost(self, tmp_path):
+        """Fast mode bills at 2× but the CLI reports the standard-rate cost.
+
+        Verified by probe: a fastMode call returns the standard-priced
+        total_cost_usd, not 2×. The runner scales fast-mode runs up so the
+        recorded cost matches what's actually charged (Opus-4.8 fast = $10/$50
+        per Mtok vs $5/$25 standard).
+        """
+        from unittest.mock import MagicMock, patch
+
+        from retort.playpen.local_runner import LocalRunner
+
+        runner = LocalRunner(work_dir=tmp_path)
+        stack = StackConfig(language="go", agent="unknown", framework="unknown",
+                            extra={"model": "claude-opus-4-8-fast"})
+        task = TaskSpec(name="plain", description="d", prompt="hi")
+        env_id = runner.provision(stack, task)
+
+        fake_result = MagicMock()
+        fake_result.returncode = 0
+        fake_result.stdout = '{"total_cost_usd": 0.50, "usage": {"output_tokens": 10}}'
+        fake_result.stderr = ""
+        with patch("retort.playpen.local_runner.subprocess.run", return_value=fake_result):
+            artifacts = runner.execute(env_id, stack, task)
+
+        # 0.50 standard-rate -> 1.00 at the 2× fast premium.
+        assert artifacts.metadata.get("total_cost_usd") == "1.0"
+        assert artifacts.metadata.get("fast_mode_cost_multiplier") == "2.0"
+
+    def test_non_fast_model_cost_unchanged(self, tmp_path):
+        from unittest.mock import MagicMock, patch
+
+        from retort.playpen.local_runner import LocalRunner
+
+        runner = LocalRunner(work_dir=tmp_path)
+        stack = StackConfig(language="go", agent="unknown", framework="unknown",
+                            extra={"model": "claude-opus-4-8"})
+        task = TaskSpec(name="plain", description="d", prompt="hi")
+        env_id = runner.provision(stack, task)
+
+        fake_result = MagicMock()
+        fake_result.returncode = 0
+        fake_result.stdout = '{"total_cost_usd": 0.50, "usage": {"output_tokens": 10}}'
+        fake_result.stderr = ""
+        with patch("retort.playpen.local_runner.subprocess.run", return_value=fake_result):
+            artifacts = runner.execute(env_id, stack, task)
+
+        assert artifacts.metadata.get("total_cost_usd") == "0.5"
+        assert "fast_mode_cost_multiplier" not in artifacts.metadata
+
     def test_omp_prompt_factor_injected(self, tmp_path):
         from retort.playpen.local_runner import LocalRunner
 

@@ -182,6 +182,13 @@ class LocalRunner:
             )
             cost_usd = _parse_float(metadata.get("total_cost_usd"), 0.0)
 
+            # Fast mode bills at 2× but the CLI reports the standard-rate cost —
+            # scale it up so the recorded cost is what's actually charged.
+            if cost_usd > 0.0 and _is_fast_mode_model(stack.extra.get("model", "")):
+                cost_usd *= FAST_MODE_COST_MULTIPLIER
+                metadata["total_cost_usd"] = str(cost_usd)
+                metadata["fast_mode_cost_multiplier"] = str(FAST_MODE_COST_MULTIPLIER)
+
             # For local models, compute hardware cost when agent doesn't report API cost.
             if cost_usd == 0.0 and self.local_inference_cost is not None and elapsed > 0:
                 cost_usd = self.local_inference_cost.cost_for_run(elapsed)
@@ -426,6 +433,23 @@ def _parse_float(value: str | None, default: float) -> float:
         return float(value)
     except (TypeError, ValueError):
         return default
+
+
+# Claude Code **fast mode** (the `/fast` toggle / fastMode setting) is billed at
+# exactly 2× the standard per-token rate for Opus 4.8 (input $5→$10, output
+# $25→$50 per Mtok; cache rates scale the same), per the 4.8 announcement:
+# https://www.anthropic.com/news/claude-opus-4-8
+# BUT the CLI's reported `total_cost_usd` computes at the STANDARD rate — verified
+# by probe: a fast-mode call reports the standard-priced figure, not 2×. So to
+# record the cost the user is actually billed, multiply fast-mode runs by this.
+FAST_MODE_COST_MULTIPLIER = 2.0
+
+
+def _is_fast_mode_model(model: str) -> bool:
+    """True if a model factor selects Claude Code fast mode (a `-fast` suffix)."""
+    if not model:
+        return False
+    return MODEL_ALIASES.get(model, model).endswith("-fast")
 
 
 def _parse_claude_usage(stdout_text: str) -> tuple[int, dict[str, str]]:

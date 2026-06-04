@@ -75,6 +75,8 @@ Claude then writes the workspace + design, installs toolchains, runs the cells (
 
 ## What the data says
 
+> 📝 For the narrative walkthrough of these findings — the reliability-vs-cost story, fast mode, the BEAM languages, and the measurement bugs along the way — see the companion **[blog post](BLOG.md)**.
+
 The headline metric is **pass-proportion**: with N replicates of a stack, the fraction whose runs *fully implement the spec* (`requirement_coverage == 1.0`, a gate pass). Read it as **the probability that a single run of that stack comes out completely correct** — 3/3 → 1.00, 2/3 → 0.66, 1/3 → 0.33. A single sub-1.0 run is a fail.
 
 ### Model reliability vs. cost (the main result)
@@ -138,24 +140,25 @@ Reliability swings hard by **both** axes: **Rust** is near-perfect on the easy t
 
 The two **BEAM languages** (Erlang, Elixir — exp-8, opus-4.7/4.8 on the REST API) are a clean addition: **1.00 on every measure** — pass-proportion, test coverage, *and* code quality — making them the most consistently solid stacks on the easy task. Elixir on opus-4.8 was the cheapest/fastest of the pair (207 s, $0.85/run).
 
-### Fast mode: same reliability, less time and money
+### Fast mode: speed for a 2× price premium
 
-Opus-4.8 has a **fast mode** (the `/fast` toggle — same model, faster token output). Experiment 7 ran it on the same languages as the regular-4.8 baseline (exp-5/6), both tasks. The result: **fast mode never lost a point of reliability — every cell stayed at pass-proportion 1.00 — and it was cheaper, sometimes much faster.**
+Opus-4.8 has a **fast mode** (the `/fast` toggle — same model, faster token output). Crucially, it is billed at **2× the standard per-token rate** — $10/$50 vs $5/$25 per million input/output tokens, per the [Opus 4.8 announcement](https://www.anthropic.com/news/claude-opus-4-8). (The Claude CLI's reported `total_cost_usd` computes at the *standard* rate, so retort now scales fast-mode runs by 2× to record the cost you're actually billed — the figures below are corrected.) Experiment 7 ran it on the same languages as the regular-4.8 baseline (exp-5/6), both tasks:
 
 | Task | Language | Fast 4.8 (speed / cost) | Regular 4.8 (speed / cost) | Pass (both) |
 |---|---|---:|---:|:--:|
-| REST-API (easy) | clojure | **208 s / $0.68** | 508 s / $1.92 | 1.00 |
-| REST-API (easy) | go | **140 s / $0.58** | 147 s / $0.66 | 1.00 |
-| REST-API (easy) | python | **90 s / $0.37** | 122 s / $0.50 | 1.00 |
-| REST-API (easy) | rust | **135 s / $0.53** | 185 s / $0.71 | 1.00 |
-| Brazil (hard) | clojure | **712 s / $3.09** | 941 s / $4.58 | 1.00 |
-| Brazil (hard) | go | 959 s / $4.95 | 867 s / $4.59 | 1.00 |
-| Brazil (hard) | python | 967 s / $4.96 | 899 s / $5.10 | 1.00 |
-| Brazil (hard) | rust | **909 s / $4.45** | 1081 s / $6.09 | 1.00 |
+| REST-API (easy) | clojure | **208 s** / $1.37 | 508 s / $1.92 | 1.00 |
+| REST-API (easy) | go | **140 s** / $1.17 | 147 s / $0.66 | 1.00 |
+| REST-API (easy) | python | **90 s** / $0.74 | 122 s / $0.50 | 1.00 |
+| REST-API (easy) | rust | **135 s** / $1.06 | 185 s / $0.71 | 1.00 |
+| Brazil (hard) | clojure | 712 s / $6.18 | 941 s / $4.58 | 1.00 |
+| Brazil (hard) | go | 959 s / $9.90 | 867 s / $4.59 | 1.00 |
+| Brazil (hard) | python | 967 s / $9.91 | 899 s / $5.10 | 1.00 |
+| Brazil (hard) | rust | 909 s / $8.90 | 1081 s / $6.09 | 1.00 |
 
-- **On the easy task, fast mode is a free lunch**: ~40% faster and ~43% cheaper on average (clojure alone: 2.4× faster, 2.8× cheaper), with identical reliability.
-- **On the hard task, the win shrinks** to ~14% cheaper with speed roughly a wash — the bottleneck there is *reasoning*, not token emission, so faster output helps less. It still never hurt reliability.
-- **Takeaway:** if you're already paying for Opus-4.8, turn fast mode on — it's strictly better on routine work and harmless on hard work.
+- **Reliability is identical** — every fast cell holds pass-proportion 1.00, same as regular 4.8. Fast mode costs you nothing in correctness.
+- **But it is *more* expensive, not cheaper.** At 2× per token it runs ~50–75% pricier than regular 4.8 on most easy-task languages (the lone exception, clojure, is an artifact of an outlier 508 s regular run), and roughly **2× the cost on the hard task**.
+- **And the speedup only shows up on easy work.** On the REST API fast mode is ~20–40% faster in wall-clock; on the hard, reasoning-bound task it's **not reliably faster at all** (Go and Python fast runs were actually *slower* than regular) — because the bottleneck is the model thinking, not emitting tokens.
+- **Takeaway:** fast mode buys **latency, not savings**. It's worth the 2× premium only when wall-clock turnaround on routine work matters more than the bill. On hard tasks you pay double for no speed gain — don't.
 
 ---
 
@@ -191,7 +194,7 @@ Each row links to its **full per-cell results table** (every language × model �
 | 4 | Brazil | Opus-4.8 | 6 | **[results →](experiment-4/results.md)** | First 4.8 data: fully correct, but slowest/priciest |
 | 5 | Brazil | Opus-4.7, 4.8 | 36 | **[results →](experiment-5/results.md)** | **4.8 = 1.00 pass vs 4.7 = 0.85**, +47% time/cost |
 | 6 | REST-API | Opus-4.7, 4.8 | 71 | **[results →](experiment-6/results.md)** | Both 1.00 — 4.7 the better value, 4.8 is overkill |
-| 7 | Brazil + REST-API | Opus-4.8 **fast** | 24 | **[results →](experiment-7/results.md)** | Fast mode = 1.00 pass on both, ~40% cheaper/faster on easy work |
+| 7 | Brazil + REST-API | Opus-4.8 **fast** | 24 | **[results →](experiment-7/results.md)** | Fast mode = 1.00 pass on both, but 2× per-token price — buys speed, not savings |
 | 8 | REST-API | Opus-4.7, 4.8 (**Erlang+Elixir**) | 12 | **[results →](experiment-8/results.md)** | Both BEAM languages 1.00 on every measure |
 
 The combined dataset across all eight is in [`master.csv`](master.csv) (and `master.db`), rebuildable with `retort aggregate`.
@@ -229,6 +232,7 @@ Roughly 60 of the ~300 archived runs are not completed-with-coverage. The strict
 - **Elixir false-failures (harness).** Every Elixir run initially scored `test_coverage=0` and failed the gate — but the agents had written *valid* Elixir (a sample archive runs **17 tests, 0 failures**). The scorer used the deprecated `mix do deps.get, test` comma syntax, removed in recent Elixir. Fixed to `mix test`; all 6 Elixir runs then passed at 1.00. *A model that looked like it failed had actually succeeded.*
 - **Missing cost on the newest runs (harness).** Experiments 7 & 8 recorded duration but `$0.00` cost. The OMP-harness change (PR #6) routed the cost parser by agent name but dropped the `unknown → claude-code` fallback the command builder has, so for cells that didn't pin an agent, Claude ran and billed but its cost JSON was discarded. Fixed + regression-tested; re-run with cost intact.
 - **Re-eval found zero runs (harness).** The tooling-free designs (exp-7/8 vary only language × model) tripped a matcher that did `tooling = NULL` in SQL — never true — so `reevaluate` silently graded nothing. Fixed to `IS NULL`.
+- **Fast-mode cost under-reported 2× (harness).** Fast mode bills at double the standard per-token rate ([announcement](https://www.anthropic.com/news/claude-opus-4-8)), but the CLI's `total_cost_usd` reports the *standard*-rate figure (confirmed by probe). retort now applies the 2× multiplier for fast-mode runs — without it, the fast-mode cost comparison was wrong in fast's favour (it's a premium, not a saving).
 - **Genuine failures (signal).** The real failures cluster exactly where the data says they should: the **hard task with cheaper models or `beads` tooling**. A handful of Erlang runs also flaked the tests-gate on first attempt and passed on `--retry-failed` — ordinary non-determinism, not a model limitation.
 
 The lesson cuts both ways: a strict "tests must run" gate is essential to avoid scoring vibes — but you have to be sure a *failure* is the model's and not the harness's. All three measurement bugs are fixed and covered by tests.

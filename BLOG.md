@@ -41,19 +41,22 @@ Those aggregates mix experiments, so the firm conclusions come from the *within-
 
 The pattern is consistent: **each model generation buys you reliability on hard problems, and charges you time and money for it everywhere.** If your work is routine, the premium is wasted; if it's genuinely hard, it may be the difference between "ship it" and "rewrite it."
 
-## Fast mode: the free lunch on routine work
+## Fast mode: speed you pay double for
 
-Opus-4.8 ships a **fast mode** (the `/fast` toggle — same model weights, faster token output). The obvious worry is that you're trading correctness for speed. You aren't. I re-ran the same languages on both tasks with fast mode on, and **every single cell held at pass-proportion 1.00** — identical reliability to regular 4.8 — while getting cheaper and, on routine work, much faster:
+Opus-4.8 ships a **fast mode** (the `/fast` toggle — same model weights, faster token output), and it's billed at **2× the standard per-token rate**: $10/$50 vs $5/$25 per million input/output tokens, [per the announcement](https://www.anthropic.com/news/claude-opus-4-8). So the real question isn't "is it faster?" — it's "is the speed worth double the price?" I re-ran the same languages on both tasks with fast mode on. Reliability was untouched — **every cell held pass-proportion 1.00, identical to regular 4.8** — but the economics are not what a casual reading suggests:
 
-| Task | Language | Fast 4.8 | Regular 4.8 |
+| Task | Language | Fast 4.8 (speed / cost) | Regular 4.8 (speed / cost) |
 |---|---|---:|---:|
-| REST-API (easy) | clojure | **208 s / $0.68** | 508 s / $1.92 |
-| REST-API (easy) | python | **90 s / $0.37** | 122 s / $0.50 |
-| REST-API (easy) | rust | **135 s / $0.53** | 185 s / $0.71 |
-| Brazil (hard) | clojure | **712 s / $3.09** | 941 s / $4.58 |
-| Brazil (hard) | rust | **909 s / $4.45** | 1081 s / $6.09 |
+| REST-API (easy) | python | **90 s** / $0.74 | 122 s / $0.50 |
+| REST-API (easy) | rust | **135 s** / $1.06 | 185 s / $0.71 |
+| Brazil (hard) | go | 959 s / $9.90 | 867 s / $4.59 |
+| Brazil (hard) | rust | 909 s / $8.90 | 1081 s / $6.09 |
 
-On the easy task that's about **40% faster and 43% cheaper for the same result** — clojure alone runs 2.4× faster at barely a third of the cost. On the hard task the gain narrows to ~14% cheaper with speed roughly flat: when the run is dominated by *reasoning*, emitting tokens faster doesn't move the needle much. But it never cost reliability anywhere. The practical rule is simple: **if you're already on Opus-4.8, leave fast mode on** — it's strictly better on routine work and harmless on hard work. (This is also a nice demonstration that "speed" and "model capability" are separable factors, which is exactly the kind of thing a designed experiment is built to isolate.)
+Two things stand out. On the **easy** task, fast mode genuinely shaves wall-clock — roughly 20–40% — but at the 2× rate it still costs *more* in dollars (python: 26% faster, but 48% pricier). On the **hard** task it's the worst of both worlds: you pay about double **and you don't even get the speed** — Go and Python fast runs were *slower* than regular, because a reasoning-bound task is gated by the model thinking, not by how fast it emits tokens.
+
+So fast mode buys **latency, not savings**, and only on routine work. The honest rule is: turn it on when a human is waiting on a quick task and you'll happily pay double to wait less; leave it off for anything hard, where it's pure overhead. (It's also a clean illustration of why you separate "speed" from "capability" as factors — averaging them together would have hidden that the premium pays off in exactly one quadrant and nowhere else.)
+
+A confession is owed here, because it's the whole point of the project: my *first* pass at this section concluded fast mode was **cheaper** — a "free lunch." It wasn't; I'd trusted the cost number the CLI reported, which (I later confirmed by probe) prices fast-mode tokens at the *standard* rate and silently omits the 2× premium. The conclusion flipped completely once the cost was corrected. Measure, then check that what you measured is real — including when the measurement flatters the answer you were hoping for.
 
 ## Two more languages: Erlang and Elixir
 
