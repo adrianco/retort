@@ -1,0 +1,1 @@
+{"id": "mnesia-ram-only", "kind": "enhancement", "severity": "info", "title": "Mnesia configured with ram_copies only — data does not survive restarts", "evidence": "src/book_store.erl:21 {ram_copies, [node()]}", "suggestion": "Switch to disc_copies in book_store:init/0 for persistence across restarts (README already documents this)"}

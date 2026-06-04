@@ -1,0 +1,4 @@
+# Brazilian Soccer MCP Server - runtime & test dependencies
+pandas>=2.0
+mcp>=1.0
+pytest>=7.0

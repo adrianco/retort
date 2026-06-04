@@ -1,0 +1,209 @@
+ Maturity       Phase  Stack
+--------------------------------------------------------------------------------
+    1.000  production  language=python, model=opus-4.6, task=rest-api-crud, tooling=beads
+                       n=3 (✓3/✗0)  requirement_coverage: 1.000±0.000  agreement=1.00  completion=1.00  coverage=1.00
+    1.000  production  language=python, model=sonnet, task=rest-api-crud, tooling=beads
+                       n=3 (✓3/✗0)  requirement_coverage: 1.000±0.000  agreement=1.00  completion=1.00  coverage=1.00
+    1.000  production  language=typescript, model=opus-4.6, task=rest-api-crud, tooling=none
+                       n=3 (✓3/✗0)  requirement_coverage: 1.000±0.000  agreement=1.00  completion=1.00  coverage=1.00
+    1.000  production  language=typescript, model=opus-4.6, task=rest-api-crud, tooling=beads
+                       n=3 (✓3/✗0)  requirement_coverage: 1.000±0.000  agreement=1.00  completion=1.00  coverage=1.00
+    1.000  production  language=typescript, model=sonnet, task=rest-api-crud, tooling=beads
+                       n=3 (✓3/✗0)  requirement_coverage: 1.000±0.000  agreement=1.00  completion=1.00  coverage=1.00
+    1.000  production  language=go, model=opus-4.6, task=rest-api-crud, tooling=none
+                       n=3 (✓3/✗0)  requirement_coverage: 1.000±0.000  agreement=1.00  completion=1.00  coverage=1.00
+    1.000  production  language=go, model=opus-4.6, task=rest-api-crud, tooling=beads
+                       n=3 (✓3/✗0)  requirement_coverage: 1.000±0.000  agreement=1.00  completion=1.00  coverage=1.00
+    1.000  production  language=go, model=sonnet, task=rest-api-crud, tooling=none
+                       n=3 (✓3/✗0)  requirement_coverage: 1.000±0.000  agreement=1.00  completion=1.00  coverage=1.00
+    1.000  production  language=go, model=sonnet, task=rest-api-crud, tooling=beads
+                       n=3 (✓3/✗0)  requirement_coverage: 1.000±0.000  agreement=1.00  completion=1.00  coverage=1.00
+    1.000  production  language=rust, model=opus-4.6, task=rest-api-crud, tooling=beads
+                       n=3 (✓3/✗0)  requirement_coverage: 1.000±0.000  agreement=1.00  completion=1.00  coverage=1.00
+    1.000  production  language=rust, model=sonnet, task=rest-api-crud, tooling=none
+                       n=3 (✓3/✗0)  requirement_coverage: 1.000±0.000  agreement=1.00  completion=1.00  coverage=1.00
+    1.000  production  language=go, model=opus-4.7, task=brazil-soccer-mcp, tooling=none
+                       n=3 (✓3/✗0)  requirement_coverage: 1.000±0.000  agreement=1.00  completion=1.00  coverage=1.00
+    1.000  production  language=go, model=opus-4.8, task=brazil-soccer-mcp, tooling=none
+                       n=3 (✓3/✗0)  requirement_coverage: 1.000±0.000  agreement=1.00  completion=1.00  coverage=1.00
+    1.000  production  language=clojure, model=opus-4.8, task=brazil-soccer-mcp, tooling=none
+                       n=3 (✓3/✗0)  requirement_coverage: 1.000±0.000  agreement=1.00  completion=1.00  coverage=1.00
+    1.000  production  language=python, model=opus-4.7, task=brazil-soccer-mcp, tooling=none
+                       n=3 (✓3/✗0)  requirement_coverage: 1.000±0.000  agreement=1.00  completion=1.00  coverage=1.00
+    1.000  production  language=java, model=opus-4.7, task=brazil-soccer-mcp, tooling=none
+                       n=3 (✓3/✗0)  requirement_coverage: 1.000±0.000  agreement=1.00  completion=1.00  coverage=1.00
+    1.000  production  language=java, model=opus-4.8, task=brazil-soccer-mcp, tooling=none
+                       n=3 (✓3/✗0)  requirement_coverage: 1.000±0.000  agreement=1.00  completion=1.00  coverage=1.00
+    1.000  production  language=clojure, model=opus-4.7, task=brazil-soccer-mcp, tooling=none
+                       n=3 (✓3/✗0)  requirement_coverage: 1.000±0.000  agreement=1.00  completion=1.00  coverage=1.00
+    1.000  production  language=rust, model=opus-4.8, task=brazil-soccer-mcp, tooling=none
+                       n=3 (✓3/✗0)  requirement_coverage: 1.000±0.000  agreement=1.00  completion=1.00  coverage=1.00
+    1.000  production  language=typescript, model=opus-4.7, task=brazil-soccer-mcp, tooling=none
+                       n=3 (✓3/✗0)  requirement_coverage: 1.000±0.000  agreement=1.00  completion=1.00  coverage=1.00
+    1.000  production  language=typescript, model=opus-4.8, task=brazil-soccer-mcp, tooling=none
+                       n=3 (✓3/✗0)  requirement_coverage: 1.000±0.000  agreement=1.00  completion=1.00  coverage=1.00
+    1.000  production  language=python, model=opus-4.8, task=brazil-soccer-mcp, tooling=none
+                       n=3 (✓3/✗0)  requirement_coverage: 1.000±0.000  agreement=1.00  completion=1.00  coverage=1.00
+    1.000  production  language=python, model=opus-4.7, task=rest-api-crud, tooling=none
+                       n=3 (✓3/✗0)  requirement_coverage: 1.000±0.000  agreement=1.00  completion=1.00  coverage=1.00
+    1.000  production  language=python, model=opus-4.7, task=rest-api-crud, tooling=beads
+                       n=3 (✓3/✗0)  requirement_coverage: 1.000±0.000  agreement=1.00  completion=1.00  coverage=1.00
+    1.000  production  language=python, model=opus-4.8, task=rest-api-crud, tooling=none
+                       n=3 (✓3/✗0)  requirement_coverage: 1.000±0.000  agreement=1.00  completion=1.00  coverage=1.00
+    1.000  production  language=python, model=opus-4.8, task=rest-api-crud, tooling=beads
+                       n=3 (✓3/✗0)  requirement_coverage: 1.000±0.000  agreement=1.00  completion=1.00  coverage=1.00
+    1.000  production  language=typescript, model=opus-4.7, task=rest-api-crud, tooling=none
+                       n=3 (✓3/✗0)  requirement_coverage: 1.000±0.000  agreement=1.00  completion=1.00  coverage=1.00
+    1.000  production  language=typescript, model=opus-4.7, task=rest-api-crud, tooling=beads
+                       n=3 (✓3/✗0)  requirement_coverage: 1.000±0.000  agreement=1.00  completion=1.00  coverage=1.00
+    1.000  production  language=typescript, model=opus-4.8, task=rest-api-crud, tooling=none
+                       n=3 (✓3/✗0)  requirement_coverage: 1.000±0.000  agreement=1.00  completion=1.00  coverage=1.00
+    1.000  production  language=typescript, model=opus-4.8, task=rest-api-crud, tooling=beads
+                       n=3 (✓3/✗0)  requirement_coverage: 1.000±0.000  agreement=1.00  completion=1.00  coverage=1.00
+    1.000  production  language=go, model=opus-4.7, task=rest-api-crud, tooling=none
+                       n=3 (✓3/✗0)  requirement_coverage: 1.000±0.000  agreement=1.00  completion=1.00  coverage=1.00
+    1.000  production  language=go, model=opus-4.7, task=rest-api-crud, tooling=beads
+                       n=3 (✓3/✗0)  requirement_coverage: 1.000±0.000  agreement=1.00  completion=1.00  coverage=1.00
+    1.000  production  language=go, model=opus-4.8, task=rest-api-crud, tooling=none
+                       n=3 (✓3/✗0)  requirement_coverage: 1.000±0.000  agreement=1.00  completion=1.00  coverage=1.00
+    1.000  production  language=go, model=opus-4.8, task=rest-api-crud, tooling=beads
+                       n=3 (✓3/✗0)  requirement_coverage: 1.000±0.000  agreement=1.00  completion=1.00  coverage=1.00
+    1.000  production  language=rust, model=opus-4.7, task=rest-api-crud, tooling=none
+                       n=3 (✓3/✗0)  requirement_coverage: 1.000±0.000  agreement=1.00  completion=1.00  coverage=1.00
+    1.000  production  language=rust, model=opus-4.7, task=rest-api-crud, tooling=beads
+                       n=3 (✓3/✗0)  requirement_coverage: 1.000±0.000  agreement=1.00  completion=1.00  coverage=1.00
+    1.000  production  language=rust, model=opus-4.8, task=rest-api-crud, tooling=none
+                       n=3 (✓3/✗0)  requirement_coverage: 1.000±0.000  agreement=1.00  completion=1.00  coverage=1.00
+    1.000  production  language=rust, model=opus-4.8, task=rest-api-crud, tooling=beads
+                       n=3 (✓3/✗0)  requirement_coverage: 1.000±0.000  agreement=1.00  completion=1.00  coverage=1.00
+    1.000  production  language=java, model=opus-4.7, task=rest-api-crud, tooling=none
+                       n=3 (✓3/✗0)  requirement_coverage: 1.000±0.000  agreement=1.00  completion=1.00  coverage=1.00
+    1.000  production  language=java, model=opus-4.7, task=rest-api-crud, tooling=beads
+                       n=3 (✓3/✗0)  requirement_coverage: 1.000±0.000  agreement=1.00  completion=1.00  coverage=1.00
+    1.000  production  language=java, model=opus-4.8, task=rest-api-crud, tooling=beads
+                       n=3 (✓3/✗0)  requirement_coverage: 1.000±0.000  agreement=1.00  completion=1.00  coverage=1.00
+    1.000  production  language=clojure, model=opus-4.7, task=rest-api-crud, tooling=none
+                       n=3 (✓3/✗0)  requirement_coverage: 1.000±0.000  agreement=1.00  completion=1.00  coverage=1.00
+    1.000  production  language=clojure, model=opus-4.7, task=rest-api-crud, tooling=beads
+                       n=3 (✓3/✗0)  requirement_coverage: 1.000±0.000  agreement=1.00  completion=1.00  coverage=1.00
+    1.000  production  language=clojure, model=opus-4.8, task=rest-api-crud, tooling=none
+                       n=3 (✓3/✗0)  requirement_coverage: 1.000±0.000  agreement=1.00  completion=1.00  coverage=1.00
+    1.000  production  language=clojure, model=opus-4.8, task=rest-api-crud, tooling=beads
+                       n=3 (✓3/✗0)  requirement_coverage: 1.000±0.000  agreement=1.00  completion=1.00  coverage=1.00
+    1.000  production  language=go, model=opus-4.8-fast, task=rest-api-crud, tooling=none
+                       n=3 (✓3/✗0)  requirement_coverage: 1.000±0.000  agreement=1.00  completion=1.00  coverage=1.00
+    1.000  production  language=python, model=opus-4.8-fast, task=rest-api-crud, tooling=none
+                       n=3 (✓3/✗0)  requirement_coverage: 1.000±0.000  agreement=1.00  completion=1.00  coverage=1.00
+    1.000  production  language=clojure, model=opus-4.8-fast, task=rest-api-crud, tooling=none
+                       n=3 (✓3/✗0)  requirement_coverage: 1.000±0.000  agreement=1.00  completion=1.00  coverage=1.00
+    1.000  production  language=rust, model=opus-4.8-fast, task=rest-api-crud, tooling=none
+                       n=3 (✓3/✗0)  requirement_coverage: 1.000±0.000  agreement=1.00  completion=1.00  coverage=1.00
+    1.000  production  language=go, model=opus-4.8-fast, task=brazil-soccer-mcp, tooling=none
+                       n=3 (✓3/✗0)  requirement_coverage: 1.000±0.000  agreement=1.00  completion=1.00  coverage=1.00
+    1.000  production  language=python, model=opus-4.8-fast, task=brazil-soccer-mcp, tooling=none
+                       n=3 (✓3/✗0)  requirement_coverage: 1.000±0.000  agreement=1.00  completion=1.00  coverage=1.00
+    1.000  production  language=clojure, model=opus-4.8-fast, task=brazil-soccer-mcp, tooling=none
+                       n=3 (✓3/✗0)  requirement_coverage: 1.000±0.000  agreement=1.00  completion=1.00  coverage=1.00
+    1.000  production  language=rust, model=opus-4.8-fast, task=brazil-soccer-mcp, tooling=none
+                       n=3 (✓3/✗0)  requirement_coverage: 1.000±0.000  agreement=1.00  completion=1.00  coverage=1.00
+    1.000  production  language=erlang, model=opus-4.7, task=rest-api-crud, tooling=none
+                       n=3 (✓3/✗0)  requirement_coverage: 1.000±0.000  agreement=1.00  completion=1.00  coverage=1.00
+    1.000  production  language=erlang, model=opus-4.8, task=rest-api-crud, tooling=none
+                       n=3 (✓3/✗0)  requirement_coverage: 1.000±0.000  agreement=1.00  completion=1.00  coverage=1.00
+    1.000  production  language=elixir, model=opus-4.7, task=rest-api-crud, tooling=none
+                       n=3 (✓3/✗0)  requirement_coverage: 1.000±0.000  agreement=1.00  completion=1.00  coverage=1.00
+    1.000  production  language=elixir, model=opus-4.8, task=rest-api-crud, tooling=none
+                       n=3 (✓3/✗0)  requirement_coverage: 1.000±0.000  agreement=1.00  completion=1.00  coverage=1.00
+    0.972  production  language=rust, model=opus-4.6, task=rest-api-crud, tooling=none
+                       n=3 (✓3/✗0)  requirement_coverage: 0.986±0.024  agreement=0.92  completion=1.00  coverage=1.00
+    0.950  production  language=java, model=opus-4.6, task=brazil-soccer-mcp, tooling=none
+                       n=2 (✓2/✗0)  requirement_coverage: 1.000±0.000  agreement=1.00  completion=1.00  coverage=0.67
+    0.950  production  language=python, model=opus-4.8, task=brazil-soccer-mcp, tooling=beads
+                       n=2 (✓2/✗0)  requirement_coverage: 1.000±0.000  agreement=1.00  completion=1.00  coverage=0.67
+    0.935  production  language=rust, model=opus-4.7, task=brazil-soccer-mcp, tooling=none
+                       n=3 (✓3/✗0)  requirement_coverage: 0.944±0.048  agreement=0.83  completion=1.00  coverage=1.00
+    0.928  production  language=python, model=opus-4.6, task=rest-api-crud, tooling=none
+                       n=3 (✓3/✗0)  requirement_coverage: 0.958±0.059  agreement=0.80  completion=1.00  coverage=1.00
+    0.928  production  language=python, model=sonnet, task=rest-api-crud, tooling=none
+                       n=3 (✓3/✗0)  requirement_coverage: 0.958±0.059  agreement=0.80  completion=1.00  coverage=1.00
+    0.878  production  language=python, model=opus-4.6, task=brazil-soccer-mcp, tooling=none
+                       n=2 (✓2/✗0)  requirement_coverage: 0.958±0.059  agreement=0.80  completion=1.00  coverage=0.67
+    0.878  production  language=typescript, model=opus-4.6, task=brazil-soccer-mcp, tooling=beads
+                       n=2 (✓2/✗0)  requirement_coverage: 0.958±0.059  agreement=0.80  completion=1.00  coverage=0.67
+    0.850  production  language=rust, model=sonnet, task=rest-api-crud, tooling=beads
+                       n=3 (✓2/✗1)  requirement_coverage: 1.000±0.000  agreement=1.00  completion=0.67  coverage=0.67
+    0.850  production  language=java, model=opus-4.8, task=rest-api-crud, tooling=none
+                       n=3 (✓2/✗1)  requirement_coverage: 1.000±0.000  agreement=1.00  completion=0.67  coverage=0.67
+    0.771       trial  language=java, model=sonnet, task=rest-api-crud, tooling=none
+                       n=3 (✓3/✗0)  requirement_coverage: 0.083±0.000  agreement=1.00  completion=1.00  coverage=1.00
+    0.750       trial  language=python, model=opus-4.6, task=brazil-soccer-mcp, tooling=beads
+                       n=1 (✓1/✗0)  requirement_coverage: 1.000  agreement=0.50  completion=1.00  coverage=0.33
+    0.750       trial  language=typescript, model=sonnet, task=brazil-soccer-mcp, tooling=beads
+                       n=1 (✓1/✗0)  requirement_coverage: 1.000  agreement=0.50  completion=1.00  coverage=0.33
+    0.750       trial  language=typescript, model=opus-4.6, task=brazil-soccer-mcp, tooling=none
+                       n=1 (✓1/✗0)  requirement_coverage: 1.000  agreement=0.50  completion=1.00  coverage=0.33
+    0.750       trial  language=python, model=sonnet, task=brazil-soccer-mcp, tooling=beads
+                       n=1 (✓1/✗0)  requirement_coverage: 1.000  agreement=0.50  completion=1.00  coverage=0.33
+    0.750       trial  language=typescript, model=sonnet, task=brazil-soccer-mcp, tooling=none
+                       n=1 (✓1/✗0)  requirement_coverage: 1.000  agreement=0.50  completion=1.00  coverage=0.33
+    0.750       trial  language=rust, model=sonnet, task=brazil-soccer-mcp, tooling=none
+                       n=1 (✓1/✗0)  requirement_coverage: 1.000  agreement=0.50  completion=1.00  coverage=0.33
+    0.750       trial  language=clojure, model=sonnet, task=brazil-soccer-mcp, tooling=beads
+                       n=1 (✓1/✗0)  requirement_coverage: 1.000  agreement=0.50  completion=1.00  coverage=0.33
+    0.740       trial  language=clojure, model=sonnet, task=brazil-soccer-mcp, tooling=none
+                       n=1 (✓1/✗0)  requirement_coverage: 0.958  agreement=0.50  completion=1.00  coverage=0.33
+    0.729       trial  language=clojure, model=opus-4.6, task=brazil-soccer-mcp, tooling=none
+                       n=1 (✓1/✗0)  requirement_coverage: 0.917  agreement=0.50  completion=1.00  coverage=0.33
+    0.729       trial  language=go, model=opus-4.6, task=brazil-soccer-mcp, tooling=none
+                       n=1 (✓1/✗0)  requirement_coverage: 0.917  agreement=0.50  completion=1.00  coverage=0.33
+    0.729       trial  language=go, model=opus-4.6, task=brazil-soccer-mcp, tooling=beads
+                       n=1 (✓1/✗0)  requirement_coverage: 0.917  agreement=0.50  completion=1.00  coverage=0.33
+    0.729       trial  language=go, model=sonnet, task=brazil-soccer-mcp, tooling=none
+                       n=1 (✓1/✗0)  requirement_coverage: 0.917  agreement=0.50  completion=1.00  coverage=0.33
+    0.729       trial  language=clojure, model=opus-4.6, task=brazil-soccer-mcp, tooling=beads
+                       n=1 (✓1/✗0)  requirement_coverage: 0.917  agreement=0.50  completion=1.00  coverage=0.33
+    0.729       trial  language=python, model=sonnet, task=brazil-soccer-mcp, tooling=none
+                       n=1 (✓1/✗0)  requirement_coverage: 0.917  agreement=0.50  completion=1.00  coverage=0.33
+    0.725       trial  language=java, model=opus-4.6, task=brazil-soccer-mcp, tooling=beads
+                       n=1 (✓1/✗0)  requirement_coverage: 0.900  agreement=0.50  completion=1.00  coverage=0.33
+    0.708       trial  language=rust, model=opus-4.6, task=brazil-soccer-mcp, tooling=none
+                       n=1 (✓1/✗0)  requirement_coverage: 0.833  agreement=0.50  completion=1.00  coverage=0.33
+    0.700       trial  language=typescript, model=sonnet, task=rest-api-crud, tooling=none
+                       n=3 (✓2/✗1)  requirement_coverage: 1.000  agreement=0.50  completion=0.67  coverage=0.67
+    0.621   screening  language=clojure, model=opus-4.6, task=rest-api-crud, tooling=beads
+                       n=3 (✓2/✗1)  requirement_coverage: 0.083±0.000  agreement=1.00  completion=0.67  coverage=0.67
+    0.621   screening  language=clojure, model=sonnet, task=rest-api-crud, tooling=beads
+                       n=3 (✓2/✗1)  requirement_coverage: 0.083±0.000  agreement=1.00  completion=0.67  coverage=0.67
+    0.561   screening  language=java, model=opus-4.6, task=rest-api-crud, tooling=none
+                       n=3 (✓3/✗0)  requirement_coverage: 0.444±0.488  agreement=0.00  completion=1.00  coverage=1.00
+    0.540   screening  language=java, model=opus-4.6, task=rest-api-crud, tooling=beads
+                       n=3 (✓3/✗0)  requirement_coverage: 0.361±0.481  agreement=0.00  completion=1.00  coverage=1.00
+    0.536   screening  language=rust, model=opus-4.6, task=brazil-soccer-mcp, tooling=beads
+                       n=1 (✓1/✗0)  requirement_coverage: 0.143  agreement=0.50  completion=1.00  coverage=0.33
+    0.536   screening  language=rust, model=sonnet, task=brazil-soccer-mcp, tooling=beads
+                       n=1 (✓1/✗0)  requirement_coverage: 0.143  agreement=0.50  completion=1.00  coverage=0.33
+    0.500   screening  language=java, model=sonnet, task=brazil-soccer-mcp, tooling=beads
+                       n=1 (✓1/✗0)  requirement_coverage: 0.000  agreement=0.50  completion=1.00  coverage=0.33
+    0.499   screening  language=clojure, model=opus-4.6, task=rest-api-crud, tooling=none
+                       n=3 (✓3/✗0)  requirement_coverage: 0.194±0.096  agreement=0.00  completion=1.00  coverage=1.00
+    0.471   screening  language=java, model=sonnet, task=rest-api-crud, tooling=beads
+                       n=3 (✓3/✗0)  requirement_coverage: 0.083±0.083  agreement=0.00  completion=1.00  coverage=1.00
+    0.450   screening  language=rust, model=opus-4.7, task=brazil-soccer-mcp, tooling=beads
+                       n=3 (✓2/✗1)  requirement_coverage: n/a  agreement=0.50  completion=0.67  coverage=0.67
+    0.450   screening  language=clojure, model=opus-4.7, task=brazil-soccer-mcp, tooling=beads
+                       n=3 (✓2/✗1)  requirement_coverage: n/a  agreement=0.50  completion=0.67  coverage=0.67
+    0.435   screening  language=clojure, model=sonnet, task=rest-api-crud, tooling=none
+                       n=3 (✓2/✗1)  requirement_coverage: 0.542±0.648  agreement=0.00  completion=0.67  coverage=0.67
+    0.150   candidate  language=java, model=sonnet, task=brazil-soccer-mcp, tooling=none
+                       n=1 (✓0/✗1)  requirement_coverage: n/a  agreement=0.50  completion=0.00  coverage=0.00
+    0.150   candidate  language=go, model=sonnet, task=brazil-soccer-mcp, tooling=beads
+                       n=1 (✓0/✗1)  requirement_coverage: n/a  agreement=0.50  completion=0.00  coverage=0.00
+    0.150   candidate  language=rust, model=opus-4.8, task=brazil-soccer-mcp, tooling=beads
+                       n=3 (✓0/✗3)  requirement_coverage: n/a  agreement=0.50  completion=0.00  coverage=0.00
+    0.150   candidate  language=java, model=opus-4.7, task=brazil-soccer-mcp, tooling=beads
+                       n=3 (✓0/✗3)  requirement_coverage: n/a  agreement=0.50  completion=0.00  coverage=0.00
+    0.150   candidate  language=java, model=opus-4.8, task=brazil-soccer-mcp, tooling=beads
+                       n=3 (✓0/✗3)  requirement_coverage: n/a  agreement=0.50  completion=0.00  coverage=0.00
+    0.150   candidate  language=clojure, model=opus-4.8, task=brazil-soccer-mcp, tooling=beads
+                       n=3 (✓0/✗3)  requirement_coverage: n/a  agreement=0.50  completion=0.00  coverage=0.00
+

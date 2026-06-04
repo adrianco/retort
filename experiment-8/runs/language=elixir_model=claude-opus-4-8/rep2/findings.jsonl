@@ -1,0 +1,1 @@
+{"id": "status-code-1", "kind": "lint_warning", "severity": "low", "title": "Validation errors return 422 instead of 400", "evidence": "lib/book_api/router.ex:23 — sends 422 on changeset error; TASK.md R9 how_to_verify hints at 400", "suggestion": "422 Unprocessable Entity is defensible for validation, but 400 Bad Request matches the spec hint more closely"}

@@ -16,7 +16,7 @@
 - **Cross-experiment master database** — `retort aggregate` rolls every experiment into one tidy `master.db` / `master.csv`.
 - **ANOVA + effects**, **live `retort monitor`**, resumable sharded runs, `cost_limit_usd`.
 
-This repo is the result of running it: **six experiments, 198 scored runs, two tasks, four Claude models (Sonnet, Opus 4.6 / 4.7 / 4.8), six languages.**
+This repo is the result of running it: **eight experiments, 234 scored runs, two tasks, eight languages (Go, Python, Clojure, Rust, Java, TypeScript, Erlang, Elixir), four Claude models (Sonnet, Opus 4.6 / 4.7 / 4.8) plus Opus-4.8 fast mode.**
 
 ---
 
@@ -68,6 +68,8 @@ You don't hand-write `workspace.yaml` or do the factorial math. Open `claude` in
 ```
 
 Claude then writes the workspace + design, installs toolchains, runs the cells (resuming across usage-limit windows, retrying failures, flagging cost), and reports — watch live with `retort monitor <experiment>`. You can also drive the CLI directly (`retort init/run/monitor/report/aggregate`).
+
+**Task sources.** A task is what the agent builds. Each task's canonical home is a **GitHub template repo** (`task.yaml` + optional `validate.py`); [`tasks/registry.yaml`](tasks/registry.yaml) indexes them by name, with optional local mirrors that run offline. List them with `retort tasks list`, and reference one by bare name (`--task brazil-bench`) or explicit URI (`bundled://`, `github://owner/repo/spec.md`). See [`tasks/README.md`](tasks/README.md) to add your own.
 
 ---
 
@@ -129,8 +131,31 @@ Aggregated across all models and tooling for each language on each task (Pass = 
 | rust | REST-API (easy) | 23 | 0.96 | 0.83 | 1.00 | 169 | 0.60 |
 | typescript | Brazil MCP (hard) | 12 | 0.92 | 0.61 | 0.82 | 617 | 3.31 |
 | typescript | REST-API (easy) | 20 | 1.00 | 0.73 | 0.89 | 168 | 0.56 |
+| **erlang** | REST-API (easy) | 6 | **1.00** | **1.00** | **1.00** | 349 | 1.49 |
+| **elixir** | REST-API (easy) | 6 | **1.00** | **1.00** | **1.00** | 271 | 1.32 |
 
 Reliability swings hard by **both** axes: **Rust** is near-perfect on the easy task (0.96) but a coin-flip on the hard one (0.50); **Java** runs the other way (0.80 hard / 0.52 easy); **TypeScript** and **Python** are strong on both. Code quality, by contrast, is steady within a language across tasks (consistent with the ANOVA below) — Go and Java stay at 1.00 regardless. *There is no single "best language"; it depends on the job.*
+
+The two **BEAM languages** (Erlang, Elixir — exp-8, opus-4.7/4.8 on the REST API) are a clean addition: **1.00 on every measure** — pass-proportion, test coverage, *and* code quality — making them the most consistently solid stacks on the easy task. Elixir on opus-4.8 was the cheapest/fastest of the pair (207 s, $0.85/run).
+
+### Fast mode: same reliability, less time and money
+
+Opus-4.8 has a **fast mode** (the `/fast` toggle — same model, faster token output). Experiment 7 ran it on the same languages as the regular-4.8 baseline (exp-5/6), both tasks. The result: **fast mode never lost a point of reliability — every cell stayed at pass-proportion 1.00 — and it was cheaper, sometimes much faster.**
+
+| Task | Language | Fast 4.8 (speed / cost) | Regular 4.8 (speed / cost) | Pass (both) |
+|---|---|---:|---:|:--:|
+| REST-API (easy) | clojure | **208 s / $0.68** | 508 s / $1.92 | 1.00 |
+| REST-API (easy) | go | **140 s / $0.58** | 147 s / $0.66 | 1.00 |
+| REST-API (easy) | python | **90 s / $0.37** | 122 s / $0.50 | 1.00 |
+| REST-API (easy) | rust | **135 s / $0.53** | 185 s / $0.71 | 1.00 |
+| Brazil (hard) | clojure | **712 s / $3.09** | 941 s / $4.58 | 1.00 |
+| Brazil (hard) | go | 959 s / $4.95 | 867 s / $4.59 | 1.00 |
+| Brazil (hard) | python | 967 s / $4.96 | 899 s / $5.10 | 1.00 |
+| Brazil (hard) | rust | **909 s / $4.45** | 1081 s / $6.09 | 1.00 |
+
+- **On the easy task, fast mode is a free lunch**: ~40% faster and ~43% cheaper on average (clojure alone: 2.4× faster, 2.8× cheaper), with identical reliability.
+- **On the hard task, the win shrinks** to ~14% cheaper with speed roughly a wash — the bottleneck there is *reasoning*, not token emission, so faster output helps less. It still never hurt reliability.
+- **Takeaway:** if you're already paying for Opus-4.8, turn fast mode on — it's strictly better on routine work and harmless on hard work.
 
 ---
 
@@ -166,12 +191,107 @@ Each row links to its **full per-cell results table** (every language × model �
 | 4 | Brazil | Opus-4.8 | 6 | **[results →](experiment-4/results.md)** | First 4.8 data: fully correct, but slowest/priciest |
 | 5 | Brazil | Opus-4.7, 4.8 | 36 | **[results →](experiment-5/results.md)** | **4.8 = 1.00 pass vs 4.7 = 0.85**, +47% time/cost |
 | 6 | REST-API | Opus-4.7, 4.8 | 71 | **[results →](experiment-6/results.md)** | Both 1.00 — 4.7 the better value, 4.8 is overkill |
+| 7 | Brazil + REST-API | Opus-4.8 **fast** | 24 | **[results →](experiment-7/results.md)** | Fast mode = 1.00 pass on both, ~40% cheaper/faster on easy work |
+| 8 | REST-API | Opus-4.7, 4.8 (**Erlang+Elixir**) | 12 | **[results →](experiment-8/results.md)** | Both BEAM languages 1.00 on every measure |
 
-The combined dataset across all six is in [`master.csv`](master.csv) (and `master.db`), rebuildable with `retort aggregate`.
+The combined dataset across all eight is in [`master.csv`](master.csv) (and `master.db`), rebuildable with `retort aggregate`.
 
 All run data — per-run source, tests, scores, and the spec-eval output — is committed under `experiment-N/runs/`, combined in `master.db` / `master.csv` (`retort aggregate`).
 
-**Methodology notes.** Of ~260 archived runs, **198** are completed runs with a reproducible `requirement_coverage` (the rest failed the tests-gate or are shard duplicates). The spec gate reads a pinned `REQUIREMENTS.json` per task (constant denominator) and judges with **opus-4.6** + a second opinion. Cross-experiment model means mix language/tooling sets, so per-model conclusions lean on the larger within-task samples.
+**Methodology notes.** Of ~300 archived runs, **234** are completed runs with a reproducible `requirement_coverage` (the rest failed the tests-gate or are shard duplicates). The spec gate reads a pinned `REQUIREMENTS.json` per task (constant denominator) and judges with **opus-4.6** + a second opinion. Cross-experiment model means mix language/tooling sets, so per-model conclusions lean on the larger within-task samples.
+
+---
+
+## Stack maturity: which stacks are production-ready
+
+`retort maturity` scores every stack (a unique `language × model × tooling × task` combination) into a lifecycle phase — **production / trial / screening / candidate** — from a composite of replicate agreement, completion rate, reliability level, and replicate coverage. It's the "which stack should I actually use?" view. Across all 103 stacks in the combined data ([`maturity-report.txt`](maturity-report.txt), headline metric `requirement_coverage`):
+
+| Phase | Stacks | What it means |
+|---|---:|---|
+| **production** (≥0.85) | **67** | Reliable + reproducible — ship it |
+| trial (0.65–0.85) | 18 | Promising, needs more evidence |
+| screening (0.40–0.65) | 12 | Inconsistent — only on easy tasks |
+| candidate (<0.40) | 6 | Avoid |
+
+Two things fall out of the ranking:
+
+- **Every new stack reached production (12/12):** all four fast-mode language cells on *both* tasks, and all four Erlang/Elixir cells, scored 1.00 maturity.
+- **The whole immature tail is the hard task** — and overwhelmingly the hard task **with `beads` tooling**. On Brazil, `tooling=none` stacks average **0.88** maturity (18 production); `tooling=beads` stacks average just **0.54** (only 2 production). Even Opus-4.8 drops to *candidate* on Brazil once `beads` is bolted on. The tooling doesn't just add cost (see ANOVA) — on a hard task it actively destabilizes the run. That's the quantified reason `beads` was dropped from the later experiments.
+
+Regenerate with `retort maturity --db <db> --metric requirement_coverage`.
+
+---
+
+## Why some runs failed
+
+Roughly 60 of the ~300 archived runs are not completed-with-coverage. The strict gate is deliberate — *if the tests don't run, the run fails* — but it's worth separating **harness measurement bugs** (our fault, now fixed) from **genuine model failures** (the real signal). The newest experiments surfaced three measurement bugs precisely because they exercised code paths the earlier six never did:
+
+- **Elixir false-failures (harness).** Every Elixir run initially scored `test_coverage=0` and failed the gate — but the agents had written *valid* Elixir (a sample archive runs **17 tests, 0 failures**). The scorer used the deprecated `mix do deps.get, test` comma syntax, removed in recent Elixir. Fixed to `mix test`; all 6 Elixir runs then passed at 1.00. *A model that looked like it failed had actually succeeded.*
+- **Missing cost on the newest runs (harness).** Experiments 7 & 8 recorded duration but `$0.00` cost. The OMP-harness change (PR #6) routed the cost parser by agent name but dropped the `unknown → claude-code` fallback the command builder has, so for cells that didn't pin an agent, Claude ran and billed but its cost JSON was discarded. Fixed + regression-tested; re-run with cost intact.
+- **Re-eval found zero runs (harness).** The tooling-free designs (exp-7/8 vary only language × model) tripped a matcher that did `tooling = NULL` in SQL — never true — so `reevaluate` silently graded nothing. Fixed to `IS NULL`.
+- **Genuine failures (signal).** The real failures cluster exactly where the data says they should: the **hard task with cheaper models or `beads` tooling**. A handful of Erlang runs also flaked the tests-gate on first attempt and passed on `--retry-failed` — ordinary non-determinism, not a model limitation.
+
+The lesson cuts both ways: a strict "tests must run" gate is essential to avoid scoring vibes — but you have to be sure a *failure* is the model's and not the harness's. All three measurement bugs are fixed and covered by tests.
+
+---
+
+## Command reference
+
+Every command is `retort <command> [options]`; add `--help` to any of them for the authoritative, version-specific list. Global: `retort --version`, `retort --help`. Most analysis/reporting commands take `--db <experiment>/retort.db` and `--format text|json` (some also `csv`/`html`) with `-o/--output` to write a file instead of stdout.
+
+### Set up a workspace & design the grid
+
+| Command | What it does | Key options |
+|---|---|---|
+| `init NAME` | Create a workspace dir: config template, visibility-aware `.gitignore`, and an initialized SQLite DB. | `--visibility public\|private` (default **private** = fail-closed, artifacts local-only); `--force` to overwrite. |
+| `tasks list` / `tasks show NAME` | List registered tasks and their canonical **GitHub-template** sources (with local-fallback status), or show one task's resolved source. | `--format text\|json`. |
+| `design generate` | Generate a fractional-factorial **design matrix** (CSV) for a phase. Reads factors from `--config` or a JSON `{factor: [levels]}` on stdin; honors `design.fraction`. | `--phase screening\|characterization` (req); `--config`; `-o` CSV out. |
+| `report aliasing` | Show the **confounding structure** of a fractional design — which effects are aliased and thus not independently estimable. | `--phase` (screening = Res III, characterization = Res IV); `--max-order 1\|2\|3`; `--config` or factors on stdin. |
+| `intake` | Ingest a **new factor level** (e.g. a newly shipped model) and D-optimally augment the existing design with the minimum new runs. | `--factor`, `--level` (req); `--phase`; `--nrestarts` (optimizer restarts); `-o`. |
+
+### Run & watch
+
+| Command | What it does | Key options |
+|---|---|---|
+| `run` | The core loop: generate design → provision isolated playpens → run `claude -p` per cell → build/test/score → store in the DB. | `--phase` (req); `--config`; `--task`; `--replicates`; `--design <csv>` (run an exact, hand-trimmed matrix); `--resume` (skip completed cells); `--retry-failed` (with `--resume`, re-attempt cells that only ever failed); `--shard INDEX/TOTAL` (deterministic slice for parallel runners on a shared DB); `--dry-run`. |
+| `monitor [TARGET]` | Live progress of a run DB: completed/remaining, per-cell coverage, cost + token totals, throughput, ETA. Safe to point at a DB being actively written. | `TARGET` = experiment dir or `.db`; `--watch/--once`; `--interval`; `--total`; `--json`. |
+
+### Score, evaluate & gate
+
+| Command | What it does | Key options |
+|---|---|---|
+| `evaluate [RUN_DIRS…]` | Run the **evaluate-run** skill over run archives (manual/retroactive grading, or after updating the skill). | `--experiment-dir` (bulk-eval all runs); `--force`; `--workers` (default 4). |
+| `reevaluate` | Re-grade archived runs with the **second-opinion spec eval**, persisting `requirement_coverage` into the DB. Non-destructive (status unchanged), resumable (skips already-graded unless `--force`). | `--experiment-dir` (req); `--eval-model` (default **claude-opus-4-6**); `--workers`; `--force`. |
+| `promote STACK_ID` | Evaluate a **promotion gate** and report whether a stack passes from one lifecycle phase to the next. | `--from`, `--to` (req); `--evidence '{"p_value":0.05}'`; `--config` (gate thresholds). |
+
+### Analyze & report
+
+| Command | What it does | Key options |
+|---|---|---|
+| `analyze` | **Type-II ANOVA** per response metric on a CSV: which factors have significant effects. Log-transform by default (multiplicative model for cost/time/tokens). | `--data` (req); `-r/--responses` (req, repeatable); `-f/--factors`; `--interactions`; `--transform log\|none`; `--significance`; `--residuals`; `--predict` (estimate unrun cells + 95% CI). |
+| `report effects` | Main effects + interaction effects (mean response per factor level / level-pair) for a design matrix. | `--db`, `--matrix-id`, `--metric` (all req); `--format text\|json\|csv\|html`. |
+| `report pareto` | **Pareto-optimal stacks** across multiple objectives (quality vs cost vs speed…). Prefix a metric with `-` to minimize. | `--data` (req); `--metric` (req, repeatable, `-` to minimize); `--group-by` (default `language,model,tooling`). |
+| `maturity` | Score each **stack's maturity** (replicate agreement + completion rate + headline level + coverage → production/trial/screening/candidate). The "which stack to use" report. | `--db` (req); `--metric` (headline, default `code_quality` — use `requirement_coverage` for reliability); `--stack` (filter). |
+| `report wardley` | Wardley-map overlay placing each stack on the evolution axis (Genesis → Custom → Product → Commodity) from its lifecycle phase. | `--db` (req); `--format`. |
+| `report dashboard` | One-screen workspace overview: active experiments, lifecycle states, budget usage, recent promotions. | `--db` (req); `--format`. |
+| `report compare` | Run the **compare-runs** skill to contrast evaluated runs across factor dimensions → `comparison.md`. | `--experiment-dir`; `--group-by`; `-o`. |
+| `report web` | Static HTML report (sortable per-stack maturity table + run drill-down). Respects `experiment.visibility` (redacts in private mode). | `--db` (req); `--config`; `--out`; `--title`. |
+
+### Aggregate & export
+
+| Command | What it does | Key options |
+|---|---|---|
+| `aggregate` | Roll **every** `experiment-*/retort.db` into one tidy wide `runs` table (one row/run, a column per metric). Rebuilt from scratch — re-run after a reevaluation pass. | `--experiments-dir` (default `.`); `--out` (default `master.db`); `--csv`. |
+| `export csv` | Flatten one DB's `experiment_runs + run_results` into the wide CSV that `analyze`/`pareto` consume. | `--db` (req); `-o`; `--include-failed`. |
+| `export merge` | Union multiple per-experiment CSVs into one (each input `label=path.csv`), tagging rows by source — for cross-experiment ANOVA. | `INPUTS…` (req); `--tag-column` (default `experiment`); `-o`. |
+
+### Plugins & safety
+
+| Command | What it does | Key options |
+|---|---|---|
+| `visibility-check` | Audit which workspace artifacts would be **published vs kept local** per `experiment.visibility`; exits non-zero if a private workspace would leak a sensitive path. | `--config`. |
+| `plugin list` | List installed scorers/runners and what they contribute. | `--format`. |
+| `plugin show NAME` | Detail for one scorer or runner (e.g. `build_time`, `docker`). | — |
 
 ---
 

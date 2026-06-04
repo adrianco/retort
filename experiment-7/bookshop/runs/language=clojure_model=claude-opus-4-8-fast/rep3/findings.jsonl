@@ -1,0 +1,1 @@
+{"id": "enhance-1", "kind": "enhancement", "severity": "info", "title": "defroutes macro used inside function body", "evidence": "src/books/handler.clj:83 — defroutes is a top-level def macro; calling it inside make-routes re-defs the var on each invocation", "suggestion": "Move defroutes to top level or use routes fn instead"}

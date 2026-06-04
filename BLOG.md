@@ -6,7 +6,7 @@
 
 Every few weeks a new frontier model tops the leaderboards, and the implicit advice is "upgrade." Sites like **[llm-stats.com](https://llm-stats.com/)** rank models well across many benchmarks — but they answer a question most engineering teams aren't actually asking. They hold the *stack* constant: one prompt, one harness, a fixed benchmark. They don't tell you whether the newest model is worth 4× the cost **in Rust**, how *reliably* each model gets a Go MCP server completely right, or how long any of it takes.
 
-Those are the variables that decide a real project. So I built **[retort](https://github.com/adrianco/retort)** to measure them properly — with statistical Design of Experiments, the same technique you'd use to tune a manufacturing process. Vary the factors you care about (here: programming **language** × **model version** × **tooling**), run a factorial grid on a real task, score every cell, and let the analysis tell you which factors actually matter. Six experiments, **198 scored runs**, two tasks, six languages, four Claude models. Here's what came out.
+Those are the variables that decide a real project. So I built **[retort](https://github.com/adrianco/retort)** to measure them properly — with statistical Design of Experiments, the same technique you'd use to tune a manufacturing process. Vary the factors you care about (here: programming **language** × **model version** × **tooling**), run a factorial grid on a real task, score every cell, and let the analysis tell you which factors actually matter. Eight experiments, **234 scored runs**, two tasks, eight languages, four Claude models (plus a fast-mode variant). Here's what came out.
 
 ## The metric that matters: how often is it *completely* right?
 
@@ -40,6 +40,24 @@ Those aggregates mix experiments, so the firm conclusions come from the *within-
 **Easy task (REST API, 6 languages × {4.7, 4.8}):** both models passed essentially everything (1.00). The *only* measurable difference was that 4.8 was **~50% slower** (243 s vs 165 s) and a bit pricier. Identical result, higher bill.
 
 The pattern is consistent: **each model generation buys you reliability on hard problems, and charges you time and money for it everywhere.** If your work is routine, the premium is wasted; if it's genuinely hard, it may be the difference between "ship it" and "rewrite it."
+
+## Fast mode: the free lunch on routine work
+
+Opus-4.8 ships a **fast mode** (the `/fast` toggle — same model weights, faster token output). The obvious worry is that you're trading correctness for speed. You aren't. I re-ran the same languages on both tasks with fast mode on, and **every single cell held at pass-proportion 1.00** — identical reliability to regular 4.8 — while getting cheaper and, on routine work, much faster:
+
+| Task | Language | Fast 4.8 | Regular 4.8 |
+|---|---|---:|---:|
+| REST-API (easy) | clojure | **208 s / $0.68** | 508 s / $1.92 |
+| REST-API (easy) | python | **90 s / $0.37** | 122 s / $0.50 |
+| REST-API (easy) | rust | **135 s / $0.53** | 185 s / $0.71 |
+| Brazil (hard) | clojure | **712 s / $3.09** | 941 s / $4.58 |
+| Brazil (hard) | rust | **909 s / $4.45** | 1081 s / $6.09 |
+
+On the easy task that's about **40% faster and 43% cheaper for the same result** — clojure alone runs 2.4× faster at barely a third of the cost. On the hard task the gain narrows to ~14% cheaper with speed roughly flat: when the run is dominated by *reasoning*, emitting tokens faster doesn't move the needle much. But it never cost reliability anywhere. The practical rule is simple: **if you're already on Opus-4.8, leave fast mode on** — it's strictly better on routine work and harmless on hard work. (This is also a nice demonstration that "speed" and "model capability" are separable factors, which is exactly the kind of thing a designed experiment is built to isolate.)
+
+## Two more languages: Erlang and Elixir
+
+I added the two big **BEAM languages** to the REST-API matrix (Erlang, Elixir, on Opus-4.7 and 4.8). They slot straight in at the top: **1.00 on pass-proportion, test coverage, *and* code quality** — every cell, both models. They're the most uniformly clean stacks I measured on the easy task, and Elixir on 4.8 was the cheapest-and-fastest of the pair ($0.85, 207 s). Two languages that weren't in the original grid, measured and ranked in an afternoon — which is the whole point of treating language as just another factor you can add.
 
 ## It's not just the model — it's the language *and* the task
 
@@ -85,6 +103,22 @@ Stated plainly: **language governs how clean the code is, the task governs how m
 
 (The `beads` issue-tracker tooling I tested showed up in exactly one place — extra cost and time, with no quality or reliability payoff — which is why it was dropped from the later experiments. Worth remembering the next time someone suggests bolting more scaffolding onto an agent "to be safe.")
 
+## Which stacks are actually production-ready?
+
+ANOVA tells you what *moves* each metric; the **stack maturity** view tells you which specific stacks you'd actually trust. `retort maturity` scores each `language × model × tooling × task` combination into a lifecycle phase from its reliability, reproducibility, and completion rate. Of 103 stacks in the combined data, **67 are "production" (ship it), 18 "trial", 12 "screening", and 6 "candidate" (avoid).** Every stack I added in this round — fast mode on both tasks, Erlang and Elixir — landed in production.
+
+The interesting part is the bottom of the list, because it's not random: **the entire immature tail is the hard task, and overwhelmingly the hard task with `beads` tooling.** On Brazil, plain stacks average 0.88 maturity (18 of them production-ready); the same stacks *with `beads`* average **0.54, and only two stay production-ready**. Even Opus-4.8 — the model that aces Brazil bare — drops to "candidate" once you add the tooling. So `beads` isn't merely wasted money on a hard task; it actively *destabilizes the run*. That's a much stronger statement than the ANOVA's "+10% cost," and it's the kind of thing you only see when you score whole stacks instead of averaging a metric.
+
+## A word on failures — and trusting your own harness
+
+A strict bar ("a run only passes if its tests actually execute and it implements the whole spec") is the only honest way to score this — but it cuts both ways, because sometimes a *failure* is your measurement, not the model. Adding Erlang and Elixir and fast mode surfaced three such cases worth being candid about:
+
+- **Elixir looked like a total failure — 0% on every run.** It wasn't: the models wrote valid Elixir (a sample project runs 17 tests, 0 failures). My scorer invoked the test suite with a `mix` sub-command syntax that a recent Elixir release had removed, so the tests never ran and the gate failed them all. One-line fix; all six runs then scored a clean 1.00.
+- **The newest runs reported `$0.00`.** A refactor of the agent-runner had quietly stopped parsing the cost telemetry for runs that didn't pin an explicit agent name — the model ran and billed, but the number was dropped on the floor. Fixed and regression-tested.
+- **The re-scorer silently did nothing** on the two newest experiments because a database query compared against SQL `NULL` (which is never equal to anything) for designs that had no tooling factor.
+
+None of these were model failures; all three were mine, and all three are now fixed and covered by tests. The genuine failures, once the harness was honest, fell exactly where the rest of the data predicts: the hard task, with the cheaper models or the extra tooling. The meta-lesson is the same discipline the whole project is built on — **measure, then check that what you measured is real** before you draw a conclusion from it.
+
 ## The factor I haven't varied yet: the prompt
 
 There's a large lever I deliberately held constant: **the prompt.** Every run got the same terse "implement TASK.md" instruction. But how you ask plausibly moves reliability as much as which model you pick — and it's nearly free to change. Does a test-first prompt, or one with a worked example, or a "list the requirements before you code" preamble, lift a cheap model's hard-task pass rate from 0.5 toward the expensive model's 1.0? If so, a better prompt could be worth more than a model upgrade, at a fraction of the cost. retort treats `prompt` as just another factor, so the next study writes itself: **`prompt × model` on a hard task.** That's the experiment I'd run next, and it's the one with the most direct impact on a real engineering budget.
@@ -101,7 +135,7 @@ The data suggests a simple decision procedure:
 
 ## How it's measured
 
-Each run gets its own isolated workspace; the agent implements the task, and the code is then built and tested in place. The spec check is the strict part: an independent evaluator verifies the code against a **fixed requirement checklist** for the task, and a run only counts as a pass if it implements *all* of it and its tests actually run. To keep that grading reproducible, the checklist is pinned (so the denominator is constant across runs), a strong model does the judging, and a borderline result gets a second opinion before it's recorded. Every number above is that gate applied across all 198 runs — not a hand-picked sample. Per-experiment tables and the combined dataset are in the [README](https://github.com/adrianco/retort) and `master.csv`.
+Each run gets its own isolated workspace; the agent implements the task, and the code is then built and tested in place. The spec check is the strict part: an independent evaluator verifies the code against a **fixed requirement checklist** for the task, and a run only counts as a pass if it implements *all* of it and its tests actually run. To keep that grading reproducible, the checklist is pinned (so the denominator is constant across runs), a strong model does the judging, and a borderline result gets a second opinion before it's recorded. Every number above is that gate applied across all 234 scored runs — not a hand-picked sample. Per-experiment tables and the combined dataset are in the [README](https://github.com/adrianco/retort) and `master.csv`.
 
 ## Try it on your own stack
 

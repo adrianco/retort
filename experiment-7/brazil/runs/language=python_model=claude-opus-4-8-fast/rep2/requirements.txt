@@ -1,0 +1,5 @@
+# Runtime dependency: the official Model Context Protocol SDK (provides FastMCP).
+mcp>=1.0.0
+
+# Test dependency (BDD-style PyTest suite).
+pytest>=7.0

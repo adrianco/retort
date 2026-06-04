@@ -476,6 +476,40 @@ class TestLocalRunnerOmpHarness:
         assert artifacts.stdout == "completed\n"
         assert artifacts.token_count == 0
 
+    def test_unknown_agent_still_captures_claude_cost(self, tmp_path):
+        """Regression for the PR#6 (OMP harness) cost-drop bug.
+
+        A design that leaves the agent factor unset records agent="unknown".
+        The command builder runs it as claude-code, so claude emits a cost JSON
+        — but before the fix the usage parser was handed the raw "unknown"
+        harness name and silently returned empty metadata, so _cost_usd/_tokens
+        were dropped (only runner-measured _duration_seconds survived). This is
+        exactly what wiped cost from experiments 7 and 8.
+        """
+        from unittest.mock import MagicMock, patch
+
+        from retort.playpen.local_runner import LocalRunner
+
+        runner = LocalRunner(work_dir=tmp_path)
+        stack = StackConfig(language="erlang", agent="unknown", framework="unknown")
+        task = TaskSpec(name="plain", description="d", prompt="hi")
+        env_id = runner.provision(stack, task)
+
+        fake_result = MagicMock()
+        fake_result.returncode = 0
+        fake_result.stdout = (
+            '{"total_cost_usd": 0.42, "num_turns": 7, '
+            '"usage": {"input_tokens": 100, "output_tokens": 50}}'
+        )
+        fake_result.stderr = ""
+        with patch("retort.playpen.local_runner.subprocess.run", return_value=fake_result):
+            artifacts = runner.execute(env_id, stack, task)
+
+        assert artifacts.succeeded is True
+        assert artifacts.metadata.get("total_cost_usd") == "0.42"
+        assert artifacts.metadata.get("num_turns") == "7"
+        assert artifacts.token_count == 150
+
     def test_omp_prompt_factor_injected(self, tmp_path):
         from retort.playpen.local_runner import LocalRunner
 

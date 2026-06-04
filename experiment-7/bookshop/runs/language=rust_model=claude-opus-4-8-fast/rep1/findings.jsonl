@@ -1,0 +1,1 @@
+{"id": "enhancement-1", "kind": "enhancement", "severity": "info", "title": "Single Mutex<Connection> serialises all DB access", "evidence": "src/lib.rs:21 — AppState = Arc<Mutex<Connection>>; every handler locks the mutex", "suggestion": "Use a connection pool (r2d2/deadpool) or per-request connections for concurrency; acceptable for a demo CRUD API"}

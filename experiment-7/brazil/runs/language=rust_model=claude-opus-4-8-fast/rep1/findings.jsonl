@@ -1,0 +1,1 @@
+{"id": "info-maintainability", "kind": "enhancement", "severity": "info", "title": "Maintainability score below median (0.47)", "evidence": "scores.json: maintainability=0.4657 — likely due to verbose multi-line header comments on every file (src/main.rs:1-12, src/tools.rs:1-17, etc.)", "suggestion": "Reduce boilerplate comments; the module structure is self-documenting"}

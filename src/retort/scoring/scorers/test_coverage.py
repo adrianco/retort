@@ -41,8 +41,10 @@ _TESTS_ONLY_COMMANDS: dict[str, list[str]] = {
     "clojure": ["clojure", "-M:test"],
     # Rust: cargo-llvm-cov not always installed; fall back to plain test run.
     "rust": ["cargo", "test"],
-    # Elixir: mix test (fetch deps first so projects using Plug/Phoenix compile).
-    "elixir": ["mix", "do", "deps.get,", "test"],
+    # Elixir: mix test (agent-generated projects ship their fetched deps/, so a
+    # plain `mix test` compiles + runs; the old `mix do deps.get, test` comma
+    # syntax was removed in recent Elixir and silently failed -> test_coverage=0).
+    "elixir": ["mix", "test"],
     # Erlang: rebar3 eunit fetches deps, compiles, and runs EUnit.
     "erlang": ["rebar3", "eunit"],
 }

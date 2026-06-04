@@ -1,0 +1,7 @@
+# Brazilian Soccer MCP Server — runtime dependencies
+# The data layer, query engine and tests use only the Python standard library.
+# The MCP server transport is the one external dependency.
+mcp>=1.0.0
+
+# Testing
+pytest>=7.0

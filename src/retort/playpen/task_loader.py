@@ -5,6 +5,7 @@ from __future__ import annotations
 import importlib.resources
 import subprocess
 import tempfile
+from dataclasses import dataclass
 from pathlib import Path
 
 import yaml
@@ -12,12 +13,85 @@ import yaml
 from retort.playpen.runner import TaskSpec
 
 BUNDLED_TASKS_DIR = Path(__file__).resolve().parent.parent.parent.parent / "tasks"
+REGISTRY_PATH = BUNDLED_TASKS_DIR / "registry.yaml"
+
+
+@dataclass(frozen=True)
+class RegisteredTask:
+    """One entry in tasks/registry.yaml.
+
+    A task's canonical home is its GitHub ``template`` repo; ``local`` names an
+    optional offline mirror under ``tasks/<local>/`` that resolution prefers.
+    """
+
+    name: str
+    template: str
+    local: str | None
+    description: str
+
+    @property
+    def local_present(self) -> bool:
+        """True when a runnable local mirror (with task.yaml) exists."""
+        return bool(self.local) and (BUNDLED_TASKS_DIR / self.local / "task.yaml").exists()
+
+    @property
+    def source(self) -> str:
+        """The URI this task resolves to: local mirror first, else template."""
+        if self.local_present:
+            return f"bundled://{self.local}"
+        return self.template
+
+
+def load_registry() -> list[RegisteredTask]:
+    """Parse tasks/registry.yaml into RegisteredTask rows (empty if absent)."""
+    if not REGISTRY_PATH.exists():
+        return []
+    data = yaml.safe_load(REGISTRY_PATH.read_text()) or {}
+    rows: list[RegisteredTask] = []
+    for row in data.get("tasks", []) or []:
+        rows.append(
+            RegisteredTask(
+                name=row["name"],
+                template=row.get("template", ""),
+                local=row.get("local"),
+                description=row.get("description", ""),
+            )
+        )
+    return rows
+
+
+def list_registered_tasks() -> list[RegisteredTask]:
+    """Registered tasks, sorted by name — backs ``retort tasks list``."""
+    return sorted(load_registry(), key=lambda t: t.name)
+
+
+def resolve_task_source(name_or_uri: str) -> str:
+    """Resolve a task name to a source URI; explicit ``scheme://`` URIs pass through.
+
+    A bare name is looked up in the registry (local mirror preferred over the
+    GitHub template). For back-compat, a name matching a bundled directory
+    resolves even without a registry row.
+    """
+    if "://" in name_or_uri:
+        return name_or_uri
+    for t in load_registry():
+        if t.name == name_or_uri:
+            return t.source
+    if (BUNDLED_TASKS_DIR / name_or_uri / "task.yaml").exists():
+        return f"bundled://{name_or_uri}"
+    known = [t.name for t in list_registered_tasks()]
+    raise ValueError(
+        f"Unknown task {name_or_uri!r}. Registered: {known}. "
+        f"Pass a registered name or an explicit URI "
+        f"(bundled:// , local:// , git:// , github://)."
+    )
 
 
 def load_task(source: str) -> TaskSpec:
-    """Load a task from a source URI.
+    """Load a task from a registered name or a source URI.
 
-    Supported schemes:
+    A bare name (no ``://``) is resolved through the registry
+    (see :func:`resolve_task_source`). Supported URI schemes:
     - bundled://<name>                    — load from the bundled tasks directory
     - local://<path>                      — load from a local directory
     - git://<url>                         — clone from a git repository
@@ -26,6 +100,8 @@ def load_task(source: str) -> TaskSpec:
                                             the file to use as the prompt
                                             (defaults to task.yaml or README).
     """
+    if "://" not in source:
+        source = resolve_task_source(source)
     if source.startswith("bundled://"):
         name = source[len("bundled://"):]
         return _load_bundled(name)

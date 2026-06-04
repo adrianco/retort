@@ -171,8 +171,14 @@ class LocalRunner:
             elapsed = time.monotonic() - start
 
             stdout_text = result.stdout or ""
+            # Normalize the agent the same way _build_agent_command does
+            # (line ~247): a design that leaves agent unset records "unknown",
+            # which still RUNS as claude-code — so the usage parser must use the
+            # same fallback, else total_cost_usd/tokens are silently dropped
+            # while runner-measured _duration_seconds survives (the exp-7/8 bug).
+            effective_agent = stack.agent if stack.agent != "unknown" else "claude-code"
             token_count, metadata = _parse_agent_usage(
-                self._agent_harness(stack.agent), stdout_text
+                self._agent_harness(effective_agent), stdout_text
             )
             cost_usd = _parse_float(metadata.get("total_cost_usd"), 0.0)
 

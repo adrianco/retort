@@ -1,0 +1,1 @@
+{"id": "coverage-1", "kind": "enhancement", "severity": "info", "title": "Test coverage at 66.9% — error-path branches untested", "evidence": "scores.json: test_coverage=0.669; handlers.go:59-61,69-71,86-89,112-115,129-131 — 500 error paths for DB failures have no test coverage", "suggestion": "Add tests that inject store errors to cover the 500 response branches"}

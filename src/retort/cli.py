@@ -1103,19 +1103,37 @@ def _spec_conformance_passes(run_dir, eval_config, visibility) -> tuple[bool | N
     return None, None              # no real opinions at all
 
 
+def _factor_match_sql(run_config: dict, col: str = "run_config_json") -> tuple[str, list]:
+    """Build a WHERE fragment matching language/model/tooling for a run_config.
+
+    A factor that is absent/None is matched as JSON ``null`` (``IS NULL``), not
+    ``= NULL`` — the latter is never true in SQL, which silently broke matching
+    for designs that have no tooling factor (e.g. exp-7/8: run_config is just
+    {language, model}, so the tooling clause matched zero rows and reevaluate
+    persisted nothing).
+    """
+    clauses, params = [], []
+    for factor in ("language", "model", "tooling"):
+        val = run_config.get(factor)
+        if val is None:
+            clauses.append(f"json_extract({col},'$.{factor}') IS NULL")
+        else:
+            clauses.append(f"json_extract({col},'$.{factor}')=?")
+            params.append(val)
+    return " AND ".join(clauses), params
+
+
 def _run_has_requirement_coverage(db_path, run_config: dict, replicate: int) -> bool:
     """True if the matching completed run already has a requirement_coverage row."""
     import sqlite3
+    where, params = _factor_match_sql(run_config, "er.run_config_json")
     con = sqlite3.connect(f"file:{db_path}?mode=ro", uri=True)
     try:
         row = con.execute(
             "SELECT 1 FROM run_results rr JOIN experiment_runs er ON er.id=rr.run_id "
             "WHERE rr.metric_name='requirement_coverage' AND er.replicate=? "
-            "AND json_extract(er.run_config_json,'$.language')=? "
-            "AND json_extract(er.run_config_json,'$.model')=? "
-            "AND json_extract(er.run_config_json,'$.tooling')=? LIMIT 1",
-            (replicate, run_config.get("language"), run_config.get("model"),
-             run_config.get("tooling")),
+            f"AND {where} LIMIT 1",
+            (replicate, *params),
         ).fetchone()
     except sqlite3.OperationalError:
         row = None
@@ -1128,15 +1146,13 @@ def _run_completed_exists(db_path, run_config: dict, replicate: int) -> bool:
     dir whose DB run is `failed` (or absent) can never receive coverage, so the
     re-evaluator skips it instead of burning evals on it every pass."""
     import sqlite3
+    where, params = _factor_match_sql(run_config)
     con = sqlite3.connect(f"file:{db_path}?mode=ro", uri=True)
     try:
         row = con.execute(
             "SELECT 1 FROM experiment_runs WHERE replicate=? AND status='completed' "
-            "AND json_extract(run_config_json,'$.language')=? "
-            "AND json_extract(run_config_json,'$.model')=? "
-            "AND json_extract(run_config_json,'$.tooling')=? LIMIT 1",
-            (replicate, run_config.get("language"), run_config.get("model"),
-             run_config.get("tooling")),
+            f"AND {where} LIMIT 1",
+            (replicate, *params),
         ).fetchone()
     except sqlite3.OperationalError:
         row = None
@@ -1153,15 +1169,12 @@ def _persist_requirement_coverage(db_path, run_config: dict, replicate: int,
     order). Returns True if a run was found and updated.
     """
     import sqlite3
+    where, params = _factor_match_sql(run_config)
     con = sqlite3.connect(db_path)
     cur = con.cursor()
     rows = cur.execute(
         "SELECT id FROM experiment_runs WHERE replicate=? AND status='completed' "
-        "AND json_extract(run_config_json,'$.language')=? "
-        "AND json_extract(run_config_json,'$.model')=? "
-        "AND json_extract(run_config_json,'$.tooling')=? "
-        "ORDER BY finished_at DESC", (replicate, run_config.get("language"),
-                                      run_config.get("model"), run_config.get("tooling")),
+        f"AND {where} ORDER BY finished_at DESC", (replicate, *params),
     ).fetchall()
     if not rows:
         con.close()
@@ -2395,6 +2408,77 @@ def export_merge(inputs: tuple[str, ...], output: str | None, tag_column: str) -
         sys.stdout.write(rendered)
 
 
+@main.group()
+def tasks() -> None:
+    """Task registry commands (the GitHub-template task sources)."""
+
+
+@tasks.command("list")
+@click.option(
+    "--format", "fmt", type=click.Choice(["text", "json"]),
+    default="text", show_default=True,
+)
+def tasks_list(fmt: str) -> None:
+    """List registered tasks and their canonical GitHub-template sources.
+
+    Each task's source of truth is a GitHub template repo; a local mirror under
+    tasks/ (if present) is preferred at run time so experiments work offline.
+    Reference a task by bare name (``--task brazil-bench`` / ``source:
+    brazil-bench``) or by explicit URI.
+    """
+    from retort.playpen.task_loader import list_registered_tasks
+
+    rows = list_registered_tasks()
+    if not rows:
+        raise click.ClickException("No tasks registered (tasks/registry.yaml missing or empty).")
+
+    if fmt == "json":
+        click.echo(json.dumps(
+            [
+                {
+                    "name": t.name,
+                    "source": t.template,
+                    "local": t.local if t.local_present else None,
+                    "resolves_to": t.source,
+                    "description": t.description,
+                }
+                for t in rows
+            ],
+            indent=2,
+        ))
+        return
+
+    name_w = max([len(t.name) for t in rows] + [len("NAME")])
+    src_w = max([len(t.template) for t in rows] + [len("SOURCE (github template)")])
+    click.echo(f"{'NAME':<{name_w}}  {'SOURCE (github template)':<{src_w}}  LOCAL")
+    for t in rows:
+        local = "✓ (fallback)" if t.local_present else "—"
+        click.echo(f"{t.name:<{name_w}}  {t.template:<{src_w}}  {local}")
+
+
+@tasks.command("show")
+@click.argument("name")
+def tasks_show(name: str) -> None:
+    """Show a registered task's resolved source, fallback, and description."""
+    from retort.playpen.task_loader import list_registered_tasks, resolve_task_source
+
+    for t in list_registered_tasks():
+        if t.name == name:
+            click.echo(f"name:        {t.name}")
+            click.echo(f"template:    {t.template}")
+            click.echo(f"local:       {t.local or '—'} "
+                       f"({'present' if t.local_present else 'absent'})")
+            click.echo(f"resolves to: {t.source}")
+            if t.description:
+                click.echo(f"description: {t.description}")
+            return
+    # Not registered — still resolve so explicit URIs / bundled dirs work.
+    try:
+        click.echo(f"resolves to: {resolve_task_source(name)}")
+    except ValueError as exc:
+        raise click.ClickException(str(exc))
+
+
 @main.command("aggregate")
 @click.option(
     "--experiments-dir", "experiments_dir",
@@ -2654,9 +2738,13 @@ def reevaluate(experiment_dir, config, eval_model, workers, force):
         # factor source and matches what's stored in run_config_json. Older
         # experiments' stack.json omit `model`, so deriving factors from
         # stack.json silently fails to match the DB row (persisting nothing).
-        cm = re.match(r"language=([^_]+)_model=([^_]+)_tooling=([^_]+)$", rep.parent.name)
+        cm = re.match(r"language=([^_]+)_model=([^_]+?)(?:_tooling=([^_]+))?$", rep.parent.name)
         if cm:
-            run_config = {"language": cm.group(1), "model": cm.group(2), "tooling": cm.group(3)}
+            run_config = {"language": cm.group(1), "model": cm.group(2)}
+            # tooling is optional — designs without a tooling factor (exp-7/8)
+            # name cells `language=X_model=Y` and store no tooling key.
+            if cm.group(3) is not None:
+                run_config["tooling"] = cm.group(3)
         else:
             sj = rep / "stack.json"
             if not sj.exists():
