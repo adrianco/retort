@@ -69,7 +69,7 @@ You don't hand-write `workspace.yaml` or do the factorial math. Open `claude` in
 
 Claude then writes the workspace + design, installs toolchains, runs the cells (resuming across usage-limit windows, retrying failures, flagging cost), and reports — watch live with `retort monitor <experiment>`. You can also drive the CLI directly (`retort init/run/monitor/report/aggregate`).
 
-**Task sources.** A task is what the agent builds. Each task's canonical home is a **GitHub template repo** (`task.yaml` + optional `validate.py`); [`tasks/registry.yaml`](tasks/registry.yaml) indexes them by name, with optional local mirrors that run offline. List them with `retort tasks list`, and reference one by bare name (`--task brazil-bench`) or explicit URI (`bundled://`, `github://owner/repo/spec.md`). See [`tasks/README.md`](tasks/README.md) to add your own.
+**Task sources.** A task is what the agent builds (`task.yaml` + optional `validate.py`). [`tasks/registry.yaml`](tasks/registry.yaml) indexes tasks by name → a canonical **source**: bundled in this repo (`bundled://`) or hosted in a git/GitHub repo (`github://`). List them with `retort tasks list`, and reference one by bare name (`--task brazil-bench`) or explicit URI. See [`tasks/README.md`](tasks/README.md) to add your own.
 
 ---
 
@@ -255,7 +255,7 @@ Every command is `retort <command> [options]`; add `--help` to any of them for t
 | Command | What it does | Key options |
 |---|---|---|
 | `init NAME` | Create a workspace dir: config template, visibility-aware `.gitignore`, and an initialized SQLite DB. | `--visibility public\|private` (default **private** = fail-closed, artifacts local-only); `--force` to overwrite. |
-| `tasks list` / `tasks show NAME` | List registered tasks and their canonical **GitHub-template** sources (with local-fallback status), or show one task's resolved source. | `--format text\|json`. |
+| `tasks list` / `tasks show NAME` | List registered tasks and their canonical **source** URIs (`bundled://` for in-repo tasks, `github://` for hosted ones), or show one task's source + description. | `--format text\|json`. |
 | `design generate` | Generate a fractional-factorial **design matrix** (CSV) for a phase. Reads factors from `--config` or a JSON `{factor: [levels]}` on stdin; honors `design.fraction`. | `--phase screening\|characterization` (req); `--config`; `-o` CSV out. |
 | `report aliasing` | Show the **confounding structure** of a fractional design — which effects are aliased and thus not independently estimable. | `--phase` (screening = Res III, characterization = Res IV); `--max-order 1\|2\|3`; `--config` or factors on stdin. |
 | `intake` | Ingest a **new factor level** (e.g. a newly shipped model) and D-optimally augment the existing design with the minimum new runs. | `--factor`, `--level` (req); `--phase`; `--nrestarts` (optimizer restarts); `-o`. |

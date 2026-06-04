@@ -2410,7 +2410,7 @@ def export_merge(inputs: tuple[str, ...], output: str | None, tag_column: str) -
 
 @main.group()
 def tasks() -> None:
-    """Task registry commands (the GitHub-template task sources)."""
+    """Task registry commands (the task sources retort can run)."""
 
 
 @tasks.command("list")
@@ -2419,12 +2419,11 @@ def tasks() -> None:
     default="text", show_default=True,
 )
 def tasks_list(fmt: str) -> None:
-    """List registered tasks and their canonical GitHub-template sources.
+    """List registered tasks and their canonical source URIs.
 
-    Each task's source of truth is a GitHub template repo; a local mirror under
-    tasks/ (if present) is preferred at run time so experiments work offline.
-    Reference a task by bare name (``--task brazil-bench`` / ``source:
-    brazil-bench``) or by explicit URI.
+    Bundled tasks live in this repo (``bundled://``); others load from a GitHub
+    or git repo (``github://``). Reference a task by bare name (``--task
+    brazil-bench`` / ``source: brazil-bench``) or by explicit URI.
     """
     from retort.playpen.task_loader import list_registered_tasks
 
@@ -2437,9 +2436,8 @@ def tasks_list(fmt: str) -> None:
             [
                 {
                     "name": t.name,
-                    "source": t.template,
-                    "local": t.local if t.local_present else None,
-                    "resolves_to": t.source,
+                    "source": t.source,
+                    "kind": t.kind,
                     "description": t.description,
                 }
                 for t in rows
@@ -2449,11 +2447,10 @@ def tasks_list(fmt: str) -> None:
         return
 
     name_w = max([len(t.name) for t in rows] + [len("NAME")])
-    src_w = max([len(t.template) for t in rows] + [len("SOURCE (github template)")])
-    click.echo(f"{'NAME':<{name_w}}  {'SOURCE (github template)':<{src_w}}  LOCAL")
+    src_w = max([len(t.source) for t in rows] + [len("SOURCE")])
+    click.echo(f"{'NAME':<{name_w}}  {'SOURCE':<{src_w}}  TYPE")
     for t in rows:
-        local = "✓ (fallback)" if t.local_present else "—"
-        click.echo(f"{t.name:<{name_w}}  {t.template:<{src_w}}  {local}")
+        click.echo(f"{t.name:<{name_w}}  {t.source:<{src_w}}  {t.kind}")
 
 
 @tasks.command("show")
@@ -2465,10 +2462,8 @@ def tasks_show(name: str) -> None:
     for t in list_registered_tasks():
         if t.name == name:
             click.echo(f"name:        {t.name}")
-            click.echo(f"template:    {t.template}")
-            click.echo(f"local:       {t.local or '—'} "
-                       f"({'present' if t.local_present else 'absent'})")
-            click.echo(f"resolves to: {t.source}")
+            click.echo(f"source:      {t.source}")
+            click.echo(f"type:        {t.kind}")
             if t.description:
                 click.echo(f"description: {t.description}")
             return

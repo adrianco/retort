@@ -18,28 +18,22 @@ REGISTRY_PATH = BUNDLED_TASKS_DIR / "registry.yaml"
 
 @dataclass(frozen=True)
 class RegisteredTask:
-    """One entry in tasks/registry.yaml.
-
-    A task's canonical home is its GitHub ``template`` repo; ``local`` names an
-    optional offline mirror under ``tasks/<local>/`` that resolution prefers.
-    """
+    """One entry in tasks/registry.yaml: a task name → its canonical source URI."""
 
     name: str
-    template: str
-    local: str | None
+    source: str
     description: str
 
     @property
-    def local_present(self) -> bool:
-        """True when a runnable local mirror (with task.yaml) exists."""
-        return bool(self.local) and (BUNDLED_TASKS_DIR / self.local / "task.yaml").exists()
+    def is_local(self) -> bool:
+        """True if served from this repo / disk rather than a remote repo."""
+        return self.source.startswith(("bundled://", "local://"))
 
     @property
-    def source(self) -> str:
-        """The URI this task resolves to: local mirror first, else template."""
-        if self.local_present:
-            return f"bundled://{self.local}"
-        return self.template
+    def kind(self) -> str:
+        """Short label for the source scheme: local / github / git."""
+        scheme = self.source.split("://", 1)[0] if "://" in self.source else "?"
+        return {"bundled": "local", "local": "local"}.get(scheme, scheme)
 
 
 def load_registry() -> list[RegisteredTask]:
@@ -52,8 +46,7 @@ def load_registry() -> list[RegisteredTask]:
         rows.append(
             RegisteredTask(
                 name=row["name"],
-                template=row.get("template", ""),
-                local=row.get("local"),
+                source=row["source"],
                 description=row.get("description", ""),
             )
         )
@@ -68,9 +61,9 @@ def list_registered_tasks() -> list[RegisteredTask]:
 def resolve_task_source(name_or_uri: str) -> str:
     """Resolve a task name to a source URI; explicit ``scheme://`` URIs pass through.
 
-    A bare name is looked up in the registry (local mirror preferred over the
-    GitHub template). For back-compat, a name matching a bundled directory
-    resolves even without a registry row.
+    A bare name is looked up in the registry and resolves to its ``source``.
+    For back-compat, a name matching a bundled directory resolves even without
+    a registry row.
     """
     if "://" in name_or_uri:
         return name_or_uri

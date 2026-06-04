@@ -1,41 +1,40 @@
 # Tasks
 
-A **task** is what the agent is asked to build (and what gets scored). Every
-task's canonical home is a **GitHub template repository** — a repo with
-"Use this template" enabled, so creating a new task is a fork. A task repo (or
-local mirror dir) contains:
+A **task** is what the agent is asked to build (and what gets scored). A task is
+a directory (local or in a git repo) containing:
 
 - `task.yaml` — functional spec, prompt, validation criteria, timeout
 - `validate.py` — automated pass/fail validation script (optional)
 
 ## The registry
 
-[`registry.yaml`](registry.yaml) is the index of known tasks. Each row maps a
-task **name** to its GitHub **template** and an optional **local** mirror under
-this directory:
+[`registry.yaml`](registry.yaml) indexes the known tasks. Each row maps a task
+**name** to a canonical **source** URI:
 
 ```yaml
 tasks:
   - name: rest-api-crud
-    template: github://adrianco/retort-task-rest-api-crud
-    local: rest-api-crud          # offline mirror, preferred when present
+    source: bundled://rest-api-crud          # lives in this repo, tasks/rest-api-crud/
   - name: brazil-bench
-    template: github://brazil-bench/benchmark-template/brazilian-soccer-mcp-guide.md
-    local: null                   # no mirror — loads live from GitHub
+    source: github://brazil-bench/benchmark-template/brazilian-soccer-mcp-guide.md
 ```
 
 List it any time:
 
 ```text
 $ retort tasks list
-NAME               SOURCE (github template)                                                LOCAL
-brazil-bench       github://brazil-bench/benchmark-template/brazilian-soccer-mcp-guide.md  —
-cli-data-pipeline  github://adrianco/retort-task-cli-data-pipeline                         ✓ (fallback)
-react-dashboard    github://adrianco/retort-task-react-dashboard                           ✓ (fallback)
-rest-api-crud      github://adrianco/retort-task-rest-api-crud                             ✓ (fallback)
+NAME               SOURCE                                                                  TYPE
+brazil-bench       github://brazil-bench/benchmark-template/brazilian-soccer-mcp-guide.md  github
+cli-data-pipeline  bundled://cli-data-pipeline                                             local
+react-dashboard    bundled://react-dashboard                                               local
+rest-api-crud      bundled://rest-api-crud                                                 local
 
-$ retort tasks show brazil-bench      # resolved source + description
+$ retort tasks show brazil-bench      # source + description
 ```
+
+The bundled tasks ship in this repo; **brazil-bench** is the one task hosted
+elsewhere (a public GitHub repo — a "Use this template" repo is the recommended
+way to share one).
 
 ## Referencing a task
 
@@ -46,20 +45,15 @@ an **explicit URI**:
 tasks:
   - source: brazil-bench                 # registered name (resolves via registry)
   - source: bundled://rest-api-crud      # explicit local
-  - source: github://owner/repo/spec.md  # explicit GitHub template
+  - source: github://owner/repo/spec.md  # explicit GitHub source
 ```
 
-**Resolution order** for a bare name: the local mirror is used if present
-(fast, offline), otherwise the task loads live from its GitHub `template`. An
-explicit `scheme://` URI (`bundled://`, `local://`, `git://`, `github://`) is
-always used verbatim.
+A bare name resolves to its registry `source`. Explicit `scheme://` URIs
+(`bundled://`, `local://`, `git://`, `github://`) are used verbatim.
 
 ## Adding a task
 
-1. Publish a GitHub **template** repo containing `task.yaml` (+ optional
-   `validate.py` and any fixtures the spec references).
-2. Add a row to `registry.yaml` with its `template:` URL.
-3. Optionally drop a `local:` mirror dir here so it runs offline.
-
-> The `adrianco/retort-task-*` templates above are the canonical homes for the
-> bundled tasks; until they're published they resolve to their local mirror.
+- **Bundled:** drop a `tasks/<name>/` dir with `task.yaml` (+ optional
+  `validate.py`), then add a `source: bundled://<name>` row to `registry.yaml`.
+- **Remote:** push the task to a GitHub repo (a template repo is ideal so others
+  can fork it), then add a `source: github://<owner>/<repo>[/spec]` row.

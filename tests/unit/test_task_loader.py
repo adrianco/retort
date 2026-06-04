@@ -69,21 +69,32 @@ class TestRegistry:
         assert "brazil-bench" in names
         assert "rest-api-crud" in names
 
-    def test_brazil_bench_has_no_local_and_resolves_to_github(self):
+    def test_brazil_bench_is_github_sourced(self):
         from retort.playpen.task_loader import list_registered_tasks
 
         bz = next(t for t in list_registered_tasks() if t.name == "brazil-bench")
-        assert bz.local_present is False
+        assert bz.is_local is False
+        assert bz.kind == "github"
         assert bz.source.startswith("github://")
-        assert bz.template == bz.source
 
-    def test_bundled_task_prefers_local_fallback(self):
+    def test_bundled_task_is_local_sourced(self):
         from retort.playpen.task_loader import list_registered_tasks
 
         rest = next(t for t in list_registered_tasks() if t.name == "rest-api-crud")
-        assert rest.local_present is True
-        assert rest.template.startswith("github://")  # canonical home is github
-        assert rest.source == "bundled://rest-api-crud"  # but resolves local
+        assert rest.is_local is True
+        assert rest.kind == "local"
+        assert rest.source == "bundled://rest-api-crud"
+
+    def test_registry_has_no_fictional_repos(self):
+        # Guard against advertising github repos that don't exist: every
+        # github:// source must be a real owner/repo we actually publish.
+        from retort.playpen.task_loader import list_registered_tasks
+
+        for t in list_registered_tasks():
+            if t.source.startswith("github://"):
+                assert not t.source.startswith("github://adrianco/retort-task-"), (
+                    f"{t.name} points at an unpublished repo: {t.source}"
+                )
 
     def test_resolve_bare_name_to_local(self):
         from retort.playpen.task_loader import resolve_task_source
