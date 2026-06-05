@@ -24,12 +24,16 @@ Aggregated per model per task:
 | sonnet | 0.50 | 0.63 | 440 s | $1.10 |
 | opus-4.7 | 0.85 | **1.00** | 774 s | $4.92 |
 | **opus-4.8** | **1.00** | **1.00** | 1035 s | $5.54 |
+| opus-4.8-fast² | **1.00** | **1.00** | 887 s | $8.72 |
+
+² Fast mode (`/fast`), 4 languages (clojure/go/python/rust). Cost is at fast mode's **2× per-token rate** ([announcement](https://www.anthropic.com/news/claude-opus-4-8)) — see [Fast mode](#fast-mode-speed-you-pay-double-for) below.
 
 Three things jump out:
 
 1. **Newer genuinely is more reliable — and the gap is enormous on hard tasks.** Opus-4.8 produced a completely-correct result **100% of the time, on both tasks.** The older, cheaper models (4.6 and Sonnet) got the *hard* task fully right only **about half the time.** On a difficult task, the cheap model is a coin-flip — it'll look fine in a demo and bite you in review.
 2. **You pay through the nose for that reliability.** Opus-4.8 was **~3× slower and ~4× more expensive** than 4.6/Sonnet on the hard task. Reliability isn't free; it's a line item, and it grows fast across model generations.
 3. **Opus-4.7 is the value sweet spot, and on easy work the newest model is pure overhead.** On the REST API, 4.7 and 4.8 are *tied* at 100% — so paying for 4.8 there buys you nothing but a slower, costlier run. On the hard task, 4.7 reaches 85% for noticeably less money than 4.8's 100%.
+4. **Fast mode is the same reliability at the *highest* price.** Opus-4.8 fast matches 4.8's 1.00/1.00 and trims wall-clock, but its 2× per-token rate makes it the costliest row in the table ($8.72/run on the hard task) — it buys latency, not value (more below).
 
 ## The controlled view: same cells, two models
 
