@@ -90,6 +90,20 @@ retort.db
 retort.db-journal
 retort.db-shm
 retort.db-wal
+
+# Build output / vendored deps must never be committed, even inside runs/.
+# (The archiver strips these too; this is defense-in-depth for public
+# experiments where runs/ is tracked — node_modules in particular embeds
+# third-party files that trip secret scanners.)
+**/node_modules/
+**/_build/
+**/deps/
+**/target/
+**/__pycache__/
+**/.cpcache/
+**/.rebar3/
+**/.elixir_ls/
+**/erl_crash.dump
 """
 
 _GITIGNORE_PRIVATE_EXTRA = """\
@@ -837,6 +851,21 @@ def _shard_owns(config_key: str, rep: int, shard_index: int, shard_total: int) -
     return bucket == shard_index
 
 
+# Build output / vendored dependency directories (and crash dumps) that must
+# never enter a run archive — regenerable, large, and a source of committed
+# secrets (node_modules fixtures) and copy failures (dangling _build symlinks).
+_ARCHIVE_NOISE = {
+    "node_modules", "_build", "deps", "target", "build", "dist", "vendor",
+    "__pycache__", ".gradle", ".cpcache", ".rebar3", ".elixir_ls",
+    ".pytest_cache", ".mypy_cache", ".git",
+}
+
+
+def _ignore_archive_noise(_dir: str, names: list[str]) -> set[str]:
+    """`shutil.copytree` ignore callback: skip build output and vendored deps."""
+    return {n for n in names if n in _ARCHIVE_NOISE or n == "erl_crash.dump"}
+
+
 def _archive_run_workspace(
     archive_root: Path,
     run_config: dict[str, str],
@@ -870,7 +899,18 @@ def _archive_run_workspace(
         return dest
     dest.parent.mkdir(parents=True, exist_ok=True)
     try:
-        shutil.copytree(src, dest)
+        # Archive source + tests only. Build output and vendored dependencies
+        # are regenerable and actively harmful in the archive: they bloat the
+        # repo, embed third-party files that trip secret scanners (e.g. a
+        # password fixture inside node_modules), and contain dangling build
+        # symlinks (erlang `_build`) that otherwise abort the copy. Scoring
+        # already ran against the live playpen and the spec eval reads source,
+        # so none of this is needed here.
+        shutil.copytree(
+            src, dest,
+            ignore=_ignore_archive_noise,
+            ignore_dangling_symlinks=True,
+        )
     except Exception as exc:  # don't let archival failure abort the experiment
         click.echo(f"  (archive failed for {cell_name} rep{replicate}: {exc})", err=True)
         return None

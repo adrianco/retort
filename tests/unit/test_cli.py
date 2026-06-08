@@ -62,6 +62,40 @@ def test_version():
     assert "0.1.0" in result.output
 
 
+def test_archive_excludes_build_output(tmp_path: Path):
+    # Regression: archiving a playpen with `shutil.copytree` used to copy
+    # node_modules/_build/deps wholesale into runs/. For public experiments
+    # (runs/ is git-tracked) that committed third-party files which trip secret
+    # scanners (a password fixture inside zod's node_modules), and the dangling
+    # symlinks in erlang's _build aborted the copy. Only source + tests belong.
+    from retort.cli import _archive_run_workspace
+    from retort.playpen.runner import RunArtifacts
+
+    pp = tmp_path / "playpen"
+    (pp / "src").mkdir(parents=True)
+    (pp / "src" / "app.ex").write_text("defmodule App do\nend\n")
+    (pp / "test").mkdir()
+    (pp / "test" / "app_test.exs").write_text("defmodule AppTest do\nend\n")
+    for noise in ("node_modules", "_build", "deps", "target", ".git"):
+        (pp / noise).mkdir()
+        (pp / noise / "junk.txt").write_text("password = hunter2")
+    (pp / "erl_crash.dump").write_text("boom")
+
+    artifacts = RunArtifacts(
+        output_dir=pp, stdout="", stderr="", exit_code=0, duration_seconds=1.0,
+    )
+    dest = _archive_run_workspace(
+        tmp_path / "runs", {"language": "elixir"}, 1, artifacts, visibility="public",
+    )
+    assert dest is not None
+    kept = {p.name for p in dest.iterdir()}
+    assert {"src", "test"} <= kept
+    assert kept.isdisjoint({"node_modules", "_build", "deps", "target", ".git"})
+    assert not (dest / "erl_crash.dump").exists()
+    # The flagged fixture path must not have been archived.
+    assert not list(dest.rglob("node_modules"))
+
+
 def test_export_csv_round_trip(tmp_path: Path):
     """`retort export csv` joins runs+results and emits a header+row CSV
     that downstream tools (e.g. retort analyze) can consume."""
