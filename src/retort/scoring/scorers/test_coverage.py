@@ -364,6 +364,9 @@ _TEST_PASS_PATTERNS: dict[str, list[re.Pattern[str]]] = {
             r"(?P<total>\d+)\s+tests?,\s+(?P<failures>\d+)\s+failures?"
             r"(?:,\s*(?P<skipped>\d+)\s+(?:skipped|excluded))?"
         ),
+        # Custom "Result: N passed" / "Result: N passed, M failed" summaries
+        # (projects that swap ExUnit's default formatter still need scoring).
+        re.compile(r"Result:\s+(?P<passed>\d+)\s+passed(?:,\s+(?P<failed>\d+)\s+failed)?"),
     ],
     "erlang": [
         # EUnit success:  "  All 12 tests passed."

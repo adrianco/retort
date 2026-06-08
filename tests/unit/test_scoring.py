@@ -367,6 +367,16 @@ class TestTestCoverageScorer:
         assert _parse_test_pass_rate("%%% book_api_SUITE: ..........\nAll 10 tests passed.\n",
                                      "erlang") == 1.0
 
+    def test_elixir_custom_result_summary_parses(self):
+        # Regression: some elixir projects swap ExUnit's formatter and print
+        # "Result: N passed" instead of "N tests, 0 failures" — the scorer must
+        # still parse it or a passing suite scores 0 (exp-9 elixir false-fails).
+        from retort.scoring.scorers.test_coverage import _parse_test_pass_rate
+        assert _parse_test_pass_rate("Result: 19 passed", "elixir") == 1.0
+        assert _parse_test_pass_rate("Result: 17 passed, 3 failed", "elixir") == 17 / 20
+        # The standard ExUnit summary must still parse too.
+        assert _parse_test_pass_rate("5 tests, 0 failures", "elixir") == 1.0
+
     def test_clojure_lein_test_output_parses(self):
         # `lein test` and `clojure -M:test` share the same summary format,
         # which the pass-rate fallback must recognise so a passing lein
