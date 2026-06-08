@@ -26,7 +26,8 @@
     "ghcr.io/devcontainers/features/git:1": {},
     "ghcr.io/devcontainers/features/node:1": { "version": "lts" },
     "ghcr.io/devcontainers/features/go:1": { "version": "latest" },
-    "ghcr.io/devcontainers/features/rust:1": { "version": "latest" }
+    "ghcr.io/devcontainers/features/rust:1": { "version": "latest" },
+    "ghcr.io/devcontainers/features/java:1": { "version": "21", "installMaven": true }
   },
   "forwardPorts": [],
   "remoteUser": "vscode"
