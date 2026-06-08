@@ -1270,6 +1270,36 @@ def _persist_rescore(db_path, run_config: dict, replicate: int,
     return new_status
 
 
+def _persist_metric_values(db_path, run_config: dict, replicate: int,
+                           scores: dict[str, float]) -> bool:
+    """Update only the named metrics on the latest matching run; no status change.
+
+    For fixing a non-gating scorer gap (e.g. maintainability) on a passing run
+    without re-running its (possibly un-rebuildable) tests. Returns True if a
+    matching run was found.
+    """
+    import sqlite3
+    where, params = _factor_match_sql(run_config)
+    con = sqlite3.connect(db_path)
+    cur = con.cursor()
+    row = cur.execute(
+        f"SELECT id FROM experiment_runs WHERE replicate=? AND {where} "
+        "ORDER BY finished_at DESC", (replicate, *params)).fetchone()
+    if not row:
+        con.close()
+        return False
+    run_id = row[0]
+    for name, value in scores.items():
+        cur.execute("UPDATE run_results SET value=? WHERE run_id=? AND metric_name=?",
+                    (float(value), run_id, name))
+        if cur.rowcount == 0:
+            cur.execute("INSERT INTO run_results (run_id, metric_name, value) VALUES (?,?,?)",
+                        (run_id, name, float(value)))
+    con.commit()
+    con.close()
+    return True
+
+
 def _persist_design_matrix(
     session,
     registry,
@@ -2905,9 +2935,15 @@ def reevaluate(experiment_dir, config, eval_model, workers, force):
 @click.option("--languages", help="Comma-separated language filter (default: all).")
 @click.option("--only-failed", is_flag=True,
               help="Only re-score runs currently marked failed.")
+@click.option("--metrics", "metrics_only",
+              help="Re-score ONLY these metrics (comma-separated), computed "
+                   "directly without the test-coverage gate and leaving status "
+                   "unchanged. Use to fix a non-gating scorer gap (e.g. "
+                   "maintainability) on already-passing runs whose trimmed "
+                   "archives can no longer rebuild.")
 @click.option("--workers", default=4, show_default=True, type=int)
 @click.option("--dry-run", is_flag=True, help="Report changes without writing.")
-def rescore(experiment_dir, config, languages, only_failed, workers, dry_run):
+def rescore(experiment_dir, config, languages, only_failed, metrics_only, workers, dry_run):
     """Re-score archived runs with the current scorers (DB + scores.json).
 
     Use after fixing or upgrading a scorer: re-runs the mechanical metrics
@@ -2917,6 +2953,11 @@ def rescore(experiment_dir, config, languages, only_failed, workers, dry_run):
     Reclassifies status via the conformance gate: a run whose tests now execute
     (test_coverage > 0) becomes ``completed``. Run ``retort reevaluate`` afterward
     to refresh requirement_coverage, then ``retort aggregate``. Idempotent.
+
+    With ``--metrics``, only the named metrics are recomputed (directly, no gate)
+    and status is left untouched — the right tool when a passing run's archive
+    was trimmed and can't rebuild, but a static metric (maintainability) needs a
+    corrected value.
     """
     import concurrent.futures
     import re
@@ -2924,6 +2965,10 @@ def rescore(experiment_dir, config, languages, only_failed, workers, dry_run):
     from retort.config.loader import load_workspace
     from retort.playpen.runner import RunArtifacts, StackConfig
     from retort.scoring.collector import ScoreCollector
+    from retort.scoring.registry import create_default_registry
+
+    subset = [s.strip() for s in metrics_only.split(",")] if metrics_only else None
+    _registry = create_default_registry() if subset else None
 
     exp = Path(experiment_dir)
     db_path = exp / "retort.db"
@@ -2931,8 +2976,8 @@ def rescore(experiment_dir, config, languages, only_failed, workers, dry_run):
         raise click.ClickException(f"No retort.db in {experiment_dir}")
     cfg_path = config or (exp / "workspace.yaml")
     workspace_config = load_workspace(str(cfg_path))
-    metrics = [r.name for r in workspace_config.responses]
-    collector = ScoreCollector(metrics=metrics)
+    metrics = subset if subset else [r.name for r in workspace_config.responses]
+    collector = None if subset else ScoreCollector(metrics=metrics)
     lang_filter = {s.strip() for s in languages.split(",")} if languages else None
 
     def _telemetry(run_config, replicate):
@@ -2986,7 +3031,18 @@ def rescore(experiment_dir, config, languages, only_failed, workers, dry_run):
             output_dir=rep, stdout="", stderr="", exit_code=0,
             duration_seconds=tele.get("_duration_seconds", 0.0),
             token_count=int(tele.get("_tokens", 0) or 0), metadata={})
-        scores = {s.metric_name: s.value for s in collector.collect(artifacts, stack).scores}
+        if subset:
+            # Direct per-scorer computation — no test-coverage gate, so a static
+            # metric still gets a real value on an archive that can't rebuild.
+            scores = {}
+            for m in subset:
+                if m in _registry:
+                    try:
+                        scores[m] = _registry.get(m).score(artifacts, stack)
+                    except Exception:
+                        scores[m] = 0.0
+        else:
+            scores = {s.metric_name: s.value for s in collector.collect(artifacts, stack).scores}
         return (rep, run_config, replicate, scores)
 
     counts = {"updated": 0, "recovered": 0, "done": 0}
@@ -2998,6 +3054,20 @@ def rescore(experiment_dir, config, languages, only_failed, workers, dry_run):
         label = f"{rep.parent.name}/{rep.name}"
         if dry_run:
             click.echo(f"  [dry] {label}: " + " ".join(f"{k}={v:.2f}" for k, v in scores.items()))
+            return
+        if subset:
+            # Update only the named metrics; leave status and other metrics alone.
+            _persist_metric_values(db_path, run_config, replicate, scores)
+            try:
+                sj = rep / "scores.json"
+                existing = json.loads(sj.read_text()) if sj.exists() else {}
+                existing.update(scores)
+                sj.write_text(json.dumps(existing))
+            except (OSError, ValueError):
+                pass
+            counts["updated"] += 1
+            click.echo(f"  {label}: " + " ".join(f"{k}={v:.2f}" for k, v in scores.items())
+                       + " (metrics-only)")
             return
         new_status = _persist_rescore(db_path, run_config, replicate, scores)
         try:

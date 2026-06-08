@@ -140,6 +140,37 @@ def test_persist_rescore_recovers_failed_run(tmp_path: Path):
     c.close()
 
 
+def test_persist_metric_values_leaves_status_and_others(tmp_path: Path):
+    # --metrics mode: update only the named metrics on a passing run, leaving
+    # status and other metrics untouched (fixing a non-gating scorer gap, e.g.
+    # BEAM maintainability, on a trimmed archive that can't rebuild).
+    import json
+    from retort.cli import _persist_metric_values
+    from retort.storage.database import create_tables, get_engine, get_session_factory
+    from retort.storage.models import ExperimentRun, RunResult, RunStatus
+
+    db_path = tmp_path / "retort.db"
+    engine = get_engine(db_path)
+    create_tables(engine)
+    session = get_session_factory(engine)()
+    run = ExperimentRun(replicate=2, status=RunStatus.completed,
+                        run_config_json=json.dumps({"language": "erlang", "model": "opus"}))
+    session.add(run); session.flush()
+    for m, v in [("test_coverage", 1.0), ("maintainability", 0.0), ("defect_rate", 0.0)]:
+        session.add(RunResult(run_id=run.id, metric_name=m, value=v))
+    session.commit(); rid = run.id; session.close(); engine.dispose()
+
+    assert _persist_metric_values(db_path, {"language": "erlang", "model": "opus"}, 2,
+                                  {"maintainability": 0.9, "defect_rate": 1.0})
+    import sqlite3
+    c = sqlite3.connect(db_path)
+    assert c.execute("SELECT status FROM experiment_runs WHERE id=?", (rid,)).fetchone()[0] == "completed"
+    vals = dict(c.execute("SELECT metric_name, value FROM run_results WHERE run_id=?", (rid,)).fetchall())
+    assert vals["maintainability"] == 0.9 and vals["defect_rate"] == 1.0
+    assert vals["test_coverage"] == 1.0  # untouched
+    c.close()
+
+
 def test_export_csv_round_trip(tmp_path: Path):
     """`retort export csv` joins runs+results and emits a header+row CSV
     that downstream tools (e.g. retort analyze) can consume."""
