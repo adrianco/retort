@@ -1,0 +1,18 @@
+{
+  "task": "react-dashboard",
+  "source": "bundled://react-dashboard",
+  "note": "Pinned, fixed requirement checklist for ALL runs of this task. Authored once from the bundled task spec so requirement_coverage uses a constant denominator and is comparable across runs. Do not regenerate per-run.",
+  "requirements": [
+    {"id": "R1", "requirement": "Displays a list of metrics fetched from a (mock) API endpoint", "how_to_verify": "The app fetches metric data and renders the list."},
+    {"id": "R2", "requirement": "Each metric shows name, current value, and trend (up/down/stable)", "how_to_verify": "A metric item renders all three fields."},
+    {"id": "R3", "requirement": "Search/filter input filters metrics by name", "how_to_verify": "Typing in the input narrows the displayed metrics."},
+    {"id": "R4", "requirement": "Responsive layout that works on mobile and desktop", "how_to_verify": "Layout uses responsive CSS (media queries / flexible units), not fixed desktop-only widths."},
+    {"id": "R5", "requirement": "Loading and error states for the data fetch", "how_to_verify": "The UI renders distinct loading and error states."},
+    {"id": "R6", "requirement": "API data is mocked (no external network dependency)", "how_to_verify": "Data comes from a local mock, not a live external service."},
+    {"id": "R7", "requirement": "Semantic HTML and accessible markup", "how_to_verify": "Uses semantic elements / ARIA where appropriate, not div-only markup."},
+    {"id": "R8", "requirement": "A dedicated component for individual metric cards", "how_to_verify": "A reusable metric-card component exists and is used in the list."},
+    {"id": "R9", "requirement": "Working source code with build configuration", "how_to_verify": "Project builds with its configured toolchain."},
+    {"id": "R10", "requirement": "README.md with setup and run instructions", "how_to_verify": "README.md documents how to set up and run the app."},
+    {"id": "R11", "requirement": "At least 3 component/unit tests", "how_to_verify": ">= 3 tests exist and run (test_coverage > 0)."}
+  ]
+}

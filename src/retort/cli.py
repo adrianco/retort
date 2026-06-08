@@ -444,7 +444,7 @@ def run_experiments(
     from retort.playpen.docker_runner import DockerRunner
     from retort.playpen.local_runner import LocalRunner
     from retort.playpen.runner import StackConfig, TaskSpec
-    from retort.playpen.task_loader import load_task
+    from retort.playpen.task_loader import load_task, task_requirements_path
     from retort.scoring.collector import ScoreCollector
     from retort.storage.database import create_tables, get_engine, get_session
 
@@ -502,6 +502,13 @@ def run_experiments(
     # /tmp cleanup and process kills.
     archive_root = config_dir / "runs"
     archive_root.mkdir(exist_ok=True)
+
+    # Guarantee a pinned requirement checklist for the spec gate. Without it the
+    # evaluate-run skill silently falls back to ad-hoc TASK.md extraction, so
+    # requirement_coverage uses a varying denominator and isn't comparable
+    # across runs/experiments. Copy the task's canonical REQUIREMENTS.json, or
+    # generate one from the prompt (and warn) so every experiment has one.
+    _ensure_requirements_json(config_dir, task, task_source, task_requirements_path)
 
     # Persist the design matrix so downstream `retort report effects --matrix-id`
     # can join run results back to factor levels. Idempotent on resume — looks
@@ -835,6 +842,76 @@ def _shard_owns(config_key: str, rep: int, shard_index: int, shard_total: int) -
     digest = hashlib.sha1(f"{config_key}#{rep}".encode()).digest()
     bucket = int.from_bytes(digest[:4], "big") % shard_total
     return bucket == shard_index
+
+
+def _generate_requirements_from_prompt(task) -> dict:
+    """Derive a requirement checklist from a task's prompt as a fallback.
+
+    Extracts bullet lines ("- …") from the prompt so requirement_coverage has
+    a stable, non-zero denominator even when the task ships no pinned checklist.
+    This is a best-effort stand-in for a hand-authored REQUIREMENTS.json — the
+    caller warns that it should be reviewed and committed.
+    """
+    bullets: list[str] = []
+    for raw in (getattr(task, "prompt", "") or "").splitlines():
+        line = raw.strip()
+        if line[:1] in {"-", "*"} and len(line) > 2:
+            text = line[1:].strip()
+            if text and text.lower() not in {b.lower() for b in bullets}:
+                bullets.append(text)
+    if not bullets:
+        # No bullets — fall back to the one-line description as a single item.
+        desc = (getattr(task, "description", "") or "").strip().splitlines()
+        bullets = [desc[0]] if desc else ["Implements the task as described."]
+    return {
+        "task": getattr(task, "name", "unknown"),
+        "note": (
+            "AUTO-GENERATED from the task prompt because the task shipped no "
+            "REQUIREMENTS.json. Review and pin this checklist for a stable, "
+            "comparable requirement_coverage denominator."
+        ),
+        "generated": True,
+        "requirements": [
+            {"id": f"R{i}", "requirement": b, "how_to_verify": "Derived from the task prompt."}
+            for i, b in enumerate(bullets, 1)
+        ],
+    }
+
+
+def _ensure_requirements_json(config_dir, task, task_source, requirements_path_fn) -> None:
+    """Guarantee ``<experiment>/REQUIREMENTS.json`` exists before runs grade.
+
+    Order: respect an existing file (pinned), else copy the task's canonical
+    checklist, else generate one from the prompt and warn. Never raises.
+    """
+    import shutil
+
+    dest = config_dir / "REQUIREMENTS.json"
+    if dest.exists():
+        return
+    try:
+        bundled = requirements_path_fn(task_source)
+    except Exception:
+        bundled = None
+    if bundled is not None:
+        try:
+            shutil.copyfile(bundled, dest)
+            click.echo(f"  Requirements: copied pinned checklist from {task.name} task.")
+            return
+        except OSError:
+            pass
+    # Last resort: derive from the prompt so the denominator is at least stable.
+    try:
+        data = _generate_requirements_from_prompt(task)
+        dest.write_text(json.dumps(data, indent=2))
+        click.echo(
+            f"  ⚠ Requirements: no pinned REQUIREMENTS.json for task {task.name!r} — "
+            f"generated {len(data['requirements'])} from the prompt. Review "
+            f"{dest} and commit it for comparable scoring.",
+            err=True,
+        )
+    except Exception as exc:
+        click.echo(f"  (could not write REQUIREMENTS.json: {exc})", err=True)
 
 
 def _archive_run_workspace(

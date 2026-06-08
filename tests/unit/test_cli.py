@@ -62,6 +62,51 @@ def test_version():
     assert "0.1.0" in result.output
 
 
+def test_bundled_tasks_ship_requirements_json():
+    # Regression: experiment-9 was set up without a REQUIREMENTS.json, so the
+    # spec gate fell back to ad-hoc TASK.md extraction and graded on a varying
+    # denominator. Every bundled task must ship a pinned checklist.
+    from retort.playpen.task_loader import BUNDLED_TASKS_DIR, task_requirements_path
+    import json as _json
+    task_dirs = [d for d in BUNDLED_TASKS_DIR.iterdir()
+                 if d.is_dir() and (d / "task.yaml").exists()]
+    assert task_dirs
+    for d in task_dirs:
+        req = task_requirements_path(f"bundled://{d.name}")
+        assert req is not None, f"{d.name} is missing REQUIREMENTS.json"
+        data = _json.loads(req.read_text())
+        assert data["requirements"], f"{d.name} has an empty checklist"
+
+
+def test_ensure_requirements_json(tmp_path: Path):
+    from retort.cli import _ensure_requirements_json, _generate_requirements_from_prompt
+    from retort.playpen.task_loader import load_task, task_requirements_path
+    import json as _json
+
+    task = load_task("bundled://rest-api-crud")
+
+    # Missing → copies the task's pinned checklist verbatim (not generated).
+    _ensure_requirements_json(tmp_path, task, "bundled://rest-api-crud", task_requirements_path)
+    data = _json.loads((tmp_path / "REQUIREMENTS.json").read_text())
+    assert data["task"] == "rest-api-crud"
+    assert not data.get("generated")
+    assert len(data["requirements"]) == 12
+
+    # Existing → respected, never overwritten.
+    (tmp_path / "REQUIREMENTS.json").write_text('{"requirements": [{"id": "ONLY"}]}')
+    _ensure_requirements_json(tmp_path, task, "bundled://rest-api-crud", task_requirements_path)
+    assert _json.loads((tmp_path / "REQUIREMENTS.json").read_text())["requirements"] == [{"id": "ONLY"}]
+
+    # No pinned checklist (e.g. github task) → generate from the prompt + flag it.
+    gen = _generate_requirements_from_prompt(task)
+    assert gen["generated"] is True
+    assert len(gen["requirements"]) >= 3
+    fresh = tmp_path / "sub"
+    fresh.mkdir()
+    _ensure_requirements_json(fresh, task, "github://o/r", task_requirements_path)
+    assert _json.loads((fresh / "REQUIREMENTS.json").read_text())["generated"] is True
+
+
 def test_export_csv_round_trip(tmp_path: Path):
     """`retort export csv` joins runs+results and emits a header+row CSV
     that downstream tools (e.g. retort analyze) can consume."""
