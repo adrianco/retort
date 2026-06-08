@@ -333,6 +333,50 @@ class TestTestCoverageScorer:
         assert _parse_test_pass_rate("      Tests  45 passed | 4 failed (49)",
                                      "typescript") == 45 / 49
 
+    def test_clojure_runner_follows_project_layout(self, tmp_path):
+        # Regression: a Leiningen project (project.clj, no deps.edn) must be
+        # tested with `lein test`, not the clojure CLI's `-M:test` (which finds
+        # no :test alias and silently REPLs → test_coverage=0 → false gate fail,
+        # as seen for sonnet clojure runs in exp-1 and exp-9).
+        from retort.scoring.scorers.test_coverage import _tests_only_commands
+        (tmp_path / "project.clj").write_text("(defproject books \"0.1\")")
+        assert _tests_only_commands("clojure", tmp_path) == [["lein", "test"]]
+        (tmp_path / "deps.edn").write_text("{}")
+        assert _tests_only_commands("clojure", tmp_path) == [
+            ["clojure", "-M:test"], ["lein", "test"],
+        ]
+
+    def test_erlang_runner_adds_ct_for_common_test_suite(self, tmp_path):
+        # Regression: an agent that writes a Common Test suite (test/*_SUITE.erl)
+        # instead of EUnit must still be scored — `rebar3 eunit` reports such a
+        # project as "0 tests" (test_coverage=0 -> false gate fail), so `rebar3
+        # ct` is added as a fallback. eunit stays first so an EUnit project
+        # short-circuits (seen for erlang/sonnet rep1 vs rep2 in exp-9).
+        from retort.scoring.scorers.test_coverage import _tests_only_commands
+        assert _tests_only_commands("erlang", tmp_path) == [["rebar3", "eunit"]]
+        test_dir = tmp_path / "test"
+        test_dir.mkdir()
+        (test_dir / "book_api_SUITE.erl").write_text("-module(book_api_SUITE).")
+        assert _tests_only_commands("erlang", tmp_path) == [
+            ["rebar3", "eunit"], ["rebar3", "ct"],
+        ]
+
+    def test_erlang_ct_output_parses(self):
+        # `rebar3 ct` success line must parse so a passing CT suite scores 1.0.
+        from retort.scoring.scorers.test_coverage import _parse_test_pass_rate
+        assert _parse_test_pass_rate("%%% book_api_SUITE: ..........\nAll 10 tests passed.\n",
+                                     "erlang") == 1.0
+
+    def test_clojure_lein_test_output_parses(self):
+        # `lein test` and `clojure -M:test` share the same summary format,
+        # which the pass-rate fallback must recognise so a passing lein
+        # project scores 1.0, not 0.0.
+        from retort.scoring.scorers.test_coverage import _parse_test_pass_rate
+        out = "lein test books.core-test\n\nRan 6 tests containing 23 assertions.\n0 failures, 0 errors.\n"
+        assert _parse_test_pass_rate(out, "clojure") == 1.0
+        bad = "Ran 6 tests containing 23 assertions.\n2 failures, 1 errors.\n"
+        assert _parse_test_pass_rate(bad, "clojure") == pytest.approx(3 / 6)
+
 
 class TestDefectRateScorer:
     def test_failed_run_scores_zero(self, failed_artifacts, python_stack):
@@ -358,6 +402,23 @@ class TestDefectRateScorer:
         # If ruff/py_compile unavailable in the test env we still expect
         # a non-zero score (no defects detected against real LOC).
         assert 0.0 <= score <= 1.0
+
+    def test_beam_loc_counts_source_and_skips_build(self, tmp_path):
+        # Regression: erlang/elixir were absent from _LOC_EXTENSIONS, so loc=0
+        # forced defect_rate to 0 for every BEAM run. Source must now count and
+        # the _build/deps dependency trees must be excluded.
+        from retort.scoring.scorers.defect_rate import _count_source_lines
+        (tmp_path / "src").mkdir()
+        (tmp_path / "src" / "books.erl").write_text("-module(books).\nstart() -> ok.\n")
+        (tmp_path / "lib").mkdir()
+        (tmp_path / "lib" / "books.ex").write_text("defmodule Books do\n  def go, do: :ok\nend\n")
+        # Dependency trees that must NOT be counted.
+        for d in ("_build", "deps"):
+            (tmp_path / d).mkdir()
+            (tmp_path / d / "junk.erl").write_text("\n".join("x() -> y." for _ in range(500)))
+            (tmp_path / d / "junk.ex").write_text("\n".join("def x, do: 1" for _ in range(500)))
+        assert _count_source_lines(tmp_path, "erlang") == 2
+        assert _count_source_lines(tmp_path, "elixir") == 3
 
 
 class TestMaintainabilityScorer:
@@ -387,6 +448,34 @@ class TestMaintainabilityScorer:
         )
         scorer = MaintainabilityScorer()
         assert scorer.score(artifacts, python_stack) > 0.0
+
+    def test_beam_languages_score_above_zero(self, tmp_path):
+        # Regression: erlang/elixir were absent from the function-pattern and
+        # source-extension dicts, so every BEAM run scored maintainability 0.
+        from retort.scoring.scorers.maintainability import _collect_files
+        (tmp_path / "src").mkdir()
+        (tmp_path / "src" / "books.erl").write_text(
+            "-module(books).\n-export([start/0]).\n\n"
+            "start() ->\n    ok.\n\n"
+            "stop() ->\n    ok.\n"
+        )
+        (tmp_path / "test").mkdir()
+        (tmp_path / "test" / "books_tests.erl").write_text("-module(books_tests).\n")
+        erl_src, erl_tests = _collect_files(tmp_path, "erlang")
+        assert len(erl_src) == 1 and len(erl_tests) == 1
+
+        (tmp_path / "lib").mkdir()
+        (tmp_path / "lib" / "books.ex").write_text(
+            "defmodule Books do\n  def start, do: :ok\n  defp helper, do: 1\nend\n"
+        )
+        (tmp_path / "test" / "books_test.exs").write_text("defmodule BooksTest do\nend\n")
+        ex_src, ex_tests = _collect_files(tmp_path, "elixir")
+        assert len(ex_src) == 1 and len(ex_tests) == 1
+        for lang in ("erlang", "elixir"):
+            art = RunArtifacts(output_dir=tmp_path, stdout="", exit_code=0,
+                               duration_seconds=1.0)
+            st = StackConfig(language=lang, agent="x", framework="none")
+            assert MaintainabilityScorer().score(art, st) > 0.0
 
     def test_ramp_lower_is_better(self):
         from retort.scoring.scorers.maintainability import _ramp
