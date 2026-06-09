@@ -42,6 +42,17 @@ _DEFECT_COMMANDS: dict[str, list[list[str]]] = {
     "clojure": [
         ["clj-kondo", "--lint", "."],
     ],
+    # Compiler warnings as the defect signal (mirrors java's `mvn compile` /
+    # go's `go vet`). `--force --all-warnings` re-emits warnings even when the
+    # archive is already built; warnings print as `lib/foo.ex:LINE`. If the
+    # toolchain is absent the runner catches FileNotFoundError and skips it.
+    "elixir": [
+        ["mix", "compile", "--force", "--all-warnings"],
+    ],
+    # rebar3 surfaces erlang compiler warnings as `src/foo.erl:LINE:COL: Warning`.
+    "erlang": [
+        ["rebar3", "compile"],
+    ],
 }
 
 
@@ -52,6 +63,8 @@ _LOC_EXTENSIONS: dict[str, set[str]] = {
     "rust": {".rs"},
     "java": {".java"},
     "clojure": {".clj", ".cljc", ".cljs"},
+    "erlang": {".erl", ".hrl"},
+    "elixir": {".ex", ".exs"},
 }
 
 
@@ -133,7 +146,10 @@ def _count_source_lines(output_dir: Path, language: str) -> int:
     if not exts:
         return 0
 
-    skip_parts = {"node_modules", "target", "__pycache__", ".git", "dist", "build"}
+    skip_parts = {
+        "node_modules", "target", "__pycache__", ".git", "dist", "build",
+        "_build", "deps", ".rebar3",
+    }
     total = 0
     for ext in exts:
         for p in output_dir.rglob(f"*{ext}"):

@@ -50,10 +50,39 @@ retort --help                    # CLI loads → deps OK
 |---|---|
 | **Python 3.11+**, **C/C++ toolchain + cmake** | runtime + building `OApackage` |
 | **`claude` CLI, authenticated** | the agent runner shells out to `claude -p …` |
-| **Per-language toolchains** | the scorer builds & tests the generated code (`go`, `rustup`, `node`≥20, JDK+maven, clojure, python) |
+| **Per-language toolchains** | the scorer **builds, tests, and lints** the generated code — see the table below |
 | **`bd` (beads) CLI** | only if a factor uses `tooling: beads` |
 
 `.devcontainer/` provisions all of this for Codespaces / Dev Containers (authenticate `claude` once).
+
+### Per-language build & test toolchains
+
+You only need the toolchains for the languages you actually list as `language`
+factor levels in `workspace.yaml`. The scorer **shells out to each language's
+real build/test/lint tools**, so they must be on `PATH` — if a tool is missing
+the run fails its mechanical gate (tests can't run = no pass). Install exactly
+what you use:
+
+| Language | Tools the scorer runs | macOS (Homebrew) | Debian/Ubuntu |
+|---|---|---|---|
+| **python** | `pytest`, `coverage`, `ruff` | (bundled via `pip install -e ".[dev,test]"`) | (bundled via the pip extras) |
+| **typescript** | `node` ≥20 + `npm` (`npx` pulls `jest`/`vitest`, `tsc`, `eslint` per project) | `brew install node` | `apt install nodejs npm` (or NodeSource for ≥20) |
+| **go** | `go test -cover`, `go vet` | `brew install go` | `apt install golang-go` |
+| **rust** | `cargo test`, `cargo clippy` | `brew install rustup-init && rustup-init -y` | `curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs \| sh` |
+| | then add the linter: | `rustup component add clippy` | `rustup component add clippy` |
+| **java** | `mvn test`, `jacoco`, `mvn compile` (JDK 17+) | `brew install openjdk maven` | `apt install default-jdk maven` |
+| **clojure** | `clojure -M:test` **and** `lein test`, `cloverage`, `clj-kondo` | `brew install clojure/tools/clojure leiningen borkdude/brew/clj-kondo` | clojure CLI + `lein` via the [official](https://clojure.org/guides/install_clojure) [scripts](https://leiningen.org/#install); `clj-kondo` from its [releases](https://github.com/clj-kondo/clj-kondo/releases) |
+| **erlang** | `rebar3 eunit` **and** `rebar3 ct`, `rebar3 compile` | `brew install erlang rebar3` | `apt install erlang rebar3` |
+| **elixir** | `mix test`, `mix compile --all-warnings` (pulls Erlang/OTP) | `brew install elixir` | `apt install elixir` |
+
+> ⚠️ **Clojure needs *both* the Clojure CLI (`clojure`/`clj`) and Leiningen
+> (`lein`)** — agents pick either a `deps.edn` or a `project.clj` layout, and the
+> scorer runs whichever the generated project uses. **Erlang needs `rebar3`**
+> (for both EUnit and Common Test suites); **Elixir needs `mix`** (ships with
+> Elixir). Java/Clojure/Erlang/Elixir all need a **JDK/BEAM** on `PATH`. A
+> missing one of these is the single most common "why did every run of language
+> X fail?" — verify with `lein test`, `rebar3 --version`, `mix --version`, etc.
+> before launching an experiment.
 
 ### Run an experiment — describe it in plain language
 

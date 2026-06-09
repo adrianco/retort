@@ -107,6 +107,115 @@ def test_ensure_requirements_json(tmp_path: Path):
     assert _json.loads((fresh / "REQUIREMENTS.json").read_text())["generated"] is True
 
 
+def test_archive_excludes_build_output(tmp_path: Path):
+    # Regression: archiving a playpen with `shutil.copytree` used to copy
+    # node_modules/_build/deps wholesale into runs/. For public experiments
+    # (runs/ is git-tracked) that committed third-party files which trip secret
+    # scanners (a password fixture inside zod's node_modules), and the dangling
+    # symlinks in erlang's _build aborted the copy. Only source + tests belong.
+    from retort.cli import _archive_run_workspace
+    from retort.playpen.runner import RunArtifacts
+
+    pp = tmp_path / "playpen"
+    (pp / "src").mkdir(parents=True)
+    (pp / "src" / "app.ex").write_text("defmodule App do\nend\n")
+    (pp / "test").mkdir()
+    (pp / "test" / "app_test.exs").write_text("defmodule AppTest do\nend\n")
+    for noise in ("node_modules", "_build", "deps", "target", ".git"):
+        (pp / noise).mkdir()
+        (pp / noise / "junk.txt").write_text("password = hunter2")
+    (pp / "erl_crash.dump").write_text("boom")
+
+    artifacts = RunArtifacts(
+        output_dir=pp, stdout="", stderr="", exit_code=0, duration_seconds=1.0,
+    )
+    dest = _archive_run_workspace(
+        tmp_path / "runs", {"language": "elixir"}, 1, artifacts, visibility="public",
+    )
+    assert dest is not None
+    kept = {p.name for p in dest.iterdir()}
+    assert {"src", "test"} <= kept
+    assert kept.isdisjoint({"node_modules", "_build", "deps", "target", ".git"})
+    assert not (dest / "erl_crash.dump").exists()
+    # The flagged fixture path must not have been archived.
+    assert not list(dest.rglob("node_modules"))
+
+
+def test_persist_rescore_recovers_failed_run(tmp_path: Path):
+    # Regression: re-scoring a false-failed run must flip it completed, update
+    # the scorer metrics, and PRESERVE the _-prefixed telemetry (cost/tokens/
+    # duration) and requirement_coverage — the recovery path for exp-9's
+    # lein/CT/elixir false-failures.
+    import json
+    from retort.cli import _persist_rescore
+    from retort.storage.database import create_tables, get_engine, get_session_factory
+    from retort.storage.models import ExperimentRun, RunResult, RunStatus
+
+    db_path = tmp_path / "retort.db"
+    engine = get_engine(db_path)
+    create_tables(engine)
+    session = get_session_factory(engine)()
+    run = ExperimentRun(
+        replicate=1, status=RunStatus.failed,
+        run_config_json=json.dumps({"language": "clojure", "model": "sonnet"}),
+        error_message="tests did not run (test_coverage=0)",
+    )
+    session.add(run); session.flush()
+    for m, v in [("test_coverage", 0.0), ("code_quality", 0.0),
+                 ("_cost_usd", 0.57), ("_tokens", 897213.0),
+                 ("requirement_coverage", 0.0)]:
+        session.add(RunResult(run_id=run.id, metric_name=m, value=v))
+    session.commit(); rid = run.id; session.close(); engine.dispose()
+
+    new_status = _persist_rescore(
+        db_path, {"language": "clojure", "model": "sonnet"}, 1,
+        {"test_coverage": 1.0, "code_quality": 0.83, "maintainability": 0.97})
+    assert new_status == "completed"
+
+    import sqlite3
+    c = sqlite3.connect(db_path)
+    assert c.execute("SELECT status FROM experiment_runs WHERE id=?", (rid,)).fetchone()[0] == "completed"
+    vals = dict(c.execute("SELECT metric_name, value FROM run_results WHERE run_id=?", (rid,)).fetchall())
+    assert vals["test_coverage"] == 1.0          # updated
+    assert vals["code_quality"] == 0.83          # updated
+    assert vals["maintainability"] == 0.97       # inserted (was absent)
+    assert vals["_cost_usd"] == 0.57             # telemetry preserved
+    assert vals["_tokens"] == 897213.0           # telemetry preserved
+    assert vals["requirement_coverage"] == 0.0   # left for reevaluate, untouched
+    c.close()
+
+
+def test_persist_metric_values_leaves_status_and_others(tmp_path: Path):
+    # --metrics mode: update only the named metrics on a passing run, leaving
+    # status and other metrics untouched (fixing a non-gating scorer gap, e.g.
+    # BEAM maintainability, on a trimmed archive that can't rebuild).
+    import json
+    from retort.cli import _persist_metric_values
+    from retort.storage.database import create_tables, get_engine, get_session_factory
+    from retort.storage.models import ExperimentRun, RunResult, RunStatus
+
+    db_path = tmp_path / "retort.db"
+    engine = get_engine(db_path)
+    create_tables(engine)
+    session = get_session_factory(engine)()
+    run = ExperimentRun(replicate=2, status=RunStatus.completed,
+                        run_config_json=json.dumps({"language": "erlang", "model": "opus"}))
+    session.add(run); session.flush()
+    for m, v in [("test_coverage", 1.0), ("maintainability", 0.0), ("defect_rate", 0.0)]:
+        session.add(RunResult(run_id=run.id, metric_name=m, value=v))
+    session.commit(); rid = run.id; session.close(); engine.dispose()
+
+    assert _persist_metric_values(db_path, {"language": "erlang", "model": "opus"}, 2,
+                                  {"maintainability": 0.9, "defect_rate": 1.0})
+    import sqlite3
+    c = sqlite3.connect(db_path)
+    assert c.execute("SELECT status FROM experiment_runs WHERE id=?", (rid,)).fetchone()[0] == "completed"
+    vals = dict(c.execute("SELECT metric_name, value FROM run_results WHERE run_id=?", (rid,)).fetchall())
+    assert vals["maintainability"] == 0.9 and vals["defect_rate"] == 1.0
+    assert vals["test_coverage"] == 1.0  # untouched
+    c.close()
+
+
 def test_export_csv_round_trip(tmp_path: Path):
     """`retort export csv` joins runs+results and emits a header+row CSV
     that downstream tools (e.g. retort analyze) can consume."""

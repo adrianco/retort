@@ -49,6 +49,39 @@ _TESTS_ONLY_COMMANDS: dict[str, list[str]] = {
     "erlang": ["rebar3", "eunit"],
 }
 
+def _tests_only_commands(language: str, output_dir: Path) -> list[list[str]]:
+    """Ordered plain-test commands to try for the pass-rate fallback.
+
+    Most languages have a single runner (see _TESTS_ONLY_COMMANDS). Clojure
+    is the exception: the runner depends on the layout the agent produced — a
+    deps.edn project is driven by the clojure CLI (`-M:test`), a Leiningen
+    project by `lein test`. Earlier scoring only ran the clojure CLI, so a
+    valid lein project (whose `lein test` passes) scored test_coverage=0 and
+    tripped the gate. Return every runner whose project file is present.
+    """
+    if language == "clojure":
+        cmds: list[list[str]] = []
+        if (output_dir / "deps.edn").exists():
+            cmds.append(["clojure", "-M:test"])
+        if (output_dir / "project.clj").exists():
+            cmds.append(["lein", "test"])
+        return cmds or [["clojure", "-M:test"]]
+    if language == "erlang":
+        # `rebar3 eunit` only runs EUnit (`*_tests.erl` / `_test` functions).
+        # Agents sometimes write a Common Test suite (`test/*_SUITE.erl`)
+        # instead, which eunit reports as "0 tests" -> test_coverage=0 -> false
+        # gate fail (a valid CT suite passes under `rebar3 ct`). Add ct as a
+        # fallback runner when a suite is present; eunit stays first so an
+        # EUnit project short-circuits before ct compiles anything.
+        cmds = [["rebar3", "eunit"]]
+        test_dir = output_dir / "test"
+        if test_dir.is_dir() and any(test_dir.glob("*_SUITE.erl")):
+            cmds.append(["rebar3", "ct"])
+        return cmds
+    cmd = _TESTS_ONLY_COMMANDS.get(language)
+    return [cmd] if cmd is not None else []
+
+
 # Regex to extract a percentage like "75%" from coverage output.
 _PERCENT_RE = re.compile(r"(\d+(?:\.\d+)?)\s*%")
 
@@ -92,18 +125,7 @@ class TestCoverageScorer:
         # Languages without a coverage command (e.g. rust) go straight to the
         # tests-only fallback. Coverage commands are tried first when they exist.
         if cmd is None:
-            tests_cmd = _TESTS_ONLY_COMMANDS.get(language)
-            if tests_cmd is None:
-                return None
-            try:
-                result2 = subprocess.run(
-                    tests_cmd, cwd=output_dir, capture_output=True,
-                    text=True, timeout=300,
-                )
-            except (subprocess.TimeoutExpired, FileNotFoundError):
-                return None
-            combined2 = _strip_ansi((result2.stdout or "") + "\n" + (result2.stderr or ""))
-            rate2 = _parse_test_pass_rate(combined2, language)
+            rate2 = self._tests_pass_rate(output_dir, language)
             return rate2 * 100.0 if rate2 is not None else None
 
         env = None
@@ -136,21 +158,40 @@ class TestCoverageScorer:
         if rate is not None:
             return rate * 100.0
         # Fallback 2: the coverage command may have aborted before tests ran
-        # (e.g. mvn jacoco:report when the plugin isn't in the pom). Try
-        # a plain test command and parse pass rate from its output.
-        tests_cmd = _TESTS_ONLY_COMMANDS.get(language)
-        if tests_cmd is None:
-            return None
-        try:
-            result2 = subprocess.run(
-                tests_cmd, cwd=output_dir, capture_output=True,
-                text=True, timeout=300, env=env,
-            )
-        except (subprocess.TimeoutExpired, FileNotFoundError):
-            return None
-        combined2 = _strip_ansi((result2.stdout or "") + "\n" + (result2.stderr or ""))
-        rate2 = _parse_test_pass_rate(combined2, language)
+        # (e.g. mvn jacoco:report when the plugin isn't in the pom, or the
+        # clojure-CLI cloverage command on a Leiningen project). Try the
+        # project's native plain test command(s) and parse the pass rate.
+        rate2 = self._tests_pass_rate(output_dir, language, env=env)
         return rate2 * 100.0 if rate2 is not None else None
+
+    def _tests_pass_rate(
+        self, output_dir: Path, language: str, env: dict | None = None
+    ) -> float | None:
+        """Run the project's plain test command(s); return the pass rate [0,1].
+
+        This is the "did the tests actually run?" check the mechanical gate
+        relies on. It tries every runner whose project file is present and
+        returns the first that yields a parseable test summary — so a valid
+        project does not score 0 merely because the default runner doesn't
+        match the build tool the agent happened to choose (e.g. a Leiningen
+        `project.clj`, which needs `lein test`, where the clojure CLI's
+        `-M:test` finds no alias and silently starts a REPL). stdin is closed
+        so a runner that drops to a REPL on a missing alias exits instead of
+        hanging.
+        """
+        for tests_cmd in _tests_only_commands(language, output_dir):
+            try:
+                result = subprocess.run(
+                    tests_cmd, cwd=output_dir, capture_output=True,
+                    text=True, timeout=300, env=env, stdin=subprocess.DEVNULL,
+                )
+            except (subprocess.TimeoutExpired, FileNotFoundError):
+                continue
+            combined = _strip_ansi((result.stdout or "") + "\n" + (result.stderr or ""))
+            rate = _parse_test_pass_rate(combined, language)
+            if rate is not None:
+                return rate
+        return None
 
     def _typescript_coverage(self, output_dir: Path) -> float | None:
         """TypeScript coverage path — detects jest vs vitest from package.json."""
@@ -323,6 +364,9 @@ _TEST_PASS_PATTERNS: dict[str, list[re.Pattern[str]]] = {
             r"(?P<total>\d+)\s+tests?,\s+(?P<failures>\d+)\s+failures?"
             r"(?:,\s*(?P<skipped>\d+)\s+(?:skipped|excluded))?"
         ),
+        # Custom "Result: N passed" / "Result: N passed, M failed" summaries
+        # (projects that swap ExUnit's default formatter still need scoring).
+        re.compile(r"Result:\s+(?P<passed>\d+)\s+passed(?:,\s+(?P<failed>\d+)\s+failed)?"),
     ],
     "erlang": [
         # EUnit success:  "  All 12 tests passed."

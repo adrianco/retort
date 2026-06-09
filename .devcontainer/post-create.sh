@@ -9,9 +9,11 @@
 #   4. Pre-commit hooks if configured
 #   5. Verify everything is on PATH and report what still needs the user's hand
 #
-# Per-language toolchains (node, go, rust) are provided by devcontainer features
-# in devcontainer.json. They are only needed for languages you actually list as
-# factor levels in workspace.yaml.
+# Per-language toolchains: node, go, rust, and java(+maven) are provided by
+# devcontainer features in devcontainer.json. The BEAM + Clojure tools (erlang,
+# elixir, rebar3, clojure CLI, leiningen, clj-kondo) have no reliable feature,
+# so they are installed best-effort below. All are only needed for languages you
+# actually list as factor levels in workspace.yaml.
 
 set -euo pipefail
 
@@ -38,6 +40,28 @@ else
         || warn "bd install script failed — install manually from https://github.com/steveyegge/beads/releases if you need tooling=beads experiments"
 fi
 
+step "Installing BEAM + Clojure toolchains (erlang, elixir, rebar3, clojure, lein, clj-kondo)"
+# Best-effort: a failure here only matters if you run that language. apt covers
+# the Debian base image; the rest are single-binary installers.
+if command -v apt-get >/dev/null 2>&1; then
+    sudo apt-get update -qq \
+        && sudo apt-get install -y --no-install-recommends \
+            erlang elixir rebar3 leiningen \
+        || warn "apt install of erlang/elixir/rebar3/leiningen partially failed — install manually if you use those languages"
+fi
+# Clojure CLI (clj/clojure) — not in apt; use the official installer.
+if ! command -v clojure >/dev/null 2>&1; then
+    curl -fsSL https://github.com/clojure/brew-install/releases/latest/download/linux-install.sh -o /tmp/clj-install.sh \
+        && sudo bash /tmp/clj-install.sh \
+        || warn "clojure CLI install failed — see https://clojure.org/guides/install_clojure"
+fi
+# clj-kondo (defect_rate linter for clojure).
+if ! command -v clj-kondo >/dev/null 2>&1; then
+    curl -fsSL https://raw.githubusercontent.com/clj-kondo/clj-kondo/master/script/install-clj-kondo -o /tmp/install-clj-kondo \
+        && sudo bash /tmp/install-clj-kondo \
+        || warn "clj-kondo install failed — see https://github.com/clj-kondo/clj-kondo/blob/master/doc/install.md"
+fi
+
 if [ -f .pre-commit-config.yaml ]; then
     step "Installing pre-commit hooks"
     pre-commit install
@@ -55,20 +79,31 @@ check() {
         fail=1
     fi
 }
-check "python"  python
-check "retort"  retort
-check "claude"  claude
-check "bd"      bd
-check "node"    node      # for typescript factor levels
-check "go"      go        # for go factor levels
-check "rustc"   rustc     # for rust factor levels
-check "cargo"   cargo     # for rust factor levels
+check "python"   python
+check "retort"   retort
+check "claude"   claude
+check "bd"       bd
+# Per-language build/test/lint tools the scorer shells out to. Each is only
+# needed if you list that language as a factor level in workspace.yaml.
+check "node"     node      # typescript: jest/vitest, tsc, eslint (via npx)
+check "go"       go        # go: go test -cover, go vet
+check "cargo"    cargo     # rust: cargo test, cargo clippy
+check "java"     java      # java + clojure + BEAM all need a JDK on PATH
+check "mvn"      mvn       # java: mvn test, jacoco
+check "clojure"  clojure   # clojure: deps.edn projects (clojure -M:test, cloverage)
+check "lein"     lein      # clojure: leiningen (project.clj) projects — BOTH needed
+check "clj-kondo" clj-kondo # clojure: defect_rate linter
+check "erl"      erl       # erlang/elixir runtime (BEAM)
+check "rebar3"   rebar3    # erlang: rebar3 eunit / rebar3 ct
+check "elixir"   elixir    # elixir: mix test
+check "mix"      mix       # elixir: ships with elixir
 
 if [ "$fail" -eq 0 ]; then
     ok "All prerequisites present."
 else
     warn "Some prerequisites are missing. They are only required if your"
-    warn "workspace.yaml lists the corresponding factor levels."
+    warn "workspace.yaml lists the corresponding factor levels. A missing"
+    warn "build tool makes every run of that language fail its tests-gate."
 fi
 
 step "Done"
