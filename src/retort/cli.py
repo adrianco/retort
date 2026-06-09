@@ -90,6 +90,20 @@ retort.db
 retort.db-journal
 retort.db-shm
 retort.db-wal
+
+# Build output / vendored deps must never be committed, even inside runs/.
+# (The archiver strips these too; this is defense-in-depth for public
+# experiments where runs/ is tracked — node_modules in particular embeds
+# third-party files that trip secret scanners.)
+**/node_modules/
+**/_build/
+**/deps/
+**/target/
+**/__pycache__/
+**/.cpcache/
+**/.rebar3/
+**/.elixir_ls/
+**/erl_crash.dump
 """
 
 _GITIGNORE_PRIVATE_EXTRA = """\
@@ -837,6 +851,21 @@ def _shard_owns(config_key: str, rep: int, shard_index: int, shard_total: int) -
     return bucket == shard_index
 
 
+# Build output / vendored dependency directories (and crash dumps) that must
+# never enter a run archive — regenerable, large, and a source of committed
+# secrets (node_modules fixtures) and copy failures (dangling _build symlinks).
+_ARCHIVE_NOISE = {
+    "node_modules", "_build", "deps", "target", "build", "dist", "vendor",
+    "__pycache__", ".gradle", ".cpcache", ".rebar3", ".elixir_ls",
+    ".pytest_cache", ".mypy_cache", ".git",
+}
+
+
+def _ignore_archive_noise(_dir: str, names: list[str]) -> set[str]:
+    """`shutil.copytree` ignore callback: skip build output and vendored deps."""
+    return {n for n in names if n in _ARCHIVE_NOISE or n == "erl_crash.dump"}
+
+
 def _archive_run_workspace(
     archive_root: Path,
     run_config: dict[str, str],
@@ -870,7 +899,18 @@ def _archive_run_workspace(
         return dest
     dest.parent.mkdir(parents=True, exist_ok=True)
     try:
-        shutil.copytree(src, dest)
+        # Archive source + tests only. Build output and vendored dependencies
+        # are regenerable and actively harmful in the archive: they bloat the
+        # repo, embed third-party files that trip secret scanners (e.g. a
+        # password fixture inside node_modules), and contain dangling build
+        # symlinks (erlang `_build`) that otherwise abort the copy. Scoring
+        # already ran against the live playpen and the spec eval reads source,
+        # so none of this is needed here.
+        shutil.copytree(
+            src, dest,
+            ignore=_ignore_archive_noise,
+            ignore_dangling_symlinks=True,
+        )
     except Exception as exc:  # don't let archival failure abort the experiment
         click.echo(f"  (archive failed for {cell_name} rep{replicate}: {exc})", err=True)
         return None
@@ -1185,6 +1225,76 @@ def _persist_requirement_coverage(db_path, run_config: dict, replicate: int,
     if coverage is not None:
         cur.execute("INSERT INTO run_results (run_id, metric_name, value) VALUES (?,?,?)",
                     (run_id, "requirement_coverage", float(coverage)))
+    con.commit()
+    con.close()
+    return True
+
+
+def _persist_rescore(db_path, run_config: dict, replicate: int,
+                     scores: dict[str, float]) -> str | None:
+    """Write re-scored mechanical metrics onto the latest matching run.
+
+    Updates the scorer metrics in-place (preserving the ``_``-prefixed telemetry
+    and requirement_coverage), then reclassifies status via the conformance gate
+    — a run whose tests now execute (``test_coverage`` > 0) becomes ``completed``;
+    one that doesn't becomes ``failed``. Matches by factors + replicate across
+    *any* status (so a false-failed run can be recovered). Returns the new status
+    string, or None if no matching run was found.
+    """
+    import sqlite3
+    where, params = _factor_match_sql(run_config)
+    con = sqlite3.connect(db_path)
+    cur = con.cursor()
+    rows = cur.execute(
+        f"SELECT id FROM experiment_runs WHERE replicate=? AND {where} "
+        "ORDER BY finished_at DESC", (replicate, *params),
+    ).fetchall()
+    if not rows:
+        con.close()
+        return None
+    run_id = rows[0][0]
+    for name, value in scores.items():
+        cur.execute("UPDATE run_results SET value=? WHERE run_id=? AND metric_name=?",
+                    (float(value), run_id, name))
+        if cur.rowcount == 0:
+            cur.execute("INSERT INTO run_results (run_id, metric_name, value) VALUES (?,?,?)",
+                        (run_id, name, float(value)))
+    new_status = "completed" if scores.get("test_coverage", 0.0) > 0.0 else "failed"
+    cur.execute(
+        "UPDATE experiment_runs SET status=?, error_message=? WHERE id=?",
+        (new_status, None if new_status == "completed"
+         else "tests did not run (test_coverage=0)", run_id),
+    )
+    con.commit()
+    con.close()
+    return new_status
+
+
+def _persist_metric_values(db_path, run_config: dict, replicate: int,
+                           scores: dict[str, float]) -> bool:
+    """Update only the named metrics on the latest matching run; no status change.
+
+    For fixing a non-gating scorer gap (e.g. maintainability) on a passing run
+    without re-running its (possibly un-rebuildable) tests. Returns True if a
+    matching run was found.
+    """
+    import sqlite3
+    where, params = _factor_match_sql(run_config)
+    con = sqlite3.connect(db_path)
+    cur = con.cursor()
+    row = cur.execute(
+        f"SELECT id FROM experiment_runs WHERE replicate=? AND {where} "
+        "ORDER BY finished_at DESC", (replicate, *params)).fetchone()
+    if not row:
+        con.close()
+        return False
+    run_id = row[0]
+    for name, value in scores.items():
+        cur.execute("UPDATE run_results SET value=? WHERE run_id=? AND metric_name=?",
+                    (float(value), run_id, name))
+        if cur.rowcount == 0:
+            cur.execute("INSERT INTO run_results (run_id, metric_name, value) VALUES (?,?,?)",
+                        (run_id, name, float(value)))
     con.commit()
     con.close()
     return True
@@ -2814,6 +2924,180 @@ def reevaluate(experiment_dir, config, eval_model, workers, force):
     if inconclusive:
         msg += f" {inconclusive} inconclusive (usage limit/timeout) — re-run to finish."
     click.echo(msg)
+
+
+@main.command("rescore")
+@click.option("--experiment-dir", "experiment_dir", required=True,
+              type=click.Path(exists=True, file_okay=False),
+              help="Experiment directory containing retort.db and runs/.")
+@click.option("--config", type=click.Path(exists=True, dir_okay=False),
+              help="Workspace YAML (defaults to <experiment-dir>/workspace.yaml).")
+@click.option("--languages", help="Comma-separated language filter (default: all).")
+@click.option("--only-failed", is_flag=True,
+              help="Only re-score runs currently marked failed.")
+@click.option("--metrics", "metrics_only",
+              help="Re-score ONLY these metrics (comma-separated), computed "
+                   "directly without the test-coverage gate and leaving status "
+                   "unchanged. Use to fix a non-gating scorer gap (e.g. "
+                   "maintainability) on already-passing runs whose trimmed "
+                   "archives can no longer rebuild.")
+@click.option("--workers", default=4, show_default=True, type=int)
+@click.option("--dry-run", is_flag=True, help="Report changes without writing.")
+def rescore(experiment_dir, config, languages, only_failed, metrics_only, workers, dry_run):
+    """Re-score archived runs with the current scorers (DB + scores.json).
+
+    Use after fixing or upgrading a scorer: re-runs the mechanical metrics
+    against each archived run and writes the corrected values to retort.db
+    (preserving the ``_``-prefixed telemetry and requirement_coverage) AND to the
+    archive's ``scores.json`` (which the spec eval reads — keeping them in sync).
+    Reclassifies status via the conformance gate: a run whose tests now execute
+    (test_coverage > 0) becomes ``completed``. Run ``retort reevaluate`` afterward
+    to refresh requirement_coverage, then ``retort aggregate``. Idempotent.
+
+    With ``--metrics``, only the named metrics are recomputed (directly, no gate)
+    and status is left untouched — the right tool when a passing run's archive
+    was trimmed and can't rebuild, but a static metric (maintainability) needs a
+    corrected value.
+    """
+    import concurrent.futures
+    import re
+    import sqlite3
+    from retort.config.loader import load_workspace
+    from retort.playpen.runner import RunArtifacts, StackConfig
+    from retort.scoring.collector import ScoreCollector
+    from retort.scoring.registry import create_default_registry
+
+    subset = [s.strip() for s in metrics_only.split(",")] if metrics_only else None
+    _registry = create_default_registry() if subset else None
+
+    exp = Path(experiment_dir)
+    db_path = exp / "retort.db"
+    if not db_path.exists():
+        raise click.ClickException(f"No retort.db in {experiment_dir}")
+    cfg_path = config or (exp / "workspace.yaml")
+    workspace_config = load_workspace(str(cfg_path))
+    metrics = subset if subset else [r.name for r in workspace_config.responses]
+    collector = None if subset else ScoreCollector(metrics=metrics)
+    lang_filter = {s.strip() for s in languages.split(",")} if languages else None
+
+    def _telemetry(run_config, replicate):
+        where, params = _factor_match_sql(run_config)
+        con = sqlite3.connect(db_path)
+        row = con.execute(
+            f"SELECT id, status FROM experiment_runs WHERE replicate=? AND {where} "
+            "ORDER BY finished_at DESC", (replicate, *params)).fetchone()
+        tele = {}
+        if row:
+            tele = dict(con.execute(
+                "SELECT metric_name, value FROM run_results WHERE run_id=? "
+                "AND metric_name LIKE '\\_%' ESCAPE '\\'", (row[0],)).fetchall())
+        con.close()
+        return (row[1] if row else None), tele
+
+    runs_root = exp / "runs"
+    work = []
+    for cell in sorted(p for p in runs_root.iterdir() if p.is_dir()):
+        cm = re.match(r"language=([^_]+)_model=([^_]+?)(?:_tooling=([^_]+))?$", cell.name)
+        if not cm:
+            continue
+        if lang_filter and cm.group(1) not in lang_filter:
+            continue
+        run_config = {"language": cm.group(1), "model": cm.group(2)}
+        if cm.group(3) is not None:
+            run_config["tooling"] = cm.group(3)
+        for rep in sorted(cell.iterdir()):
+            if not rep.is_dir() or not rep.name.startswith("rep") or rep.name.endswith("-failed"):
+                continue
+            m = re.search(r"rep(\d+)", rep.name)
+            replicate = int(m.group(1)) if m else 1
+            status, tele = _telemetry(run_config, replicate)
+            if status is None:
+                continue
+            if only_failed and status != "failed":
+                continue
+            work.append((rep, run_config, replicate, tele))
+
+    click.echo(f"Re-scoring {len(work)} run(s) in {experiment_dir} "
+               f"(metrics={','.join(metrics)}, {workers} workers"
+               f"{', dry-run' if dry_run else ''})")
+
+    def _score(item):
+        rep, run_config, replicate, tele = item
+        stack = StackConfig(
+            language=run_config["language"], agent=run_config.get("agent", "unknown"),
+            framework=run_config.get("framework", "none"),
+            extra={"tooling": run_config["tooling"]} if "tooling" in run_config else {})
+        artifacts = RunArtifacts(
+            output_dir=rep, stdout="", stderr="", exit_code=0,
+            duration_seconds=tele.get("_duration_seconds", 0.0),
+            token_count=int(tele.get("_tokens", 0) or 0), metadata={})
+        if subset:
+            # Direct per-scorer computation — no test-coverage gate, so a static
+            # metric still gets a real value on an archive that can't rebuild.
+            scores = {}
+            for m in subset:
+                if m in _registry:
+                    try:
+                        scores[m] = _registry.get(m).score(artifacts, stack)
+                    except Exception:
+                        scores[m] = 0.0
+        else:
+            scores = {s.metric_name: s.value for s in collector.collect(artifacts, stack).scores}
+        return (rep, run_config, replicate, scores)
+
+    counts = {"updated": 0, "recovered": 0, "done": 0}
+
+    def _handle(result):
+        rep, run_config, replicate, scores = result
+        counts["done"] += 1
+        tc = scores.get("test_coverage")
+        label = f"{rep.parent.name}/{rep.name}"
+        if dry_run:
+            click.echo(f"  [dry] {label}: " + " ".join(f"{k}={v:.2f}" for k, v in scores.items()))
+            return
+        if subset:
+            # Update only the named metrics; leave status and other metrics alone.
+            _persist_metric_values(db_path, run_config, replicate, scores)
+            try:
+                sj = rep / "scores.json"
+                existing = json.loads(sj.read_text()) if sj.exists() else {}
+                existing.update(scores)
+                sj.write_text(json.dumps(existing))
+            except (OSError, ValueError):
+                pass
+            counts["updated"] += 1
+            click.echo(f"  {label}: " + " ".join(f"{k}={v:.2f}" for k, v in scores.items())
+                       + " (metrics-only)")
+            return
+        new_status = _persist_rescore(db_path, run_config, replicate, scores)
+        try:
+            (rep / "scores.json").write_text(json.dumps(scores))
+        except OSError:
+            pass
+        if new_status == "completed":
+            counts["updated"] += 1
+        gate = "" if tc is None else (" RECOVERED" if tc > 0 else " still-fails-gate")
+        click.echo(f"  {label}: " + " ".join(f"{k}={v:.2f}" for k, v in scores.items())
+                   + f" -> {new_status}{gate}")
+
+    if workers <= 1:
+        for w in work:
+            _handle(_score(w))
+    else:
+        with concurrent.futures.ThreadPoolExecutor(max_workers=workers) as pool:
+            for fut in concurrent.futures.as_completed([pool.submit(_score, w) for w in work]):
+                exc = fut.exception()
+                if exc:
+                    click.echo(f"  (worker error: {exc})", err=True)
+                else:
+                    _handle(fut.result())
+
+    if not dry_run:
+        cx = sqlite3.connect(db_path)
+        cx.execute("PRAGMA wal_checkpoint(TRUNCATE)")
+        cx.close()
+    click.echo(f"Re-scored {counts['done']} run(s); {counts['updated']} now completed. "
+               f"Run `retort reevaluate` then `retort aggregate` to refresh.")
 
 
 @report.command("compare")

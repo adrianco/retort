@@ -41,6 +41,12 @@ _FUNCTION_PATTERNS: dict[str, list[re.Pattern[str]]] = {
         ),
     ],
     "clojure": [re.compile(r"^\s*\(defn-?\s+\w+", re.MULTILINE)],
+    # Erlang: function clauses start at column 0 with a lowercase atom name
+    # followed by `(`. Attributes (`-module(...)`) start with `-` and are
+    # excluded; calls are indented, so the line-start anchor skips them.
+    "erlang": [re.compile(r"^[a-z]\w*\s*\(", re.MULTILINE)],
+    # Elixir: def / defp / defmacro definitions.
+    "elixir": [re.compile(r"^\s*defp?(?:macro)?\s+\w+", re.MULTILINE)],
 }
 
 _SOURCE_EXTENSIONS: dict[str, set[str]] = {
@@ -50,9 +56,17 @@ _SOURCE_EXTENSIONS: dict[str, set[str]] = {
     "rust": {".rs"},
     "java": {".java"},
     "clojure": {".clj", ".cljc", ".cljs"},
+    "erlang": {".erl", ".hrl"},
+    "elixir": {".ex", ".exs"},
 }
 
-_SKIP_PARTS = {"node_modules", "target", "__pycache__", ".git", "dist", "build"}
+# Build/dependency output that must never be counted as project source.
+# `_build`/`deps` (erlang rebar3, elixir mix) and `target` (rust/clojure)
+# otherwise pull whole dependency trees into the file scan.
+_SKIP_PARTS = {
+    "node_modules", "target", "__pycache__", ".git", "dist", "build",
+    "_build", "deps", ".rebar3",
+}
 
 # Tunable thresholds. Each is the value at which the corresponding sub-score is 0.
 # The sub-score is 1.0 at the "ideal" anchor and linearly decays.
