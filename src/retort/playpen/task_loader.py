@@ -80,6 +80,28 @@ def resolve_task_source(name_or_uri: str) -> str:
     )
 
 
+def task_requirements_path(source: str) -> Path | None:
+    """Return the canonical ``REQUIREMENTS.json`` shipped with a task, if any.
+
+    The pinned requirement checklist lives next to the task spec so every
+    experiment using that task grades against the same constant denominator.
+    Resolves bundled:// and local:// sources (a directory on disk); returns
+    None for git/github sources (a temp clone) and when no file is bundled —
+    the caller then generates one from the task prompt.
+    """
+    if "://" not in source:
+        source = resolve_task_source(source)
+    task_dir: Path | None = None
+    if source.startswith("bundled://"):
+        task_dir = BUNDLED_TASKS_DIR / source[len("bundled://"):]
+    elif source.startswith("local://"):
+        task_dir = Path(source[len("local://"):])
+    if task_dir is None:
+        return None
+    req = task_dir / "REQUIREMENTS.json"
+    return req if req.exists() else None
+
+
 def load_task(source: str) -> TaskSpec:
     """Load a task from a registered name or a source URI.
 

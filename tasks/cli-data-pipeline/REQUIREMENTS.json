@@ -1,0 +1,18 @@
+{
+  "task": "cli-data-pipeline",
+  "source": "bundled://cli-data-pipeline",
+  "note": "Pinned, fixed requirement checklist for ALL runs of this task. Authored once from the bundled task spec so requirement_coverage uses a constant denominator and is comparable across runs. Do not regenerate per-run.",
+  "requirements": [
+    {"id": "R1", "requirement": "Reads CSV from stdin or a file path argument", "how_to_verify": "The tool accepts both a piped stdin stream and a file path."},
+    {"id": "R2", "requirement": "filter transformation keeps rows matching a column condition", "how_to_verify": "A filter subcommand/flag (e.g. --filter \"age>30\") selects matching rows."},
+    {"id": "R3", "requirement": "sort transformation orders by a column (ascending/descending)", "how_to_verify": "A sort subcommand/flag sorts by a named column in both directions."},
+    {"id": "R4", "requirement": "aggregate transformation groups by a column and computes sum/mean/count", "how_to_verify": "An aggregate subcommand groups by one column and reduces another."},
+    {"id": "R5", "requirement": "Outputs results as CSV to stdout or a specified file", "how_to_verify": "Output is CSV, written to stdout and to an output-file option."},
+    {"id": "R6", "requirement": "Handles malformed CSV gracefully (skips bad rows, reports count)", "how_to_verify": "Bad rows are skipped and a count is reported rather than crashing."},
+    {"id": "R7", "requirement": "Supports large files via streaming (not loading all into memory)", "how_to_verify": "Rows are processed incrementally, not read fully into memory."},
+    {"id": "R8", "requirement": "Exit code 0 on success, 1 on error with message to stderr", "how_to_verify": "Success exits 0; errors exit 1 and write a message to stderr."},
+    {"id": "R9", "requirement": "Provides --help documentation", "how_to_verify": "Running with --help prints usage and exits 0."},
+    {"id": "R10", "requirement": "README.md with usage examples", "how_to_verify": "README.md documents usage with examples."},
+    {"id": "R11", "requirement": "At least 3 tests covering filter, sort, and aggregate", "how_to_verify": ">= 3 tests exist and run (test_coverage > 0), covering the three transforms."}
+  ]
+}
