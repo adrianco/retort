@@ -347,19 +347,24 @@ Feature-complete for single-agent `claude-code` experiments with the `LocalRunne
 
 ### Comparing coding agents (e.g. Claude vs Gemini)
 
-The agent is a first-class factor. Declare a non-Claude agent under `playpen.local_agents` and add `agent` to your factor grid; `retort analyze` then decomposes how much of quality/reliability/cost is the *agent* versus the language and task.
+**The agent is the same variable as the model** — it isn't a separate factor. The harness follows from the model id: a `gemini-*` model runs via Google's Gemini CLI, every Claude id via `claude-code`. So you just list the models you want in the **`model`** factor and the right agent is selected per cell:
 
 ```yaml
-playpen:
-  runner: local
-  local_agents:
-    gemini:
-      harness: gemini          # shells out to Google's `gemini --yolo --output-format json`
-      model: gemini-2.5-pro
-
 factors:
-  agent:    { levels: [claude-code, gemini] }
+  model:    { levels: [claude-opus-4-8, gemini-2.5-pro] }   # agent follows the model
   language: { levels: [go, python, rust, typescript] }
 ```
 
-The `gemini` harness needs Google's [Gemini CLI](https://github.com/google-gemini/gemini-cli) on `PATH` and `GEMINI_API_KEY` (or ADC) in the environment. The CLI reports tokens but not a dollar cost, so retort derives cost from `GEMINI_PRICING` in `local_runner.py` (base-tier rates — verify against current Google pricing). The spec-gate judge stays on Claude (`reevaluate --eval-model claude-opus-4-6`) so an independent model grades every agent fairly. Adding a third agent is the same three-part adapter: a command branch, a usage parser, and one `LocalHarness` literal.
+`retort analyze` then decomposes how much of quality/reliability/cost is the *model/agent* versus the language and task. The `gemini` harness needs Google's [Gemini CLI](https://github.com/google-gemini/gemini-cli) on `PATH` and a Gemini auth method (`GEMINI_API_KEY`, ADC, or a free OAuth login) in the environment. The CLI reports tokens but not a dollar cost, so retort derives cost from `GEMINI_PRICING` in `local_runner.py` (base-tier rates — verify against current Google pricing). The spec-gate judge stays on Claude (`reevaluate --eval-model claude-opus-4-6`) so an independent model grades every agent fairly.
+
+A **local/self-hosted** model whose name doesn't imply its harness (e.g. an `omp` model) can't be inferred, so it's routed by an explicit profile that overrides the model rule:
+
+```yaml
+playpen:
+  local_agents:
+    qwen-local: { harness: omp, model: qwen-2.5-coder }
+factors:
+  agent: { levels: [qwen-local, claude-code] }   # explicit override for non-inferable models
+```
+
+Adding another agent is the same three-part adapter: a command branch, a usage parser, and one `LocalHarness` literal (plus a model-prefix rule in `_harness_for_model` if the new agent's models should auto-route).

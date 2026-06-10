@@ -172,14 +172,13 @@ class LocalRunner:
             elapsed = time.monotonic() - start
 
             stdout_text = result.stdout or ""
-            # Normalize the agent the same way _build_agent_command does
-            # (line ~247): a design that leaves agent unset records "unknown",
-            # which still RUNS as claude-code — so the usage parser must use the
-            # same fallback, else total_cost_usd/tokens are silently dropped
-            # while runner-measured _duration_seconds survives (the exp-7/8 bug).
-            effective_agent = stack.agent if stack.agent != "unknown" else "claude-code"
+            # The usage parser must key on the SAME harness the command builder
+            # ran (claude-code / omp / gemini), else total_cost_usd/tokens are
+            # silently dropped while runner-measured _duration_seconds survives
+            # (the exp-7/8 bug). _resolve_harness derives it from the model, so
+            # there is one source of truth for both.
             token_count, metadata = _parse_agent_usage(
-                self._agent_harness(effective_agent), stdout_text
+                self._resolve_harness(stack), stdout_text
             )
             cost_usd = _parse_float(metadata.get("total_cost_usd"), 0.0)
 
@@ -257,9 +256,16 @@ class LocalRunner:
         return path.read_text().strip()
 
     def _build_agent_command(self, stack: StackConfig, task: TaskSpec) -> list[str] | None:
-        """Build the CLI command to invoke the agent."""
-        agent = stack.agent if stack.agent != "unknown" else "claude-code"
-        if agent == "claude-code":
+        """Build the CLI command to invoke the agent for this stack.
+
+        The harness follows from the model — the agent is the *same variable* as
+        the model, not a separate factor: a `gemini-*` model runs via the Gemini
+        CLI, any Claude id via claude-code. So a single `model` factor with mixed
+        Claude/Gemini levels routes correctly with no separate `agent` factor.
+        An explicit ``local_agents`` profile (omp/custom) overrides the inference.
+        """
+        harness = self._resolve_harness(stack)
+        if harness == "claude-code":
             prompt_level = stack.extra.get("prompt", "none")
             prompt_injection = self._load_prompt_file(prompt_level) if prompt_level != "none" else ""
             prompt = _build_agent_prompt(stack, prompt_injection)
@@ -288,8 +294,7 @@ class LocalRunner:
 
             return cmd
 
-        profile = self.local_agents.get(agent)
-        if profile is not None and profile.harness == "omp":
+        if harness == "omp":
             cmd = [
                 "omp",
                 "-p",
@@ -311,7 +316,7 @@ class LocalRunner:
             cmd.append(_build_agent_prompt(stack, prompt_injection))
             return cmd
 
-        if profile is not None and profile.harness == "gemini":
+        if harness == "gemini":
             # Google's Gemini CLI in headless mode: reads TASK.md from the
             # playpen cwd, implements it in place, emits one JSON object.
             # `--yolo` auto-approves tool calls (the non-interactive equivalent
@@ -331,12 +336,10 @@ class LocalRunner:
             cmd.extend(["--prompt", _build_agent_prompt(stack, prompt_injection)])
             return cmd
 
-        # Unsupported agent — caller checks for None and surfaces the error.
-        supported = ["claude-code", *sorted(self.local_agents)]
+        # Unreachable: _resolve_harness only returns claude-code / omp / gemini.
         raise ValueError(
-            f"Agent {stack.agent!r} is not configured. "
-            f"Built-in/configured local agents: {supported}. "
-            f"Add it under playpen.local_agents or replace the agent factor level."
+            f"No command builder for harness {harness!r} "
+            f"(agent={stack.agent!r}, model={self._model_for(stack)!r})."
         )
 
     def _model_for(self, stack: StackConfig) -> str:
@@ -354,14 +357,22 @@ class LocalRunner:
             return ""
         return str(thinking)
 
-    def _agent_harness(self, agent: str) -> str:
-        """Return the telemetry/parser key for an agent name."""
-        if agent == "claude-code":
-            return "claude-code"
-        profile = self.local_agents.get(agent)
+    def _resolve_harness(self, stack: StackConfig) -> str:
+        """Resolve which agent harness runs this stack — the single source of
+        truth for both command building and usage parsing.
+
+        Precedence: an explicit ``local_agents`` profile (omp/custom) wins; then
+        an explicit built-in agent name; otherwise the harness is inferred from
+        the model, so the agent is the *same variable* as the model and a lone
+        `model` factor with mixed Claude/Gemini levels routes with no `agent`
+        factor at all.
+        """
+        profile = self.local_agents.get(stack.agent)
         if profile is not None:
             return profile.harness
-        return agent
+        if stack.agent in ("claude-code", "gemini", "omp"):
+            return stack.agent
+        return _harness_for_model(self._model_for(stack))
 
     def _build_env(self, stack: StackConfig) -> dict[str, str]:
         """Build environment variables for the agent process."""
@@ -473,6 +484,19 @@ def _is_fast_mode_model(model: str) -> bool:
     if not model:
         return False
     return MODEL_ALIASES.get(model, model).endswith("-fast")
+
+
+def _harness_for_model(model: str) -> str:
+    """Infer the agent harness from the model id — the agent follows from the
+    model, so a single `model` factor selects both. A `gemini-*` id runs via the
+    Gemini CLI; every Claude id (claude-*/opus/sonnet/haiku/fable, including the
+    short aliases) runs via claude-code. Local/omp models are not name-inferable,
+    so they route via an explicit ``local_agents`` profile instead of this rule.
+    """
+    resolved = MODEL_ALIASES.get(model, model)
+    if resolved.startswith("gemini") or resolved.startswith("models/gemini"):
+        return "gemini"
+    return "claude-code"
 
 
 def _parse_claude_usage(stdout_text: str) -> tuple[int, dict[str, str]]:

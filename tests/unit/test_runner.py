@@ -875,3 +875,67 @@ class TestLocalInferenceCost:
         assert ept > 0
         expected = lc.effective_cost_per_token(1000, 60.0)
         assert abs(ept - expected) < 1e-15
+
+
+class TestHarnessFollowsModel:
+    """The agent is the same variable as the model: a single `model` factor
+    (no separate `agent` factor) routes to the right harness."""
+
+    def test_harness_for_model_inference(self):
+        from retort.playpen.local_runner import _harness_for_model
+
+        assert _harness_for_model("gemini-2.5-pro") == "gemini"
+        assert _harness_for_model("gemini-2.5-flash") == "gemini"
+        assert _harness_for_model("claude-opus-4-8") == "claude-code"
+        assert _harness_for_model("claude-fable-5") == "claude-code"
+        assert _harness_for_model("opus") == "claude-code"   # short alias
+        assert _harness_for_model("") == "claude-code"
+
+    def test_gemini_model_routes_to_gemini_without_agent_factor(self, tmp_path):
+        # No agent factor, no local_agents profile — just model=gemini-2.5-pro.
+        from retort.playpen.local_runner import LocalRunner
+
+        runner = LocalRunner(work_dir=tmp_path)
+        stack = StackConfig(
+            language="go", agent="unknown", framework="stdlib",
+            extra={"model": "gemini-2.5-pro"},
+        )
+        task = TaskSpec(name="t", description="d", prompt="hi")
+
+        cmd = runner._build_agent_command(stack, task)
+
+        assert cmd[:2] == ["gemini", "--yolo"]
+        assert cmd[cmd.index("--model") + 1] == "gemini-2.5-pro"
+        assert runner._resolve_harness(stack) == "gemini"
+
+    def test_claude_model_routes_to_claude_code_without_agent_factor(self, tmp_path):
+        from retort.playpen.local_runner import LocalRunner
+
+        runner = LocalRunner(work_dir=tmp_path)
+        stack = StackConfig(
+            language="rust", agent="unknown", framework="stdlib",
+            extra={"model": "claude-opus-4-8"},
+        )
+        task = TaskSpec(name="t", description="d", prompt="hi")
+
+        cmd = runner._build_agent_command(stack, task)
+
+        assert cmd[0] == "claude"
+        assert cmd[cmd.index("--model") + 1] == "claude-opus-4-8"
+        assert runner._resolve_harness(stack) == "claude-code"
+
+    def test_local_agent_profile_overrides_model_inference(self, tmp_path):
+        # An explicit omp profile still wins even though the model name would
+        # otherwise be claude-routed — local/custom models need the override.
+        from retort.config.schema import LocalAgentConfig
+        from retort.playpen.local_runner import LocalRunner
+
+        runner = LocalRunner(
+            work_dir=tmp_path,
+            local_agents={"qwen-local": LocalAgentConfig(harness="omp")},
+        )
+        stack = StackConfig(
+            language="go", agent="qwen-local", framework="stdlib",
+            extra={"model": "moe"},
+        )
+        assert runner._resolve_harness(stack) == "omp"
