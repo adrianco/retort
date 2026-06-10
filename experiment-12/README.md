@@ -40,8 +40,12 @@ insufficient.
 calls Ollama can structure into `tool_calls`, **and** (b) enough capability /
 agentic tuning to actually drive a multi-step task. `qwen2.5-coder:7b` clears (b)'s
 intent but fails (a); `llama3.2:3b` clears (a) but fails (b). Neither small local
-model clears both. Worth trying next for a model that may clear both:
-`qwen2.5:7b-instruct`, `llama3.1:8b`, or `mistral-nemo`.
+model clears both. Worth trying next: a capable ~30B model (Qwen3-Coder-30B-A3B,
+Devstral) on enough VRAM.
+
+For the full setup (Ollama cask vs llama.cpp `--jinja`), the per-model tool-call
+findings, the 24 GB-Mac GPU-memory (Metal) constraint, and the researched model
+shortlist, see [`docs/local-models.md`](../docs/local-models.md).
 
 ## Reproduce
 
