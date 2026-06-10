@@ -1,0 +1,13 @@
+[project]
+name = "brazilian-soccer-mcp"
+version = "1.0.0"
+description = "MCP server answering natural language questions about Brazilian soccer"
+requires-python = ">=3.10"
+dependencies = ["mcp>=1.2.0"]
+
+[project.optional-dependencies]
+test = ["pytest>=8.0"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+addopts = "-q"

@@ -1,0 +1,9 @@
+{
+  "replicate": 1,
+  "run_config": {
+    "language": "python",
+    "model": "claude-fable-5"
+  },
+  "succeeded": true,
+  "visibility": "public"
+}

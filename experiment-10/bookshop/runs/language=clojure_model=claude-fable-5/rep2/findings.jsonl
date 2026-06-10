@@ -1,0 +1,1 @@
+{"id": "lint-1", "kind": "lint_warning", "severity": "info", "title": "code_quality score 0.833 indicates minor lint issues", "evidence": "scores.json: code_quality=0.8333 (from retort scorer)", "suggestion": "Review idiomatic Clojure style; score is good but not perfect"}

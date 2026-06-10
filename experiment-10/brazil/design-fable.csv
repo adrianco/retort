@@ -1,0 +1,5 @@
+run,language,model
+0,go,claude-fable-5
+1,python,claude-fable-5
+2,clojure,claude-fable-5
+3,rust,claude-fable-5

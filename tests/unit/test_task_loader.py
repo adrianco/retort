@@ -77,6 +77,25 @@ class TestRegistry:
         assert bz.kind == "github"
         assert bz.source.startswith("github://")
 
+    def test_brazil_bench_requirements_pinned_in_repo(self):
+        # brazil-bench's code is hosted on github, but its requirement
+        # checklist is pinned in-repo under tasks/brazil-bench/ so every
+        # experiment grades against a constant denominator (not an ad-hoc
+        # checklist generated from the prompt). Resolve it by bare name and by
+        # the full github:// source — both must find the same pinned file.
+        import json
+
+        from retort.playpen.task_loader import (
+            resolve_task_source, task_requirements_path,
+        )
+
+        by_name = task_requirements_path("brazil-bench")
+        assert by_name is not None and by_name.exists()
+        by_uri = task_requirements_path(resolve_task_source("brazil-bench"))
+        assert by_uri == by_name
+        data = json.loads(by_name.read_text())
+        assert data["requirements"] and not data.get("generated")
+
     def test_bundled_task_is_local_sourced(self):
         from retort.playpen.task_loader import list_registered_tasks
 

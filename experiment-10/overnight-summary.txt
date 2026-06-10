@@ -1,0 +1,98 @@
+# experiment-10 overnight summary — 2026-06-10 12:39:59 BST
+
+## exp-10 Fable 5 — per cell (status / test_coverage / requirement_coverage / cost)
+### bookshop
+lang     rep  status     testcov  reqcov  cost
+-------  ---  ---------  -------  ------  ----
+clojure  1    completed  1.0      1.0     1.36
+clojure  2    completed  1.0      1.0     1.26
+clojure  3    completed  1.0      1.0     1.43
+go       1    completed  0.731    1.0     0.90
+go       2    completed  0.734    1.0     1.16
+go       3    completed  0.74             1.21
+python   1    completed  1.0      1.0     0.71
+python   2    completed  1.0      1.0     0.78
+python   3    completed  0.95             0.78
+rust     1    completed  1.0              0.92
+rust     2    completed  1.0              1.01
+rust     3    completed  1.0              1.06
+
+### brazil
+lang     rep  status     testcov  reqcov  cost 
+-------  ---  ---------  -------  ------  -----
+clojure  1    completed  1.0              9.85 
+clojure  2    completed  1.0              10.16
+clojure  3    completed  1.0              8.45 
+go       1    completed  0.869            9.06 
+go       2    completed  0.884            8.56 
+go       3    completed  0.584            8.14 
+python   1    completed  0.89             9.13 
+python   2    completed  0.96             7.55 
+python   3    completed  0.96             7.91 
+rust     1    completed  1.0              12.84
+rust     2    completed  1.0              8.84 
+rust     3    completed  1.0              7.21 
+
+## rerun experiments — status counts by language/model after rerun
+### experiment-1
+lang        model   status     n
+----------  ------  ---------  -
+clojure     opus    completed  5
+clojure     opus    failed     1
+clojure     sonnet  completed  4
+clojure     sonnet  failed     2
+go          opus    completed  6
+go          sonnet  completed  6
+java        opus    completed  6
+java        sonnet  completed  6
+python      opus    completed  5
+python      opus    failed     2
+python      sonnet  completed  4
+python      sonnet  failed     4
+rust        opus    completed  6
+rust        sonnet  completed  5
+rust        sonnet  failed     2
+typescript  opus    completed  6
+typescript  sonnet  completed  5
+typescript  sonnet  failed     3
+
+### experiment-2
+lang        model   status     n
+----------  ------  ---------  -
+clojure     opus    completed  2
+clojure     sonnet  completed  2
+go          opus    completed  2
+go          sonnet  completed  1
+go          sonnet  failed     1
+java        opus    completed  2
+java        sonnet  completed  1
+java        sonnet  failed     1
+python      opus    completed  2
+python      sonnet  completed  2
+rust        opus    completed  2
+rust        sonnet  completed  2
+typescript  opus    completed  2
+typescript  sonnet  completed  2
+
+### experiment-5
+lang        model            status     n
+----------  ---------------  ---------  -
+clojure     claude-opus-4-7  completed  3
+clojure     claude-opus-4-7  failed     6
+clojure     claude-opus-4-8  failed     6
+go          claude-opus-4-7  completed  3
+go          claude-opus-4-7  failed     3
+go          claude-opus-4-8  failed     3
+java        claude-opus-4-7  completed  3
+java        claude-opus-4-7  failed     6
+java        claude-opus-4-8  failed     6
+python      claude-opus-4-7  completed  3
+python      claude-opus-4-7  failed     3
+python      claude-opus-4-8  failed     3
+rust        claude-opus-4-7  completed  3
+rust        claude-opus-4-7  failed     6
+rust        claude-opus-4-8  failed     6
+typescript  claude-opus-4-7  completed  3
+typescript  claude-opus-4-7  failed     3
+typescript  claude-opus-4-8  failed     3
+

@@ -1,0 +1,14 @@
+{:paths ["src"]
+ :deps {org.clojure/clojure {:mvn/version "1.12.0"}
+        org.clojure/data.csv {:mvn/version "1.1.0"}
+        org.clojure/data.json {:mvn/version "2.5.1"}}
+ :aliases
+ {;; Run the MCP server on stdio: clojure -M:run
+  :run {:main-opts ["-m" "brazilian-soccer.server"]}
+  ;; Run the test suite: clojure -M:test
+  :test {:extra-paths ["test"]
+         :extra-deps {io.github.cognitect-labs/test-runner
+                      {:git/url "https://github.com/cognitect-labs/test-runner.git"
+                       :git/sha "dfb30dd6605cb6c0efc275e1df1736f6e90d4d73"}}
+         :main-opts ["-m" "cognitect.test-runner"]
+         :exec-fn cognitect.test-runner.api/test}}}

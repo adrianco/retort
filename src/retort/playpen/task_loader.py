@@ -85,17 +85,36 @@ def task_requirements_path(source: str) -> Path | None:
 
     The pinned requirement checklist lives next to the task spec so every
     experiment using that task grades against the same constant denominator.
-    Resolves bundled:// and local:// sources (a directory on disk); returns
-    None for git/github sources (a temp clone) and when no file is bundled —
-    the caller then generates one from the task prompt.
+    Resolves bundled:// and local:// sources (a directory on disk). For a
+    hosted source (github://, git://) whose code lives elsewhere, the checklist
+    can still be pinned in-repo under tasks/<registry-name>/REQUIREMENTS.json —
+    so a hosted task (e.g. brazil-bench) grades against a constant denominator
+    instead of an ad-hoc one generated from the prompt. Returns None only when
+    no pinned file is found; the caller then generates one from the prompt.
     """
+    # Map a bare name or a known hosted source URI back to its registry name,
+    # so tasks/<name>/REQUIREMENTS.json can pin a checklist regardless of where
+    # the task's code is hosted.
+    registry_name: str | None = None
     if "://" not in source:
+        registry_name = source
         source = resolve_task_source(source)
+    else:
+        for t in load_registry():
+            if t.source == source:
+                registry_name = t.name
+                break
+
     task_dir: Path | None = None
     if source.startswith("bundled://"):
         task_dir = BUNDLED_TASKS_DIR / source[len("bundled://"):]
     elif source.startswith("local://"):
         task_dir = Path(source[len("local://"):])
+    elif registry_name is not None:
+        # Hosted task (github://, git://): code lives in the remote repo, but a
+        # pinned checklist may ship in this repo under tasks/<name>/.
+        task_dir = BUNDLED_TASKS_DIR / registry_name
+
     if task_dir is None:
         return None
     req = task_dir / "REQUIREMENTS.json"
