@@ -236,8 +236,9 @@ Each row links to its **full per-cell results table** (every language × model �
 | 7 | Brazil + REST-API | Opus-4.8 **fast** | 24 | **[results →](experiment-7/results.md)** | Fast mode = 1.00 pass on both, but 2× per-token price — buys speed, not savings |
 | 8 | REST-API | Opus-4.7, 4.8 (**Erlang+Elixir**) | 12 | **[results →](experiment-8/results.md)** | Both BEAM languages 1.00 on every measure |
 | 10 | Brazil + REST-API | **Claude Fable 5** | 24 | **[results →](experiment-10/results.md)** | A tier above 4.8: 1.00 pass on both, but ~2× cost / slowest — no reliability to buy where 4.8 is already 1.00 |
+| 11 | REST-API | **Gemini** (`gemini-2.5-pro`) vs `claude-code` | — | **[scaffold →](experiment-11/README.md)** | First cross-**agent** study. Harness validated end-to-end against the live Gemini CLI; runs pending free-tier capacity |
 
-The combined dataset across all nine experiments is in [`master.csv`](master.csv) (and `master.db`), rebuildable with `retort aggregate --out master.db --csv master.csv`; it includes the 24 Fable 5 runs from experiment-10.
+The combined dataset across all nine experiments with scored runs is in [`master.csv`](master.csv) (and `master.db`), rebuildable with `retort aggregate --out master.db --csv master.csv`; it includes the 24 Fable 5 runs from experiment-10. (Experiment-11 is a ready-to-run cross-agent scaffold — no result rows yet; see [Comparing coding agents](#comparing-coding-agents-eg-claude-vs-gemini).)
 
 All run data — per-run source, tests, scores, and the spec-eval output — is committed under `experiment-N/runs/`, combined in `master.db` / `master.csv` (`retort aggregate`).
 
