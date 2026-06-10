@@ -588,9 +588,13 @@ def _find_first(data: object, keys: tuple[str, ...]) -> object:
 def _parse_gemini_usage(stdout_text: str) -> tuple[int, dict[str, str]]:
     """Parse the Gemini CLI's JSON output (`--output-format json`).
 
-    The CLI emits one JSON object with a stats/usage block. Field names vary by
-    CLI version, so token fields are located defensively. The CLI does not
-    report a dollar cost, so cost is derived from token counts via
+    Verified against Gemini CLI 0.46, which emits one object:
+        {"response": ..., "stats": {"models": {"<model>": {"tokens": {
+            "input"/"prompt", "candidates", "thoughts", "cached", "total", ...}}}}}
+    The model name is the stats.models KEY. Token field names are the CLI's own
+    (input/candidates/cached/total/thoughts), NOT the API's *TokenCount names.
+    `thoughts` (thinking tokens) bill as output, so they're folded into the
+    output total for cost. The CLI reports no dollar cost, so it is derived from
     GEMINI_PRICING (0.0 if the model is unknown — the caller then falls back to
     the hardware-cost path or records no cost).
     """
@@ -601,28 +605,33 @@ def _parse_gemini_usage(stdout_text: str) -> tuple[int, dict[str, str]]:
     if not isinstance(data, dict):
         return 0, {}
 
-    def _int(keys: tuple[str, ...]) -> int:
-        return int(_parse_float(str(_find_first(data, keys)), 0.0))
+    # Locate the per-model tokens block (and the model name, which is its key).
+    model = ""
+    tokens: dict = {}
+    models = (data.get("stats") or {}).get("models") if isinstance(data.get("stats"), dict) else None
+    if isinstance(models, dict) and models:
+        model = next(iter(models))
+        entry = models[model]
+        if isinstance(entry, dict) and isinstance(entry.get("tokens"), dict):
+            tokens = entry["tokens"]
 
-    input_tokens = _int(("promptTokenCount", "prompt_tokens", "input_tokens", "input"))
-    output_tokens = _int(
-        ("candidatesTokenCount", "completion_tokens", "output_tokens", "output")
-    )
-    cached_tokens = _int(("cachedContentTokenCount", "cached_tokens", "cacheRead"))
-    total_field = _int(("totalTokenCount", "total_tokens", "totalTokens"))
+    def _tok(keys: tuple[str, ...]) -> int:
+        # Prefer the located tokens block; fall back to a recursive search so a
+        # future CLI schema shift (or API-style names) still yields numbers.
+        src = tokens if tokens else data
+        return int(_parse_float(str(_find_first(src, keys)), 0.0))
+
+    input_tokens = _tok(("input", "prompt", "promptTokenCount", "input_tokens"))
+    answer_tokens = _tok(("candidates", "candidatesTokenCount", "output_tokens", "output"))
+    thoughts_tokens = _tok(("thoughts",))
+    output_tokens = answer_tokens + thoughts_tokens  # thinking tokens bill as output
+    cached_tokens = _tok(("cached", "cachedContentTokenCount", "cached_tokens"))
+    total_field = _tok(("total", "totalTokenCount", "total_tokens"))
     total_tokens = total_field or (input_tokens + output_tokens + cached_tokens)
 
-    model = ""
-    model_val = _find_first(data, ("model", "modelVersion"))
-    if isinstance(model_val, str):
-        model = model_val
-    else:
-        # The gemini CLI nests per-model stats as stats.models.<model-name>:{...},
-        # i.e. the model is a dict KEY, not a value. Take the first such key.
-        stats = data.get("stats") if isinstance(data, dict) else None
-        models = stats.get("models") if isinstance(stats, dict) else None
-        if isinstance(models, dict) and models:
-            model = next(iter(models))
+    if not model:
+        model_val = _find_first(data, ("model", "modelVersion"))
+        model = model_val if isinstance(model_val, str) else ""
 
     # Prefer a CLI-reported cost if one ever appears; else derive from pricing.
     cost = _parse_float(str(_find_first(data, ("total_cost_usd", "cost"))), 0.0)
@@ -634,6 +643,7 @@ def _parse_gemini_usage(stdout_text: str) -> tuple[int, dict[str, str]]:
     return total_tokens, {
         "input_tokens": str(input_tokens),
         "output_tokens": str(output_tokens),
+        "thoughts_tokens": str(thoughts_tokens),
         "cache_read_input_tokens": str(cached_tokens),
         "cache_creation_input_tokens": "0",
         "total_cost_usd": str(cost),
