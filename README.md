@@ -370,16 +370,49 @@ curl -fsSL https://omp.sh/install | sh  # macOS / Linux (script)
 bun install -g @oh-my-pi/pi-coding-agent # any platform with Bun ≥ 1.3.14
 ```
 
-**Wire it to a profile** — retort invokes `omp -p --no-session --mode json --model <model> …` and parses its JSON usage events; local models report no API dollar cost, so retort records `$0` (or a hardware-cost estimate if `local_inference_cost` is configured):
+**Serve a local model with Ollama, then declare it to `omp`.** This path is verified end-to-end (experiment-12: Qwen2.5-Coder-7B on bookshop/Go).
+
+```bash
+# ⚠️ Use the CASK, not the formula. `brew install ollama` (formula) ships
+# WITHOUT its inference runner (llama-server) — every call then 500s with
+# "llama-server binary not found". The cask bundles the runner:
+brew install --cask ollama && open -a Ollama     # starts the server on :11434
+ollama pull qwen2.5-coder:7b
+```
+
+`omp`'s *built-in* Ollama integration launches its own `llama-server` and is brittle against modern Ollama installs. The reliable wiring is a custom `openai-completions` provider in `~/.omp/agent/models.yml` pointed at Ollama's OpenAI-compatible endpoint (use a provider name **without** "ollama" in it so omp doesn't reroute to its launcher):
+
+```yaml
+# ~/.omp/agent/models.yml
+providers:
+  lmlocal:
+    baseUrl: http://localhost:11434/v1
+    apiKey: ollama          # ignored by Ollama; any literal works
+    api: openai-completions
+    auth: apiKey
+    models:
+      - id: qwen2.5-coder:7b          # the id Ollama serves; sent on the wire
+        name: Qwen2.5 Coder 7B (local)
+        input: [text]
+        contextWindow: 32768
+        maxTokens: 8192
+        cost: { input: 0, output: 0, cacheRead: 0, cacheWrite: 0 }   # local = free
+```
+
+Verify with a one-shot before launching a run, then point a retort profile at the `provider/id`:
+
+```bash
+omp -p --no-session --mode json --model lmlocal/qwen2.5-coder:7b "reply ok"   # should print usage + cost:0
+```
 
 ```yaml
 playpen:
   local_agents:
-    qwen-local: { harness: omp, model: <the model id omp resolves> }
+    qwen-local: { harness: omp, model: lmlocal/qwen2.5-coder:7b }
 factors:
   agent: { levels: [qwen-local, claude-code] }   # explicit override for non-inferable local models
 ```
 
-**Pointing `omp` at a local backend is configured in `omp` itself, not retort** — it supports Ollama, LM Studio, llama.cpp, and vLLM, declared as providers in `~/.omp/agent/models.yml` (`omp config`, or the [provider docs](https://omp.sh/docs/providers)); pick the model with `omp --list-models`. Note: `omp`'s built-in Ollama launcher manages its own `llama-server` and is **version-sensitive** to your Ollama install — if it can't find `llama-server`, declare an `openai-completions` provider against Ollama's OpenAI-compatible endpoint (`http://localhost:11434/v1`) instead. Verify the wiring with a one-shot `omp -p --mode json --model <id> "reply ok"` before launching a run.
+retort invokes `omp -p --no-session --mode json --model <model> …` and parses its JSON usage events; local runs record `$0` (or a hardware-cost estimate if `local_inference_cost` is configured). omp also supports LM Studio, llama.cpp, and vLLM the same way — see the [provider docs](https://omp.sh/docs/providers). **Note on small local models:** in experiment-12, `qwen2.5-coder:7b` failed bookshop/Go — it never called omp's file tools (it asked for `TASK.md`'s contents instead of `read`-ing the file), so no code was written. The limiter for small local models in an agentic harness is *tool-use behavior*, not raw capability.
 
 Adding another cloud agent is the same three-part adapter: a command branch, a usage parser, and one `LocalHarness` literal (plus a model-prefix rule in `_harness_for_model` if the new agent's models should auto-route).
