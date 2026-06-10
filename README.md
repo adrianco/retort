@@ -342,4 +342,23 @@ Every command is `retort <command> [options]`; add `--help` to any of them for t
 
 ## Status: 1.0 beta
 
-Feature-complete for single-agent `claude-code` experiments with the `LocalRunner`. **Implemented:** `LocalRunner`, all scorers + the conformance spec gate, factorial/fractional design generation, ANOVA + effects, SQLite storage + cross-experiment `aggregate`/`reevaluate`, resumable sharded runs, `retort monitor`, `cost_limit_usd`, OMP local-agent profiles. **Not yet:** `DockerRunner` (skeleton), agents other than `claude-code`, the `intake`/`scheduler` paths.
+Feature-complete for single-agent `claude-code` experiments with the `LocalRunner`. **Implemented:** `LocalRunner`, all scorers + the conformance spec gate, factorial/fractional design generation, ANOVA + effects, SQLite storage + cross-experiment `aggregate`/`reevaluate`, resumable sharded runs, `retort monitor`, `cost_limit_usd`, OMP local-agent profiles, and a **Gemini CLI** harness (`agent` becomes a factor — compare `claude-code` vs `gemini` head-to-head; see below). **Not yet:** `DockerRunner` (skeleton), the `intake`/`scheduler` paths.
+
+### Comparing coding agents (e.g. Claude vs Gemini)
+
+The agent is a first-class factor. Declare a non-Claude agent under `playpen.local_agents` and add `agent` to your factor grid; `retort analyze` then decomposes how much of quality/reliability/cost is the *agent* versus the language and task.
+
+```yaml
+playpen:
+  runner: local
+  local_agents:
+    gemini:
+      harness: gemini          # shells out to Google's `gemini --yolo --output-format json`
+      model: gemini-2.5-pro
+
+factors:
+  agent:    { levels: [claude-code, gemini] }
+  language: { levels: [go, python, rust, typescript] }
+```
+
+The `gemini` harness needs Google's [Gemini CLI](https://github.com/google-gemini/gemini-cli) on `PATH` and `GEMINI_API_KEY` (or ADC) in the environment. The CLI reports tokens but not a dollar cost, so retort derives cost from `GEMINI_PRICING` in `local_runner.py` (base-tier rates — verify against current Google pricing). The spec-gate judge stays on Claude (`reevaluate --eval-model claude-opus-4-6`) so an independent model grades every agent fairly. Adding a third agent is the same three-part adapter: a command branch, a usage parser, and one `LocalHarness` literal.

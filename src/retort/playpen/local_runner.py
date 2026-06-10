@@ -311,6 +311,23 @@ class LocalRunner:
             cmd.append(_build_agent_prompt(stack, prompt_injection))
             return cmd
 
+        if profile is not None and profile.harness == "gemini":
+            # Google's Gemini CLI in headless mode: reads TASK.md from the
+            # playpen cwd, implements it in place, emits one JSON object.
+            # `--yolo` auto-approves tool calls (the non-interactive equivalent
+            # of claude's --dangerously-skip-permissions). Auth comes from
+            # GEMINI_API_KEY / GOOGLE_API_KEY / ADC in the inherited env.
+            cmd = ["gemini", "--yolo", "--output-format", "json"]
+
+            model = self._model_for(stack)
+            if model and model != "none":
+                cmd.extend(["--model", model])
+
+            prompt_level = stack.extra.get("prompt", "none")
+            prompt_injection = self._load_prompt_file(prompt_level) if prompt_level != "none" else ""
+            cmd.extend(["--prompt", _build_agent_prompt(stack, prompt_injection)])
+            return cmd
+
         # Unsupported agent — caller checks for None and surfaces the error.
         supported = ["claude-code", *sorted(self.local_agents)]
         raise ValueError(
@@ -423,6 +440,8 @@ def _parse_agent_usage(agent: str, stdout_text: str) -> tuple[int, dict[str, str
         return _parse_claude_usage(stdout_text)
     if agent == "omp":
         return _parse_omp_usage(stdout_text)
+    if agent == "gemini":
+        return _parse_gemini_usage(stdout_text)
     return 0, {}
 
 
@@ -533,6 +552,85 @@ def _parse_omp_usage(stdout_text: str) -> tuple[int, dict[str, str]]:
         "provider": provider,
         "model": model,
         "stop_reason": stop_reason,
+    }
+
+
+# Gemini API pricing, USD per 1M tokens (input, output), base context tier.
+# The Gemini CLI reports token counts but NOT a dollar cost, so retort computes
+# it from these. Verify/adjust against current Google pricing before trusting
+# the cost column — these are the published base-tier rates, not tiered by
+# context length or cached-token discounts.
+GEMINI_PRICING: dict[str, tuple[float, float]] = {
+    "gemini-2.5-pro": (1.25, 10.0),
+    "gemini-2.5-flash": (0.30, 2.50),
+    "gemini-2.5-flash-lite": (0.10, 0.40),
+}
+
+
+def _find_first(data: object, keys: tuple[str, ...]) -> object:
+    """Depth-first search a nested dict/list for the first of `keys` present."""
+    if isinstance(data, dict):
+        for k in keys:
+            if k in data and not isinstance(data[k], (dict, list)):
+                return data[k]
+        for v in data.values():
+            found = _find_first(v, keys)
+            if found is not None:
+                return found
+    elif isinstance(data, list):
+        for v in data:
+            found = _find_first(v, keys)
+            if found is not None:
+                return found
+    return None
+
+
+def _parse_gemini_usage(stdout_text: str) -> tuple[int, dict[str, str]]:
+    """Parse the Gemini CLI's JSON output (`--output-format json`).
+
+    The CLI emits one JSON object with a stats/usage block. Field names vary by
+    CLI version, so token fields are located defensively. The CLI does not
+    report a dollar cost, so cost is derived from token counts via
+    GEMINI_PRICING (0.0 if the model is unknown — the caller then falls back to
+    the hardware-cost path or records no cost).
+    """
+    try:
+        data = json.loads(stdout_text)
+    except ValueError:
+        return 0, {}
+    if not isinstance(data, dict):
+        return 0, {}
+
+    def _int(keys: tuple[str, ...]) -> int:
+        return int(_parse_float(str(_find_first(data, keys)), 0.0))
+
+    input_tokens = _int(("promptTokenCount", "prompt_tokens", "input_tokens", "input"))
+    output_tokens = _int(
+        ("candidatesTokenCount", "completion_tokens", "output_tokens", "output")
+    )
+    cached_tokens = _int(("cachedContentTokenCount", "cached_tokens", "cacheRead"))
+    total_field = _int(("totalTokenCount", "total_tokens", "totalTokens"))
+    total_tokens = total_field or (input_tokens + output_tokens + cached_tokens)
+
+    model = ""
+    model_val = _find_first(data, ("model", "modelVersion"))
+    if isinstance(model_val, str):
+        model = model_val
+
+    # Prefer a CLI-reported cost if one ever appears; else derive from pricing.
+    cost = _parse_float(str(_find_first(data, ("total_cost_usd", "cost"))), 0.0)
+    if cost == 0.0:
+        rate = GEMINI_PRICING.get(model) or GEMINI_PRICING.get(MODEL_ALIASES.get(model, model))
+        if rate is not None:
+            cost = (input_tokens * rate[0] + output_tokens * rate[1]) / 1_000_000
+
+    return total_tokens, {
+        "input_tokens": str(input_tokens),
+        "output_tokens": str(output_tokens),
+        "cache_read_input_tokens": str(cached_tokens),
+        "cache_creation_input_tokens": "0",
+        "total_cost_usd": str(cost),
+        "model": model,
     }
 
 
