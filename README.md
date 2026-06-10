@@ -237,7 +237,7 @@ Each row links to its **full per-cell results table** (every language × model �
 | 8 | REST-API | Opus-4.7, 4.8 (**Erlang+Elixir**) | 12 | **[results →](experiment-8/results.md)** | Both BEAM languages 1.00 on every measure |
 | 10 | Brazil + REST-API | **Claude Fable 5** | 24 | **[results →](experiment-10/results.md)** | A tier above 4.8: 1.00 pass on both, but ~2× cost / slowest — no reliability to buy where 4.8 is already 1.00 |
 
-The combined dataset across the eight earlier experiments is in [`master.csv`](master.csv) (and `master.db`), rebuildable with `retort aggregate`. (The exp-10 re-aggregation into `master.db`/`master.csv` is pending a pipeline fix, so the master export does not yet include Fable 5; its numbers come straight from `experiment-10/{bookshop,brazil}/retort.db`.)
+The combined dataset across all nine experiments is in [`master.csv`](master.csv) (and `master.db`), rebuildable with `retort aggregate --out master.db --csv master.csv`; it includes the 24 Fable 5 runs from experiment-10.
 
 All run data — per-run source, tests, scores, and the spec-eval output — is committed under `experiment-N/runs/`, combined in `master.db` / `master.csv` (`retort aggregate`).
 

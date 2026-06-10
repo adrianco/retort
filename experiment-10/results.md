@@ -77,4 +77,4 @@ With the rerun a no-op, the failed-cell landscape is exactly the pre-rerun one. 
 
 ---
 
-*Generated 2026-06-10. Fable 5 runs: `experiment-10/{bookshop,brazil}/retort.db`. Baselines: opus-4.8 = exp-6 (REST) / exp-5 (Brazil), `tooling=none`; opus-4.8-fast = exp-7. The overnight re-aggregate into `master.db`/`master.csv` failed (`--csv` arg error in the pipeline), so `master.csv` does not yet include Fable 5 or the restored DBs; the numbers above come directly from the per-experiment DBs.*
+*Generated 2026-06-10. Fable 5 runs: `experiment-10/{bookshop,brazil}/retort.db`. Baselines: opus-4.8 = exp-6 (REST) / exp-5 (Brazil), `tooling=none`; opus-4.8-fast = exp-7. `master.db`/`master.csv` were rebuilt with `retort aggregate --out master.db --csv master.csv` and now include all 24 Fable 5 runs; the numbers above match the per-experiment DBs.*
