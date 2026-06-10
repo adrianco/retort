@@ -493,6 +493,32 @@ class TestLocalRunnerGeminiHarness:
         assert tokens == 150
         assert meta["total_cost_usd"] == "0.0"  # unknown model -> no derived cost
 
+    def test_parse_gemini_usage_real_cli_shape(self):
+        # The actual `gemini --output-format json` shape (CLI 0.46): a single
+        # {response, stats} object where stats.models is keyed BY model name and
+        # token fields use the API names. Verified against the installed CLI.
+        import json
+
+        from retort.playpen.local_runner import GEMINI_PRICING, _parse_gemini_usage
+
+        out = json.dumps({
+            "response": "ok",
+            "stats": {"models": {"gemini-2.5-pro": {"tokens": {
+                "promptTokenCount": 800_000,
+                "candidatesTokenCount": 100_000,
+                "cachedContentTokenCount": 50_000,
+                "totalTokenCount": 950_000,
+            }}}},
+        })
+        tokens, meta = _parse_gemini_usage(out)
+        assert tokens == 950_000
+        assert meta["input_tokens"] == "800000"
+        assert meta["output_tokens"] == "100000"
+        assert meta["model"] == "gemini-2.5-pro"  # recovered from the stats.models key
+        in_rate, out_rate = GEMINI_PRICING["gemini-2.5-pro"]
+        expected = (800_000 * in_rate + 100_000 * out_rate) / 1_000_000
+        assert abs(float(meta["total_cost_usd"]) - expected) < 1e-9
+
     def test_parse_gemini_usage_bad_json_safe(self):
         from retort.playpen.local_runner import _parse_gemini_usage
 

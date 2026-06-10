@@ -616,6 +616,13 @@ def _parse_gemini_usage(stdout_text: str) -> tuple[int, dict[str, str]]:
     model_val = _find_first(data, ("model", "modelVersion"))
     if isinstance(model_val, str):
         model = model_val
+    else:
+        # The gemini CLI nests per-model stats as stats.models.<model-name>:{...},
+        # i.e. the model is a dict KEY, not a value. Take the first such key.
+        stats = data.get("stats") if isinstance(data, dict) else None
+        models = stats.get("models") if isinstance(stats, dict) else None
+        if isinstance(models, dict) and models:
+            model = next(iter(models))
 
     # Prefer a CLI-reported cost if one ever appears; else derive from pricing.
     cost = _parse_float(str(_find_first(data, ("total_cost_usd", "cost"))), 0.0)
