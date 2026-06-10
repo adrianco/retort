@@ -52,6 +52,7 @@ retort --help                    # CLI loads → deps OK
 | **`claude` CLI, authenticated** | the agent runner shells out to `claude -p …` |
 | **Per-language toolchains** | the scorer **builds, tests, and lints** the generated code — see the table below |
 | **`bd` (beads) CLI** | only if a factor uses `tooling: beads` |
+| **`gemini` CLI** / **`omp` (oh-my-pi) CLI** | only to run non-Claude agents — Google Gemini, or local/other models via [oh-my-pi](https://github.com/can1357/oh-my-pi); see [Comparing coding agents](#comparing-coding-agents-eg-claude-vs-gemini) |
 
 `.devcontainer/` provisions all of this for Codespaces / Dev Containers (authenticate `claude` once).
 
@@ -357,14 +358,28 @@ factors:
 
 `retort analyze` then decomposes how much of quality/reliability/cost is the *model/agent* versus the language and task. The `gemini` harness needs Google's [Gemini CLI](https://github.com/google-gemini/gemini-cli) on `PATH` and a Gemini auth method (`GEMINI_API_KEY`, ADC, or a free OAuth login) in the environment. The CLI reports tokens but not a dollar cost, so retort derives cost from `GEMINI_PRICING` in `local_runner.py` (base-tier rates — verify against current Google pricing). The spec-gate judge stays on Claude (`reevaluate --eval-model claude-opus-4-6`) so an independent model grades every agent fairly.
 
-A **local/self-hosted** model whose name doesn't imply its harness (e.g. an `omp` model) can't be inferred, so it's routed by an explicit profile that overrides the model rule:
+#### Local / self-hosted models via the `omp` harness (oh-my-pi)
+
+A **local/self-hosted** model whose name doesn't imply its harness can't be inferred, so it's routed by an explicit profile that overrides the model rule. The `omp` harness drives **[oh-my-pi](https://github.com/can1357/oh-my-pi)** (`omp`) — a terminal coding agent that natively supports local backends (**Ollama**, LM Studio, llama.cpp, vLLM) as well as cloud providers. This is how you put a *local* model in the grid (`claude-code` runs Claude; `omp` runs whatever local/other model you point it at).
+
+**Install `omp`** (one of):
+
+```bash
+brew install can1357/tap/omp          # macOS / Linux (Homebrew)
+curl -fsSL https://omp.sh/install | sh  # macOS / Linux (script)
+bun install -g @oh-my-pi/pi-coding-agent # any platform with Bun ≥ 1.3.14
+```
+
+**Wire it to a profile** — retort invokes `omp -p --no-session --mode json --model <model> …` and parses its JSON usage events; local models report no API dollar cost, so retort records `$0` (or a hardware-cost estimate if `local_inference_cost` is configured):
 
 ```yaml
 playpen:
   local_agents:
-    qwen-local: { harness: omp, model: qwen-2.5-coder }
+    qwen-local: { harness: omp, model: <the model id omp resolves> }
 factors:
-  agent: { levels: [qwen-local, claude-code] }   # explicit override for non-inferable models
+  agent: { levels: [qwen-local, claude-code] }   # explicit override for non-inferable local models
 ```
 
-Adding another agent is the same three-part adapter: a command branch, a usage parser, and one `LocalHarness` literal (plus a model-prefix rule in `_harness_for_model` if the new agent's models should auto-route).
+**Pointing `omp` at a local backend is configured in `omp` itself, not retort** — it supports Ollama, LM Studio, llama.cpp, and vLLM, declared as providers in `~/.omp/agent/models.yml` (`omp config`, or the [provider docs](https://omp.sh/docs/providers)); pick the model with `omp --list-models`. Note: `omp`'s built-in Ollama launcher manages its own `llama-server` and is **version-sensitive** to your Ollama install — if it can't find `llama-server`, declare an `openai-completions` provider against Ollama's OpenAI-compatible endpoint (`http://localhost:11434/v1`) instead. Verify the wiring with a one-shot `omp -p --mode json --model <id> "reply ok"` before launching a run.
+
+Adding another cloud agent is the same three-part adapter: a command branch, a usage parser, and one `LocalHarness` literal (plus a model-prefix rule in `_harness_for_model` if the new agent's models should auto-route).
