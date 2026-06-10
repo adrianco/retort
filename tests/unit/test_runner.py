@@ -434,7 +434,7 @@ class TestLocalRunnerGeminiHarness:
 
         cmd = runner._build_agent_command(stack, task)
 
-        assert cmd[:4] == ["gemini", "--yolo", "--output-format", "json"]
+        assert cmd[:5] == ["gemini", "--yolo", "--skip-trust", "--output-format", "json"]
         assert cmd[cmd.index("--model") + 1] == "gemini-2.5-pro"
         # The prompt is the value after --prompt, and carries the language steer.
         assert "You are working in go." in cmd[cmd.index("--prompt") + 1]

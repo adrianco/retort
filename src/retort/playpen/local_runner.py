@@ -315,9 +315,12 @@ class LocalRunner:
             # Google's Gemini CLI in headless mode: reads TASK.md from the
             # playpen cwd, implements it in place, emits one JSON object.
             # `--yolo` auto-approves tool calls (the non-interactive equivalent
-            # of claude's --dangerously-skip-permissions). Auth comes from
-            # GEMINI_API_KEY / GOOGLE_API_KEY / ADC in the inherited env.
-            cmd = ["gemini", "--yolo", "--output-format", "json"]
+            # of claude's --dangerously-skip-permissions); `--skip-trust` trusts
+            # the playpen for this session, else gemini downgrades yolo to its
+            # interactive "default" approval mode in an untrusted folder and the
+            # run fails (FatalUntrustedWorkspaceError). Auth comes from
+            # GEMINI_API_KEY / GOOGLE_API_KEY / ADC / OAuth in the inherited env.
+            cmd = ["gemini", "--yolo", "--skip-trust", "--output-format", "json"]
 
             model = self._model_for(stack)
             if model and model != "none":
