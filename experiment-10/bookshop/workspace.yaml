@@ -1,0 +1,67 @@
+# Experiment 10 — claude-fable-5 (REST-API CRUD / bookshop)
+#
+# Measures Claude Fable 5 (the new tier above Opus) on the easy REST-API task,
+# to compare against the regular opus-4.8/none data (experiment 6) and the
+# opus-4.8-fast data (experiment 7) on the SAME cells. No beads.
+#
+# Fable 5 is billed at $10/$50 per Mtok (input/output) — 2x the Opus-4.8
+# standard rate, the same per-token rate as Opus-4.8 fast mode. Unlike fast
+# mode, Fable 5 is a distinct model ID, so the Claude CLI's total_cost_usd
+# already reports the true billed cost (verified by probe) — NO multiplier.
+#
+# Design: 4 language x 1 model x 1 tooling = 4 cells x 3 replicates = 12 runs.
+#
+# Run (single shard, with PATH for toolchains):
+#   export PATH="/opt/homebrew/opt/openjdk/bin:/opt/homebrew/bin:$HOME/go/bin:$PATH"
+#   export JAVA_HOME="/opt/homebrew/opt/openjdk/libexec/openjdk.jdk/Contents/Home"
+#   PYTHONPATH=src .venv/bin/python -m retort run --phase screening \
+#     --config experiment-10/bookshop/workspace.yaml \
+#     --design experiment-10/bookshop/design-fable.csv --resume
+
+experiment:
+  name: experiment-10-fable-5-bookshop
+  visibility: public
+
+# retort requires >=2 levels per factor, so model carries both the fable-5 and
+# the regular opus-4-8 level. We RUN only the fable-5 cells (design-fable.csv);
+# the opus-4.8 baseline comes from experiment 6 (same task). tooling is
+# dropped (constant none) since beads was retired from the program.
+factors:
+  language:
+    levels: [go, python, clojure, rust]
+  model:
+    levels: [claude-fable-5, claude-opus-4-8]
+
+responses:
+  - code_quality
+  - token_efficiency
+  - test_coverage
+  - defect_rate
+  - maintainability
+  - idiomatic
+
+tasks:
+  - source: bundled://rest-api-crud
+
+playpen:
+  runner: local
+  replicates: 3
+  timeout_minutes: 45
+  max_turns: 200
+
+design:
+  screening_resolution: 3
+  significance_threshold: 0.10
+
+promotion:
+  screening_to_trial: { p_value: 0.10 }
+  trial_to_production: { posterior_confidence: 0.80 }
+
+# Eval DISABLED: the evaluate-run skill only produces supplementary
+# PenScore/ReqCov/findings (assessment.json) that no scored response uses, and
+# adds up to ~10 min/run. Enable only when you want `retort maturity`.
+evaluation:
+  enabled: false
+  model: claude-opus-4-6
+  min_severity_to_file: high
+  issue_tracker: beads

@@ -1,0 +1,1 @@
+{"id": "cov-1", "kind": "enhancement", "severity": "info", "title": "Test line coverage is 74%, not 100%", "evidence": "scores.json: test_coverage=0.74, defect_rate=1.0 — all tests pass but not all source lines are exercised", "suggestion": "Add tests for error paths (e.g. DB failures, edge cases in pathID) to raise coverage"}

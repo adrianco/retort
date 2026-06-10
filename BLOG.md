@@ -6,7 +6,7 @@
 
 Every few weeks a new frontier model tops the leaderboards, and the implicit advice is "upgrade." Sites like **[llm-stats.com](https://llm-stats.com/)** rank models well across many benchmarks — but they answer a question most engineering teams aren't actually asking. They hold the *stack* constant: one prompt, one harness, a fixed benchmark. They don't tell you whether the newest model is worth 4× the cost **in Rust**, how *reliably* each model gets a Go MCP server completely right, or how long any of it takes.
 
-Those are the variables that decide a real project. So I built **[retort](https://github.com/adrianco/retort)** to measure them properly — with statistical Design of Experiments, the same technique you'd use to tune a manufacturing process. Vary the factors you care about (here: programming **language** × **model version** × **tooling**), run a factorial grid on a real task, score every cell, and let the analysis tell you which factors actually matter. Eight experiments, **234 scored runs**, two tasks, eight languages, four Claude models (plus a fast-mode variant). Here's what came out.
+Those are the variables that decide a real project. So I built **[retort](https://github.com/adrianco/retort)** to measure them properly — with statistical Design of Experiments, the same technique you'd use to tune a manufacturing process. Vary the factors you care about (here: programming **language** × **model version** × **tooling**), run a factorial grid on a real task, score every cell, and let the analysis tell you which factors actually matter. Nine experiments, **258 scored runs**, two tasks, eight languages, four Claude models (plus a fast-mode variant and a next-tier model, Fable 5). Here's what came out.
 
 ## The metric that matters: how often is it *completely* right?
 
@@ -25,15 +25,17 @@ Aggregated per model per task:
 | opus-4.7 | 0.85 | **1.00** | 774 s | $4.92 |
 | **opus-4.8** | **1.00** | **1.00** | 1035 s | $5.54 |
 | opus-4.8-fast² | **1.00** | **1.00** | 887 s | $8.72 |
+| fable-5³ | **1.00** | **1.00** | 1039 s | $8.98 |
 
 ² Fast mode (`/fast`), 4 languages (clojure/go/python/rust). Cost is at fast mode's **2× per-token rate** ([announcement](https://www.anthropic.com/news/claude-opus-4-8)) — see [Fast mode](#fast-mode-speed-you-pay-double-for) below.
+³ **Claude Fable 5** — a distinct model a *tier above* Opus 4.8 — same 4 languages, priced at the same $10/$50 rate as fast mode. More on it just below.
 
 Three things jump out:
 
 1. **Newer genuinely is more reliable — and the gap is enormous on hard tasks.** Opus-4.8 produced a completely-correct result **100% of the time, on both tasks.** The older, cheaper models (4.6 and Sonnet) got the *hard* task fully right only **about half the time.** On a difficult task, the cheap model is a coin-flip — it'll look fine in a demo and bite you in review.
 2. **You pay through the nose for that reliability.** Opus-4.8 was **~3× slower and ~4× more expensive** than 4.6/Sonnet on the hard task. Reliability isn't free; it's a line item, and it grows fast across model generations.
 3. **Opus-4.7 is the value sweet spot, and on easy work the newest model is pure overhead.** On the REST API, 4.7 and 4.8 are *tied* at 100% — so paying for 4.8 there buys you nothing but a slower, costlier run. On the hard task, 4.7 reaches 85% for noticeably less money than 4.8's 100%.
-4. **Fast mode is the same reliability at the *highest* price.** Opus-4.8 fast matches 4.8's 1.00/1.00 and trims wall-clock, but its 2× per-token rate makes it the costliest row in the table ($8.72/run on the hard task) — it buys latency, not value (more below).
+4. **Fast mode is the same reliability at the *highest* price — and so is a tier *above* 4.8.** Opus-4.8 fast matches 4.8's 1.00/1.00 and trims wall-clock, but its 2× per-token rate makes it one of the costliest rows ($8.72/run on the hard task) — it buys latency, not value. And **Claude Fable 5**, a model a whole tier above 4.8 at that same 2× rate, *also* lands at 1.00/1.00 — because where 4.8 is already perfect there's simply no reliability left to buy. It ends up the priciest *and* slowest option, with nothing to show for it (more below).
 
 ## The controlled view: same cells, two models
 
@@ -61,6 +63,23 @@ Two things stand out. On the **easy** task, fast mode genuinely shaves wall-cloc
 So fast mode buys **latency, not savings**, and only on routine work. The honest rule is: turn it on when a human is waiting on a quick task and you'll happily pay double to wait less; leave it off for anything hard, where it's pure overhead. (It's also a clean illustration of why you separate "speed" from "capability" as factors — averaging them together would have hidden that the premium pays off in exactly one quadrant and nowhere else.)
 
 A confession is owed here, because it's the whole point of the project: my *first* pass at this section concluded fast mode was **cheaper** — a "free lunch." It wasn't; I'd trusted the cost number the CLI reported, which (I later confirmed by probe) prices fast-mode tokens at the *standard* rate and silently omits the 2× premium. The conclusion flipped completely once the cost was corrected. Measure, then check that what you measured is real — including when the measurement flatters the answer you were hoping for.
+
+## A tier above 4.8: does paying *even more* buy reliability?
+
+Fast mode raised an obvious follow-up. It charges the $10/$50 rate — double Opus 4.8 — for the *same model*, faster. But what about a genuinely *higher* model? **Claude Fable 5** sits a tier above Opus 4.8 and is priced at that same $10/$50 rate (the CLI prices it natively, so no correction needed). If 4.8 is the reliability frontier, does stepping up a tier — at the same premium fast mode charges — actually buy you anything? I ran Fable 5 on the identical grid: both tasks, the four shared languages, three replicates each.
+
+The answer is a clean **no**:
+
+| Task | Language | Fable 5 (pass / speed / cost) | Opus 4.8 (pass / speed / cost) |
+|---|---|---:|---:|
+| REST-API (easy) | python | 1.00 / 96 s / $0.76 | 1.00 / 88 s / $0.37 |
+| REST-API (easy) | rust | 1.00 / 142 s / $1.00 | 1.00 / 213 s / $0.76 |
+| Brazil (hard) | go | 1.00 / 998 s / $8.59 | 1.00 / 867 s / $4.59 |
+| Brazil (hard) | rust | 1.00 / 1061 s / $9.63 | 1.00 / 1081 s / $6.09 |
+
+Fable 5 passed **12 of 12 cells on each task** — a perfect 1.00, exactly matching Opus 4.8. That's the catch: **where 4.8 already gets it completely right every time, there is no reliability headroom for a better model to capture.** The ceiling is the ceiling. So the higher tier delivers an identical pass-proportion while costing roughly **double the dollars**, and — on the hard task — running *slower* than regular 4.8 (≈1039 s vs ≈947 s), making it the priciest *and* slowest option I measured. Fast mode at least buys latency on easy work; a tier-up here buys nothing measurable at all.
+
+This isn't a knock on Fable 5 — it's a statement about the *task*. Both of these problems are inside Opus 4.8's reliable envelope, and you can't out-reliable 1.00. The place a higher tier would earn its premium is a task hard enough that **4.8 itself drops below 1.00** — and the honest read of this data is that neither task here is that hard. Which is exactly the decision the per-task framing is built to expose: the right model isn't the highest one, it's the cheapest one that clears *your* task's reliability bar. For these two tasks, that's plain Opus 4.8 (or, on the easy one, something cheaper still).
 
 ## Two more languages: Erlang and Elixir
 
@@ -124,7 +143,9 @@ A strict bar ("a run only passes if its tests actually execute and it implements
 - **The newest runs reported `$0.00`.** A refactor of the agent-runner had quietly stopped parsing the cost telemetry for runs that didn't pin an explicit agent name — the model ran and billed, but the number was dropped on the floor. Fixed and regression-tested.
 - **The re-scorer silently did nothing** on the two newest experiments because a database query compared against SQL `NULL` (which is never equal to anything) for designs that had no tooling factor.
 
-None of these were model failures; all three were mine, and all three are now fixed and covered by tests. The genuine failures, once the harness was honest, fell exactly where the rest of the data predicts: the hard task, with the cheaper models or the extra tooling. The meta-lesson is the same discipline the whole project is built on — **measure, then check that what you measured is real** before you draw a conclusion from it.
+And the discipline kept paying off. When I went back to re-run a batch of old `beads`-tooling false-failures under the fixed harness, the rerun job itself broke — it never launched the model, and stamped every cell as a failure in ~1–4 seconds for **$0**. Worse, it *overwrote the good runs it was meant to repair*: one experiment dropped from 36 completed runs to 18. Two things saved the data. First, the runner snapshots each DB before a rerun, so I could restore from the `.pre-rerun.bak` files and lose nothing. Second — and this is the part that generalizes — **the failures were obviously the harness's, not the model's, on sight**: a real model failure on the hard task burns *minutes* of wall-clock and real dollars before it fails the gate, while these died instantly for nothing. That single tell — *time and cost spent* — is the cheapest harness-vs-model lie detector I have, and it caught a corruption that would otherwise have silently halved an experiment.
+
+None of these were model failures; they were all mine, and all are now fixed (or, in the rerun's case, rolled back) — the genuine signal restored intact. The genuine failures, once the harness was honest, fell exactly where the rest of the data predicts: the hard task, with the cheaper models or the extra tooling. The meta-lesson is the same discipline the whole project is built on — **measure, then check that what you measured is real** before you draw a conclusion from it.
 
 ## The factor I haven't varied yet: the prompt
 
@@ -142,7 +163,7 @@ The data suggests a simple decision procedure:
 
 ## How it's measured
 
-Each run gets its own isolated workspace; the agent implements the task, and the code is then built and tested in place. The spec check is the strict part: an independent evaluator verifies the code against a **fixed requirement checklist** for the task, and a run only counts as a pass if it implements *all* of it and its tests actually run. To keep that grading reproducible, the checklist is pinned (so the denominator is constant across runs), a strong model does the judging, and a borderline result gets a second opinion before it's recorded. Every number above is that gate applied across all 234 scored runs — not a hand-picked sample. Per-experiment tables and the combined dataset are in the [README](https://github.com/adrianco/retort) and `master.csv`.
+Each run gets its own isolated workspace; the agent implements the task, and the code is then built and tested in place. The spec check is the strict part: an independent evaluator verifies the code against a **fixed requirement checklist** for the task, and a run only counts as a pass if it implements *all* of it and its tests actually run. To keep that grading reproducible, the checklist is pinned (so the denominator is constant across runs), a strong model does the judging, and a borderline result gets a second opinion before it's recorded. Every number above is that gate applied across all 258 scored runs — not a hand-picked sample. Per-experiment tables and the combined dataset are in the [README](https://github.com/adrianco/retort) and `master.csv`.
 
 ## Try it on your own stack
 

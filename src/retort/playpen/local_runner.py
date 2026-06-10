@@ -43,6 +43,7 @@ MODEL_ALIASES: dict[str, str] = {
     "sonnet-4.5": "claude-sonnet-4-5",
     "sonnet-4.6": "claude-sonnet-4-6",
     "haiku-4.5": "claude-haiku-4-5",
+    "fable-5": "claude-fable-5",
     # Fast-mode variant: a "<id>-fast" model level runs the same model with
     # Claude Code fast mode on (faster output) — handled in _build_agent_command.
     "opus-4.8-fast": "claude-opus-4-8-fast",

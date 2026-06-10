@@ -1,0 +1,2 @@
+{"id": "info-1", "kind": "enhancement", "severity": "info", "title": "Year validation allows negative integers", "evidence": "src/bookapi/handler.clj:23 — validate-book checks integer? but not range", "suggestion": "Consider adding a range check (e.g., year > 0) if domain rules require it"}
+{"id": "info-2", "kind": "enhancement", "severity": "info", "title": "ISBN format not validated", "evidence": "src/bookapi/handler.clj:29 — book-fields accepts isbn as-is with no format check", "suggestion": "Add ISBN-10/ISBN-13 format validation if required by domain"}

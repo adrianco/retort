@@ -1,0 +1,1 @@
+{"id": "lint-1", "kind": "lint_warning", "severity": "medium", "title": "code_quality score 0.62 indicates ruff lint warnings", "evidence": "scores.json code_quality=0.6222; .ruff_cache directory present confirms ruff was run", "suggestion": "Run ruff check to see specific lint issues and fix them"}

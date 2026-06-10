@@ -16,7 +16,7 @@
 - **Cross-experiment master database** — `retort aggregate` rolls every experiment into one tidy `master.db` / `master.csv`.
 - **ANOVA + effects**, **live `retort monitor`**, resumable sharded runs, `cost_limit_usd`.
 
-This repo is the result of running it: **eight experiments, 234 scored runs, two tasks, eight languages (Go, Python, Clojure, Rust, Java, TypeScript, Erlang, Elixir), four Claude models (Sonnet, Opus 4.6 / 4.7 / 4.8) plus Opus-4.8 fast mode.**
+This repo is the result of running it: **nine experiments, 258 scored runs, two tasks, eight languages (Go, Python, Clojure, Rust, Java, TypeScript, Erlang, Elixir), four Claude models (Sonnet, Opus 4.6 / 4.7 / 4.8) plus Opus-4.8 fast mode and the next-tier Claude Fable 5.**
 
 ---
 
@@ -119,14 +119,17 @@ Aggregated per model per task (larger samples → robust):
 | opus-4.7 | 0.85 | **1.00** | 774 s | $4.92 |
 | **opus-4.8** | **1.00** | **1.00** | 1035 s | $5.54 |
 | opus-4.8-fast² | **1.00** | **1.00** | 887 s | $8.72 |
+| fable-5³ | **1.00** | **1.00** | 1039 s | $8.98 |
 
 ¹ Brazil task. **Pass-proportion = fraction of that model's runs that fully implement the spec.**
 ² Fast mode (`/fast`), 4 languages (clojure/go/python/rust). Cost is at fast mode's **2× per-token rate** ([announcement](https://www.anthropic.com/news/claude-opus-4-8)) — see [Fast mode](#fast-mode-speed-for-a-2x-price-premium).
+³ Claude Fable 5 (`claude-fable-5`), same 4 languages. A **distinct model a tier above Opus 4.8**, priced at the same **$10/$50 per Mtok** rate as fast mode (2× Opus 4.8's standard rate); the CLI prices it natively. See [exp-10 results](experiment-10/results.md).
 
 - **Newer *is* more reliable — markedly so on hard tasks.** Opus-4.8 produces a completely-correct result **100% of the time on both tasks**; 4.7 is 85% / 100%. The cheaper models (4.6, Sonnet) get the *hard* task completely right only **~half the time** — they're a coin-flip.
 - **You pay steeply for that reliability.** On the hard task Opus-4.8 is **~3× slower and ~4× pricier** than 4.6 / Sonnet.
 - **Opus-4.7 is the value-reliability sweet spot** — near-4.8 reliability for less, and **tied with 4.8 on the easy task**, where paying for 4.8 buys nothing.
-- **Fast mode is the same reliability at the highest price.** Opus-4.8 fast matches 4.8's 1.00/1.00 and shaves wall-clock, but its 2× per-token rate makes it the **costliest row here** ($8.72/run on the hard task) — you're buying latency, not value.
+- **Fast mode is the same reliability at the highest price.** Opus-4.8 fast matches 4.8's 1.00/1.00 and shaves wall-clock, but its 2× per-token rate makes it one of the **costliest rows here** ($8.72/run on the hard task) — you're buying latency, not value.
+- **A tier *above* 4.8 buys no extra reliability either.** Claude Fable 5 — a distinct model above Opus 4.8, at the same $10/$50 rate as fast mode — also lands at **1.00 / 1.00**, matching 4.8 exactly. But where 4.8 is already perfect there is no headroom to buy: Fable 5 is the **priciest *and* slowest** option on the hard task ($8.98, 1039 s), with no measurable reliability gain. Paying up a tier is pure overhead until a task is hard enough that 4.8 itself drops below 1.00 — neither task here reaches that.
 - **On easy tasks, almost anything works**, so the cheapest reliable model wins (often 4.7 or even 4.6).
 - **It's a reliability-vs-cost decision, and it's task-dependent** — precisely what a leaderboard can't tell you.
 
@@ -232,8 +235,9 @@ Each row links to its **full per-cell results table** (every language × model �
 | 6 | REST-API | Opus-4.7, 4.8 | 71 | **[results →](experiment-6/results.md)** | Both 1.00 — 4.7 the better value, 4.8 is overkill |
 | 7 | Brazil + REST-API | Opus-4.8 **fast** | 24 | **[results →](experiment-7/results.md)** | Fast mode = 1.00 pass on both, but 2× per-token price — buys speed, not savings |
 | 8 | REST-API | Opus-4.7, 4.8 (**Erlang+Elixir**) | 12 | **[results →](experiment-8/results.md)** | Both BEAM languages 1.00 on every measure |
+| 10 | Brazil + REST-API | **Claude Fable 5** | 24 | **[results →](experiment-10/results.md)** | A tier above 4.8: 1.00 pass on both, but ~2× cost / slowest — no reliability to buy where 4.8 is already 1.00 |
 
-The combined dataset across all eight is in [`master.csv`](master.csv) (and `master.db`), rebuildable with `retort aggregate`.
+The combined dataset across all nine experiments is in [`master.csv`](master.csv) (and `master.db`), rebuildable with `retort aggregate --out master.db --csv master.csv`; it includes the 24 Fable 5 runs from experiment-10.
 
 All run data — per-run source, tests, scores, and the spec-eval output — is committed under `experiment-N/runs/`, combined in `master.db` / `master.csv` (`retort aggregate`).
 
@@ -269,6 +273,7 @@ Roughly 60 of the ~300 archived runs are not completed-with-coverage. The strict
 - **Missing cost on the newest runs (harness).** Experiments 7 & 8 recorded duration but `$0.00` cost. The OMP-harness change (PR #6) routed the cost parser by agent name but dropped the `unknown → claude-code` fallback the command builder has, so for cells that didn't pin an agent, Claude ran and billed but its cost JSON was discarded. Fixed + regression-tested; re-run with cost intact.
 - **Re-eval found zero runs (harness).** The tooling-free designs (exp-7/8 vary only language × model) tripped a matcher that did `tooling = NULL` in SQL — never true — so `reevaluate` silently graded nothing. Fixed to `IS NULL`.
 - **Fast-mode cost under-reported 2× (harness).** Fast mode bills at double the standard per-token rate ([announcement](https://www.anthropic.com/news/claude-opus-4-8)), but the CLI's `total_cost_usd` reports the *standard*-rate figure (confirmed by probe). retort now applies the 2× multiplier for fast-mode runs — without it, the fast-mode cost comparison was wrong in fast's favour (it's a premium, not a saving).
+- **A rerun harness that recorded its own failure as the model's (harness).** An overnight pass tried to re-run the `beads`-tooling false-failures in experiments 1/2/5 under the fixed harness. The rerun harness never launched the model — every cell came back in ~1–4 s with **$0 cost and all-zero scores** — yet it *overwrote* the previously-good runs with those instant failures (experiment-5 dropped from 36 to 18 completed; experiment-1 lost 3). The DBs were **restored from `.pre-rerun.bak` snapshots**; no cell actually changed state. The tell was the same one as always: a *genuine* failure burns minutes of model time, a *harness* failure fails instantly for $0. (Full breakdown in [exp-10 results → Rerun outcomes](experiment-10/results.md#rerun-outcomes-experiments-1-2-5).)
 - **Genuine failures (signal).** The real failures cluster exactly where the data says they should: the **hard task with cheaper models or `beads` tooling**. A handful of Erlang runs also flaked the tests-gate on first attempt and passed on `--retry-failed` — ordinary non-determinism, not a model limitation.
 
 The lesson cuts both ways: a strict "tests must run" gate is essential to avoid scoring vibes — but you have to be sure a *failure* is the model's and not the harness's. All three measurement bugs are fixed and covered by tests.
