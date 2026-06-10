@@ -1,0 +1,61 @@
+# Experiment 12 — a LOCAL model (Qwen2.5-Coder 7B via Ollama) on the REST-API task.
+#
+# The omp harness drives oh-my-pi (`omp`), which runs the local Ollama-served
+# model. A local model's name doesn't imply its harness, so it routes via an
+# explicit `local_agents` profile (the override path). We RUN only the
+# qwen-local/go cell (design-qwen-go.csv); the claude-code baseline for go on
+# this task comes from experiments 1/6/7.
+#
+# Prereqs: `omp` (oh-my-pi) on PATH, `ollama serve` running, and
+# `ollama pull qwen2.5-coder:7b`. Local inference reports no API cost ($0).
+#
+# Run:
+#   export PATH="/opt/homebrew/bin:$HOME/go/bin:$PATH"
+#   PYTHONPATH=src .venv/bin/python -c 'from retort.cli import main; main()' run \
+#     --phase screening --config experiment-12/bookshop/workspace.yaml \
+#     --design experiment-12/bookshop/design-qwen-go.csv --resume
+
+experiment:
+  name: experiment-12-qwen-local-bookshop
+  visibility: public
+
+factors:
+  language:
+    levels: [go, python, rust, typescript]
+  agent:
+    levels: [qwen-local, claude-code]
+
+responses:
+  - code_quality
+  - token_efficiency
+  - test_coverage
+  - defect_rate
+  - maintainability
+  - idiomatic
+
+tasks:
+  - source: bundled://rest-api-crud
+
+playpen:
+  runner: local
+  replicates: 3
+  timeout_minutes: 30
+  max_turns: 200
+  local_agents:
+    qwen-local:
+      harness: omp
+      model: lmlocal/qwen2.5-coder:7b
+
+design:
+  screening_resolution: 3
+  significance_threshold: 0.10
+
+promotion:
+  screening_to_trial: { p_value: 0.10 }
+  trial_to_production: { posterior_confidence: 0.80 }
+
+evaluation:
+  enabled: false
+  model: claude-opus-4-6
+  min_severity_to_file: high
+  issue_tracker: beads

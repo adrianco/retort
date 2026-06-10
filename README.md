@@ -52,6 +52,7 @@ retort --help                    # CLI loads → deps OK
 | **`claude` CLI, authenticated** | the agent runner shells out to `claude -p …` |
 | **Per-language toolchains** | the scorer **builds, tests, and lints** the generated code — see the table below |
 | **`bd` (beads) CLI** | only if a factor uses `tooling: beads` |
+| **`gemini` CLI** / **`omp` (oh-my-pi) CLI** | only to run non-Claude agents — Google Gemini, or local/other models via [oh-my-pi](https://github.com/can1357/oh-my-pi); see [Comparing coding agents](#comparing-coding-agents-eg-claude-vs-gemini) |
 
 `.devcontainer/` provisions all of this for Codespaces / Dev Containers (authenticate `claude` once).
 
@@ -357,14 +358,61 @@ factors:
 
 `retort analyze` then decomposes how much of quality/reliability/cost is the *model/agent* versus the language and task. The `gemini` harness needs Google's [Gemini CLI](https://github.com/google-gemini/gemini-cli) on `PATH` and a Gemini auth method (`GEMINI_API_KEY`, ADC, or a free OAuth login) in the environment. The CLI reports tokens but not a dollar cost, so retort derives cost from `GEMINI_PRICING` in `local_runner.py` (base-tier rates — verify against current Google pricing). The spec-gate judge stays on Claude (`reevaluate --eval-model claude-opus-4-6`) so an independent model grades every agent fairly.
 
-A **local/self-hosted** model whose name doesn't imply its harness (e.g. an `omp` model) can't be inferred, so it's routed by an explicit profile that overrides the model rule:
+#### Local / self-hosted models via the `omp` harness (oh-my-pi)
+
+A **local/self-hosted** model whose name doesn't imply its harness can't be inferred, so it's routed by an explicit profile that overrides the model rule. The `omp` harness drives **[oh-my-pi](https://github.com/can1357/oh-my-pi)** (`omp`) — a terminal coding agent that natively supports local backends (**Ollama**, LM Studio, llama.cpp, vLLM) as well as cloud providers. This is how you put a *local* model in the grid (`claude-code` runs Claude; `omp` runs whatever local/other model you point it at).
+
+**Install `omp`** (one of):
+
+```bash
+brew install can1357/tap/omp          # macOS / Linux (Homebrew)
+curl -fsSL https://omp.sh/install | sh  # macOS / Linux (script)
+bun install -g @oh-my-pi/pi-coding-agent # any platform with Bun ≥ 1.3.14
+```
+
+**Serve a local model with Ollama, then declare it to `omp`.** This path is verified end-to-end (experiment-12: Qwen2.5-Coder-7B on bookshop/Go).
+
+```bash
+# ⚠️ Use the CASK, not the formula. `brew install ollama` (formula) ships
+# WITHOUT its inference runner (llama-server) — every call then 500s with
+# "llama-server binary not found". The cask bundles the runner:
+brew install --cask ollama && open -a Ollama     # starts the server on :11434
+ollama pull qwen2.5-coder:7b
+```
+
+`omp`'s *built-in* Ollama integration launches its own `llama-server` and is brittle against modern Ollama installs. The reliable wiring is a custom `openai-completions` provider in `~/.omp/agent/models.yml` pointed at Ollama's OpenAI-compatible endpoint (use a provider name **without** "ollama" in it so omp doesn't reroute to its launcher):
+
+```yaml
+# ~/.omp/agent/models.yml
+providers:
+  lmlocal:
+    baseUrl: http://localhost:11434/v1
+    apiKey: ollama          # ignored by Ollama; any literal works
+    api: openai-completions
+    auth: apiKey
+    models:
+      - id: qwen2.5-coder:7b          # the id Ollama serves; sent on the wire
+        name: Qwen2.5 Coder 7B (local)
+        input: [text]
+        contextWindow: 32768
+        maxTokens: 8192
+        cost: { input: 0, output: 0, cacheRead: 0, cacheWrite: 0 }   # local = free
+```
+
+Verify with a one-shot before launching a run, then point a retort profile at the `provider/id`:
+
+```bash
+omp -p --no-session --mode json --model lmlocal/qwen2.5-coder:7b "reply ok"   # should print usage + cost:0
+```
 
 ```yaml
 playpen:
   local_agents:
-    qwen-local: { harness: omp, model: qwen-2.5-coder }
+    qwen-local: { harness: omp, model: lmlocal/qwen2.5-coder:7b }
 factors:
-  agent: { levels: [qwen-local, claude-code] }   # explicit override for non-inferable models
+  agent: { levels: [qwen-local, claude-code] }   # explicit override for non-inferable local models
 ```
 
-Adding another agent is the same three-part adapter: a command branch, a usage parser, and one `LocalHarness` literal (plus a model-prefix rule in `_harness_for_model` if the new agent's models should auto-route).
+retort invokes `omp -p --no-session --mode json --model <model> …` and parses its JSON usage events; local runs record `$0` (or a hardware-cost estimate if `local_inference_cost` is configured). omp also supports LM Studio, llama.cpp, and vLLM the same way — see the [provider docs](https://omp.sh/docs/providers). **Note on small local models:** in experiment-12, `qwen2.5-coder:7b` failed bookshop/Go — it never called omp's file tools (it asked for `TASK.md`'s contents instead of `read`-ing the file), so no code was written. The limiter for small local models in an agentic harness is *tool-use behavior*, not raw capability.
+
+Adding another cloud agent is the same three-part adapter: a command branch, a usage parser, and one `LocalHarness` literal (plus a model-prefix rule in `_harness_for_model` if the new agent's models should auto-route).
