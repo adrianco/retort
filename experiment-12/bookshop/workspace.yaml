@@ -23,7 +23,7 @@ factors:
   language:
     levels: [go, python, rust, typescript]
   agent:
-    levels: [qwen-local, claude-code]
+    levels: [qwen-local, llama-local, claude-code]
 
 responses:
   - code_quality
@@ -44,7 +44,10 @@ playpen:
   local_agents:
     qwen-local:
       harness: omp
-      model: lmlocal/qwen2.5-coder:7b
+      model: lmlocal/qwen2.5-coder:7b   # emits tool calls as bare JSON; Ollama can't structure them
+    llama-local:
+      harness: omp
+      model: lmlocal/llama3.2:3b        # emits proper structured tool_calls; omp executes them
 
 design:
   screening_resolution: 3
