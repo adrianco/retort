@@ -19,11 +19,16 @@ experiment:
   name: experiment-11-gemini-bookshop
   visibility: public
 
+# The agent is the SAME variable as the model: a gemini-* model auto-routes to
+# the Gemini CLI, a claude id to claude-code. No separate `agent` factor / no
+# local_agents profile needed — just list the models. We RUN only the gemini
+# cells (design-gemini-*.csv); the claude-code baseline for the same
+# task/languages comes from experiments 1/6/7.
 factors:
   language:
     levels: [go, python, clojure, rust, java, typescript]
-  agent:
-    levels: [gemini, claude-code]
+  model:
+    levels: [gemini-2.5-pro, claude-opus-4-8]
 
 responses:
   - code_quality
@@ -41,10 +46,6 @@ playpen:
   replicates: 3
   timeout_minutes: 30
   max_turns: 200
-  local_agents:
-    gemini:
-      harness: gemini
-      model: gemini-2.5-pro
 
 design:
   screening_resolution: 3

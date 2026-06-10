@@ -1,9 +1,11 @@
 # experiment-11 — Google Gemini on the REST-API task (ready-to-run)
 
 The first **cross-agent** experiment: the REST-API CRUD (bookshop) task run by
-**Google Gemini** (`gemini-2.5-pro`) instead of `claude-code`, so `agent`
-becomes a factor the ANOVA can decompose against the existing claude-code
-baselines (experiments 1 / 6 / 7) on the same task and languages.
+**Google Gemini** (`gemini-2.5-pro`) instead of `claude-code`. The agent is the
+same variable as the **model** — a `gemini-*` model auto-routes to the Gemini
+CLI — so the `model` factor alone (no separate `agent` factor) lets the ANOVA
+decompose it against the existing claude-code baselines (experiments 1 / 6 / 7)
+on the same task and languages.
 
 **Status: scaffold only — no result rows yet.** The Gemini harness was built and
 validated end-to-end against the live Gemini CLI 0.46 (command flags, the
