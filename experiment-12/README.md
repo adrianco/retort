@@ -6,31 +6,42 @@ local **Qwen2.5-Coder 7B** served by Ollama. `agent` is the explicit-override
 path (a local model's name doesn't imply its harness), against the `claude-code`
 baseline for Go on this task (experiments 1 / 6 / 7).
 
-## Result: the integration works; the failure is a tool-call serialization gap
+## Result: the integration works; two separate things break the local models
 
-| agent | model | cost | result |
-|---|---|---:|---|
-| omp (oh-my-pi) | qwen2.5-coder:7b (local, Ollama) | **$0.00** | **fail** — tests never ran |
+| agent | model | cost | result | why |
+|---|---|---:|---|---|
+| omp (oh-my-pi) | qwen2.5-coder:7b (local, Ollama) | **$0.00** | **fail** | tool-call **format** |
+| omp (oh-my-pi) | llama3.2:3b (local, Ollama) | **$0.00** | **fail** | agentic **capability** |
 
-The harness path is fully functional — omp → Ollama → Qwen ran cleanly, at **$0**
-(local inference), and retort captured token usage (~4.2 k). The model never wrote
-any code, so the tests-gate failed in ~24 s. But the cause is **not** "the model
-can't act as an agent."
+The harness path is fully functional — omp → Ollama ran cleanly at **$0** (local
+inference) and retort captured token usage. Verified end-to-end that omp *does*
+execute local tool calls: with `llama3.2:3b`, `omp -p "create hello.txt …"`
+calls the `write` tool and the file appears. So the failures below are about the
+**models**, not the integration — and they are two distinct failures:
 
-Probing Ollama's OpenAI endpoint directly with a tool definition shows the model
-**does produce the correct tool call** — given "write hello.txt", `qwen2.5-coder:7b`
-returns exactly `{"name":"write_file","arguments":{"path":"hello.txt","content":"hi"}}`.
-The problem: Ollama's OpenAI-compatible `/v1/chat/completions` endpoint returns
-that call as **plain text in `content`**, not in the structured `tool_calls`
-field. omp (like any OpenAI-style client) only executes structured `tool_calls`,
-so it sees text, renders it as chat, and runs nothing — no file is written.
+**1. qwen2.5-coder:7b — tool-call format.** Probed directly, the model produces
+the intended call as text — `{"name":"write_file","arguments":{…}}` — but Ollama
+returns it in the `content` field, not the structured `tool_calls` field, on
+**both** the OpenAI `/v1/chat/completions` endpoint **and** native `/api/chat`,
+*even though the model advertises a `tools` capability*. It emits bare JSON
+instead of the `<tool_call>…</tool_call>`-delimited output its Ollama template
+expects, so Ollama can't lift it into `tool_calls`. omp (per oh-my-pi
+`docs/provider-streaming-internals.md`, which maps structured streaming
+`tool_calls` only — no generic text-to-tool-call recovery) sees text and runs
+nothing. The model never even attempts the build.
 
-**Takeaway:** the limiter here is a **tool-call serialization mismatch in the
-local OpenAI-compat layer**, not the model's capability or agency. `qwen2.5-coder:7b`
-emits the right call; Ollama's `/v1` doesn't parse it into `tool_calls` for this
-model's template. Fixes to try next: a model whose Ollama template emits proper
-tool calls over `/v1`, a newer Ollama, or driving Ollama's native `/api/chat`
-(which parses tool calls) instead of the OpenAI `/v1` shim.
+**2. llama3.2:3b — agentic capability.** This model's tool calls *do* serialize
+correctly (Ollama returns proper `tool_calls`; the hello.txt probe works). But on
+the real bookshop task the 3B general model doesn't drive the loop — it makes no
+tool calls, reads no files, writes no code. Tool format fixed, capability
+insufficient.
+
+**Takeaway:** a usable local coding agent needs **both** (a) a model whose tool
+calls Ollama can structure into `tool_calls`, **and** (b) enough capability /
+agentic tuning to actually drive a multi-step task. `qwen2.5-coder:7b` clears (b)'s
+intent but fails (a); `llama3.2:3b` clears (a) but fails (b). Neither small local
+model clears both. Worth trying next for a model that may clear both:
+`qwen2.5:7b-instruct`, `llama3.1:8b`, or `mistral-nemo`.
 
 ## Reproduce
 
