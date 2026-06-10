@@ -1,0 +1,61 @@
+# Experiment 11 — Google Gemini (gemini-2.5-pro) on the REST-API CRUD task.
+#
+# First cross-AGENT study: agent is a factor (gemini vs claude-code). We RUN
+# only the gemini cells (design-gemini-*.csv); the claude-code baseline for the
+# same task/languages comes from experiments 1/6/7. tooling=none (beads dropped).
+#
+# The gemini harness shells out to `gemini --yolo --output-format json
+# --model gemini-2.5-pro --prompt ...` and derives cost from token counts via
+# GEMINI_PRICING (the CLI reports tokens, not dollars). Auth: free-tier Google
+# OAuth login (no API key); watch the daily quota.
+#
+# Run Go + Python first (gauge free-tier token use), then the rest:
+#   export PATH="/opt/homebrew/opt/openjdk/bin:/opt/homebrew/bin:$HOME/go/bin:$PATH"
+#   PYTHONPATH=src .venv/bin/python -c 'from retort.cli import main; main()' run \
+#     --phase screening --config experiment-11/bookshop/workspace.yaml \
+#     --design experiment-11/bookshop/design-gemini-gopy.csv --resume
+
+experiment:
+  name: experiment-11-gemini-bookshop
+  visibility: public
+
+factors:
+  language:
+    levels: [go, python, clojure, rust, java, typescript]
+  agent:
+    levels: [gemini, claude-code]
+
+responses:
+  - code_quality
+  - token_efficiency
+  - test_coverage
+  - defect_rate
+  - maintainability
+  - idiomatic
+
+tasks:
+  - source: bundled://rest-api-crud
+
+playpen:
+  runner: local
+  replicates: 3
+  timeout_minutes: 30
+  max_turns: 200
+  local_agents:
+    gemini:
+      harness: gemini
+      model: gemini-2.5-pro
+
+design:
+  screening_resolution: 3
+  significance_threshold: 0.10
+
+promotion:
+  screening_to_trial: { p_value: 0.10 }
+  trial_to_production: { posterior_confidence: 0.80 }
+
+evaluation:
+  enabled: false
+  model: claude-opus-4-6
+  min_severity_to_file: high
+  issue_tracker: beads

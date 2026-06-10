@@ -1,0 +1,7 @@
+run,language,agent
+0,go,gemini
+1,python,gemini
+2,clojure,gemini
+3,rust,gemini
+4,java,gemini
+5,typescript,gemini
