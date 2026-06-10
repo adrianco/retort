@@ -6,7 +6,7 @@
 
 Every few weeks a new frontier model tops the leaderboards, and the implicit advice is "upgrade." Sites like **[llm-stats.com](https://llm-stats.com/)** rank models well across many benchmarks — but they answer a question most engineering teams aren't actually asking. They hold the *stack* constant: one prompt, one harness, a fixed benchmark. They don't tell you whether the newest model is worth 4× the cost **in Rust**, how *reliably* each model gets a Go MCP server completely right, or how long any of it takes.
 
-Those are the variables that decide a real project. So I built **[retort](https://github.com/adrianco/retort)** to measure them properly — with statistical Design of Experiments, the same technique you'd use to tune a manufacturing process. Vary the factors you care about (here: programming **language** × **model version** × **tooling**), run a factorial grid on a real task, score every cell, and let the analysis tell you which factors actually matter. Nine experiments, **258 scored runs**, two tasks, eight languages, four Claude models (plus a fast-mode variant and a next-tier model, Fable 5). Here's what came out.
+Those are the variables that decide a real project. So I built **[retort](https://github.com/adrianco/retort)** to measure them properly — with statistical Design of Experiments, the same technique you'd use to tune a manufacturing process. Vary the factors you care about (here: programming **language** × **model version** × **tooling** — and, newly, the **coding agent** itself), run a factorial grid on a real task, score every cell, and let the analysis tell you which factors actually matter. Nine experiments, **258 scored runs**, two tasks, eight languages, four Claude models (plus a fast-mode variant and a next-tier model, Fable 5). Here's what came out.
 
 ## The metric that matters: how often is it *completely* right?
 
@@ -150,6 +150,14 @@ None of these were model failures; they were all mine, and all are now fixed (or
 ## The factor I haven't varied yet: the prompt
 
 There's a large lever I deliberately held constant: **the prompt.** Every run got the same terse "implement TASK.md" instruction. But how you ask plausibly moves reliability as much as which model you pick — and it's nearly free to change. Does a test-first prompt, or one with a worked example, or a "list the requirements before you code" preamble, lift a cheap model's hard-task pass rate from 0.5 toward the expensive model's 1.0? If so, a better prompt could be worth more than a model upgrade, at a fraction of the cost. retort treats `prompt` as just another factor, so the next study writes itself: **`prompt × model` on a hard task.** That's the experiment I'd run next, and it's the one with the most direct impact on a real engineering budget.
+
+## Beyond the model: varying the *agent* itself
+
+There's a second constant I've started to relax. Every run above used one agent — Claude Code (`claude -p`) — and varied the *model* inside it. But the agent is its own variable: the harness around the model (its tools, its file-editing loop, its planning, its prompt scaffolding) plausibly moves results as much as the weights do. So the obvious question is whether a different **agent** — same class of task, different vendor — lands in a different place.
+
+retort now treats `agent` as a first-class factor. I added a **Google Gemini** adapter (it shells out to the `gemini` CLI exactly the way the Claude path shells out to `claude -p`), so you can put `agent: [claude-code, gemini]` straight into the factor grid and let the same ANOVA decompose how much of quality, reliability, and cost is the *agent* versus the language versus the task. Building it was a good demonstration of why you run things rather than trust them: the integration looked done in a unit test, but the first *live* run caught two things the test couldn't — the CLI was reporting tokens under different field names than I'd assumed (so cost would've been silently wrong), and it quietly refuses to act autonomously in an "untrusted" folder until you pass an explicit flag. Both fixed against the real CLI's behavior.
+
+What I *don't* have yet is the cross-agent data: the free-tier Gemini quota hit a capacity wall before a single cell finished, so the comparison itself is still pending a quota reset or a paid key. But the scaffold is wired and validated, and the more interesting point stands — once you can vary the agent, "which coding agent" becomes a measurable question on *your* task, not a Twitter argument.
 
 ## So how should you actually choose?
 
