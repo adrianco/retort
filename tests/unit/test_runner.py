@@ -410,6 +410,114 @@ class TestLocalRunnerOmpHarness:
         assert "--thinking" in cmd
         assert cmd[cmd.index("--thinking") + 1] == "minimal"
 
+
+class TestLocalRunnerGeminiHarness:
+    def _profile(self, **kwargs):
+        from retort.config.schema import LocalAgentConfig
+
+        return LocalAgentConfig(harness="gemini", **kwargs)
+
+    def test_builds_gemini_command_with_model_factor(self, tmp_path):
+        from retort.playpen.local_runner import LocalRunner
+
+        runner = LocalRunner(
+            work_dir=tmp_path,
+            local_agents={"gemini": self._profile()},
+        )
+        stack = StackConfig(
+            language="go",
+            agent="gemini",
+            framework="stdlib",
+            extra={"model": "gemini-2.5-pro"},
+        )
+        task = TaskSpec(name="plain", description="d", prompt="hi")
+
+        cmd = runner._build_agent_command(stack, task)
+
+        assert cmd[:5] == ["gemini", "--yolo", "--skip-trust", "--output-format", "json"]
+        assert cmd[cmd.index("--model") + 1] == "gemini-2.5-pro"
+        # The prompt is the value after --prompt, and carries the language steer.
+        assert "You are working in go." in cmd[cmd.index("--prompt") + 1]
+        assert "Read TASK.md" in cmd[cmd.index("--prompt") + 1]
+
+    def test_gemini_profile_model_default_applies(self, tmp_path):
+        from retort.playpen.local_runner import LocalRunner
+
+        runner = LocalRunner(
+            work_dir=tmp_path,
+            local_agents={"gemini": self._profile(model="gemini-2.5-flash")},
+        )
+        stack = StackConfig(language="rust", agent="gemini", framework="stdlib")
+        task = TaskSpec(name="plain", description="d", prompt="hi")
+
+        cmd = runner._build_agent_command(stack, task)
+
+        assert cmd[cmd.index("--model") + 1] == "gemini-2.5-flash"
+
+    def test_parse_gemini_usage_real_cli_shape(self):
+        # The ACTUAL `gemini --output-format json` output (CLI 0.46, captured
+        # from a live run): one {response, stats} object where stats.models is
+        # keyed BY model name and token fields are the CLI's own names
+        # (input/candidates/cached/total/thoughts) — NOT the API *TokenCount
+        # names. `thoughts` (thinking tokens) bill as output.
+        import json
+
+        from retort.playpen.local_runner import (
+            GEMINI_PRICING, _parse_agent_usage, _parse_gemini_usage,
+        )
+
+        out = json.dumps({
+            "session_id": "abc",
+            "response": "ok",
+            "stats": {"models": {"gemini-2.5-flash": {
+                "api": {"totalRequests": 2, "totalLatencyMs": 14038},
+                "tokens": {"input": 7798, "prompt": 7798, "candidates": 1,
+                           "total": 7839, "cached": 0, "thoughts": 40, "tool": 0},
+            }}},
+        })
+        tokens, meta = _parse_gemini_usage(out)
+        assert tokens == 7839                       # reported total
+        assert meta["input_tokens"] == "7798"
+        assert meta["output_tokens"] == "41"        # candidates(1) + thoughts(40)
+        assert meta["thoughts_tokens"] == "40"
+        assert meta["model"] == "gemini-2.5-flash"  # from the stats.models key
+        in_rate, out_rate = GEMINI_PRICING["gemini-2.5-flash"]
+        expected = (7798 * in_rate + 41 * out_rate) / 1_000_000
+        assert abs(float(meta["total_cost_usd"]) - expected) < 1e-9
+        assert _parse_agent_usage("gemini", out) == (tokens, meta)  # dispatch routes here
+
+    def test_parse_gemini_usage_unknown_model_zero_cost(self):
+        import json
+
+        from retort.playpen.local_runner import _parse_gemini_usage
+
+        out = json.dumps({"stats": {"models": {"gemini-9-ultra": {"tokens": {
+            "input": 100, "candidates": 50, "total": 150,
+        }}}}})
+        tokens, meta = _parse_gemini_usage(out)
+        assert tokens == 150
+        assert meta["total_cost_usd"] == "0.0"  # unknown model -> no derived cost
+
+    def test_parse_gemini_usage_api_name_fallback(self):
+        # Robustness: if a future schema drops the stats.models nesting and uses
+        # API field names, the recursive fallback still extracts tokens.
+        import json
+
+        from retort.playpen.local_runner import _parse_gemini_usage
+
+        out = json.dumps({"usage": {
+            "promptTokenCount": 1000, "candidatesTokenCount": 200, "totalTokenCount": 1200,
+        }})
+        tokens, meta = _parse_gemini_usage(out)
+        assert tokens == 1200
+        assert meta["input_tokens"] == "1000"
+        assert meta["output_tokens"] == "200"
+
+    def test_parse_gemini_usage_bad_json_safe(self):
+        from retort.playpen.local_runner import _parse_gemini_usage
+
+        assert _parse_gemini_usage("not json") == (0, {})
+
     def test_design_thinking_off_omits_omp_flag(self, tmp_path):
         from retort.playpen.local_runner import LocalRunner
 
