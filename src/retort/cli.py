@@ -1063,9 +1063,10 @@ def _invoke_claude_skill_prompt(
     Timeout defaults to 600s to accommodate chained skills (evaluate-run +
     file-run-issues) in a single call.
     """
+    from retort.playpen.local_runner import _model_cli_args
     cmd = [
         "claude", "-p", prompt,
-        "--model", model,
+        *_model_cli_args(model),
         "--output-format", "text",
         "--dangerously-skip-permissions",
     ]
@@ -1093,11 +1094,12 @@ def _invoke_claude_skill(
     Never raises — a missing ``claude`` binary or a non-zero exit is reported
     through the returned code and stderr text so callers can log and continue.
     """
+    from retort.playpen.local_runner import _model_cli_args
     param_str = " ".join(f"{k}={v}" for k, v in params.items())
     prompt = f"Follow skill at {skill_path} for {param_str}"
     cmd = [
         "claude", "-p", prompt,
-        "--model", model,
+        *_model_cli_args(model),
         "--output-format", "text",
         "--dangerously-skip-permissions",
     ]
@@ -2952,9 +2954,8 @@ def evaluate(
     help="Workspace YAML (defaults to <experiment-dir>/workspace.yaml).",
 )
 @click.option(
-    "--eval-model", default="opus-4.8-fast", show_default=True,
-    help="Judge model for the second-opinion spec eval (fast-mode aware: a "
-         "'-fast' level runs Claude Code fast mode).",
+    "--eval-model", default="claude-opus-4-8", show_default=True,
+    help="Judge model for the second-opinion spec eval.",
 )
 @click.option("--workers", default=2, show_default=True, type=int)
 @click.option(
@@ -3297,6 +3298,115 @@ def rescore(experiment_dir, config, languages, only_failed, metrics_only, worker
         cx.close()
     click.echo(f"Re-scored {counts['done']} run(s); {counts['updated']} now completed. "
                f"Run `retort reevaluate` then `retort aggregate` to refresh.")
+
+
+@main.command("diagnose")
+@click.option("--experiment-dir", "experiment_dir", required=True,
+              type=click.Path(exists=True, file_okay=False),
+              help="Experiment directory containing retort.db and runs/.")
+@click.option("--as-json", "as_json", is_flag=True,
+              help="Emit JSON instead of the text report.")
+def diagnose(experiment_dir, as_json):
+    """Deep-analyse every FAILED run and classify it TOOLING vs GENUINE.
+
+    Read-only, so you never have to hand-investigate a failure again. For each
+    failed run it RE-TESTS the archived code with the current scorers and probes
+    the test command:
+
+    \b
+    * TOOLING — the code actually builds and its tests pass; the gate failed it
+      on a scoring artefact (e.g. coverage measured 0 on passing tests). These
+      recover with `retort rescore --only-failed`.
+    * GENUINE — the tests genuinely don't run / don't pass, or the spec isn't
+      met (requirement_coverage < 1). The specific cause is reported.
+
+    Note: re-testing python archives installs their deps, so a large failure set
+    can take a few minutes.
+    """
+    import json as _json
+    import sqlite3
+
+    from retort.playpen.runner import RunArtifacts, StackConfig
+    from retort.scoring.scorers.test_coverage import TestCoverageScorer
+
+    exp = Path(experiment_dir)
+    db_path = exp / "retort.db"
+    if not db_path.exists():
+        raise click.ClickException(f"No retort.db in {experiment_dir}")
+    runs_root = exp / "runs"
+    scorer = TestCoverageScorer()
+    con = sqlite3.connect(db_path)
+    failed = con.execute(
+        "SELECT id, run_config_json, replicate, error_message FROM experiment_runs "
+        "WHERE status='failed' ORDER BY run_config_json, replicate").fetchall()
+
+    def _metric(run_id, name):
+        r = con.execute(
+            "SELECT value FROM run_results WHERE run_id=? AND metric_name=?",
+            (run_id, name)).fetchone()
+        return r[0] if r else None
+
+    findings = []
+    for run_id, rc_json, rep, err in failed:
+        rc = _json.loads(rc_json)
+        cell = "_".join(f"{k}={v}" for k, v in sorted(rc.items()))
+        label = f"{cell}/rep{rep}"
+        # A failed run is archived as repN-failed when one exists; otherwise the
+        # gate-failed-but-code-present runs keep the plain repN dir.
+        rep_dir = runs_root / cell / f"rep{rep}-failed"
+        if not rep_dir.is_dir():
+            rep_dir = runs_root / cell / f"rep{rep}"
+        req_cov = _metric(run_id, "requirement_coverage")
+        old_tc = _metric(run_id, "test_coverage")
+        if not rep_dir.is_dir():
+            findings.append((label, "UNKNOWN", "no archived run dir to inspect"))
+            continue
+        stack = StackConfig(
+            language=rc.get("language", ""), agent=rc.get("agent", "unknown"),
+            framework=rc.get("framework", "none"),
+            extra={"tooling": rc["tooling"]} if "tooling" in rc else {})
+        art = RunArtifacts(output_dir=rep_dir, stdout="", stderr="", exit_code=0,
+                           duration_seconds=0.0, token_count=0, metadata={})
+        # Mechanical-gate failure (tests did not run) → re-test with current scorers.
+        if (err or "").startswith("tests did not run") or old_tc in (0, 0.0, None):
+            tc = scorer.score(art, stack)
+            if tc and tc > 0:
+                findings.append((label, "TOOLING",
+                                 f"tests now run and measure {tc:.0%} coverage — "
+                                 "scorer false-failure (rescore recovers it)"))
+            else:
+                rate = scorer._tests_pass_rate(rep_dir.resolve(), rc.get("language", ""))
+                if rate and rate > 0:
+                    findings.append((label, "TOOLING",
+                                     f"tests pass ({rate:.0%}) but the coverage "
+                                     "tool measured 0"))
+                else:
+                    findings.append((label, "GENUINE",
+                                     "tests do not run / do not pass on the "
+                                     "archived code"))
+        elif req_cov is not None and req_cov < 1.0:
+            findings.append((label, "GENUINE",
+                             f"spec shortfall: requirement_coverage={req_cov}"))
+        else:
+            findings.append((label, "GENUINE", err or "failed (no recorded reason)"))
+    con.close()
+
+    if as_json:
+        click.echo(_json.dumps(
+            [{"cell": c, "class": k, "cause": v} for c, k, v in findings], indent=2))
+        return
+    tooling = [f for f in findings if f[1] == "TOOLING"]
+    genuine = [f for f in findings if f[1] == "GENUINE"]
+    if not findings:
+        click.echo("No failed runs to diagnose — all runs are completed.")
+        return
+    click.echo(f"Diagnosed {len(findings)} failed run(s): "
+               f"{len(tooling)} TOOLING, {len(genuine)} GENUINE\n")
+    for c, k, v in findings:
+        click.echo(f"  [{k:7}] {c}\n             {v}")
+    if tooling:
+        click.echo(f"\n→ {len(tooling)} tooling false-failure(s) recover with:\n"
+                   f"    retort rescore --experiment-dir {experiment_dir} --only-failed")
 
 
 @report.command("compare")
