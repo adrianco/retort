@@ -105,7 +105,7 @@ Claude then writes the workspace + design, installs toolchains, runs the cells (
 
 ## What the data says
 
-> 📝 For the narrative walkthrough of these findings — the reliability-vs-cost story, fast mode, the BEAM languages, and the measurement bugs along the way — see the companion **[blog post](BLOG.md)**.
+> 📝 For the narrative walkthrough of these findings — the reliability-vs-cost story, fast mode, the BEAM languages, and the measurement bugs along the way — see the companion **[model blog](model-blog.md)** (updated as new models arrive). The **[prompt blog](prompt-blog.md)** covers the separate question of whether the *prompt* — specifically the prescribed test methodology (BDD / TDD / ATDD vs none) — moves reliability.
 
 The headline metric is **pass-proportion**: with N replicates of a stack, the fraction whose runs *fully implement the spec* (`requirement_coverage == 1.0`, a gate pass). Read it as **the probability that a single run of that stack comes out completely correct** — 3/3 → 1.00, 2/3 → 0.66, 1/3 → 0.33. A single sub-1.0 run is a fail.
 
