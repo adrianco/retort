@@ -1206,3 +1206,42 @@ def test_run_row_exists_distinguishes_orphan(tmp_path: Path):
     assert not _run_row_exists(db, {**rc, "prompt": "TDD"}, 1)
     # different replicate = not found
     assert not _run_row_exists(db, rc, 2)
+
+
+def test_diagnose_classifies_tooling_false_failure(tmp_path: Path):
+    """diagnose must re-test a failed run's archive and, when it now passes,
+    classify it TOOLING (a scorer false-failure), not GENUINE."""
+    import json
+    import shutil as _sh
+
+    import pytest
+    if _sh.which("go") is None:
+        pytest.skip("go toolchain not installed")
+    exp = tmp_path
+    cell = "language=go_model=sonnet"
+    rep = exp / "runs" / cell / "rep1"
+    rep.mkdir(parents=True)
+    (rep / "go.mod").write_text("module ex\ngo 1.21\n")
+    (rep / "calc.go").write_text(
+        "package main\nfunc Add(a, b int) int { return a + b }\nfunc main() {}\n")
+    (rep / "calc_test.go").write_text(
+        "package main\nimport \"testing\"\n\n"
+        "func TestAdd(t *testing.T) {\n\tif Add(1, 2) != 3 {\n\t\tt.Fail()\n\t}\n}\n")
+    db = exp / "retort.db"
+    con = sqlite3.connect(db)
+    con.execute("CREATE TABLE experiment_runs (id INTEGER PRIMARY KEY, "
+                "run_config_json TEXT, replicate INTEGER, status TEXT, "
+                "error_message TEXT)")
+    con.execute("CREATE TABLE run_results (run_id INTEGER, metric_name TEXT, "
+                "value REAL)")
+    con.execute("INSERT INTO experiment_runs (run_config_json, replicate, status, "
+                "error_message) VALUES (?,?,?,?)",
+                (json.dumps({"language": "go", "model": "sonnet"}), 1, "failed",
+                 "tests did not run (test_coverage=0)"))
+    con.execute("INSERT INTO run_results VALUES (1, 'test_coverage', 0.0)")
+    con.commit()
+    con.close()
+    result = CliRunner().invoke(cli, ["diagnose", "--experiment-dir", str(exp)])
+    assert result.exit_code == 0, result.output
+    assert "1 TOOLING, 0 GENUINE" in result.output
+    assert "[TOOLING]" in result.output
