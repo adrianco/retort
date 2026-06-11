@@ -3338,7 +3338,9 @@ def _discover_active_runs(db_path: Path) -> list[dict]:
             return None
 
     exp = db_path.resolve().parent.name
-    r = _run(["pgrep", "-f", f"retort run .*{exp}"])
+    # Match both invocation styles: the `retort run ... <exp>` console script and
+    # the `python -c '...main()' run ... <exp>` form (used by sharded runners).
+    r = _run(["pgrep", "-f", f"run .*{exp}"])
     if r is None or r.returncode not in (0, 1):
         return []
     active: list[dict] = []
@@ -3367,7 +3369,9 @@ def _discover_active_runs(db_path: Path) -> list[dict]:
             try:
                 sj = _json.loads((Path(cwd) / "stack.json").read_text())
                 label = "/".join(
-                    str(sj[k]) for k in ("language", "model", "tooling") if k in sj
+                    str(sj[k])
+                    for k in ("language", "model", "tooling", "prompt")
+                    if k in sj
                 )
             except Exception:  # noqa: BLE001
                 pass
