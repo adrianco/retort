@@ -1297,6 +1297,7 @@ def _eval_tooling_preflight(eval_model: str, runs_root: Path) -> tuple[bool, str
     import subprocess
 
     from retort.playpen.local_runner import _find_skill_path, _model_cli_args
+    shown = eval_model or "latest (CLI default)"
     start = next((r for c in runs_root.iterdir() if c.is_dir()
                   for r in c.iterdir() if r.is_dir()), runs_root)
     if _find_skill_path("evaluate-run", start=start) is None:
@@ -1310,13 +1311,13 @@ def _eval_tooling_preflight(eval_model: str, runs_root: Path) -> tuple[bool, str
     except FileNotFoundError:
         return False, "claude CLI not found on PATH"
     except subprocess.TimeoutExpired:
-        return False, f"judge model {eval_model} did not respond within 90s"
+        return False, f"judge model {shown} did not respond within 90s"
     if proc.returncode != 0:
-        return False, (f"judge model {eval_model} probe failed "
+        return False, (f"judge model {shown} probe failed "
                        f"(exit {proc.returncode}): {proc.stderr.strip()[:140]}")
     if "OK" not in (proc.stdout or ""):
-        return False, f"judge model {eval_model} returned no usable output"
-    return True, f"judge {eval_model} reachable, evaluate-run skill present"
+        return False, f"judge model {shown} returned no usable output"
+    return True, f"judge {shown} reachable, evaluate-run skill present"
 
 
 def _run_has_requirement_coverage(db_path, run_config: dict, replicate: int) -> bool:
@@ -2954,8 +2955,10 @@ def evaluate(
     help="Workspace YAML (defaults to <experiment-dir>/workspace.yaml).",
 )
 @click.option(
-    "--eval-model", default="claude-opus-4-8", show_default=True,
-    help="Judge model for the second-opinion spec eval.",
+    "--eval-model", default="", show_default="latest (no --model passed)",
+    help="Judge model for the second-opinion spec eval. Default: unset — the "
+         "claude CLI picks its most recent model, so this tracks new releases "
+         "automatically. Pass an explicit id to pin one.",
 )
 @click.option("--workers", default=2, show_default=True, type=int)
 @click.option(
