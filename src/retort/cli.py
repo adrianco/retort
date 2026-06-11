@@ -1263,6 +1263,60 @@ def _run_config_from_cell_name(name: str) -> dict | None:
     return dict(pairs) if pairs else None
 
 
+def _run_row_exists(db_path, run_config: dict, replicate: int) -> bool:
+    """True if ANY experiment_runs row matches these factors+replicate.
+
+    Distinguishes an archive that maps to a real DB row (regardless of status)
+    from an ORPHAN whose factors match nothing — the signature of broken
+    cell-name parsing / factor matching (which silently dropped 33/36 cells of a
+    prompt-factor experiment before the parser was generalised).
+    """
+    import sqlite3
+    where, params = _factor_match_sql(run_config)
+    con = sqlite3.connect(db_path)
+    try:
+        row = con.execute(
+            f"SELECT 1 FROM experiment_runs WHERE replicate=? AND {where} LIMIT 1",
+            (replicate, *params)).fetchone()
+    finally:
+        con.close()
+    return row is not None
+
+
+def _eval_tooling_preflight(eval_model: str, runs_root: Path) -> tuple[bool, str]:
+    """Confirm the second-opinion eval tooling is actually usable before a batch.
+
+    Checks (a) the evaluate-run skill is discoverable and (b) the judge model
+    answers a trivial prompt. Returns (ok, message). Catches the silent-failure
+    class where reevaluate "succeeds" but the judge never ran (CLI missing,
+    model unreachable, usage exhausted) — persisting nothing while reporting
+    success.
+    """
+    import subprocess
+
+    from retort.playpen.local_runner import _find_skill_path, _model_cli_args
+    start = next((r for c in runs_root.iterdir() if c.is_dir()
+                  for r in c.iterdir() if r.is_dir()), runs_root)
+    if _find_skill_path("evaluate-run", start=start) is None:
+        return False, "evaluate-run skill not found (cannot grade requirement_coverage)"
+    try:
+        proc = subprocess.run(
+            ["claude", "-p", "Reply with exactly: OK", *_model_cli_args(eval_model),
+             "--output-format", "text", "--dangerously-skip-permissions"],
+            capture_output=True, text=True, timeout=90,
+        )
+    except FileNotFoundError:
+        return False, "claude CLI not found on PATH"
+    except subprocess.TimeoutExpired:
+        return False, f"judge model {eval_model} did not respond within 90s"
+    if proc.returncode != 0:
+        return False, (f"judge model {eval_model} probe failed "
+                       f"(exit {proc.returncode}): {proc.stderr.strip()[:140]}")
+    if "OK" not in (proc.stdout or ""):
+        return False, f"judge model {eval_model} returned no usable output"
+    return True, f"judge {eval_model} reachable, evaluate-run skill present"
+
+
 def _run_has_requirement_coverage(db_path, run_config: dict, replicate: int) -> bool:
     """True if the matching completed run already has a requirement_coverage row."""
     import sqlite3
@@ -2932,6 +2986,18 @@ def reevaluate(experiment_dir, config, eval_model, workers, force):
     visibility = workspace_config.experiment.visibility
 
     runs_root = exp / "runs"
+
+    # Preflight: confirm the eval tooling actually works before spending a batch,
+    # so a broken judge / missing skill fails loudly instead of silently
+    # persisting nothing and reporting success.
+    ok, msg = _eval_tooling_preflight(eval_model, runs_root)
+    if not ok:
+        raise click.ClickException(
+            f"Eval tooling preflight FAILED: {msg}. "
+            "Fix the judge model/skill before re-evaluating (nothing was changed)."
+        )
+    click.echo(f"Eval preflight OK — {msg}")
+
     reps = sorted(
         rep for cell in runs_root.iterdir() if cell.is_dir()
         for rep in cell.iterdir()
@@ -2939,6 +3005,9 @@ def reevaluate(experiment_dir, config, eval_model, workers, force):
     )
     work = []
     skipped = 0
+    orphaned: list[str] = []   # archives whose factors match NO db row
+    incomplete = 0             # real row, but not completed (legit skip)
+    already = 0                # already has coverage (legit skip)
     for rep in reps:
         # The cell dir name (language=X_model=Y[_prompt=Z…]) is the
         # authoritative factor source and matches what's stored in
@@ -2961,10 +3030,17 @@ def reevaluate(experiment_dir, config, eval_model, workers, force):
         m = re.search(r"rep(\d+)", rep.name)
         replicate = int(m.group(1)) if m else 1
         if not _run_completed_exists(db_path, run_config, replicate):
-            # No completed DB row to attach coverage to — re-evaluating it would
-            # burn evals every pass and persist nothing. Skip.
+            # No completed DB row to attach coverage to. Distinguish a genuinely
+            # incomplete run (a failed/running row exists) from an ORPHAN whose
+            # factors match nothing — the latter means cell parsing/matching is
+            # broken and the eval is silently skipping real runs.
+            if _run_row_exists(db_path, run_config, replicate):
+                incomplete += 1
+            else:
+                orphaned.append(f"{rep.parent.name}/{rep.name}")
             continue
         if not force and _run_has_requirement_coverage(db_path, run_config, replicate):
+            already += 1
             continue
         work.append((rep, run_config, replicate))
 
@@ -3019,6 +3095,37 @@ def reevaluate(experiment_dir, config, eval_model, workers, force):
     if inconclusive:
         msg += f" {inconclusive} inconclusive (usage limit/timeout) — re-run to finish."
     click.echo(msg)
+
+    # Health verdict: surface when the eval tooling silently did little/nothing,
+    # rather than reporting success on an empty pass.
+    click.echo(
+        f"Eval health: {len(reps)} archived runs | matched {len(work) + already + incomplete} "
+        f"(evaluated {len(work)}, already-covered {already}, incomplete {incomplete}) "
+        f"| orphaned {len(orphaned)}"
+    )
+    problems = []
+    if orphaned:
+        ex = ", ".join(orphaned[:3]) + ("…" if len(orphaned) > 3 else "")
+        problems.append(
+            f"{len(orphaned)} archived run(s) matched NO database row — cell-name "
+            f"parsing / factor matching is broken, real runs were skipped (e.g. {ex})"
+        )
+    if work and persisted == 0:
+        problems.append(
+            f"evaluated {len(work)} run(s) but persisted 0 coverage values — the "
+            f"judge tooling produced nothing usable"
+        )
+    elif work and inconclusive == len(work):
+        problems.append(
+            f"all {len(work)} evals were inconclusive (the judge never ran)"
+        )
+    if problems:
+        for p in problems:
+            click.echo(f"  ✗ EVAL TOOLING PROBLEM: {p}", err=True)
+        raise click.ClickException(
+            "Eval tooling did not work correctly — see the problems above. "
+            "requirement_coverage is unreliable until they are fixed."
+        )
 
 
 @main.command("rescore")

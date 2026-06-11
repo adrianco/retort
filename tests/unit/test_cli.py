@@ -1180,3 +1180,29 @@ def test_factor_match_sql_matches_every_factor():
     assert "$.model" in where and "sonnet" in params
     # tooling is matched as JSON null when absent (exp-7/8 fix preserved)
     assert "$.tooling') IS NULL" in where
+
+
+def test_run_row_exists_distinguishes_orphan(tmp_path: Path):
+    """Orphan detection underpins the reevaluate health-check: a prompt-factor
+    run must match its own row and NOT a different prompt's row."""
+    import json
+
+    from retort.cli import _run_row_exists
+    db = tmp_path / "retort.db"
+    con = sqlite3.connect(db)
+    con.execute(
+        "CREATE TABLE experiment_runs (id INTEGER PRIMARY KEY, "
+        "run_config_json TEXT, replicate INTEGER, status TEXT)")
+    con.execute(
+        "INSERT INTO experiment_runs (run_config_json, replicate, status) "
+        "VALUES (?,?,?)",
+        (json.dumps({"language": "go", "model": "sonnet", "prompt": "ATDD"}),
+         1, "completed"))
+    con.commit()
+    con.close()
+    rc = {"language": "go", "model": "sonnet", "prompt": "ATDD"}
+    assert _run_row_exists(db, rc, 1)
+    # different prompt = orphan (the bug matched it anyway, ignoring prompt)
+    assert not _run_row_exists(db, {**rc, "prompt": "TDD"}, 1)
+    # different replicate = not found
+    assert not _run_row_exists(db, rc, 2)
