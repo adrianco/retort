@@ -686,3 +686,92 @@ def test_test_coverage_parses_elixir_erlang_pass_rate():
     assert abs(p("Failed: 1.  Skipped: 0.  Passed: 11.", "erlang") - 11/12) < 1e-9
     from retort.scoring.scorers.test_coverage import _TESTS_ONLY_COMMANDS
     assert "elixir" in _TESTS_ONLY_COMMANDS and "erlang" in _TESTS_ONLY_COMMANDS
+
+
+# --- Regression: cross-package (ATDD) go coverage + python dep/venv handling ---
+
+import shutil  # noqa: E402
+
+
+def _go_module(tmp_path: Path) -> RunArtifacts:
+    """A module whose ONLY test lives in the root package and drives a sibling
+    package (calc) through its public API — the acceptance/ATDD pattern that
+    `go test -cover ./...` (no -coverpkg) miscounts as 0% for calc."""
+    (tmp_path / "go.mod").write_text("module ex\ngo 1.21\n")
+    (tmp_path / "calc").mkdir()
+    (tmp_path / "calc" / "calc.go").write_text(
+        "package calc\n"
+        "func Add(a, b int) int { return a + b }\n"
+        "func Sub(a, b int) int { return a - b }\n"
+    )
+    (tmp_path / "main.go").write_text("package main\nfunc main() {}\n")
+    (tmp_path / "main_test.go").write_text(
+        "package main\n\nimport (\n\t\"testing\"\n\n\t\"ex/calc\"\n)\n\n"
+        "func TestAdd(t *testing.T) {\n"
+        "\tif calc.Add(1, 2) != 3 {\n\t\tt.Fatal(\"add\")\n\t}\n}\n"
+    )
+    return RunArtifacts(
+        output_dir=tmp_path, stdout="", exit_code=0, duration_seconds=1.0)
+
+
+@pytest.mark.skipif(shutil.which("go") is None, reason="go toolchain not installed")
+class TestGoCrossPackageCoverage:
+    """The go scorer must credit cross-package (acceptance) test execution."""
+
+    def test_crosspackage_execution_is_credited(self, tmp_path):
+        art = _go_module(tmp_path)
+        score = TestCoverageScorer().score(
+            art, StackConfig(language="go", agent="t", framework="x"))
+        # Root test covers calc.Add (1 of 2 funcs) through calc's public API.
+        # Per-package `-cover` would score calc 0% (no in-package test); the
+        # -coverpkg profile total credits it, so this must be well above 0.
+        assert score >= 0.4, f"cross-package coverage not credited: {score}"
+
+    def test_relative_output_dir_still_measures(self, tmp_path, monkeypatch):
+        # Regression: -coverprofile must be absolute, so a RELATIVE output_dir
+        # (rescore passes archive paths relative to cwd) must still score.
+        _go_module(tmp_path)
+        monkeypatch.chdir(tmp_path.parent)
+        art = RunArtifacts(output_dir=Path(tmp_path.name), stdout="",
+                           exit_code=0, duration_seconds=1.0)
+        score = TestCoverageScorer().score(
+            art, StackConfig(language="go", agent="t", framework="x"))
+        assert score >= 0.4, f"relative output_dir scored 0: {score}"
+
+    def test_no_stray_profile_left_behind(self, tmp_path):
+        _go_module(tmp_path)
+        TestCoverageScorer().score(
+            RunArtifacts(output_dir=tmp_path, stdout="", exit_code=0,
+                         duration_seconds=1.0),
+            StackConfig(language="go", agent="t", framework="x"))
+        assert not (tmp_path / ".retort-cover.out").exists()
+
+
+class TestPythonEnvPreparation:
+    """The python scorer must prepare deps without polluting the workspace."""
+
+    def test_throwaway_venv_is_outside_output_dir(self, tmp_path):
+        from retort.scoring.scorers._venv import ensure_python_env
+        (tmp_path / "app.py").write_text("x = 1\n")
+        env, cleanup = ensure_python_env(tmp_path)
+        try:
+            # A venv inside output_dir would be collected/measured by
+            # `pytest --cov=.` and corrupt the score — it must be elsewhere.
+            assert not (tmp_path / ".retort-venv").exists()
+            if cleanup is not None:
+                assert cleanup != tmp_path
+                assert tmp_path not in cleanup.parents
+        finally:
+            if cleanup is not None:
+                shutil.rmtree(cleanup, ignore_errors=True)
+
+    def test_code_but_no_tests_scores_zero(self, tmp_path):
+        # Regression: with no shipped venv the scorer creates a throwaway one;
+        # a workspace with code but no tests must still score 0, not pick up
+        # coverage from the venv's own site-packages.
+        (tmp_path / "app.py").write_text("def main():\n    return 1\n")
+        score = TestCoverageScorer().score(
+            RunArtifacts(output_dir=tmp_path, stdout="", exit_code=0,
+                         duration_seconds=1.0),
+            StackConfig(language="python", agent="t", framework="x"))
+        assert score == 0.0

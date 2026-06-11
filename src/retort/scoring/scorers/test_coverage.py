@@ -9,11 +9,12 @@ the test pass rate — better signal than 0 when tests clearly do run.
 from __future__ import annotations
 
 import re
+import shutil
 import subprocess
 from pathlib import Path
 
 from retort.playpen.runner import RunArtifacts, StackConfig
-from retort.scoring.scorers._venv import ensure_test_deps, find_venv, make_venv_env
+from retort.scoring.scorers._venv import ensure_python_env
 
 COVERAGE_COMMANDS: dict[str, list[str]] = {
     "python": ["pytest", "--cov=.", "--cov-report=term", "-q", "--tb=no"],
@@ -112,6 +113,8 @@ class TestCoverageScorer:
 
         if stack.language == "typescript":
             pct = self._typescript_coverage(artifacts.output_dir)
+        elif stack.language == "go":
+            pct = self._go_coverage(artifacts.output_dir)
         else:
             pct = self._coverage_via_command(artifacts.output_dir, stack.language)
 
@@ -129,40 +132,104 @@ class TestCoverageScorer:
             return rate2 * 100.0 if rate2 is not None else None
 
         env = None
+        cleanup: Path | None = None
         if language == "python":
-            venv = find_venv(output_dir)
-            if venv is not None:
-                ensure_test_deps(venv)
-                env = make_venv_env(venv)
+            # Find an existing venv or create one with the project's deps, so a
+            # passing suite isn't scored 0 because no venv was shipped (the deps
+            # would be missing and pytest would ModuleNotFoundError at collection).
+            env, cleanup = ensure_python_env(output_dir)
 
         try:
-            result = subprocess.run(
-                cmd,
-                cwd=output_dir,
-                capture_output=True,
-                text=True,
-                timeout=300,
-                env=env,
+            try:
+                result = subprocess.run(
+                    cmd,
+                    cwd=output_dir,
+                    capture_output=True,
+                    text=True,
+                    timeout=300,
+                    env=env,
+                )
+            except (subprocess.TimeoutExpired, FileNotFoundError):
+                return None
+
+            combined = _strip_ansi((result.stdout or "") + "\n" + (result.stderr or ""))
+            pct = _parse_coverage(combined, language)
+            if pct is not None:
+                return pct
+            # Fallback 1: same combined output may contain a test-pass summary.
+            # Note: _parse_test_pass_rate returns [0, 1]; the caller divides
+            # by 100 (because real coverage tools return 0-100). Scale up.
+            rate = _parse_test_pass_rate(combined, language)
+            if rate is not None:
+                return rate * 100.0
+            # Fallback 2: the coverage command may have aborted before tests ran
+            # (e.g. mvn jacoco:report when the plugin isn't in the pom, or the
+            # clojure-CLI cloverage command on a Leiningen project). Try the
+            # project's native plain test command(s) and parse the pass rate.
+            rate2 = self._tests_pass_rate(output_dir, language, env=env)
+            return rate2 * 100.0 if rate2 is not None else None
+        finally:
+            if cleanup is not None:
+                shutil.rmtree(cleanup, ignore_errors=True)
+
+    def _go_coverage(self, output_dir: Path) -> float | None:
+        """Go module coverage: the true cross-package statement total.
+
+        Uses the canonical recipe — a coverage profile over the whole module
+        read back as a single total:
+
+            go test -count=1 -coverpkg=./... -coverprofile=<p> ./...
+            go tool cover -func=<p>   # last line: "total: ... NN.N%"
+
+        Three real gotchas this handles, each of which silently produced 0%:
+
+        * ``-cover ./...`` without ``-coverpkg`` measures each package only by
+          its OWN tests, so an acceptance test that drives sibling packages
+          through their public interface (the ATDD pattern) leaves them at 0%.
+          ``-coverpkg=./...`` credits that cross-package execution.
+        * ``-coverprofile`` is written relative to the test's cwd, so a profile
+          path relative to the process cwd doubles up and the write fails — the
+          path must be absolute.
+        * ``go test`` CACHES results; a cached run re-emits a zero-count
+          profile, so ``-count=1`` is required to force a real run that writes
+          real counts. (This is why a fresh checkout scored 0 intermittently.)
+
+        Reading the profile total (not the per-package stdout lines) gives the
+        true union across all test packages, not a max/mean approximation.
+        """
+        out = output_dir.resolve()
+        profile = out / ".retort-cover.out"
+        try:
+            run_res = subprocess.run(
+                ["go", "test", "-count=1", "-coverpkg=./...",
+                 "-coverprofile", str(profile), "./..."],
+                cwd=out, capture_output=True, text=True, timeout=300,
             )
         except (subprocess.TimeoutExpired, FileNotFoundError):
             return None
-
-        combined = _strip_ansi((result.stdout or "") + "\n" + (result.stderr or ""))
-        pct = _parse_coverage(combined, language)
+        try:
+            if profile.exists():
+                func = subprocess.run(
+                    ["go", "tool", "cover", "-func", str(profile)],
+                    cwd=out, capture_output=True, text=True, timeout=60,
+                )
+                for line in (func.stdout or "").splitlines():
+                    if line.startswith("total:"):
+                        m = _PERCENT_RE.search(line)
+                        if m:
+                            return float(m.group(1))
+        finally:
+            try:
+                profile.unlink()
+            except OSError:
+                pass
+        # Fallbacks: plain per-package % (e.g. go tool missing), then pass-rate.
+        combined = _strip_ansi((run_res.stdout or "") + "\n" + (run_res.stderr or ""))
+        pct = _parse_coverage(combined, "go")
         if pct is not None:
             return pct
-        # Fallback 1: same combined output may contain a test-pass summary.
-        # Note: _parse_test_pass_rate returns [0, 1]; the caller divides
-        # by 100 (because real coverage tools return 0-100). Scale up.
-        rate = _parse_test_pass_rate(combined, language)
-        if rate is not None:
-            return rate * 100.0
-        # Fallback 2: the coverage command may have aborted before tests ran
-        # (e.g. mvn jacoco:report when the plugin isn't in the pom, or the
-        # clojure-CLI cloverage command on a Leiningen project). Try the
-        # project's native plain test command(s) and parse the pass rate.
-        rate2 = self._tests_pass_rate(output_dir, language, env=env)
-        return rate2 * 100.0 if rate2 is not None else None
+        rate = self._tests_pass_rate(output_dir, "go")
+        return rate * 100.0 if rate is not None else None
 
     def _tests_pass_rate(
         self, output_dir: Path, language: str, env: dict | None = None
@@ -282,7 +349,7 @@ def _parse_coverage(output: str, language: str) -> float | None:
         return None
 
     if language == "go":
-        # `go test -cover` per-package: "ok  ./pkg  0.123s  coverage: 87.5% of statements"
+        # `go test -cover` per-pkg: "ok  ./pkg  0.123s  coverage: 87.5% of statements"
         percentages: list[float] = []
         for line in output.splitlines():
             if "coverage:" in line:

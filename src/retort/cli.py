@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import json
 import os
+import re
 import shutil
 import subprocess
 import sys
@@ -1225,16 +1226,18 @@ def _spec_conformance_passes(run_dir, eval_config, visibility) -> tuple[bool | N
 
 
 def _factor_match_sql(run_config: dict, col: str = "run_config_json") -> tuple[str, list]:
-    """Build a WHERE fragment matching language/model/tooling for a run_config.
+    """Build a WHERE fragment matching EVERY factor in a run_config.
 
-    A factor that is absent/None is matched as JSON ``null`` (``IS NULL``), not
-    ``= NULL`` — the latter is never true in SQL, which silently broke matching
-    for designs that have no tooling factor (e.g. exp-7/8: run_config is just
-    {language, model}, so the tooling clause matched zero rows and reevaluate
-    persisted nothing).
+    Matches on every factor present in run_config — language/model/tooling AND
+    any others a design adds (e.g. ``prompt``). Hardcoding only language/model/
+    tooling meant a prompt-factor design (exp-13) matched all prompt variants of
+    a cell and persisted to whichever row sorted first — so reevaluate/rescore
+    silently mis-targeted. ``tooling`` is always included and matched as JSON
+    ``null`` (``IS NULL``) when absent, since designs without a tooling factor
+    (exp-7/8) store no tooling key and ``= NULL`` is never true in SQL.
     """
     clauses, params = [], []
-    for factor in ("language", "model", "tooling"):
+    for factor in sorted(set(run_config) | {"tooling"}):
         val = run_config.get(factor)
         if val is None:
             clauses.append(f"json_extract({col},'$.{factor}') IS NULL")
@@ -1242,6 +1245,22 @@ def _factor_match_sql(run_config: dict, col: str = "run_config_json") -> tuple[s
             clauses.append(f"json_extract({col},'$.{factor}')=?")
             params.append(val)
     return " AND ".join(clauses), params
+
+
+def _run_config_from_cell_name(name: str) -> dict | None:
+    """Parse an archive cell-dir name into a run_config of factor values.
+
+    Cell dirs are named ``<factor>=<value>_<factor>=<value>…`` (sorted keys,
+    e.g. ``language=go_model=opus-4.8-fast_prompt=ATDD``). Generalised over ALL
+    factors — not just language/model/tooling — so designs with extra factors
+    (prompt, …) re-score and re-evaluate correctly. The value pattern is
+    non-greedy up to the next ``_<word>=`` boundary, so values containing ``-``
+    or ``.`` (``opus-4.8-fast``) parse intact. Returns None if no pairs match.
+    """
+    # Keys start with a letter so findall skips the ``_`` pair separators
+    # (``\w`` would otherwise swallow them into the next key as ``_model``).
+    pairs = re.findall(r"([A-Za-z]\w*)=(.+?)(?=_[A-Za-z]\w*=|$)", name)
+    return dict(pairs) if pairs else None
 
 
 def _run_has_requirement_coverage(db_path, run_config: dict, replicate: int) -> bool:
@@ -2879,8 +2898,9 @@ def evaluate(
     help="Workspace YAML (defaults to <experiment-dir>/workspace.yaml).",
 )
 @click.option(
-    "--eval-model", default="claude-opus-4-6", show_default=True,
-    help="Judge model for the second-opinion spec eval.",
+    "--eval-model", default="opus-4.8-fast", show_default=True,
+    help="Judge model for the second-opinion spec eval (fast-mode aware: a "
+         "'-fast' level runs Claude Code fast mode).",
 )
 @click.option("--workers", default=2, show_default=True, type=int)
 @click.option(
@@ -2920,18 +2940,12 @@ def reevaluate(experiment_dir, config, eval_model, workers, force):
     work = []
     skipped = 0
     for rep in reps:
-        # The cell dir name (language=X_model=Y_tooling=Z) is the authoritative
-        # factor source and matches what's stored in run_config_json. Older
-        # experiments' stack.json omit `model`, so deriving factors from
-        # stack.json silently fails to match the DB row (persisting nothing).
-        cm = re.match(r"language=([^_]+)_model=([^_]+?)(?:_tooling=([^_]+))?$", rep.parent.name)
-        if cm:
-            run_config = {"language": cm.group(1), "model": cm.group(2)}
-            # tooling is optional — designs without a tooling factor (exp-7/8)
-            # name cells `language=X_model=Y` and store no tooling key.
-            if cm.group(3) is not None:
-                run_config["tooling"] = cm.group(3)
-        else:
+        # The cell dir name (language=X_model=Y[_prompt=Z…]) is the
+        # authoritative factor source and matches what's stored in
+        # run_config_json. Older experiments' stack.json omit `model`, so
+        # deriving factors from stack.json silently fails to match the DB row.
+        run_config = _run_config_from_cell_name(rep.parent.name)
+        if not run_config:
             sj = rep / "stack.json"
             if not sj.exists():
                 continue
@@ -3078,14 +3092,11 @@ def rescore(experiment_dir, config, languages, only_failed, metrics_only, worker
     runs_root = exp / "runs"
     work = []
     for cell in sorted(p for p in runs_root.iterdir() if p.is_dir()):
-        cm = re.match(r"language=([^_]+)_model=([^_]+?)(?:_tooling=([^_]+))?$", cell.name)
-        if not cm:
+        run_config = _run_config_from_cell_name(cell.name)
+        if not run_config:
             continue
-        if lang_filter and cm.group(1) not in lang_filter:
+        if lang_filter and run_config.get("language") not in lang_filter:
             continue
-        run_config = {"language": cm.group(1), "model": cm.group(2)}
-        if cm.group(3) is not None:
-            run_config["tooling"] = cm.group(3)
         for rep in sorted(cell.iterdir()):
             if not rep.is_dir() or not rep.name.startswith("rep") or rep.name.endswith("-failed"):
                 continue

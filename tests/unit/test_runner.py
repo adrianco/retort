@@ -939,3 +939,20 @@ class TestHarnessFollowsModel:
             extra={"model": "moe"},
         )
         assert runner._resolve_harness(stack) == "omp"
+
+
+def test_model_cli_args_fast_mode_strips_suffix_and_sets_setting():
+    """A '-fast' model level → base model id + fastMode setting (not a model id)."""
+    from retort.playpen.local_runner import _model_cli_args
+    args = _model_cli_args("opus-4.8-fast")
+    assert "--model" in args
+    assert args[args.index("--model") + 1] == "claude-opus-4-8"  # suffix stripped
+    assert "claude-opus-4-8-fast" not in args
+    assert "--settings" in args
+    assert '{"fastMode": true}' in args
+
+
+def test_model_cli_args_non_fast_has_no_settings():
+    from retort.playpen.local_runner import _model_cli_args
+    assert _model_cli_args("claude-opus-4-6") == ["--model", "claude-opus-4-6"]
+    assert _model_cli_args("") == []

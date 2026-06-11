@@ -1149,3 +1149,34 @@ class TestReevaluatePersist:
         self._make_db(db)  # this run HAS tooling=none
         cfg = {"language": "go", "model": "claude-opus-4-8"}  # no tooling key
         assert _run_completed_exists(db, cfg, 2) is False
+
+
+def test_run_config_from_cell_name_parses_all_factors():
+    """Cell-name parsing must generalise over factors (not just lang/model/tooling)."""
+    from retort.cli import _run_config_from_cell_name
+    assert _run_config_from_cell_name("language=go_model=sonnet_prompt=ATDD") == {
+        "language": "go", "model": "sonnet", "prompt": "ATDD"}
+    # model values with '-' and '.' must stay intact (not split on them)
+    assert _run_config_from_cell_name(
+        "language=python_model=opus-4.8-fast_prompt=TDD") == {
+        "language": "python", "model": "opus-4.8-fast", "prompt": "TDD"}
+    # legacy tooling factor still parses
+    assert _run_config_from_cell_name("language=go_model=sonnet_tooling=beads") == {
+        "language": "go", "model": "sonnet", "tooling": "beads"}
+    # keys must NOT swallow the '_' separator (the _model bug)
+    rc = _run_config_from_cell_name("language=go_model=sonnet_prompt=ATDD")
+    assert all(not k.startswith("_") for k in rc)
+    assert _run_config_from_cell_name("not-a-cell") is None
+
+
+def test_factor_match_sql_matches_every_factor():
+    """The WHERE must constrain ALL factors, incl. prompt — not just lang/model/tooling."""
+    from retort.cli import _factor_match_sql
+    where, params = _factor_match_sql(
+        {"language": "go", "model": "sonnet", "prompt": "ATDD"})
+    # prompt must appear (the bug: ignored -> matched all prompt variants)
+    assert "$.prompt" in where and "ATDD" in params
+    assert "$.language" in where and "go" in params
+    assert "$.model" in where and "sonnet" in params
+    # tooling is matched as JSON null when absent (exp-7/8 fix preserved)
+    assert "$.tooling') IS NULL" in where

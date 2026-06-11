@@ -50,6 +50,25 @@ MODEL_ALIASES: dict[str, str] = {
 }
 
 
+def _model_cli_args(model_level: str) -> list[str]:
+    """``claude`` CLI args selecting a model factor/level.
+
+    Returns ``--model <id>`` plus the fast-mode ``--settings`` when the level
+    carries a ``-fast`` suffix. Fast mode is a Claude Code *setting*, not a
+    distinct model ID, so the suffix is stripped and ``{"fastMode": true}`` is
+    passed instead. Shared by the agent run and the second-opinion eval so both
+    drive fast-mode models the same way. Empty input → no args.
+    """
+    if not model_level:
+        return []
+    resolved = MODEL_ALIASES.get(model_level, model_level)
+    extra: list[str] = []
+    if resolved.endswith("-fast"):
+        resolved = resolved[: -len("-fast")]
+        extra = ["--settings", '{"fastMode": true}']
+    return ["--model", resolved, *extra]
+
+
 class LocalRunner:
     """Executes experiment runs in local temp directories.
 
@@ -280,17 +299,8 @@ class LocalRunner:
                 "--dangerously-skip-permissions",
             ]
 
-            # Resolve model alias → versioned ID; full versioned IDs pass through.
-            model = stack.extra.get("model", "")
-            if model:
-                resolved = MODEL_ALIASES.get(model, model)
-                # A "<id>-fast" model level enables Claude Code fast mode (same
-                # model, faster output) via the fastMode setting — fast mode is
-                # NOT a distinct model ID, so strip the suffix and pass the flag.
-                if resolved.endswith("-fast"):
-                    resolved = resolved[: -len("-fast")]
-                    cmd.extend(["--settings", '{"fastMode": true}'])
-                cmd.extend(["--model", resolved])
+            # Resolve model alias → versioned ID (+ fast-mode setting if any).
+            cmd.extend(_model_cli_args(stack.extra.get("model", "")))
 
             return cmd
 
@@ -394,11 +404,10 @@ class LocalRunner:
             logger.debug("evaluate-run skill not found, skipping post-run evaluation")
             return
 
-        model = MODEL_ALIASES.get(self.eval_model, self.eval_model)  # type: ignore[arg-type]
         prompt = f"Follow skill at {skill} for run_dir={run_dir}"
         try:
             proc = subprocess.run(
-                ["claude", "-p", prompt, "--model", model,
+                ["claude", "-p", prompt, *_model_cli_args(self.eval_model or ""),
                  "--output-format", "text", "--dangerously-skip-permissions"],
                 cwd=run_dir,
                 capture_output=True,
