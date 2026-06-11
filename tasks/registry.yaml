@@ -25,6 +25,10 @@ tasks:
     source: github://brazil-bench/benchmark-template/brazilian-soccer-mcp-guide.md
     description: Brazilian-soccer MCP server built from a multi-file guide — the "hard" task (exp 2-5, 7-brazil).
 
+  - name: brazil-bench-neutral
+    source: github://adrianco/brazil-bench-neutral/brazilian-soccer-mcp-guide.md
+    description: brazil-bench with all testing-methodology (BDD) guidance removed — methodology-neutral fork for prompt-factor experiments (neutral/TDD/ATDD), exp-13. Same functional requirements as brazil-bench.
+
   - name: react-dashboard
     source: bundled://react-dashboard
     description: React analytics dashboard single-page app.

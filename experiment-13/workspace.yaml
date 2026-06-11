@@ -1,0 +1,64 @@
+# Experiment 13 — PROMPT factor: does prescribing a test methodology change
+# reliability/quality on the hard task?
+#
+# Runs the methodology-NEUTRAL brazil fork (BDD stripped from the repo —
+# github://adrianco/brazil-bench-neutral) so the test methodology is supplied
+# ONLY by the prompt factor. Levels:
+#   neutral — control, no methodology prescribed
+#   TDD     — test-first unit TDD
+#   ATDD    — executable acceptance test driven development
+# BDD is already covered by the existing brazil runs (exp-2/3/4/5/7-brazil),
+# which used the upstream template with BDD baked in — those are re-labelled
+# prompt=BDD so this experiment compares against them as the 4th level.
+#
+# Grid: language[go,python] x model[sonnet, opus-4.8-fast] x prompt[neutral,TDD,ATDD]
+#       = 12 cells (full factorial; run via design-prompt.csv). tooling=none.
+#
+# Run (with toolchains on PATH):
+#   export PATH="/opt/homebrew/bin:$HOME/go/bin:$PATH"
+#   PYTHONPATH=src .venv/bin/python -c 'from retort.cli import main; main()' run \
+#     --phase screening --config experiment-13/workspace.yaml \
+#     --design experiment-13/design-prompt.csv --resume
+
+experiment:
+  name: experiment-13-prompt-methodology-brazil
+  visibility: public
+
+factors:
+  language:
+    levels: [go, python]
+  model:
+    levels: [sonnet, opus-4.8-fast]
+  prompt:
+    levels: [neutral, TDD, ATDD]
+
+responses:
+  - code_quality
+  - token_efficiency
+  - test_coverage
+  - defect_rate
+  - maintainability
+  - idiomatic
+
+tasks:
+  - source: github://adrianco/brazil-bench-neutral/brazilian-soccer-mcp-guide.md
+
+playpen:
+  runner: local
+  replicates: 3
+  timeout_minutes: 45
+  max_turns: 200
+
+design:
+  screening_resolution: 3
+  significance_threshold: 0.10
+
+promotion:
+  screening_to_trial: { p_value: 0.10 }
+  trial_to_production: { posterior_confidence: 0.80 }
+
+evaluation:
+  enabled: false
+  model: claude-opus-4-6
+  min_severity_to_file: high
+  issue_tracker: beads

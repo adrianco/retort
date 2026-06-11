@@ -1,0 +1,13 @@
+run,language,model,prompt
+0,go,sonnet,neutral
+1,go,sonnet,TDD
+2,go,sonnet,ATDD
+3,go,opus-4.8-fast,neutral
+4,go,opus-4.8-fast,TDD
+5,go,opus-4.8-fast,ATDD
+6,python,sonnet,neutral
+7,python,sonnet,TDD
+8,python,sonnet,ATDD
+9,python,opus-4.8-fast,neutral
+10,python,opus-4.8-fast,TDD
+11,python,opus-4.8-fast,ATDD
