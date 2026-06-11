@@ -17,7 +17,12 @@ from retort.playpen.runner import RunArtifacts, StackConfig
 from retort.scoring.scorers._venv import ensure_python_env
 
 COVERAGE_COMMANDS: dict[str, list[str]] = {
-    "python": ["pytest", "--cov=.", "--cov-report=term", "-q", "--tb=no"],
+    # `python -m pytest`, not the `pytest` script: -m puts the run dir on
+    # sys.path so tests that import the project's OWN top-level package
+    # (e.g. `from brazilian_soccer import ...`) collect without it being
+    # pip-installed. The bare script omits cwd and fails collection → 0.
+    "python": ["python", "-m", "pytest", "--cov=.", "--cov-report=term",
+               "-q", "--tb=no"],
     "go": ["go", "test", "-cover", "./..."],
     # TypeScript handled specially — needs to detect jest vs vitest
     # Rust requires cargo-llvm-cov which isn't always installed
@@ -35,7 +40,7 @@ COVERAGE_COMMANDS: dict[str, list[str]] = {
 # plugin before tests run).
 _TESTS_ONLY_COMMANDS: dict[str, list[str]] = {
     "java": ["mvn", "test"],
-    "python": ["pytest", "-q", "--tb=no"],
+    "python": ["python", "-m", "pytest", "-q", "--tb=no"],
     "go": ["go", "test", "./..."],
     # -M:test runs :main-opts (most common agent pattern); -X:test requires
     # :exec-fn which agents less commonly set up.
@@ -123,6 +128,11 @@ class TestCoverageScorer:
         return max(0.0, min(1.0, pct / 100.0))
 
     def _coverage_via_command(self, output_dir: Path, language: str) -> float | None:
+        # Absolute: subprocess args/paths resolved relative to cwd=output_dir
+        # would double up (output_dir/output_dir/...) when output_dir is itself
+        # relative — e.g. `pip install -r <rel>/requirements.txt` then fails and
+        # the suite scores 0 (the rescore-passes-archive-path case).
+        output_dir = output_dir.resolve()
         cmd = COVERAGE_COMMANDS.get(language)
 
         # Languages without a coverage command (e.g. rust) go straight to the

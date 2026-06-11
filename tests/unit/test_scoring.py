@@ -775,3 +775,40 @@ class TestPythonEnvPreparation:
                          duration_seconds=1.0),
             StackConfig(language="python", agent="t", framework="x"))
         assert score == 0.0
+
+    def test_tests_importing_project_package_are_collected(self, tmp_path):
+        # `python -m pytest` (not the bare script) puts the run dir on sys.path,
+        # so a test importing the project's OWN top-level package collects
+        # without it being pip-installed. The bare script -> ModuleNotFoundError
+        # -> false 0. (No external deps, so this only exercises the -m fix.)
+        pkg = tmp_path / "mypkg"
+        pkg.mkdir()
+        (pkg / "__init__.py").write_text("")
+        (pkg / "calc.py").write_text("def add(a, b):\n    return a + b\n")
+        (tmp_path / "tests").mkdir()
+        (tmp_path / "tests" / "test_calc.py").write_text(
+            "from mypkg.calc import add\n\n\n"
+            "def test_add():\n    assert add(1, 2) == 3\n")
+        score = TestCoverageScorer().score(
+            RunArtifacts(output_dir=tmp_path, stdout="", exit_code=0,
+                         duration_seconds=1.0),
+            StackConfig(language="python", agent="t", framework="x"))
+        assert score > 0.0, "tests importing the project package weren't collected"
+
+    def test_relative_output_dir_python(self, tmp_path, monkeypatch):
+        # Regression: a RELATIVE output_dir (rescore passes archive paths) must
+        # not break `-r requirements.txt`/cwd path resolution -> 0.
+        pkg = tmp_path / "mypkg"
+        pkg.mkdir()
+        (pkg / "__init__.py").write_text("")
+        (pkg / "calc.py").write_text("def add(a, b):\n    return a + b\n")
+        (tmp_path / "tests").mkdir()
+        (tmp_path / "tests" / "test_calc.py").write_text(
+            "from mypkg.calc import add\n\n\n"
+            "def test_add():\n    assert add(1, 2) == 3\n")
+        monkeypatch.chdir(tmp_path.parent)
+        art = RunArtifacts(output_dir=Path(tmp_path.name), stdout="",
+                           exit_code=0, duration_seconds=1.0)
+        score = TestCoverageScorer().score(
+            art, StackConfig(language="python", agent="t", framework="x"))
+        assert score > 0.0, "relative output_dir scored 0"
