@@ -571,9 +571,9 @@ def run_experiments(
         will_run = 0
         will_skip = 0
         will_other_shard = 0
-        for i, run_config in enumerate(design.run_configs()):
-            config_key = json.dumps(run_config, sort_keys=True)
-            for rep in range(1, reps + 1):
+        for rep in range(1, reps + 1):
+            for i, run_config in enumerate(design.run_configs()):
+                config_key = json.dumps(run_config, sort_keys=True)
                 if not _shard_owns(config_key, rep, shard_index, shard_total):
                     will_other_shard += 1
                     click.echo(f"  [shrd] Run {i+1} rep {rep}: {run_config}")
@@ -632,11 +632,15 @@ def run_experiments(
 
     session = get_session(engine)
     try:
-        for run_idx, run_config in enumerate(design.run_configs()):
-            stack = StackConfig.from_run_config(run_config)
-            config_key = json.dumps(run_config, sort_keys=True)
-
-            for rep in range(1, reps + 1):
+        # Replicate-major order: complete one full pass over every design cell
+        # (full factor coverage) before starting the next replicate. So an
+        # interrupted, resumed, or incrementally-sharded run yields complete
+        # coverage at lower replication rather than full replication of a few
+        # cells. Replicate is the outer loop; the design cells are the inner.
+        for rep in range(1, reps + 1):
+            for run_idx, run_config in enumerate(design.run_configs()):
+                stack = StackConfig.from_run_config(run_config)
+                config_key = json.dumps(run_config, sort_keys=True)
                 label = f"[{run_idx+1}/{design.num_runs} rep {rep}/{reps}]"
                 if not _shard_owns(config_key, rep, shard_index, shard_total):
                     # Belongs to a different shard. Don't even mark it skipped —
