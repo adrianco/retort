@@ -12,11 +12,12 @@
 - **Isolated playpens** — each run gets a fresh workspace; the agent (`claude -p`) implements the task, then the code is built and tested in place.
 - **Scoring that checks the spec, not just the vibes.** Eight built-in scorers (code quality, test coverage, defect rate, maintainability, idiomaticity, token efficiency, …) **plus a conformance gate**:
   - *Mechanical gate* — if the tests don't run, the run **fails** (no proof = no pass).
-  - *Spec gate* — an **opus-4.6 second-opinion eval** checks the code against a **pinned requirement checklist** and records `requirement_coverage`; a run passes only if it implements the *whole* spec. (Single-pass LLM grading proved too noisy — haiku swung 0.33↔1.0 on identical code — so the gate uses a fixed checklist + a stronger judge + a two-attempt "second opinion" to kill false failures.)
+  - *Spec gate* — a **second-opinion LLM eval** (the judge defaults to the **latest** Claude model, tracking new releases) checks the code against a **pinned requirement checklist** and records `requirement_coverage`; a run passes only if it implements the *whole* spec. (Single-pass LLM grading proved too noisy — haiku swung 0.33↔1.0 on identical code — so the gate uses a fixed checklist + a stronger judge + a two-attempt "second opinion" to kill false failures.) The eval **self-checks**: `reevaluate` preflights the judge and errors instead of silently grading nothing.
+- **`retort diagnose`** — re-tests every *failed* run's archive and classifies it **TOOLING** (a scorer false-failure that `rescore` recovers) vs **GENUINE** (a real model/spec failure), with the cause. So you never have to hand-investigate a failure.
 - **Cross-experiment master database** — `retort aggregate` rolls every experiment into one tidy `master.db` / `master.csv`.
-- **ANOVA + effects**, **live `retort monitor`**, resumable sharded runs, `cost_limit_usd`.
+- **ANOVA + effects**, **live `retort monitor`** (shows in-flight runs across parallel shards), resumable sharded runs, `cost_limit_usd`.
 
-This repo is the result of running it: **nine experiments, 258 scored runs, two tasks, eight languages (Go, Python, Clojure, Rust, Java, TypeScript, Erlang, Elixir), four Claude models (Sonnet, Opus 4.6 / 4.7 / 4.8) plus Opus-4.8 fast mode and the next-tier Claude Fable 5.**
+This repo is the result of running it: **ten experiments across two tasks and eight languages (Go, Python, Clojure, Rust, Java, TypeScript, Erlang, Elixir), four Claude models (Sonnet, Opus 4.6 / 4.7 / 4.8) plus Opus-4.8 fast mode, the next-tier Claude Fable 5, a Gemini cross-agent scaffold, and a prompt / test-methodology study (BDD / TDD / ATDD).**
 
 ---
 
@@ -200,6 +201,35 @@ Opus-4.8 has a **fast mode** (the `/fast` toggle — same model, faster token ou
 - **And the speedup only shows up on easy work.** On the REST API fast mode is ~20–40% faster in wall-clock; on the hard, reasoning-bound task it's **not reliably faster at all** (Go and Python fast runs were actually *slower* than regular) — because the bottleneck is the model thinking, not emitting tokens.
 - **Takeaway:** fast mode buys **latency, not savings**. It's worth the 2× premium only when wall-clock turnaround on routine work matters more than the bill. On hard tasks you pay double for no speed gain — don't.
 
+### Does the prompt matter? Test methodology (neutral / TDD / ATDD)
+
+Every experiment above held the *prompt* constant. Experiment-13 varies it — the
+prescribed **test methodology** — on a methodology-neutral fork of the hard task
+(BDD stripped from the repo, so the discipline comes only from the prompt):
+`language[go, python] × model[sonnet, opus-4.8-fast] × prompt[neutral, TDD, ATDD]`,
+3 replicates. Pass-proportion (`requirement_coverage == 1.0`):
+
+| model | language | neutral | TDD | ATDD |
+|---|---|:--:|:--:|:--:|
+| opus-4.8-fast | go | 1.00 | 1.00 | 1.00 |
+| opus-4.8-fast | python | 1.00 | 1.00 | 1.00 |
+| sonnet | go | 1.00 | 1.00 | **0.33** |
+| sonnet | python | 1.00 | 1.00 | 1.00 |
+
+- **Prescribing a methodology barely moves reliability** on a task the model
+  already understands — 11 of 12 cells pass regardless. The lone drop is **ATDD
+  on the weakest stack (sonnet + go)**: ATDD front-loads the most work
+  (executable acceptance tests through the public interface first), and the
+  cheaper model on the stricter language occasionally didn't finish the spec.
+- **The methodology shows up in *what tests get written*, not whether it ships.**
+  ATDD yields lower unit-statement coverage (acceptance-test focused) than
+  TDD/neutral, yet still meets the spec everywhere except sonnet/go. Pick a
+  methodology for the tests it leaves behind, not for a reliability boost.
+- Cost tracks the model, not the methodology. Full write-up:
+  **[prompt blog](prompt-blog.md)** · [exp-13 results](experiment-13/results.md).
+  (BDD, the fourth arm, needs its baselines re-scored on the same footing before
+  a fair comparison — the recommended follow-up.)
+
 ---
 
 ## Factor analysis (ANOVA): what actually moves each metric
@@ -218,7 +248,7 @@ The point of a designed experiment is that you can *decompose* the variance — 
 
 Reproduce with `retort report effects --db <experiment>/retort.db --metric <response>`.
 
-**Next factor to explore: the prompt.** Every experiment here held the *instruction* constant (a fixed "implement TASK.md" prompt). But prompt wording and strategy — terse vs. detailed, test-first vs. implement-first, with vs. without worked examples — plausibly moves reliability as much as the model does, and far more cheaply. retort already supports **`prompt` as a factor** (named strategies in `prompts/<level>.md`), so the obvious next study is `prompt × model` on a hard task: does a better prompt close the gap between a cheap model and an expensive one? That's a question with real budget implications, and it's a one-line addition to the factor grid.
+**The prompt as a factor (explored — experiment-13).** The experiments above held the *instruction* constant; exp-13 varies the prescribed **test methodology** (`prompt` is a first-class factor — named strategies in `prompts/<level>.md`). The result: on a task the model already understands, the methodology **barely moves reliability** — it changes *what tests get written* (ATDD trades unit coverage for acceptance coverage) more than whether the run ships. See [Does the prompt matter?](#does-the-prompt-matter-test-methodology-neutral--tdd--atdd) above and the [prompt blog](prompt-blog.md). Prompt strategy beyond test methodology (terse vs. detailed, worked examples) remains a one-line addition to the grid for future study.
 
 ---
 
@@ -238,12 +268,13 @@ Each row links to its **full per-cell results table** (every language × model �
 | 8 | REST-API | Opus-4.7, 4.8 (**Erlang+Elixir**) | 12 | **[results →](experiment-8/results.md)** | Both BEAM languages 1.00 on every measure |
 | 10 | Brazil + REST-API | **Claude Fable 5** | 24 | **[results →](experiment-10/results.md)** | A tier above 4.8: 1.00 pass on both, but ~2× cost / slowest — no reliability to buy where 4.8 is already 1.00 |
 | 11 | REST-API | **Gemini** (`gemini-2.5-pro`) vs `claude-code` | — | **[scaffold →](experiment-11/README.md)** | First cross-**agent** study. Harness validated end-to-end against the live Gemini CLI; runs pending free-tier capacity |
+| 13 | Brazil (neutral fork) | Sonnet, Opus-4.8-fast × **prompt**[neutral/TDD/ATDD] | 36 | **[results →](experiment-13/results.md)** | Prompt / test-methodology study: methodology barely moves reliability (11/12 cells pass); ATDD trades unit coverage for acceptance coverage |
 
-The combined dataset across all nine experiments with scored runs is in [`master.csv`](master.csv) (and `master.db`), rebuildable with `retort aggregate --out master.db --csv master.csv`; it includes the 24 Fable 5 runs from experiment-10. (Experiment-11 is a ready-to-run cross-agent scaffold — no result rows yet; see [Comparing coding agents](#comparing-coding-agents-eg-claude-vs-gemini).)
+The combined dataset across all experiments with scored runs is in [`master.csv`](master.csv) (and `master.db`), rebuildable with `retort aggregate --out master.db --csv master.csv`; it includes the 24 Fable 5 runs (experiment-10) and the 36 prompt-methodology runs (experiment-13). (Experiment-11 is a ready-to-run cross-agent scaffold — no result rows yet; see [Comparing coding agents](#comparing-coding-agents-eg-claude-vs-gemini).)
 
 All run data — per-run source, tests, scores, and the spec-eval output — is committed under `experiment-N/runs/`, combined in `master.db` / `master.csv` (`retort aggregate`).
 
-**Methodology notes.** Of ~300 archived runs, **234** are completed runs with a reproducible `requirement_coverage` (the rest failed the tests-gate or are shard duplicates). The spec gate reads a pinned `REQUIREMENTS.json` per task (constant denominator) and judges with **opus-4.6** + a second opinion. Cross-experiment model means mix language/tooling sets, so per-model conclusions lean on the larger within-task samples.
+**Methodology notes.** Of ~300 archived runs, **234** are completed runs with a reproducible `requirement_coverage` (the rest failed the tests-gate or are shard duplicates). The spec gate reads a pinned `REQUIREMENTS.json` per task (constant denominator) and judges with a strong second-opinion model — the judge now defaults to the **latest** Claude (earlier runs in this dataset used opus-4.6; exp-13 used opus-4.8). Cross-experiment model means mix language/tooling sets, so per-model conclusions lean on the larger within-task samples.
 
 ---
 
@@ -269,16 +300,17 @@ Regenerate with `retort maturity --db <db> --metric requirement_coverage`.
 
 ## Why some runs failed
 
-Roughly 60 of the ~300 archived runs are not completed-with-coverage. The strict gate is deliberate — *if the tests don't run, the run fails* — but it's worth separating **harness measurement bugs** (our fault, now fixed) from **genuine model failures** (the real signal). The newest experiments surfaced three measurement bugs precisely because they exercised code paths the earlier six never did:
+Roughly 60 of the archived runs are not completed-with-coverage. The strict gate is deliberate — *if the tests don't run, the run fails* — but it's worth separating **harness measurement bugs** (our fault, now fixed) from **genuine model failures** (the real signal). Each new experiment surfaced measurement bugs precisely because it exercised code paths the earlier ones never did:
 
 - **Elixir false-failures (harness).** Every Elixir run initially scored `test_coverage=0` and failed the gate — but the agents had written *valid* Elixir (a sample archive runs **17 tests, 0 failures**). The scorer used the deprecated `mix do deps.get, test` comma syntax, removed in recent Elixir. Fixed to `mix test`; all 6 Elixir runs then passed at 1.00. *A model that looked like it failed had actually succeeded.*
 - **Missing cost on the newest runs (harness).** Experiments 7 & 8 recorded duration but `$0.00` cost. The OMP-harness change (PR #6) routed the cost parser by agent name but dropped the `unknown → claude-code` fallback the command builder has, so for cells that didn't pin an agent, Claude ran and billed but its cost JSON was discarded. Fixed + regression-tested; re-run with cost intact.
 - **Re-eval found zero runs (harness).** The tooling-free designs (exp-7/8 vary only language × model) tripped a matcher that did `tooling = NULL` in SQL — never true — so `reevaluate` silently graded nothing. Fixed to `IS NULL`.
 - **Fast-mode cost under-reported 2× (harness).** Fast mode bills at double the standard per-token rate ([announcement](https://www.anthropic.com/news/claude-opus-4-8)), but the CLI's `total_cost_usd` reports the *standard*-rate figure (confirmed by probe). retort now applies the 2× multiplier for fast-mode runs — without it, the fast-mode cost comparison was wrong in fast's favour (it's a premium, not a saving).
 - **A rerun harness that recorded its own failure as the model's (harness).** An overnight pass tried to re-run the `beads`-tooling false-failures in experiments 1/2/5 under the fixed harness. The rerun harness never launched the model — every cell came back in ~1–4 s with **$0 cost and all-zero scores** — yet it *overwrote* the previously-good runs with those instant failures (experiment-5 dropped from 36 to 18 completed; experiment-1 lost 3). The DBs were **restored from `.pre-rerun.bak` snapshots**; no cell actually changed state. The tell was the same one as always: a *genuine* failure burns minutes of model time, a *harness* failure fails instantly for $0. (Full breakdown in [exp-10 results → Rerun outcomes](experiment-10/results.md#rerun-outcomes-experiments-1-2-5).)
-- **Genuine failures (signal).** The real failures cluster exactly where the data says they should: the **hard task with cheaper models or `beads` tooling**. A handful of Erlang runs also flaked the tests-gate on first attempt and passed on `--retry-failed` — ordinary non-determinism, not a model limitation.
+- **ATDD cross-package + python-deps false-failures (harness).** The prompt-methodology study (exp-13) ran acceptance tests that drive the system through its public interface — and surfaced two more scorer blind spots. `go test -cover` *without* `-coverpkg` scores an acceptance test in one package that exercises its siblings at **0%** (the entire ATDD pattern), and python coverage ran the bare `pytest` script without the project's deps / without `python -m`, so collection failed. Seven runs the gate marked "tests did not run" had actually built and passed at **77–96%** coverage. Fixed (`-coverpkg` + a `-count=1` profile total for Go; a project-deps venv + `python -m pytest` for Python) and regression-tested; all 36 exp-13 runs then completed. This is exactly the class **`retort diagnose`** now catches automatically (re-test each failure → tooling-vs-genuine), and the `reevaluate` health-check refuses to report success when its judge silently graded nothing.
+- **Genuine failures (signal).** The real failures cluster exactly where the data says they should: the **hard task with cheaper models or `beads` tooling**, and the one **ATDD × sonnet/go** corner above. A handful of Erlang runs also flaked the tests-gate on first attempt and passed on `--retry-failed` — ordinary non-determinism, not a model limitation.
 
-The lesson cuts both ways: a strict "tests must run" gate is essential to avoid scoring vibes — but you have to be sure a *failure* is the model's and not the harness's. All three measurement bugs are fixed and covered by tests.
+The lesson cuts both ways: a strict "tests must run" gate is essential to avoid scoring vibes — but you have to be sure a *failure* is the model's and not the harness's. Every measurement bug is fixed and covered by tests, and `retort diagnose` + the reevaluate health-check now make the tooling-vs-genuine call for you.
 
 ---
 
@@ -308,7 +340,9 @@ Every command is `retort <command> [options]`; add `--help` to any of them for t
 | Command | What it does | Key options |
 |---|---|---|
 | `evaluate [RUN_DIRS…]` | Run the **evaluate-run** skill over run archives (manual/retroactive grading, or after updating the skill). | `--experiment-dir` (bulk-eval all runs); `--force`; `--workers` (default 4). |
-| `reevaluate` | Re-grade archived runs with the **second-opinion spec eval**, persisting `requirement_coverage` into the DB. Non-destructive (status unchanged), resumable (skips already-graded unless `--force`). | `--experiment-dir` (req); `--eval-model` (default **claude-opus-4-6**); `--workers`; `--force`. |
+| `reevaluate` | Re-grade archived runs with the **second-opinion spec eval**, persisting `requirement_coverage` into the DB. **Self-checks** (preflights the judge; errors instead of silently grading nothing; reports matched/orphaned). Non-destructive (status unchanged), resumable (skips already-graded unless `--force`). | `--experiment-dir` (req); `--eval-model` (default **unset → the CLI's latest model**, tracking new releases; pass an id to pin); `--workers`; `--force`. |
+| `rescore` | Re-score archived runs with the **current** scorers (after fixing/upgrading one) and write corrected metrics back to the DB + `scores.json`. A run whose tests now run (`test_coverage > 0`) flips to **completed**. | `--experiment-dir` (req); `--only-failed`; `--metrics` (subset, no gate); `--workers`; `--dry-run`. |
+| `diagnose` | Deep-analyse every **failed** run: re-test its archive and classify **TOOLING** (scorer false-failure — `rescore` recovers it) vs **GENUINE** (real model/spec failure), with the cause. Read-only. | `--experiment-dir` (req); `--as-json`. |
 | `promote STACK_ID` | Evaluate a **promotion gate** and report whether a stack passes from one lifecycle phase to the next. | `--from`, `--to` (req); `--evidence '{"p_value":0.05}'`; `--config` (gate thresholds). |
 
 ### Analyze & report
@@ -344,7 +378,7 @@ Every command is `retort <command> [options]`; add `--help` to any of them for t
 
 ## Status: 1.0 beta
 
-Feature-complete for single-agent `claude-code` experiments with the `LocalRunner`. **Implemented:** `LocalRunner`, all scorers + the conformance spec gate, factorial/fractional design generation, ANOVA + effects, SQLite storage + cross-experiment `aggregate`/`reevaluate`, resumable sharded runs, `retort monitor`, `cost_limit_usd`, OMP local-agent profiles, and a **Gemini CLI** harness (`agent` becomes a factor — compare `claude-code` vs `gemini` head-to-head; see below). **Not yet:** `DockerRunner` (skeleton), the `intake`/`scheduler` paths.
+Feature-complete for single-agent `claude-code` experiments with the `LocalRunner`. **Implemented:** `LocalRunner`, all scorers + the conformance spec gate, factorial/fractional design generation (incl. `prompt` as a factor), ANOVA + effects, SQLite storage + cross-experiment `aggregate`/`reevaluate` (with a judge-tooling health-check), `rescore` + `diagnose` for failure recovery and tooling-vs-genuine classification, resumable sharded runs, `retort monitor` (live in-flight view across shards), `cost_limit_usd`, OMP local-agent profiles, and a **Gemini CLI** harness (`agent` becomes a factor — compare `claude-code` vs `gemini` head-to-head; see below). **Not yet:** `DockerRunner` (skeleton), the `intake`/`scheduler` paths.
 
 ### Comparing coding agents (e.g. Claude vs Gemini)
 
@@ -356,7 +390,7 @@ factors:
   language: { levels: [go, python, rust, typescript] }
 ```
 
-`retort analyze` then decomposes how much of quality/reliability/cost is the *model/agent* versus the language and task. The `gemini` harness needs Google's [Gemini CLI](https://github.com/google-gemini/gemini-cli) on `PATH` and a Gemini auth method (`GEMINI_API_KEY`, ADC, or a free OAuth login) in the environment. The CLI reports tokens but not a dollar cost, so retort derives cost from `GEMINI_PRICING` in `local_runner.py` (base-tier rates — verify against current Google pricing). The spec-gate judge stays on Claude (`reevaluate --eval-model claude-opus-4-6`) so an independent model grades every agent fairly.
+`retort analyze` then decomposes how much of quality/reliability/cost is the *model/agent* versus the language and task. The `gemini` harness needs Google's [Gemini CLI](https://github.com/google-gemini/gemini-cli) on `PATH` and a Gemini auth method (`GEMINI_API_KEY`, ADC, or a free OAuth login) in the environment. The CLI reports tokens but not a dollar cost, so retort derives cost from `GEMINI_PRICING` in `local_runner.py` (base-tier rates — verify against current Google pricing). The spec-gate judge stays on Claude (the latest model by default; pin one with `reevaluate --eval-model <id>`) so an independent model grades every agent fairly.
 
 #### Local / self-hosted models via the `omp` harness (oh-my-pi)
 
