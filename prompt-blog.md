@@ -62,42 +62,94 @@ almost an anticlimax: **on a task the model already knows how to build,
 prescribing a methodology barely moves reliability.** Pass-proportion
 (does it implement the whole pinned checklist?) by cell:
 
-| model | language | neutral | TDD | ATDD |
-|---|---|:--:|:--:|:--:|
-| opus-4.8-fast | go | 1.00 | 1.00 | 1.00 |
-| opus-4.8-fast | python | 1.00 | 1.00 | 1.00 |
-| sonnet | go | 1.00 | 1.00 | **0.33** |
-| sonnet | python | 1.00 | 1.00 | 1.00 |
+| model | language | BDD | neutral | TDD | ATDD |
+|---|---|:--:|:--:|:--:|:--:|
+| opus-4.8-fast | go | 1.00 | 1.00 | 1.00 | 1.00 |
+| opus-4.8-fast | python | 1.00 | 1.00 | 1.00 | 1.00 |
+| sonnet | go | 1.00 | 1.00 | 1.00 | **0.33** |
+| sonnet | python | 1.00 | 1.00 | 1.00 | 1.00 |
 
-Eleven of twelve cells pass regardless of what I told the agent about testing.
-The lone exception is **ATDD on the weakest stack — Sonnet writing Go** — where
-two of three runs left a small spec gap. ATDD asks for the most up-front
-discipline (turn every acceptance criterion into an executable test through the
-public interface *before* implementing), and the cheaper model on the less
-forgiving language occasionally didn't carry that all the way home. Give it a
-stronger model or a more forgiving language and the gap closes.
+**BDD** is folded in from the original brazil-bench runs (which prescribed
+Given-When-Then scenarios in-repo) re-graded on the same judge: opus-4.8-fast
+n=3, sonnet n=1. **Fifteen of sixteen cells pass regardless of what I told the
+agent about testing.** The lone exception is **ATDD on the weakest stack —
+Sonnet writing Go** — where two of three runs left a small spec gap. ATDD asks
+for the most up-front discipline (turn every acceptance criterion into an
+executable test through the public interface *before* implementing), and the
+cheaper model on the less forgiving language occasionally didn't carry that all
+the way home. Give it a stronger model or a more forgiving language and the gap
+closes. BDD, TDD, and neutral are interchangeable on reliability — all 1.00.
 
-Where methodology *does* show up cleanly is **what kind of tests get written**.
-ATDD consistently produces lower unit-statement coverage than TDD or neutral —
-0.50–0.79 vs 0.67–0.97 on the harder cells — because it writes acceptance tests
-that drive the system end-to-end rather than exhaustive unit tests. That's the
-methodology working as intended, not failing: it still meets the functional spec
-everywhere except Sonnet/Go, where the unit-test scaffolding TDD and neutral
-leave behind seems to help the weaker model finish the job.
+### What kind of tests get written
 
-Cost tracks the model, not the methodology: Opus-4.8-fast runs ~$8–17, Sonnet
-~$1–3, and no methodology is reliably cheaper than another.
+Where methodology shows up cleanly is **coverage** — the unit-statement coverage
+of the code the agent leaves behind. Mean test coverage per cell:
 
-So the practical read: on a task the model already understands, **which testing
-discipline you prescribe is mostly a wash for whether it ships correctly** — pick
-the methodology you want for the *tests it leaves behind* (ATDD for executable
-acceptance specs, TDD for unit coverage), not for a reliability boost. The one
-caveat is the weak-model/strict-language corner, where the lightest-weight
-prompt is the safer bet.
+| model | language | BDD | neutral | TDD | ATDD |
+|---|---|:--:|:--:|:--:|:--:|
+| opus-4.8-fast | go | 0.71 | 0.57 | 0.67 | 0.50 |
+| opus-4.8-fast | python | 0.92 | 0.97 | 0.95 | 0.79 |
+| sonnet | go | 0.77 | 0.78 | 0.69 | 0.58 |
+| sonnet | python | 0.96 | 1.00 | 1.00 | 1.00 |
 
-*(BDD, the fourth arm, is held for a later comparison — those baseline runs need
-re-scoring on the same footing first. The neutral/TDD/ATDD arms above are all
-scored identically.)*
+**ATDD consistently lands lower — 0.50–0.79 on the harder cells vs 0.67–0.97 for
+BDD/TDD/neutral.** That's the methodology working as designed, not failing: ATDD
+spends its effort on acceptance tests that drive the system end-to-end through
+its public interface, not on exhaustive unit tests, so the *statement* coverage
+is lower even though the spec is fully met. BDD lands right alongside TDD and
+neutral (0.71–0.96) — its Given-When-Then scenarios still leave unit-level
+coverage behind. On the easy Python cells everything saturates near 1.00 and the
+distinction washes out; it only separates where the task has enough surface area
+to matter. ATDD is the clear outlier on coverage, not BDD.
+
+### How the prompt moves time, tokens, and cost
+
+This is where the prompt earns its keep — and where I had to eat an earlier
+claim that "cost tracks the model, not the methodology." It does track the model
+*between* tiers (Opus-4.8-fast runs ~$11, Sonnet ~$2). But *within* a model, the
+methodology you prescribe swings the bill by ~20%. Averaged across all twelve
+runs per arm:
+
+| methodology | pass | test cov | time | tokens | cost |
+|---|:--:|:--:|:--:|:--:|:--:|
+| neutral | 1.00 | 0.83 | 989 s | **5.1M** | **$7.96** |
+| TDD | 1.00 | 0.83 | 906 s | 4.6M | $6.97 |
+| ATDD | 0.83 | 0.72 | 941 s | **3.4M** | **$6.49** |
+
+- **Tokens and cost: the *unstructured* prompt is the most expensive.** "neutral"
+  — implement it however you like — burns **5.1M tokens / $7.96 per run**, the
+  most of any arm. Hand the agent a methodology and it spends *less*: ATDD is
+  leanest at **3.4M tokens / $6.49** (a third fewer tokens than neutral), TDD
+  sits between at 4.6M / $6.97. Structure constrains the exploration — telling
+  the model *how* to test apparently saves it from wandering. The effect is
+  consistent per model: on Opus-4.8-fast, neutral costs **$13.79** vs ATDD's
+  **$11.09** (24% more); Sonnet shows the same ordering at ~$2.
+- **Time barely moves** — all three arms land 900–990 s, neutral marginally
+  slowest. Wall-clock is bounded by the model's reasoning, not by the testing
+  discipline, so the token savings don't translate into a speed-up.
+
+### The practical read
+
+On a task the model already understands, **which discipline you prescribe is
+mostly a wash for whether it ships** — but it's *not* a wash for the bill or the
+tests you're left with:
+
+- **BDD and TDD are the safe picks** — full reliability (1.00 everywhere) and
+  solid unit coverage (0.71–0.96). TDD is also ~12% cheaper than letting the
+  model freestyle; BDD leaves business-readable Given-When-Then scenarios behind.
+- **ATDD is the cheapest** (fewest tokens) and leaves executable acceptance specs,
+  but trades that for lower unit coverage and the one reliability wobble on the
+  weak Sonnet/Go stack.
+- **neutral (no methodology) is the worst of both** — same reliability as TDD/BDD
+  but the highest token bill and no test scaffolding to show for it. Giving the
+  agent *a* methodology, almost any methodology, beats giving it none.
+
+*(BDD is folded in from the original brazil-bench runs — which prescribed BDD
+in-repo rather than via this prompt factor — re-graded on the same judge as the
+others. It ran on the original template, not the methodology-neutral fork, and
+its sonnet arm is n=1, so treat the BDD reliability/coverage as a consistent
+reference point rather than a perfectly-matched fourth arm. Its token/cost
+figures come from a different experiment and aren't in the table above.)*
 
 ## How it's measured
 

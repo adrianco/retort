@@ -18,17 +18,22 @@ judge (requirement_coverage).
 > completed. The earlier "ATDD has near-zero coverage" signal was entirely that
 > tooling bug. See the scorer fixes + `retort diagnose` for the full story.
 
-## Reliability — pass-proportion (requirement_coverage == 1.0), n=3
+## Reliability — pass-proportion (requirement_coverage == 1.0)
 
-| model | language | neutral | TDD | ATDD |
-|---|---|:--:|:--:|:--:|
-| opus-4.8-fast | go | 1.00 | 1.00 | 1.00 |
-| opus-4.8-fast | python | 1.00 | 1.00 | 1.00 |
-| sonnet | go | 1.00 | 1.00 | **0.33** |
-| sonnet | python | 1.00 | 1.00 | 1.00 |
+BDD folded in from the original brazil-bench runs (BDD prescribed in-repo),
+re-graded on the same judge: opus-4.8-fast n=3 (exp-7), sonnet n=1 (exp-2,
+tooling=none). neutral/TDD/ATDD n=3 each.
+
+| model | language | BDD | neutral | TDD | ATDD |
+|---|---|:--:|:--:|:--:|:--:|
+| opus-4.8-fast | go | 1.00 | 1.00 | 1.00 | 1.00 |
+| opus-4.8-fast | python | 1.00 | 1.00 | 1.00 | 1.00 |
+| sonnet | go | 1.00 | 1.00 | 1.00 | **0.33** |
+| sonnet | python | 1.00 | 1.00 | 1.00 | 1.00 |
 
 **Headline: prescribing a methodology barely moves reliability on this task.**
-Eleven of the twelve cells pass 1.00 regardless of methodology. The single
+Fifteen of the sixteen cells pass 1.00 regardless of methodology — BDD, TDD, and
+neutral are interchangeable. The single
 exception is **ATDD on the weakest stack (sonnet + go)**, which drops to 0.33 —
 two of three replicates landed at requirement_coverage 0.92 (a real, small spec
 gap, not a tooling artefact). ATDD front-loads the most work (write executable
@@ -39,15 +44,15 @@ language is forgiving (python), every methodology gets there.
 
 ## Test coverage — mean, n=3 (the real methodology signature)
 
-| model | language | neutral | TDD | ATDD |
-|---|---|:--:|:--:|:--:|
-| opus-4.8-fast | go | 0.57 | 0.67 | 0.50 |
-| opus-4.8-fast | python | 0.97 | 0.95 | 0.79 |
-| sonnet | go | 0.78 | 0.69 | 0.58 |
-| sonnet | python | 1.00 | 1.00 | 1.00 |
+| model | language | BDD | neutral | TDD | ATDD |
+|---|---|:--:|:--:|:--:|:--:|
+| opus-4.8-fast | go | 0.71 | 0.57 | 0.67 | 0.50 |
+| opus-4.8-fast | python | 0.92 | 0.97 | 0.95 | 0.79 |
+| sonnet | go | 0.77 | 0.78 | 0.69 | 0.58 |
+| sonnet | python | 0.96 | 1.00 | 1.00 | 1.00 |
 
 Now that the scorer credits cross-package acceptance tests, the expected pattern
-shows up cleanly: **ATDD produces lower unit-statement coverage** than TDD/neutral
+shows up cleanly: **ATDD produces lower unit-statement coverage** than BDD/TDD/neutral
 (it writes acceptance tests that exercise the system through its public interface,
 not exhaustive unit tests) — yet it still meets the functional spec everywhere
 except sonnet/go. That is the point of the conformance/coverage split: low unit
@@ -66,20 +71,26 @@ passes and the spec is met.
 Cost is dominated by the model (opus-4.8-fast is ~5–10× sonnet), not the
 methodology. No methodology is reliably cheaper.
 
-## BDD baseline — caveat
+## BDD baseline — folded in
 
-The relabelled BDD runs are *not* re-scored with the fixed scorers, so they
-carry the same false-failure risk this experiment uncovered:
+The BDD arm comes from the original brazil-bench runs (which prescribed BDD's
+Given-When-Then scenarios *in the repo*, before the methodology-neutral fork),
+re-graded on the **same judge** as neutral/TDD/ATDD so the pass-proportions are
+comparable: opus-4.8-fast from exp-7/brazil (n=3), sonnet from exp-2
+(tooling=none, n=1).
 
-- **opus-4.8-fast / BDD** (exp-7/brazil): go 1.00, python 1.00 pass — consistent
-  with exp-13's opus cells (every methodology passes on the strong model).
-- **sonnet / BDD** (exp-2): scored 0.00 (go) / 0.50 (python) under the *old,
-  buggy* scorer — almost certainly understated. Not comparable until re-scored.
+- It needed **re-grading, not re-scoring** — BDD's in-package tests were never a
+  scorer false-failure (unlike ATDD's cross-package ones), so test_coverage was
+  already fine; the only stale part was the older judge. Re-grading on the
+  current judge flipped sonnet's borderline 0.92s to 1.00 — they were a
+  judge-era artefact, not a real spec gap.
+- **Result: BDD lands with TDD and neutral** — pass 1.00 across all four cells,
+  unit coverage 0.71–0.96. It is *not* the ATDD-style coverage outlier.
 
-A fair BDD-vs-rest comparison needs exp-2/exp-7 re-scored with the current
-tooling (`retort rescore --only-failed` then `retort reevaluate`); that is the
-recommended follow-up. The neutral/TDD/ATDD arms here are all freshly scored and
-internally consistent.
+Caveats: BDD ran on the original template (not the neutral fork), and its sonnet
+arm is n=1, so treat it as a consistent reference rather than a perfectly matched
+fourth arm. (Older experiments' python archives ship no `requirements.txt`, so
+they cannot be *re-scored* — re-grading, which reads the code, is unaffected.)
 
 ## Takeaways
 

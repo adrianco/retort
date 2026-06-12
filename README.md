@@ -209,16 +209,20 @@ prescribed **test methodology** — on a methodology-neutral fork of the hard ta
 `language[go, python] × model[sonnet, opus-4.8-fast] × prompt[neutral, TDD, ATDD]`,
 3 replicates. Pass-proportion (`requirement_coverage == 1.0`):
 
-| model | language | neutral | TDD | ATDD |
-|---|---|:--:|:--:|:--:|
-| opus-4.8-fast | go | 1.00 | 1.00 | 1.00 |
-| opus-4.8-fast | python | 1.00 | 1.00 | 1.00 |
-| sonnet | go | 1.00 | 1.00 | **0.33** |
-| sonnet | python | 1.00 | 1.00 | 1.00 |
+| model | language | BDD | neutral | TDD | ATDD |
+|---|---|:--:|:--:|:--:|:--:|
+| opus-4.8-fast | go | 1.00 | 1.00 | 1.00 | 1.00 |
+| opus-4.8-fast | python | 1.00 | 1.00 | 1.00 | 1.00 |
+| sonnet | go | 1.00 | 1.00 | 1.00 | **0.33** |
+| sonnet | python | 1.00 | 1.00 | 1.00 | 1.00 |
+
+(BDD folded in from the original brazil-bench runs — BDD prescribed in-repo —
+re-graded on the same judge; opus-4.8-fast n=3, sonnet n=1.)
 
 - **Prescribing a methodology barely moves reliability** on a task the model
-  already understands — 11 of 12 cells pass regardless. The lone drop is **ATDD
-  on the weakest stack (sonnet + go)**: ATDD front-loads the most work
+  already understands — 15 of 16 cells pass regardless; BDD, TDD and neutral are
+  interchangeable. The lone drop is **ATDD on the weakest stack (sonnet + go)**:
+  ATDD front-loads the most work
   (executable acceptance tests through the public interface first), and the
   cheaper model on the stricter language occasionally didn't finish the spec.
 - **The methodology shows up in *what tests get written*, not whether it ships.**
