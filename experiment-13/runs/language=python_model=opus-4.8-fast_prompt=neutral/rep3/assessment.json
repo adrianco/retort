@@ -1,0 +1,10 @@
+{
+  "severity_counts": {"critical": 0, "high": 0, "medium": 0, "low": 0, "info": 0},
+  "penalty_score": 1.0,
+  "top_findings": [],
+  "requirement_coverage": 1.0,
+  "model": "opus-4.8-fast",
+  "evaluated_at": "2026-06-11T23:55:40Z",
+  "min_severity": "high",
+  "note": "5 findings in findings.jsonl (2 low, 3 info) all fall below min_severity=high, so they are excluded from counts; penalty_score=1.0. requirement_coverage=12/12 implemented (pinned REQUIREMENTS.json). file-run-issues does not create tracker issues; tracker=beads has no effect."
+}

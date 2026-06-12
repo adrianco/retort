@@ -1,0 +1,12 @@
+{
+  "severity_counts": {"critical": 0, "high": 1, "medium": 0, "low": 0, "info": 0},
+  "penalty_score": 0.9,
+  "top_findings": [
+    {"id": "R9", "kind": "requirement_partial", "severity": "high", "title": "Brazilian standings/team-stats double-count overlapping match files", "evidence": "soccer/loader.go:155 and soccer/loader.go:343 both tag brasileirao with no de-duplication; seasons 2012-2019 overlap (2019 has 380 rows in EACH file). store.go:148 GetStandings and store.go:92 GetTeamStats iterate all rows -> a team shows ~76 played / doubled points for a 38-game season. GoalsAverage (store.go:350) also computed over the duplicated set.", "suggestion": "De-duplicate matches on (competition, season, date, home, away) at load time, or pick one canonical brasileirao source per season range before aggregating standings, team stats, and averages."}
+  ],
+  "requirement_coverage": 0.9167,
+  "model": "sonnet",
+  "filtered_min_severity": "high",
+  "tracker": "beads (no external issues created; this skill only aggregates assessment.json)",
+  "evaluated_at": "2026-06-11T23:43:02Z"
+}

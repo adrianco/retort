@@ -1,0 +1,6 @@
+# Brazilian Soccer MCP Server - runtime dependencies
+mcp>=1.0.0          # Model Context Protocol Python SDK (FastMCP)
+pandas>=2.0.0       # CSV loading + vectorised aggregation
+
+# Development / testing
+pytest>=7.0.0

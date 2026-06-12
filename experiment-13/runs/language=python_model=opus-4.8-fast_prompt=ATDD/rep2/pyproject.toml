@@ -1,0 +1,29 @@
+[build-system]
+requires = ["setuptools>=61.0"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "brazilian-soccer-mcp"
+version = "1.0.0"
+description = "MCP server providing query access to Brazilian soccer datasets"
+readme = "README.md"
+requires-python = ">=3.10"
+dependencies = [
+    "mcp>=1.0.0",
+]
+
+[project.optional-dependencies]
+dev = [
+    "pytest>=8.0",
+    "pytest-asyncio>=0.23",
+]
+
+[project.scripts]
+brazilian-soccer-mcp = "brazilian_soccer_mcp.server:main"
+
+[tool.setuptools]
+packages = ["brazilian_soccer_mcp"]
+
+[tool.pytest.ini_options]
+asyncio_mode = "auto"
+testpaths = ["tests"]

@@ -1,0 +1,3 @@
+[console_scripts]
+brazilian-soccer-demo = brazilian_soccer.demo:main
+brazilian-soccer-mcp = brazilian_soccer.server:main

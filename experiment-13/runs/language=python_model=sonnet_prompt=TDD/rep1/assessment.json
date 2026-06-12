@@ -1,0 +1,10 @@
+{
+  "severity_counts": {"critical": 0, "high": 0, "medium": 0, "low": 0, "info": 0},
+  "penalty_score": 1.0,
+  "top_findings": [],
+  "requirement_coverage": 1.0,
+  "model": "sonnet",
+  "evaluated_at": "2026-06-12T00:00:00Z",
+  "min_severity": "high",
+  "note": "tracker=beads requested, but file-run-issues v2.0 writes assessment.json only and does not create beads/GitHub issues. All 4 findings (1 medium, 2 low, 1 info) are below min_severity=high, so none count toward severity_counts/penalty."
+}

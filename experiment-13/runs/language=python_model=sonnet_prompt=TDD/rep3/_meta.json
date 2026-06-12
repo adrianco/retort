@@ -1,0 +1,10 @@
+{
+  "replicate": 3,
+  "run_config": {
+    "language": "python",
+    "model": "sonnet",
+    "prompt": "TDD"
+  },
+  "succeeded": true,
+  "visibility": "public"
+}

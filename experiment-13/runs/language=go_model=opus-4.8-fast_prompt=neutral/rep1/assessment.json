@@ -1,0 +1,10 @@
+{
+  "severity_counts": {"critical": 0, "high": 0, "medium": 0, "low": 0, "info": 0},
+  "penalty_score": 1.0,
+  "top_findings": [],
+  "requirement_coverage": 1.0,
+  "model": "opus-4.8-fast",
+  "evaluated_at": "2026-06-11T17:38:03Z",
+  "min_severity": "high",
+  "note": "4 findings in findings.jsonl (2 low, 2 info); all below min_severity=high, so excluded from counts. No external tracker records created."
+}

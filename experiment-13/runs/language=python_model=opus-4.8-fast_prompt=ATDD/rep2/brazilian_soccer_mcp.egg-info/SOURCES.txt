@@ -1,0 +1,14 @@
+README.md
+pyproject.toml
+brazilian_soccer_mcp/__init__.py
+brazilian_soccer_mcp/data_loader.py
+brazilian_soccer_mcp/models.py
+brazilian_soccer_mcp/normalize.py
+brazilian_soccer_mcp/repository.py
+brazilian_soccer_mcp/server.py
+brazilian_soccer_mcp.egg-info/PKG-INFO
+brazilian_soccer_mcp.egg-info/SOURCES.txt
+brazilian_soccer_mcp.egg-info/dependency_links.txt
+brazilian_soccer_mcp.egg-info/entry_points.txt
+brazilian_soccer_mcp.egg-info/requires.txt
+brazilian_soccer_mcp.egg-info/top_level.txt

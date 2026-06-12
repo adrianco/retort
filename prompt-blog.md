@@ -57,11 +57,55 @@ methodology should only be credited — or blamed — when it was actually used.
 
 ## Results
 
-*Pending — experiment-13 is running (1 replicate, so results are directional, not
-definitive). This section will be filled in with the four-way comparison
-(BDD / neutral / TDD / ATDD) per model and language — pass-proportion, test
-coverage, code quality, speed, and cost — plus the ATDD-conformance findings,
-once the run completes and is scored.*
+Three replicates, 36 runs, all graded by the spec judge. And the first answer is
+almost an anticlimax: **on a task the model already knows how to build,
+prescribing a methodology barely moves reliability.** Pass-proportion
+(does it implement the whole pinned checklist?) by cell:
+
+| model | language | neutral | TDD | ATDD |
+|---|---|:--:|:--:|:--:|
+| opus-4.8-fast | go | 1.00 | 1.00 | 1.00 |
+| opus-4.8-fast | python | 1.00 | 1.00 | 1.00 |
+| sonnet | go | 1.00 | 1.00 | **0.33** |
+| sonnet | python | 1.00 | 1.00 | 1.00 |
+
+Eleven of twelve cells pass regardless of what I told the agent about testing.
+The lone exception is **ATDD on the weakest stack — Sonnet writing Go** — where
+two of three runs left a small spec gap. ATDD asks for the most up-front
+discipline (turn every acceptance criterion into an executable test through the
+public interface *before* implementing), and the cheaper model on the less
+forgiving language occasionally didn't carry that all the way home. Give it a
+stronger model or a more forgiving language and the gap closes.
+
+Where methodology *does* show up cleanly is **what kind of tests get written**.
+ATDD consistently produces lower unit-statement coverage than TDD or neutral —
+0.50–0.79 vs 0.67–0.97 on the harder cells — because it writes acceptance tests
+that drive the system end-to-end, not exhaustive unit tests. That's the
+methodology working as intended, not failing: it still meets the functional spec
+everywhere except Sonnet/Go.
+
+### The detour that became the real story
+
+I almost published the opposite conclusion. The first scoring pass failed seven
+of these runs outright — "tests did not run" — and they clustered on ATDD. It
+looked like ATDD was simply broken. It wasn't: `go test -cover` without
+`-coverpkg` scores an acceptance test that lives in one package and drives its
+siblings at **0%**, and the Python coverage ran without the project's own
+dependencies. Every one of those seven "failures" actually built and passed at
+77–96% coverage. The methodology that looked worst was the one the harness was
+worst at *measuring*.
+
+So the durable lesson here is less about TDD vs ATDD and more about
+**measurement**: a coverage-tool blind spot can make an entire methodology look
+dead. retort now ships a `diagnose` command that re-tests every failure and tells
+you tooling-vs-genuine, and the re-evaluate step refuses to report success when
+its own judge silently did nothing. Those guardrails are the part of this
+experiment I'd actually keep.
+
+*(BDD, the fourth arm, isn't re-scored with the fixed tooling yet, so I'm holding
+the BDD-vs-rest comparison until those baselines are re-run — same false-failure
+risk applies to them. The neutral/TDD/ATDD arms above are all freshly, equally
+scored.)*
 
 ## How it's measured
 

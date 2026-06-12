@@ -1,0 +1,9 @@
+# Runtime dependency: the official MCP Python SDK (provides FastMCP).
+mcp>=1.0
+
+# Development / test dependency.
+pytest>=7.0
+
+# NOTE: The data layer (soccer_data.py) and query engine (soccer_queries.py)
+# use only the Python standard library. `mcp` is required solely to run the
+# server (server.py); the engine and its tests work without it.

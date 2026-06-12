@@ -1,0 +1,10 @@
+{
+  "severity_counts": {"critical": 0, "high": 1, "medium": 0, "low": 0, "info": 0},
+  "penalty_score": 0.9,
+  "top_findings": [
+    {"id": "R9", "kind": "requirement_partial", "severity": "high", "title": "Standings & statistics double-count overlapping Brasileirao seasons", "evidence": "internal/loader/loader.go:156,264 map both Brasileirao_Matches.csv and novo_campeonato_brasileiro.csv to \"Brasileirao Serie A\"; 2019 is a full 380-match season in BOTH files; internal/query/query.go:288 GetStandings and :370 GetStatistics do not deduplicate (unlike FindMatches at query.go:158), so 2003-2019 Brasileirao points and total_matches are ~doubled.", "suggestion": "Deduplicate matches by date+home+away+competition at load time or in the standings/statistics aggregation, reusing the FindMatches key."}
+  ],
+  "requirement_coverage": 0.9167,
+  "model": "sonnet",
+  "evaluated_at": "2026-06-11T23:41:22Z"
+}
