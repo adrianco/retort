@@ -1,14 +1,10 @@
 {
-  "severity_counts": {
-    "critical": 0,
-    "high": 0,
-    "medium": 0,
-    "low": 0,
-    "info": 0
-  },
-  "penalty_score": 1.0,
-  "top_findings": [],
+  "severity_counts": {"critical": 0, "high": 1, "medium": 0, "low": 0, "info": 0},
+  "penalty_score": 0.9,
+  "top_findings": [
+    {"id": "data-missing", "kind": "test_failure", "severity": "high", "title": "Archived workspace omits data/kaggle/, so 18/24 tests fail on re-score", "evidence": ".pytest_cache/v/cache/lastfailed lists 18 failing tests (all engine/datasets-fixture tests); data/kaggle/ absent from run_dir; scores.json shows test_coverage=0.3 / defect_rate=0.0 vs authoritative retort.db completed row test_coverage=0.85 / defect_rate=0.68 (finished 2026-04-13)", "suggestion": "Archive the input CSVs (or a fixture subset) with the run, or have conftest skip data-dependent tests when SOCCER_DATA_DIR is unavailable, so the run remains verifiable after archival"}
+  ],
   "requirement_coverage": 1.0,
   "model": "opus",
-  "evaluated_at": "2026-06-03T12:00:00Z"
+  "evaluated_at": "2026-06-12T10:29:26Z"
 }

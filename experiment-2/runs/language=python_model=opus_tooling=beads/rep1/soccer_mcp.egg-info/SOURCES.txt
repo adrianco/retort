@@ -1,0 +1,17 @@
+README.md
+pyproject.toml
+soccer_mcp/__init__.py
+soccer_mcp/data_loader.py
+soccer_mcp/query.py
+soccer_mcp/server.py
+soccer_mcp.egg-info/PKG-INFO
+soccer_mcp.egg-info/SOURCES.txt
+soccer_mcp.egg-info/dependency_links.txt
+soccer_mcp.egg-info/entry_points.txt
+soccer_mcp.egg-info/requires.txt
+soccer_mcp.egg-info/top_level.txt
+tests/test_data_loader.py
+tests/test_matches.py
+tests/test_players_and_stats.py
+tests/test_server.py
+tests/test_team_and_competition.py

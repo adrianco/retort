@@ -1,87 +1,95 @@
-# Evaluation: language=go_model=opus_tooling=beads · rep 1
+# Evaluation: language=go · model=opus · tooling=beads · rep 1
 
 ## Summary
 
-- **Factors:** language=go, model=opus, tooling=beads
-- **Status:** ok (archive incomplete — internal/data/ missing)
-- **Requirements:** 11/12 implemented, 1 partial, 0 missing
-- **Tests:** 11 defined / 0 skipped (11 effective); test_coverage=0.33325 from retort.db
-- **Build:** pass — defect_rate=1.0 from retort.db (archive cannot reproduce; missing internal/data package and go.sum)
-- **Lint:** pass — code_quality=1.0 from retort.db
-- **Architecture:** summary skill unavailable
-- **Findings:** 4 items in `findings.jsonl` (0 critical, 2 high, 1 medium, 1 low)
+- **Factors:** language=go, model=opus, tooling=beads (DB run_config also records prompt=BDD)
+- **Status:** **failed** — module does not compile. The `internal/data` package, imported by all 9 source files, is absent from the archive, so nothing builds and no test executes (`test_coverage=0.0` in `scores.json`).
+- **Requirements:** 0/12 verifiably implemented · 1 partial (R12) · 1 missing (R2) · 10 cannot-verify (R1, R3–R11 — source logic present but unbuildable)
+- **Tests:** 0 passed / 0 failed / 0 skipped (0 effective) — 11 `Test*` functions exist but the packages fail to build (`[setup failed]`)
+- **Build:** **fail** — `package brsoccer/internal/data is not in std`; also incomplete `go.sum` (missing `golang.org/x/text`)
+- **Lint:** unavailable — cannot lint code that does not compile
+- **Architecture:** summarized inline below (`run-summary` not invoked for a non-compiling run)
+- **Findings:** 7 items in `findings.jsonl` (1 critical, 3 high, 1 medium, 2 info)
+
+> **Note on stored scores.** `scores.json` is all-zeros and matches the archived (broken) state. The `retort.db` row for this cell (run id 14, status=completed) instead shows `test_coverage=0.333`, `code_quality=1.0`, `defect_rate=1.0`, `requirement_coverage=0.9167` — but that row was scored against a *different, complete* workspace (run_config includes `prompt=BDD`) that still had the `internal/data` package. The archive on disk is missing that package, so the DB scores do **not** describe what is in this directory. This evaluation reflects the archived files as they actually exist, verified by re-running `go build`/`go test`.
 
 ## Requirements
 
-Source: pinned `REQUIREMENTS.json` (12 requirements, constant denominator across all runs).
-
 | ID | Requirement (short) | Status | Evidence |
-|----|----|----|-----|
-| R1 | MCP server exposing tools/handlers | ✓ implemented | `internal/mcp/server.go` JSON-RPC 2.0 MCP server; `tools.go:14-263` registers 8 tools (find_matches, team_stats, head_to_head, standings, find_players, overall_stats, biggest_wins, dataset_info) |
-| R2 | Loads data/kaggle/ datasets as data source | ~ partial | `main.go:16` calls `data.Load(*dataDir)` with `--data` flag; `internal/data/` package missing from archive — CSV parsing unverifiable. defect_rate=1.0 confirms it worked at scoring time. |
-| R3 | Match query: find by team (home, away, either) | ✓ implemented | `query/match.go:44-47` MatchFilter.Team checks home OR away via `data.TeamMatches`; also supports dedicated HomeTeam/AwayTeam fields |
-| R4 | Match query: filter by date range and/or season | ✓ implemented | `query/match.go:26-27` Season filter; `match.go:32-36` From/To date range; `tools.go:28-29` exposes as `from`/`to` ISO-8601 params |
-| R5 | Match query: filter by competition | ✓ implemented | `query/match.go:29-30` case-insensitive substring match on Competition |
-| R6 | Team query: W/L/D record and goals for/against | ✓ implemented | `query/team.go:35-75` ComputeTeamStats with wins/draws/losses, goals for/against, home/away splits, points |
-| R7 | Player query: search by name | ✓ implemented | `query/player.go:22-24` case-insensitive substring name match |
-| R8 | Player query: filter by nationality/club with ratings | ✓ implemented | `query/player.go:25-35` filters Nationality, Club, Position, MinOverall; sorted by Overall descending |
-| R9 | Competition query: season standings from results | ✓ implemented | `query/team.go:78-118` Standings() computes from match results, sorted by points → GD → GF |
-| R10 | Statistical analysis: aggregate stats | ✓ implemented | `query/stats.go:19-44` Overall() — avg goals/match, home win rate; `stats.go:47-67` BiggestWins() by goal difference |
-| R11 | Head-to-head records between two teams | ✓ implemented | `query/match.go:76-105` H2H() returns W/L/D, goals, and recent match examples |
-| R12 | Automated tests covering query capabilities | ✓ implemented | `server_test.go` (4 tests: MCP init, tools list, tool call, notifications) + `query_test.go` (7 tests: match search, team stats, H2H, standings, players, overall stats, biggest wins); 0 skipped; test_coverage=0.33325 from retort.db |
+|----|----|----|----|
+| R1 | MCP server exposing query tools | ? cannot-verify | `internal/mcp/server.go` (JSON-RPC stdio), `tools.go:14` registers 8 tools — but build fails |
+| R2 | Load datasets in data/kaggle/ | ✗ missing | `main.go:16` calls `data.Load` but `internal/data` pkg + `data/` dir absent |
+| R3 | Match query by team (home/away/either) | ? cannot-verify | `internal/query/match.go:44-48` `Team` filter (home OR away) |
+| R4 | Match query by date range / season | ? cannot-verify | `match.go:26,32-37` `Season`/`From`/`To` filters |
+| R5 | Match query by competition | ? cannot-verify | `match.go:29` competition substring filter |
+| R6 | Team W/L/D record + goals | ? cannot-verify | `internal/query/team.go:35` `ComputeTeamStats` |
+| R7 | Player search by name | ? cannot-verify | `internal/query/player.go:22` name contains-fold |
+| R8 | Player filter by nationality/club + ratings | ? cannot-verify | `player.go:25-34` nationality/club/min_overall |
+| R9 | Standings computed from matches | ? cannot-verify | `team.go:78` `Standings` (points/GD from results) |
+| R10 | Aggregate statistics | ? cannot-verify | `internal/query/stats.go:19` `Overall` + `BiggestWins` |
+| R11 | Head-to-head between two teams | ? cannot-verify | `match.go:76` `H2H` |
+| R12 | Automated tests covering queries | ~ partial | 11 BDD-style tests in `query_test.go`/`server_test.go`, but they **do not execute** (build fails, `test_coverage=0`) |
+
+`?` cannot-verify is used per the evaluate-run rule that, when `test_coverage==0`, requirements whose runtime behavior cannot be confirmed are not credited as implemented. The source logic for these 10 looks correct on read; it is simply unbuildable.
 
 ## Build & Test
 
-Stored scores from retort.db (build/test NOT re-run per evaluation protocol):
-
 ```text
-test_coverage    = 0.33325  (tests executed; ~33% code coverage)
-code_quality     = 1.0      (lint clean)
-defect_rate      = 1.0      (build + tests succeeded)
-idiomatic        = 0.67
-maintainability  = 0.546
-token_efficiency = 0.044
+$ go build ./...
+cmd/brsoccer-mcp/main.go:8:2: package brsoccer/internal/data is not in std
+  (/opt/homebrew/Cellar/go/1.26.3/libexec/src/brsoccer/internal/data)
+# (also, with the package present, build would still need go.sum:)
+golang.org/x/text@v0.36.0: missing go.sum entry for go.mod file
 ```
 
-Note: The `internal/data` package (data models, CSV loading, team name normalization) is missing from the archived workspace. All source files import it. `go.sum` is also absent. The code cannot be compiled from the archive alone, but `defect_rate=1.0` confirms the original run compiled and passed tests.
+```text
+$ go test ./...
+# brsoccer/cmd/brsoccer-mcp
+cmd/brsoccer-mcp/main.go:8:2: package brsoccer/internal/data is not in std
+FAIL	brsoccer/cmd/brsoccer-mcp [setup failed]
+FAIL	brsoccer/internal/mcp   [setup failed]
+FAIL	brsoccer/internal/query [setup failed]
+FAIL
+```
+
+## Architecture (inline)
+
+- `cmd/brsoccer-mcp/main.go` — entrypoint: `data.Load(dir)` → `mcp.NewServer` → `RegisterSoccerTools` → serve stdio.
+- `internal/mcp/server.go` — minimal JSON-RPC 2.0 / MCP server over ndjson stdio (initialize, tools/list, tools/call, ping).
+- `internal/mcp/tools.go` — registers 8 tools wiring args → `internal/query` functions; `format.go` formats results.
+- `internal/query/{match,team,player,stats}.go` — pure query logic over `data.DB` (filters, aggregations, standings, H2H).
+- `internal/data/` — **MISSING**: should define `DB`, `Match`, `Player`, `Load`, `TeamMatches`, `NormalizeTeam`. Its absence breaks every package.
 
 ## Metrics
 
 | Metric | Value |
 |--------|-------|
-| Lines of code (Go source) | 1165 |
-| Go source files | 10 |
-| Total files in archive | 24 |
-| Dependencies (go.mod) | 1 (golang.org/x/text) |
-| Tests total | 11 |
-| Tests effective | 11 |
-| Tests skipped | 0 |
-| Skip ratio | 0% |
-| MCP tools registered | 8 |
+| Lines of Go (source + tests) | 1,165 |
+| Files (excl. .git) | 23 |
+| Go source files | 10 (incl. 2 test files); 1 package missing |
+| Dependencies | 1 declared (`golang.org/x/text`), `go.sum` incomplete |
+| Tests total (written) | 11 |
+| Tests effective (executed) | 0 |
+| Skip ratio | 0% (no `t.Skip`) — but 0 run |
+| Build | fail |
 
 ## Findings
 
-Top findings by severity (full list in `findings.jsonl`):
+Top items by severity (full list in `findings.jsonl`):
 
-1. [high] R2 — Data loading package missing from archive; cannot verify CSV loading from data/kaggle/
-2. [high] archive-incomplete — Archived workspace missing internal/data package; code cannot compile from archive
-3. [medium] metric-low-coverage — Test code coverage at 33.3%
-4. [low] dep-go-version — go.mod specifies future Go version 1.25.4
+1. **[critical]** Module does not compile — `internal/data` package absent (`build-fail`)
+2. **[high]** R2 data-loading layer absent — CSVs never read (`R2`)
+3. **[high]** All test packages fail to build — 0 effective tests (`test-fail`)
+4. **[high]** Test suite written but does not execute (`R12`)
+5. **[medium]** Incomplete `go.sum` — missing `golang.org/x/text` checksum (`build-gosum`)
 
 ## Reproduce
 
 ```bash
 cd experiment-2/runs/language=go_model=opus_tooling=beads/rep1
-# Archive is incomplete (internal/data missing, go.sum missing); build commands will not work as-is:
-# go build ./...
-# go test ./... -v -cover
-# Stored scores from retort.db were used instead:
-sqlite3 -readonly ../../retort.db \
-  "SELECT rr.metric_name, rr.value FROM run_results rr
-   WHERE rr.run_id = (SELECT er.id FROM experiment_runs er
-     WHERE json_extract(er.run_config_json,'$.language')='go'
-       AND json_extract(er.run_config_json,'$.model')='opus'
-       AND json_extract(er.run_config_json,'$.tooling')='beads'
-       AND er.replicate=1 AND er.status='completed'
-     ORDER BY er.finished_at DESC LIMIT 1);"
+go build ./...                      # fails: package brsoccer/internal/data is not in std
+go test ./...                       # FAIL ... [setup failed] x3
+grep -rl "brsoccer/internal/data" --include="*.go" .   # 9 files import the missing package
+ls internal/data 2>&1               # No such file or directory
+cat scores.json                     # all 0.0 — consistent with build failure
 ```

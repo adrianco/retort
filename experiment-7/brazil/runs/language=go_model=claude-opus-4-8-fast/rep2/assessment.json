@@ -4,5 +4,6 @@
   "top_findings": [],
   "requirement_coverage": 1.0,
   "model": "claude-opus-4-8-fast",
-  "evaluated_at": "2026-06-04T12:00:00Z"
+  "min_severity": "high",
+  "evaluated_at": "2026-06-12T10:18:33Z"
 }

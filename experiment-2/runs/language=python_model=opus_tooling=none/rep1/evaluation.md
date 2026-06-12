@@ -1,107 +1,93 @@
-# Evaluation: language=python_model=opus · rep 1
+# Evaluation: language=python · model=opus · tooling=none · rep 1
 
 ## Summary
 
 - **Factors:** language=python, model=opus, tooling=none
 - **Status:** ok
-- **Requirements:** 11/11 implemented, 0 partial, 0 missing
+- **Requirements:** 12/12 implemented, 0 partial, 0 missing (pinned `REQUIREMENTS.json`)
 - **Tests:** 19 passed / 0 failed / 0 skipped (19 effective)
-- **Build:** pass — 0.2s (py_compile)
-- **Lint:** pass with warnings — 3 low-severity style issues
-- **Metrics:** 647 LOC, 5 Python files, 2 dependencies (mcp, pandas)
+- **Build:** pass — package imports cleanly; tests executed (`test_coverage=0.27` > 0)
+- **Lint:** see scores — `code_quality=0.667`, `idiomatic=0.79` (retort scorers)
+- **Architecture:** see `summary/index.md`
+- **Findings:** 4 items in `findings.jsonl` (0 critical, 0 high, 2 medium, 0 low, 2 info)
+
+Scores read from `scores.json` (no re-run): `test_coverage=0.27`, `code_quality=0.667`,
+`defect_rate=0.573`, `maintainability=0.466`, `idiomatic=0.79`, `token_efficiency=0.019`.
+`test_coverage=0.27` is the line-coverage fraction (matches `coverage report` TOTAL 27%);
+tests executed and all passed (`test_output.txt`: "19 passed in 4.69s"), so the test gate is met.
 
 ## Requirements
 
 | ID | Requirement (short) | Status | Evidence |
-|----|----|----|----|----|
-| R1 | Search and return match data from CSV files | ✓ implemented | `brazilian_soccer/server.py:32-45` — `find_matches()` tool loads and queries all 6 CSV files; tested in `test_data.py::TestMatchQueries` |
-| R2 | Search and return player data | ✓ implemented | `brazilian_soccer/server.py:91-102` — `search_players()` tool filters FIFA database; tested in `test_data.py::TestPlayers` |
-| R3 | Calculate basic statistics (wins, losses, goals) | ✓ implemented | `team_stats()`, `biggest_wins()`, `average_goals()` tools in server.py; all tested and passing |
-| R4 | Compare teams head-to-head | ✓ implemented | `head_to_head()` tool returns W/D/L records; test at `test_data.py:72-78` validates count consistency |
-| R5 | Handle team name variations correctly | ✓ implemented | `normalize_team()` in `data.py:27-71` handles state suffixes, accents, aliases; `TestNormalization:15-26` passes |
-| R6 | Return properly formatted responses | ✓ implemented | `_df_to_records()` in `server.py:15-29` serializes NaN/datetime to JSON; all tools return JSON strings |
-| R7 | Simple lookups respond in < 2 seconds | ✓ implemented | All 19 tests complete in 4.69s total; individual query tests are subsecond |
-| R8 | Aggregate queries respond in < 5 seconds | ✓ implemented | `biggest_wins()` and `average_goals()` tested and fast; no N+1 patterns |
-| R9 | All 6 CSV files are loadable and queryable | ✓ implemented | `SoccerData.load()` in `data.py:110-175` loads all 6 files; `test_all_frames_loaded:31-37` verifies counts |
-| R10 | At least 20 sample questions can be answered | ✓ implemented | Tool interface and query parameters support open-ended natural language queries via LLM integration |
-| R11 | Cross-file queries work | ✓ implemented | `head_to_head()` and `team_stats()` filter matches; `search_players()` filters by club name across files |
+|----|----|----|----|
+| R1 | MCP server exposing tools/handlers | ✓ implemented | `server.py:12` FastMCP + 7 `@mcp.tool()` defs (find_matches, head_to_head, team_stats, standings, biggest_wins, average_goals, search_players) |
+| R2 | Loads datasets in data/kaggle/ | ✓ implemented | `data.py:110` load() reads all 6 CSVs from `data/kaggle`; test `test_all_frames_loaded` asserts row counts |
+| R3 | Match query by team (home/away/either) | ✓ implemented | `data.py:231` matches `home_norm`/`away_norm`; test `test_find_matches_by_team` |
+| R4 | Filter by date range and/or season | ✓ implemented | `data.py:229` season filter; test `test_find_matches_by_season`. Date-range absent (see info finding R4) |
+| R5 | Filter by competition (3 comps) | ✓ implemented | `data.py:226` tournament filter; Brasileirão/Cup/Libertadores loaded; test `test_find_matches_by_competition` |
+| R6 | Team W/L/D record + goals for/against | ✓ implemented | `data.py:269` team_stats returns wins/draws/losses/goals_for/goals_against; test `test_stats_structure` |
+| R7 | Player search by name | ✓ implemented | `data.py:382` Name contains; test `test_search_by_name` |
+| R8 | Players by nationality/club + ratings | ✓ implemented | `data.py:384` nationality/club filters, returns Overall/Potential; tests `test_find_brazilians`, `test_filter_by_min_overall` |
+| R9 | Season standings from match results | ✓ implemented | `data.py:313` standings() computes Pts/W/D/L/GD from matches; test `test_standings_ordered` |
+| R10 | Aggregate stats | ✓ implemented | `data.py:355` average_goals + `data.py:348` biggest_wins; tests `test_average_goals`, `test_biggest_wins` |
+| R11 | Head-to-head between two teams | ✓ implemented | `data.py:242` head_to_head returns W/L/D; test `test_returns_counts` |
+| R12 | Automated tests for query capabilities | ✓ implemented | `tests/test_data.py` 19 tests, all pass; `test_coverage=0.27` > 0 |
 
-## Architecture
-
-FastMCP-based MCP server with 7 query tools, backed by a data layer that loads and normalizes 6 Brazilian soccer datasets. See `summary/index.md` for detailed architecture.
+Enhancements beyond spec: team-name normalization with accent stripping, state-suffix
+removal, and alias map (`data.py:27`); multi-format date parsing (`data.py:74`);
+home-only/away-only stat filters.
 
 ## Build & Test
 
+Per the evaluate-run skill, build/test were **not re-run** — scores read from `scores.json`.
+Stored evidence (`test_output.txt`, captured during scoring):
+
 ```text
-python -m pytest -v
-================================ test session starts =================================
-platform linux -- Python 3.12.1, pytest-8.3.3
+pytest -q (testpaths: tests)
 collected 19 items
-
-tests/test_data.py::TestNormalization::test_strips_state_suffix PASSED   [  5%]
-tests/test_data.py::TestNormalization::test_strips_country_code PASSED   [ 10%]
-tests/test_data.py::TestNormalization::test_strips_accents PASSED        [ 15%]
-tests/test_data.py::TestNormalization::test_handles_none PASSED          [ 21%]
-tests/test_data.py::TestLoading::test_all_frames_loaded PASSED           [ 26%]
-tests/test_data.py::TestLoading::test_unified_matches PASSED             [ 31%]
-tests/test_data.py::TestMatchQueries::test_find_matches_by_team PASSED   [ 36%]
-tests/test_data.py::TestMatchQueries::test_find_matches_between_teams PASSED [ 42%]
-tests/test_data.py::TestMatchQueries::test_find_matches_by_season PASSED [ 47%]
-tests/test_data.py::TestMatchQueries::test_find_matches_by_competition PASSED [ 52%]
-tests/test_data.py::TestHeadToHead::test_returns_counts PASSED           [ 57%]
-tests/test_data.py::TestTeamStats::test_stats_structure PASSED           [ 63%]
-tests/test_data.py::TestTeamStats::test_home_only_filter PASSED          [ 68%]
-tests/test_data.py::TestStandings::test_standings_ordered PASSED         [ 73%]
-tests/test_data.py::TestAggregates::test_biggest_wins PASSED             [ 78%]
-tests/test_data.py::TestAggregates::test_average_goals PASSED            [ 84%]
-tests/test_data.py::TestPlayers::test_find_brazilians PASSED             [ 89%]
-tests/test_data.py::TestPlayers::test_search_by_name PASSED              [ 94%]
-tests/test_data.py::TestPlayers::test_filter_by_min_overall PASSED       [100%]
-
+... 19 passed
 ============================== 19 passed in 4.69s ==============================
 ```
+
+```text
+coverage report (TOTAL 27%)
+brazilian_soccer/data.py    201 stmts  146 miss  27%
+brazilian_soccer/server.py   53 stmts   53 miss   0%   <- MCP tool layer untested
+```
+
+Note: `data/kaggle/` is not present in the archive (datasets were external at run time);
+tests reference it via `DEFAULT_DATA_DIR` and passed when scored.
 
 ## Metrics
 
 | Metric | Value |
 |--------|-------|
-| Lines of code (source only) | 647 |
-| Files | 5 (.py files) |
+| Lines of code (source only) | 514 (data.py 400, server.py 110, __init__ 4) |
+| Lines of code (tests) | 133 |
+| Source files | 5 (3 package + 2 test) |
 | Dependencies | 2 (mcp, pandas) |
 | Tests total | 19 |
 | Tests effective | 19 |
 | Skip ratio | 0% |
-| Build duration | 0.2s |
+| Line coverage | 27% |
 
 ## Findings
 
-All 3 findings are low-severity lint warnings (import sorting, line length, unused import):
+Top items by severity (full list in `findings.jsonl`):
 
-1. [low] Import blocks need sorting (ruff I001)
-2. [low] 8 lines exceed 88 character limit
-3. [low] Unused import: typing.Iterable
-
-See `findings.jsonl` for full details.
+1. [medium] MCP server tool layer has 0% test coverage — tests call `SoccerData` directly, never the `@mcp.tool()` wrappers (`server.py` 0%)
+2. [medium] Low overall test coverage (27%) — many `data.py` branches untested
+3. [info] Match query supports season but not an explicit date range (`data.py:217`)
+4. [info] Code-quality score below ceiling (`code_quality=0.667`, `idiomatic=0.79`)
 
 ## Reproduce
 
 ```bash
 cd experiment-2/runs/language=python_model=opus_tooling=none/rep1
+# Build/test were NOT re-run; scores read from scores.json:
+cat scores.json
+# To re-run manually (requires data/kaggle/ CSVs present):
+pip install -e .
 python -m pytest -v
-ruff check .
-python -m py_compile brazilian_soccer/*.py
+python -m coverage run -m pytest && python -m coverage report
 ```
-
-## Notes
-
-**Strengths:**
-- All functional requirements implemented and tested
-- Comprehensive test coverage (19 tests across 6 feature areas)
-- Robust team name normalization handles Portuguese characters and naming variations
-- Clean data layer abstraction separates concerns well
-- Proper JSON serialization with NaN/datetime handling
-
-**Minor Issues:**
-- Ruff style violations (import sorting, line length) — non-functional and easily auto-fixable
-- Unused `Iterable` import in data.py
-- No benchmarking in tests; performance claims (< 2s, < 5s) verified through manual test run timing only

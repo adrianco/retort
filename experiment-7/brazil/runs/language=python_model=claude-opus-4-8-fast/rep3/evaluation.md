@@ -2,97 +2,82 @@
 
 ## Summary
 
-- **Factors:** language=python, model=claude-opus-4-8-fast
+- **Factors:** language=python, model=claude-opus-4-8-fast (agent/framework: unknown)
 - **Status:** ok
-- **Requirements:** 12/12 implemented, 0 partial, 0 missing
-- **Tests:** 71 passed / 0 failed / 0 skipped (71 effective)
-- **Build:** pass — test_coverage=0.94, defect_rate=0.9998 from scores.json
-- **Lint:** pass with issues — code_quality=0.667 from scores.json
-- **Architecture:** summary skill not invoked (see note below)
-- **Findings:** 6 items in `findings.jsonl` (0 critical, 0 high, 2 medium, 1 low, 3 info)
+- **Requirements:** 12/12 implemented, 0 partial, 0 missing (pinned `REQUIREMENTS.json`)
+- **Tests:** 71 collected / 0 skipped (71 effective) — pass inferred from `defect_rate=0.9947`, `test_coverage=0.94`
+- **Build:** pass — from `test_coverage=0.94` (>0 ⇒ imports/build succeeded) in scores.json
+- **Lint:** pass (with warnings) — `code_quality=0.6667` in scores.json
+- **Architecture:** see `summary/index.md`
+- **Findings:** 5 items in `findings.jsonl` (0 critical, 0 high, 1 medium, 2 low, 2 info)
 
 ## Requirements
 
 | ID | Requirement (short) | Status | Evidence |
-|----|-----|-----|----|
-| R1 | MCP server with tools/handlers | ✓ implemented | `server.py:205-295` — `build_server()` registers 13 tools via `@mcp.tool()`; FastMCP from `mcp.server.fastmcp` |
-| R2 | Loads provided datasets from data/kaggle/ | ✓ implemented | `data_loader.py:344-376` — reads all 6 CSVs: Brasileirao, Cup, Libertadores, BR-Football, novo, fifa_data |
-| R3 | Match query: find by team (home/away/either) | ✓ implemented | `knowledge_graph.py:163-217` — `find_matches()` with `venue` param; tested in `test_match_queries.py:49-55` |
-| R4 | Match query: filter by date range/season | ✓ implemented | `knowledge_graph.py:193-209` — `season`, `start_date`, `end_date` filters; tested in `test_match_queries.py:40-63` |
-| R5 | Match query: filter by competition | ✓ implemented | `knowledge_graph.py:80-91` — `resolve_competition()` aliases; tested in `test_match_queries.py:65-70` |
-| R6 | Team query: W/L/D record and goals | ✓ implemented | `knowledge_graph.py:271-319` — `team_stats()` returns wins/draws/losses/goals_for/goals_against; tested in `test_team_queries.py:14-26` |
-| R7 | Player query: search by name | ✓ implemented | `knowledge_graph.py:371-403` — case-insensitive substring match; tested in `test_player_queries.py:14-28` |
-| R8 | Player query: filter by nationality/club with ratings | ✓ implemented | `knowledge_graph.py:371-403` — `nationality`, `club`, `position`, `min_overall` params; tested in `test_player_queries.py:30-42` |
-| R9 | Competition query: standings from match results | ✓ implemented | `knowledge_graph.py:449-511` — `standings()` computes league table from match data; tested in `test_competition_queries.py:17-31` (validates Flamengo 2019 = 90pts) |
-| R10 | Statistical analysis: aggregate stats | ✓ implemented | `knowledge_graph.py:520-609` — `biggest_wins()`, `average_goals()`, `best_record()`; tested in `test_statistics.py:14-52` |
-| R11 | Head-to-head records | ✓ implemented | `knowledge_graph.py:321-359` — `head_to_head()` returns W/L/D and goals; tested in `test_team_queries.py:42-57` (symmetry verified) |
-| R12 | Automated tests covering query capabilities | ✓ implemented | 8 test files, 71 test functions, 0 skipped; test_coverage=0.94 from scores.json |
+|----|----|----|----|
+| R1 | MCP server exposing query tools | ✓ implemented | `server.py:205` `build_server()` (FastMCP), 13 `@mcp.tool()` registrations |
+| R2 | Load & use data/kaggle/ datasets | ✓ implemented | `data_loader.py:344-375`; all 6 CSVs present under `data/kaggle/` |
+| R3 | Matches by team (home/away/either) | ✓ implemented | `knowledge_graph.py:163` `find_matches(venue=...)`; `server.py:tool_find_matches` |
+| R4 | Filter by date range and/or season | ✓ implemented | `knowledge_graph.py:205-208` (start/end date), `:193` season filter |
+| R5 | Filter by competition | ✓ implemented | `knowledge_graph.py:80` `resolve_competition`, aliases for Brasileirão/Copa do Brasil/Libertadores |
+| R6 | Team W/L/D record + goals for/against | ✓ implemented | `knowledge_graph.py:271` `team_stats` |
+| R7 | Search players by name | ✓ implemented | `knowledge_graph.py:371` `search_players(name=...)` |
+| R8 | Players by nationality/club + ratings | ✓ implemented | `knowledge_graph.py:388-396` nationality/club/min_overall filters |
+| R9 | Standings computed from matches | ✓ implemented | `knowledge_graph.py:449` `standings()` accumulates from match results |
+| R10 | Aggregate stats | ✓ implemented | `biggest_wins` `:520`, `average_goals` `:541`, `best_record` `:579` |
+| R11 | Head-to-head between two teams | ✓ implemented | `knowledge_graph.py:321` `head_to_head` |
+| R12 | Automated tests covering queries | ✓ implemented | 8 test files, 71 `test_*` functions; `test_coverage=0.94` |
 
 ## Build & Test
 
+Per the evaluate-run skill, build/test/lint were **not** re-run — stored scores from `scores.json` are authoritative.
+
 ```text
-Build & test scores read from scores.json (not re-run per skill protocol):
-  test_coverage:    0.94
-  code_quality:     0.6667
-  defect_rate:      0.9998
-  maintainability:  0.2883
-  idiomatic:        0.70
-  token_efficiency: 1.00
+scores.json (mechanical scores, 0–1):
+  test_coverage    = 0.94    # >0 ⇒ build + tests executed; ~94% coverage/pass
+  defect_rate      = 0.9947  # ⇒ build + test succeeded
+  code_quality     = 0.6667  # ruff-based quality
+  maintainability  = 0.2883
+  idiomatic        = 0.70
+  token_efficiency = 1.00
 ```
 
 ```text
-Test suite: 8 files, 71 test functions, 0 skipped
-  tests/test_server_tools.py    — 25 tests (MCP tools + 22 sample questions)
-  tests/test_data_loader.py     — 7 tests
-  tests/test_match_queries.py   — 6 tests
-  tests/test_player_queries.py  — 7 tests
-  tests/test_competition_queries.py — 7 tests
-  tests/test_statistics.py      — 5 tests
-  tests/test_team_names.py      — 8 tests
-  tests/test_team_queries.py    — 6 tests
+test discovery: 8 files under tests/, 71 test functions
+skipped/xfail markers: 0
+effective tests = 71
 ```
 
 ## Metrics
 
 | Metric | Value |
 |--------|-------|
-| Lines of code (source only) | 2,324 (Python) |
-| Files (excl. artifacts/data) | 27 |
-| Dependencies | 7 (requirements.txt) |
+| Lines of code (source .py, top-level) | 1713 |
+| Lines of code (tests) | 611 |
+| Files (excl. venv/caches/data) | 27 |
+| Dependencies | 2 (mcp, pytest) |
 | Tests total | 71 |
 | Tests effective | 71 |
 | Skip ratio | 0% |
+| MCP tools exposed | 13 |
 
 ## Findings
 
 Top 5 by severity (full list in `findings.jsonl`):
 
-1. [medium] code_quality score 0.667 indicates lint issues — verbose module docstrings, possible style violations
-2. [medium] maintainability score 0.288 — knowledge_graph.py is 609 lines with complex find_matches filter logic
-3. [low] test_coverage 0.94 — line coverage gap; 71 tests pass but ~6% of lines uncovered
-4. [info] Comprehensive BDD-style test suite with 71 tests covering all 5 capability categories
-5. [info] Robust team name normalization with accent stripping, state suffix handling, and 17-entry alias table
-
-## Architecture Notes
-
-Well-layered design with clear separation of concerns:
-
-- **data_loader.py** — CSV ingestion with per-file schema normalization
-- **team_names.py** — team name canonicalization (handles 6 naming conventions across datasets)
-- **knowledge_graph.py** — in-memory indexed query engine covering all 5 spec categories
-- **formatters.py** — output presentation, decoupled from query logic
-- **server.py** — thin MCP tool layer delegating to knowledge_graph + formatters
-- **conftest.py** — session-scoped KnowledgeGraph fixture for BDD test suite
-
-run-summary skill was not invoked to save time; architecture captured above from code review.
+1. [medium] Low maintainability score (0.288) — large modules/functions (`scores.json`; `knowledge_graph.py`, `data_loader.py`)
+2. [low] Code-quality scorer below ceiling (0.667) — e.g. multi-statement lines `knowledge_graph.py:487-491`
+3. [low] No-op branch in `find_matches` — `knowledge_graph.py:203-204`
+4. [info] MCP import guarded so engine + tests run without the package — `server.py:34-37` (enhancement)
+5. [info] Cross-source fixture deduplication by source priority — `knowledge_graph.py:236-263` (enhancement)
 
 ## Reproduce
 
 ```bash
 cd experiment-7/brazil/runs/language=python_model=claude-opus-4-8-fast/rep3
-cat scores.json
-cat stack.json
-grep -rE "pytest\.skip|@pytest\.mark\.skip|xfail" tests/ --include="*.py"
-grep -c "def test_" tests/*.py
-find . -type f -name "*.py" -not -path "*/__pycache__/*" -not -path "*/.venv/*" | xargs wc -l
+cat scores.json                      # authoritative mechanical scores (not re-run)
+grep -rEc "def test_" tests          # 71 test functions
+grep -rE "pytest\.skip|xfail" tests  # 0 skips
+# Optional manual rerun (skill says NOT required when scores.json exists):
+#   python -m pytest -q
 ```

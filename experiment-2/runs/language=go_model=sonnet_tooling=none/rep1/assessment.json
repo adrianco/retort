@@ -1,23 +1,11 @@
 {
-  "severity_counts": {
-    "critical": 0,
-    "high": 1,
-    "medium": 0,
-    "low": 0,
-    "info": 0
-  },
+  "severity_counts": {"critical": 0, "high": 1, "medium": 0, "low": 0, "info": 0},
   "penalty_score": 0.9,
   "top_findings": [
-    {
-      "id": "R4",
-      "kind": "requirement_partial",
-      "severity": "high",
-      "title": "No date range filtering on match queries — only season filter implemented",
-      "evidence": "tools.go:22-49 search_matches InputSchema defines team1, team2, season, competition, limit but no date_start/date_end parameters; tools.go:224-298 SearchMatches filters by season (line 237) but has no date range logic",
-      "suggestion": "Add date_start and date_end string parameters to search_matches and filter matches by Date field in SearchMatches"
-    }
+    {"id": "cov-1", "kind": "test_failure", "severity": "high", "title": "Very low test coverage (5.9%) despite passing build", "evidence": "scores.json: test_coverage=0.059, defect_rate=1.0. mcp_test.go:14-21 loadTestDB t.Fatalf's without data/kaggle, and that dir is absent from the archive — so the 25 data-dependent tests exercise almost no code; only the 4 pure unit tests (normalize/parse) contribute.", "suggestion": "Add small fixture CSVs committed alongside tests (or embed via testdata/) so query/loader code is actually exercised independent of the external dataset."}
   ],
-  "requirement_coverage": 0.9167,
-  "model": "sonnet",
-  "evaluated_at": "2026-06-02T23:30:00Z"
+  "requirement_coverage": 1.0,
+  "model": "unknown",
+  "min_severity": "high",
+  "evaluated_at": "2026-06-12T18:00:00Z"
 }

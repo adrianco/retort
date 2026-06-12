@@ -1,11 +1,14 @@
 {
-  "severity_counts": {"critical": 0, "high": 2, "medium": 0, "low": 0, "info": 0},
-  "penalty_score": 0.8000,
+  "severity_counts": {"critical": 1, "high": 3, "medium": 0, "low": 0, "info": 0},
+  "penalty_score": 0.45,
   "top_findings": [
-    {"id": "R2", "kind": "requirement_partial", "severity": "high", "title": "Data loading package missing from archive — cannot verify CSV loading from data/kaggle/", "evidence": "cmd/brsoccer-mcp/main.go:8-9 imports brsoccer/internal/data; main.go:16 calls data.Load(*dataDir). All source files reference data.DB, data.Match, data.Player, data.TeamMatches, data.NormalizeTeam — but internal/data/ directory does not exist in archive. defect_rate=1.0 from retort.db confirms build succeeded during original run.", "suggestion": "Ensure internal/data package is included in archived workspace; the data loading logic and CSV parsing cannot be verified without it"},
-    {"id": "archive-incomplete", "kind": "build_failure", "severity": "high", "title": "Archived workspace missing internal/data package — code cannot compile from archive", "evidence": "internal/ contains only mcp/ and query/ directories; no data/ directory. All 10 Go files import brsoccer/internal/data (types: DB, Match, Player; functions: TeamMatches, NormalizeTeam, Load). go.sum also missing. Archive cannot reproduce build.", "suggestion": "Archive process should preserve all source packages including internal/data/ and go.sum"}
+    {"id": "build-fail", "kind": "build_failure", "severity": "critical", "title": "Module does not compile — internal/data package is absent from the archive", "evidence": "go build ./... -> cmd/brsoccer-mcp/main.go:8:2: package brsoccer/internal/data is not in std. 9 source files import the missing package; no internal/data/ directory exists.", "suggestion": "Restore the internal/data package (data.DB, data.Match, data.Player, data.Load, data.TeamMatches, data.NormalizeTeam)."},
+    {"id": "R2", "kind": "requirement_missing", "severity": "high", "title": "Data-loading layer absent — CSVs in data/kaggle/ are never read", "evidence": "main.go:16 calls data.Load(*dataDir) but the internal/data package is not in the archive; no data/ directory present.", "suggestion": "Provide internal/data/load.go parsing the six required CSVs into data.DB."},
+    {"id": "test-fail", "kind": "test_failure", "severity": "high", "title": "All test packages fail to build — 0 effective tests executed", "evidence": "go test ./... -> FAIL brsoccer/internal/{query,mcp} and cmd/brsoccer-mcp [setup failed]; scores.json test_coverage=0.0. 11 Test* functions exist but none run.", "suggestion": "Fix the build (restore internal/data) so the written tests can execute."},
+    {"id": "R12", "kind": "requirement_partial", "severity": "high", "title": "Test suite written (11 BDD-style tests) but does not execute", "evidence": "query_test.go (7) + server_test.go (4) cover the query/MCP surface but test_coverage=0.0 because the module does not compile.", "suggestion": "Restore internal/data so the suite compiles and runs."}
   ],
-  "requirement_coverage": 0.9167,
+  "requirement_coverage": 0.0,
+  "requirement_coverage_note": "0/12 requirements verifiably implemented: the module does not compile (internal/data missing), so test_coverage=0 and no requirement could be confirmed working. Source logic exists for 10 of 12 (R1,R3-R11) but is unbuildable; R2 is concretely missing; R12 tests written but do not execute.",
   "model": "opus",
-  "evaluated_at": "2026-06-02T20:27:37Z"
+  "evaluated_at": "2026-06-12T10:30:42Z"
 }

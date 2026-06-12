@@ -2,83 +2,78 @@
 
 ## Summary
 
-- **Factors:** language=go, model=claude-opus-4-8-fast, agent=unknown, framework=unknown
+- **Factors:** language=go, model=claude-opus-4-8-fast, tooling=none
 - **Status:** ok
 - **Requirements:** 12/12 implemented, 0 partial, 0 missing
-- **Tests:** 25 test functions / 1 conditional skip (24 effective when data absent, 25 effective when data present)
-- **Build:** pass — defect_rate=1.0 from scores.json
-- **Lint:** pass — code_quality=1.0 from scores.json
-- **Architecture:** summary skill unavailable
-- **Findings:** 5 items in `findings.jsonl` (0 critical, 0 high, 1 medium, 2 low, 2 info)
+- **Tests:** 25 test functions, build + tests pass (1 conditional skip, inactive — datasets present)
+- **Build:** pass — from `test_coverage=0.703` in scores.json (tests ran ⇒ build succeeded)
+- **Lint:** pass — `code_quality=1.0` in scores.json
+- **Architecture:** see `summary/index.md`
+- **Findings:** 3 items in `findings.jsonl` (0 critical, 0 high, 0 medium, 1 low, 2 info)
 
 ## Requirements
 
 | ID | Requirement (short) | Status | Evidence |
-|----|---------------------|--------|----------|
-| R1 | MCP server exposing tools/handlers | ✓ implemented | `mcp.go:66` Server type + JSON-RPC 2.0 over stdio; `tools.go:19` RegisterTools registers 7 tools |
-| R2 | Loads datasets from data/kaggle | ✓ implemented | `loader.go:30` LoadAll reads all 6 CSVs: 5 match files + fifa_data.csv |
-| R3 | Match query: find by team (home/away/either) | ✓ implemented | `store.go:124` FindMatches with MatchFilter.Team + HomeAway field; `tools.go:23` find_matches tool |
-| R4 | Match query: filter by date range and/or season | ✓ implemented | `store.go:111` MatchFilter.Season/StartDate/EndDate; `tools.go:30` find_matches accepts season, start_date, end_date |
-| R5 | Match query: filter by competition | ✓ implemented | `store.go:157` competition filter via normKey matching; `tools.go:28` find_matches accepts competition |
-| R6 | Team query: W/L/D record and goals for/against | ✓ implemented | `store.go:223` TeamStats returns TeamRecord with Wins/Draws/Losses/GoalsFor/GoalsAgainst; `tools.go:40` team_stats tool |
-| R7 | Player query: search by name | ✓ implemented | `store.go:519` SearchPlayers with PlayerFilter.Name substring match; `tools.go:68` search_players tool |
-| R8 | Player query: filter by nationality/club with ratings | ✓ implemented | `store.go:519` PlayerFilter.Nationality/Club/MinOverall; results include Overall, Potential, Position |
-| R9 | Competition standings from match results | ✓ implemented | `store.go:315` Standings computes league table from matches sorted by points/wins/GD/GF; `tools.go:85` standings tool |
-| R10 | Statistical analysis: aggregate stats | ✓ implemented | `store.go:433` Stats returns CompetitionStats with AvgGoals, HomeWinRate, BiggestWins; `tools.go:99` competition_stats tool |
-| R11 | Head-to-head records between two teams | ✓ implemented | `store.go:273` HeadToHead returns W/L/D and goals between two teams; `tools.go:55` head_to_head tool |
-| R12 | Automated tests covering query capabilities | ✓ implemented | 25 test functions across 4 files: store_test.go (9), mcp_test.go (6), normalize_test.go (6), loader_test.go (4); test_coverage=0.703 |
+|----|----|----|----|
+| R1 | MCP server exposing tools/handlers | ✓ implemented | `mcp.go` JSON-RPC 2.0 over stdio; `tools.go:RegisterTools` registers 7 tools; `main.go:42` |
+| R2 | Loads provided datasets in data/kaggle/ | ✓ implemented | `loader.go:LoadAll` reads all 6 CSVs; `data/kaggle/` present (6 files) |
+| R3 | Match query by team (home/away/either) | ✓ implemented | `store.go:FindMatches` + `home_away` filter; `tools.go:handleFindMatches` |
+| R4 | Match query by date range / season | ✓ implemented | `store.go:160-168` season + StartDate/EndDate filters |
+| R5 | Match query by competition | ✓ implemented | `store.go:157` competition filter; loader stamps competition labels across datasets |
+| R6 | Team W/L/D record + goals for/against | ✓ implemented | `store.go:TeamStats` → `tools.go:handleTeamStats` |
+| R7 | Player search by name | ✓ implemented | `store.go:SearchPlayers` name match; `search_players` tool |
+| R8 | Player filter by nationality/club + ratings | ✓ implemented | `store.go:519-554` nationality/club/position/min_overall filters, returns Overall/Potential |
+| R9 | Season standings computed from matches | ✓ implemented | `store.go:Standings` computes table from results (points/W/D/L/GF/GA), single-source to avoid double-count |
+| R10 | Aggregate statistics | ✓ implemented | `store.go:Stats` avg goals, home/away/draw rates, biggest wins; `competition_stats` tool |
+| R11 | Head-to-head between two teams | ✓ implemented | `store.go:HeadToHead` → `head_to_head` tool |
+| R12 | Automated tests covering queries | ✓ implemented | 25 test funcs across 4 files; `test_coverage=0.703` (tests executed) |
 
 ## Build & Test
 
-```text
-Build & test scores read from scores.json (retort scorers already ran them):
-  test_coverage:    0.703
-  code_quality:     1.0
-  defect_rate:      1.0  (build + tests succeeded)
-  maintainability:  0.5398
-  idiomatic:        0.8
-  token_efficiency: 0.0084
-```
+Build and test were **not re-run** — mechanical scores were read from `scores.json` (skill step 2).
 
 ```text
-Test files:
-  store_test.go      — 9 tests: FindMatches, suffix handling, TeamStats, home/away, HeadToHead, Standings, CompetitionStats, SearchPlayers, sort order
-  mcp_test.go        — 6 tests: initialize handshake, notification, find_matches call, missing args, unknown tool, standings call
-  normalize_test.go  — 6 tests: stripAccents, teamBaseKey, teamFullKey, sideMatchesQuery, parseDate, atoi
-  loader_test.go     — 4 tests: LoadAll datasets, 2019 standings, Fla-Flu derby, Brazilian players (integration, conditional skip)
+scores.json:
+  test_coverage  = 0.703   (tests executed ⇒ build + tests pass; 70.3% coverage)
+  code_quality   = 1.0     (lint clean)
+  defect_rate    = 1.0     (build+test succeeded)
+  maintainability= 0.5398
+  idiomatic      = 0.8
+  token_efficiency = 0.0084
 ```
+
+Test inventory (static): 25 `func Test*` across loader_test.go, store_test.go, normalize_test.go, mcp_test.go. One conditional `t.Skipf` (loader_test.go:31) guards the four data-dependent integration tests; datasets are present, so it does not fire.
 
 ## Metrics
 
 | Metric | Value |
 |--------|-------|
-| Lines of code (source only) | 1886 |
-| Lines of code (tests) | 610 |
-| Lines of code (total) | 2496 |
-| Files (source) | 21 |
-| Dependencies | 0 (stdlib only) |
-| Tests total | 25 |
-| Tests effective | 25 (data present) / 24 (data absent) |
-| Skip ratio | 4% (1 conditional) |
-| Build duration | n/a (scores from scores.json) |
+| Lines of code (source only, 7 .go) | 1,886 |
+| Lines of code (tests, 4 .go) | 610 |
+| Files (source modules) | 7 |
+| Test files | 4 |
+| Dependencies | 0 (stdlib only — no go.sum) |
+| Tests total (funcs) | 25 |
+| Tests effective | 25 (1 conditional skip inactive) |
+| Skip ratio | 0% effective |
+| Test coverage (stored) | 70.3% |
 
 ## Findings
 
-Top 5 by severity (full list in `findings.jsonl`):
+Top findings (full list in `findings.jsonl`):
 
-1. [medium] Test coverage at 70.3% — some code paths untested
-2. [low] Integration tests conditionally skip when datasets absent
-3. [low] Moderate maintainability score (0.54) — large single files
-4. [info] Zero external dependencies — standard library only
-5. [info] Cross-dataset deduplication for overlapping matches
+1. [low] Integration tests skip when datasets are absent — `loader_test.go:31` (inactive here)
+2. [info] Hand-rolled MCP protocol with zero external dependencies — `mcp.go`, `go.mod`
+3. [info] Cross-dataset de-duplication + single-source standings beyond spec — `model.go:69`, `store.go:305`
 
 ## Reproduce
 
 ```bash
 cd experiment-7/brazil/runs/language=go_model=claude-opus-4-8-fast/rep2
-cat scores.json
-cat stack.json
-grep -rE "t\.Skip\(|t\.Skipf\(" . --include="*.go"
-grep -c "^func Test" *_test.go
-find . -type f -name "*.go" | xargs wc -l
+cat scores.json                       # stored mechanical scores (no re-run)
+grep -hE "^func Test" *_test.go | wc -l   # 25 test functions
+grep -nE "t\.Skip" *_test.go              # one conditional skip (loader_test.go:31)
+ls data/kaggle/                        # 6 bundled CSVs present
+# Optional live check (not required — scores already stored):
+# go test ./...
 ```

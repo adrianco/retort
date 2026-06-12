@@ -1,82 +1,103 @@
-# Evaluation: language=python_model=opus_tooling=beads · rep 1
+# Evaluation: language=python · model=opus · tooling=beads · rep 1
 
 ## Summary
 
 - **Factors:** language=python, model=opus, tooling=beads
-- **Status:** ok
-- **Requirements:** 12/12 implemented, 0 partial, 0 missing
-- **Tests:** test_coverage=0.85 from retort.db (24 defined, 0 skipped, ~85% pass rate)
-- **Build:** pass — test_coverage > 0 confirms build succeeded (retort.db)
-- **Lint:** code_quality=0.667 from retort.db
-- **Architecture:** summary skill unavailable
-- **Findings:** 5 items in `findings.jsonl` (0 critical, 0 high, 1 medium, 2 low, 2 info)
+- **Status:** ok — original run passed; see caveat on archival below
+- **Requirements:** 12/12 implemented, 0 partial, 0 missing (`requirement_coverage=1.0` from retort.db)
+- **Tests:** 24 total, 0 skipped. Authoritative `test_coverage=0.85` (retort.db, scored 2026-04-13). In the **archived** workspace 6 pass / 18 fail because `data/kaggle/` is not bundled.
+- **Build:** pass — `defect_rate=0.68` from retort.db (build + most tests succeeded with data present)
+- **Lint:** pass — `code_quality=0.667`, `maintainability=0.617`, `idiomatic=0.68` (retort.db)
+- **Architecture:** `run-summary` skill not available in this session; brief overview inline below
+- **Findings:** 4 items in `findings.jsonl` (0 critical, 1 high, 2 low, 1 info)
+
+> **Score-source note.** This run has two scoring snapshots. The retort.db `completed` row
+> (finished 2026-04-13, data present) is authoritative: `test_coverage=0.85`,
+> `defect_rate=0.68`, `requirement_coverage=1.0`, `code_quality=0.667`. The archive's
+> `scores.json` (written 2026-06-12 09:27) shows `test_coverage=0.3` / `defect_rate=0.0`
+> — a **degraded local re-score** produced because `data/kaggle/` is absent from the
+> archived workspace, so the 18 data-dependent tests error out. Evaluation uses the
+> authoritative DB scores and flags the archival gap as a finding.
 
 ## Requirements
 
 | ID | Requirement (short) | Status | Evidence |
 |----|----|----|----|
-| R1 | MCP server with tools/handlers | ✓ implemented | `soccer_mcp/server.py:175-198` — `build_server()` creates `mcp.server.Server`, registers `list_tools()` + `call_tool()` with 9 tool defs |
-| R2 | Loads CSV datasets from data/kaggle/ | ✓ implemented | `soccer_mcp/data_loader.py:146-200` — `load_all()` reads all 6 CSVs into unified DataFrames |
-| R3 | Match query: find by team | ✓ implemented | `soccer_mcp/query.py:33-50` — `find_matches(team=...)` uses `_team_mask()` supporting home/away/either |
-| R4 | Match query: filter by date range/season | ✓ implemented | `soccer_mcp/query.py:44-49` — `date_from`, `date_to`, `season` params; tested `test_matches.py:14,32` |
-| R5 | Match query: filter by competition | ✓ implemented | `soccer_mcp/query.py:42-43` — `competition` param with case-insensitive contains match |
-| R6 | Team query: W/L/D record and goals | ✓ implemented | `soccer_mcp/query.py:77-117` — `team_record()` returns wins/draws/losses/gf/ga/points; tested `test_team_and_competition.py:5` |
-| R7 | Player query: search by name | ✓ implemented | `soccer_mcp/query.py:164-165` — `find_players(name=...)` with str.contains; tested `test_players_and_stats.py:12` |
-| R8 | Player query: filter by nationality/club with ratings | ✓ implemented | `soccer_mcp/query.py:166-173` — nationality, club, position, min_overall filters; tested `test_players_and_stats.py:5,17` |
-| R9 | Competition standings from match results | ✓ implemented | `soccer_mcp/query.py:120-157` — `standings()` computes Pts/W/D/L/GF/GA from matches; tested `test_team_and_competition.py:18,25` |
-| R10 | Statistical analysis: aggregate stats | ✓ implemented | `soccer_mcp/query.py:188-205` — `average_goals()` (avg goals/match, home win rate); `query.py:179-186` — `biggest_wins()`; `query.py:207-211` — `top_scoring_teams()` |
-| R11 | Head-to-head records | ✓ implemented | `soccer_mcp/query.py:52-74` — `head_to_head(team_a, team_b)` returns wins_a/wins_b/draws/sample; tested `test_matches.py:20` |
-| R12 | Automated tests covering queries | ✓ implemented | 24 tests across 5 files, 0 skipped; test_coverage=0.85 from retort.db confirms tests executed |
+| R1 | MCP server exposing tools/handlers | ✓ implemented | `soccer_mcp/server.py:175` `build_server` uses `mcp.server.Server`, `@list_tools`/`@call_tool`; 9 `TOOL_DEFS`; `main()` entrypoint + `[project.scripts]` |
+| R2 | Loads provided data/kaggle CSVs | ✓ implemented | `data_loader.py:146` `load_all` reads all 6 CSVs (Brasileirão, Cup, Libertadores, BR-Football, histórico, FIFA) |
+| R3 | Match query by team (home/away/either) | ✓ implemented | `query.py:33` `find_matches` + `_team_mask` with `side=home/away/either` |
+| R4 | Filter by date range and/or season | ✓ implemented | `query.py:44-49` `season`, `date_from`, `date_to` filters |
+| R5 | Filter by competition | ✓ implemented | `query.py:42` competition substring filter over unified frame spanning all 3 competitions |
+| R6 | Team W/L/D record + goals for/against | ✓ implemented | `query.py:77` `team_record` returns wins/draws/losses, goals_for/against, points |
+| R7 | Player search by name | ✓ implemented | `query.py:164` `find_players(name=...)` over FIFA data |
+| R8 | Player filter by nationality/club + ratings | ✓ implemented | `query.py:166-176` nationality/club/position/min_overall; returns Overall/Potential |
+| R9 | Season standings computed from matches | ✓ implemented | `query.py:120` `standings` builds points table from results (3/1/0) |
+| R10 | Aggregate statistics | ✓ implemented | `query.py:179` `biggest_wins`, `query.py:188` `average_goals` (avg goals, home win rate) |
+| R11 | Head-to-head between two teams | ✓ implemented | `query.py:52` `head_to_head` returns wins_a/wins_b/draws + sample |
+| R12 | Automated tests covering capabilities | ✓ implemented | 24 tests in `tests/test_*.py`; `test_coverage=0.85` (>0) in retort.db. *Not re-runnable in archive — see `data-missing` finding.* |
+
+No requirements are missing or stubbed. `requirement_coverage=1.0` in retort.db corroborates 12/12.
 
 ## Build & Test
 
-```text
-Build/test scores from retort.db (not re-run per evaluate-run policy):
-  test_coverage    = 0.85   (1.0 = all pass; 0.0 = did not execute)
-  code_quality     = 0.667
-  defect_rate      = 0.680
-  maintainability  = 0.617
-  idiomatic        = 0.680
-  token_efficiency = 0.008
-```
+Build/test were **not re-run** (per skill — stored scores reused). Authoritative scores from `retort.db` (completed row, finished 2026-04-13):
 
 ```text
-Test suite structure (24 functions, 0 skipped):
-  tests/test_data_loader.py         — 7 tests (normalization, loading, columns)
-  tests/test_matches.py             — 4 tests (find_matches, head_to_head, date range)
-  tests/test_players_and_stats.py   — 5 tests (player search, avg goals, biggest wins)
-  tests/test_server.py              — 4 tests (tool defs, dispatch, server build, unknown tool)
-  tests/test_team_and_competition.py — 4 tests (team record, home only, standings 2019, 20 teams)
+test_coverage    = 0.85   (tests executed, ~85% coverage with data present)
+defect_rate      = 0.68   (build + tests largely succeeded)
+requirement_cov  = 1.00
+code_quality     = 0.667
+maintainability  = 0.617
+idiomatic        = 0.68
+```
+
+Archived-workspace re-score (`scores.json`, degraded — `data/kaggle/` absent):
+
+```text
+test_coverage = 0.3   defect_rate = 0.0
+# .pytest_cache/v/cache/lastfailed: 18 failing tests — all engine/datasets-fixture
+# tests (conftest.py load_all() -> FileNotFoundError on missing CSVs).
+# 6 data-free tests still pass: 5 normalization tests + test_all_tools_have_schema.
 ```
 
 ## Metrics
 
 | Metric | Value |
 |--------|-------|
-| Lines of code (source only) | 816 |
-| Files (excl. __pycache__, .git, .beads) | 24 |
-| Dependencies | 2 (pandas>=2.0, mcp>=1.0) |
+| Lines of code (source only) | 630 (`soccer_mcp/*.py`) |
+| Lines of test code | 186 (`tests/*.py`) |
+| Python files | 10 |
+| Dependencies | 2 (pandas, mcp) |
 | Tests total | 24 |
-| Tests effective | 24 |
+| Tests effective | 24 (0 skipped) |
 | Skip ratio | 0% |
-| test_coverage (retort.db) | 0.85 |
-| code_quality (retort.db) | 0.667 |
+| MCP tools exposed | 9 |
 
 ## Findings
 
-Top 5 by severity (full list in `findings.jsonl`):
+Top items by severity (full list in `findings.jsonl`):
 
-1. [medium] test_coverage is 0.85 — not all tests passed
-2. [low] Dead code in normalize_team partial-match loop (data_loader.py:67-69)
-3. [low] iterrows() used for aggregation in query.py:59,94 — slow on large DataFrames
-4. [info] No error handling for missing CSV files in load_all()
-5. [info] dataset_summary tool is a useful enhancement beyond spec
+1. [high] `data-missing` — Archived workspace omits `data/kaggle/`, so 18/24 tests fail on re-score; `scores.json` is degraded vs authoritative DB scores.
+2. [low] `R12` — Comprehensive test suite is not runnable in the archived workspace (data fixtures not shipped).
+3. [low] `deadcode-normalize` — Dead partial-match loop in `data_loader.py:66-70` (`pass` in every branch).
+4. [info] `bdd-style` — Tests use plain pytest with `Scenario:` docstrings rather than gherkin BDD suggested by TASK.md.
 
 ## Reproduce
 
 ```bash
 cd experiment-2/runs/language=python_model=opus_tooling=beads/rep1
-cat scores.json 2>/dev/null || sqlite3 -readonly ../../retort.db "SELECT rr.metric_name, rr.value FROM run_results rr WHERE rr.run_id = (SELECT er.id FROM experiment_runs er WHERE json_extract(er.run_config_json,'$.language')='python' AND json_extract(er.run_config_json,'$.model')='opus' AND json_extract(er.run_config_json,'$.tooling')='beads' AND er.replicate=1 AND er.status='completed' ORDER BY er.finished_at DESC LIMIT 1) AND rr.metric_name IN ('test_coverage','code_quality','defect_rate','maintainability','idiomatic','token_efficiency');"
-grep -rc "def test_" tests/ --include="*.py"
-grep -rE "pytest.skip|@pytest.mark.skip|xfail" tests/ --include="*.py" | wc -l
+# Authoritative scores (do NOT re-run toolchain):
+sqlite3 -readonly ../../../retort.db "
+  SELECT rr.metric_name, rr.value FROM run_results rr
+  WHERE rr.run_id=(SELECT er.id FROM experiment_runs er
+    WHERE json_extract(er.run_config_json,'\$.language')='python'
+      AND json_extract(er.run_config_json,'\$.model')='opus'
+      AND json_extract(er.run_config_json,'\$.tooling')='beads'
+      AND er.replicate=1 AND er.status='completed'
+    ORDER BY er.finished_at DESC LIMIT 1);"
+# Degraded re-score source:
+cat scores.json
+cat .pytest_cache/v/cache/lastfailed   # 18 data-dependent failures
+# Metrics:
+wc -l soccer_mcp/*.py tests/*.py
 ```

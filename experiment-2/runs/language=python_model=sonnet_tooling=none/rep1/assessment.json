@@ -1,14 +1,18 @@
 {
-  "severity_counts": {
-    "critical": 0,
-    "high": 0,
-    "medium": 0,
-    "low": 0,
-    "info": 0
-  },
-  "penalty_score": 1.0,
-  "top_findings": [],
-  "requirement_coverage": 0.9166666666666666,
-  "model": "unknown",
-  "evaluated_at": "2026-04-18T22:13:45Z"
+  "severity_counts": {"critical": 0, "high": 1, "medium": 0, "low": 0, "info": 0},
+  "penalty_score": 0.9,
+  "top_findings": [
+    {
+      "id": "dep-manifest",
+      "kind": "doc_missing",
+      "severity": "high",
+      "title": "No dependency manifest (requirements.txt / pyproject.toml)",
+      "evidence": "server.py:6 imports `from mcp.server.fastmcp import FastMCP` and data_loader.py:4 imports pandas, but no requirements.txt/pyproject.toml/setup.py exists in the run. A fresh checkout cannot install or run the server; the archive's scores.json is all-zeros precisely because `mcp` was unavailable in a clean env.",
+      "suggestion": "Add a requirements.txt pinning at least `mcp` and `pandas` so the server is reproducibly installable."
+    }
+  ],
+  "requirement_coverage": 1.0,
+  "model": "sonnet",
+  "min_severity": "high",
+  "evaluated_at": "2026-06-12T10:33:10Z"
 }

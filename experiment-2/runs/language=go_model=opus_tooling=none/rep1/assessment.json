@@ -1,23 +1,8 @@
 {
-  "severity_counts": {
-    "critical": 0,
-    "high": 1,
-    "medium": 0,
-    "low": 0,
-    "info": 0
-  },
-  "penalty_score": 0.9000,
-  "top_findings": [
-    {
-      "id": "R4",
-      "kind": "requirement_partial",
-      "severity": "high",
-      "title": "Date range filter missing — only season filter implemented",
-      "evidence": "main.go:55 matches_by_team tool accepts season and competition but no start_date/end_date params; query.go:83 has MatchesBySeason but no date range function",
-      "suggestion": "Add date range parameters (start_date, end_date) to matches_by_team tool and implement DateRange filtering in query.go"
-    }
-  ],
-  "requirement_coverage": 0.9167,
+  "severity_counts": {"critical": 0, "high": 0, "medium": 0, "low": 0, "info": 0},
+  "penalty_score": 1.0,
+  "top_findings": [],
+  "requirement_coverage": 1.0,
   "model": "unknown",
-  "evaluated_at": "2026-06-02T22:00:00Z"
+  "evaluated_at": "2026-06-12T10:25:00Z"
 }
