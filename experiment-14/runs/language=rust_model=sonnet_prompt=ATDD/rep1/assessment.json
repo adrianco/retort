@@ -1,0 +1,11 @@
+{
+  "severity_counts": {"critical": 0, "high": 2, "medium": 0, "low": 0, "info": 0},
+  "penalty_score": 0.8,
+  "top_findings": [
+    {"id": "BUG1", "kind": "test_failure", "severity": "high", "title": "Overlapping Brasileirão datasets merged without dedup inflates standings/stats/match lists", "evidence": "src/data.rs:1009-1069 loads Brasileirao_Matches.csv, novo_campeonato_brasileiro.csv and BR-Football-Dataset.csv (Serie A) all tagged competition=\"brasileirao\" with no dedup. Each contains the SAME 380 matches for season 2019 (verified: 380 rows each), so get_standings(brasileirao,2019) counts ~114 games/team instead of 38 and triples points; get_team_stats and get_statistical_summary are likewise inflated.", "suggestion": "Deduplicate matches across source files by (season, date, home, away) on load, or pick one canonical source per (competition, season)."},
+    {"id": "BUG2", "kind": "test_failure", "severity": "high", "title": "Non-UTF-8-safe byte slicing in truncate() panics on accented club/player names", "evidence": "src/tools.rs:574-580 truncate() does &s[..max]; called as truncate(&p.club,20)/truncate(&p.name,25) in find_players. 28 player rows have club 'San Martin de Tucumán' where byte 20 splits the 'á' multibyte char, so &s[..20] panics and crashes the single-threaded server mid-session. TASK.md Data Quality Notes explicitly require UTF-8 handling.", "suggestion": "Truncate on char boundaries: s.chars().take(max).collect() or use char_indices() to find a safe split point."}
+  ],
+  "requirement_coverage": 1.0,
+  "model": "sonnet",
+  "evaluated_at": "2026-06-12T15:34:03Z"
+}

@@ -1,0 +1,25 @@
+;; =============================================================================
+;; deps.edn -- Brazilian Soccer MCP Server (Clojure)
+;;
+;; Dependencies are intentionally minimal so the project builds and tests run
+;; with no external services (no database required -- the knowledge graph is
+;; built in-memory from the bundled CSV files under data/kaggle/).
+;;
+;;   org.clojure/data.csv  -- robust RFC-4180 CSV parsing (quotes, embedded commas)
+;;   org.clojure/data.json -- JSON-RPC encoding/decoding for the MCP stdio protocol
+;;
+;; Aliases:
+;;   :run   -> start the MCP server on stdio   (clojure -M:run)
+;;   :test  -> run the test suite              (clojure -M:test)
+;; =============================================================================
+{:paths ["src" "resources"]
+ :deps  {org.clojure/clojure   {:mvn/version "1.12.0"}
+         org.clojure/data.csv  {:mvn/version "1.1.0"}
+         org.clojure/data.json {:mvn/version "2.5.1"}}
+ :aliases
+ {:run  {:main-opts ["-m" "brsoccer.main"]}
+  :test {:extra-paths ["test"]
+         :extra-deps  {io.github.cognitect-labs/test-runner
+                       {:git/tag "v0.5.1" :git/sha "dfb30dd"}}
+         :main-opts   ["-m" "cognitect.test-runner"]
+         :exec-fn     cognitect.test-runner.api/test}}}

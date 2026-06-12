@@ -1,0 +1,10 @@
+{
+  "severity_counts": {"critical": 0, "high": 0, "medium": 0, "low": 0, "info": 0},
+  "penalty_score": 1.0,
+  "top_findings": [],
+  "requirement_coverage": 1.0,
+  "model": "opus-4.8-fast",
+  "evaluated_at": "2026-06-12T15:33:01Z",
+  "min_severity": "high",
+  "note": "5 findings exist in findings.jsonl (3 low, 2 info); none meet min_severity=high, so counts are zero and penalty_score is clean. requirement_coverage=12/12 implemented per evaluation.md."
+}

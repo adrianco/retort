@@ -123,6 +123,30 @@ its Sonnet arm is n=1, so treat its numbers as a consistent reference point
 rather than a perfectly matched fourth arm. The full per-model tables, including
 Opus, are in [experiment-13/results.md](experiment-13/results.md).)*
 
+### Does it hold across more languages?
+
+Go and Python are forgiving. To check the finding isn't a two-language fluke,
+[experiment-14](experiment-14/results.md) reran the same prompts on the other
+six — **clojure, rust, java, typescript, erlang, elixir** — with both models (one
+replicate each, so single-run signal rather than pass-proportions). The pattern
+is the same, only wider:
+
+- **Opus saturates on all six** — 1.00 on every language with every prompt, just
+  like Go and Python. On the strong model the prompt remains a flat line across
+  eight languages.
+- **Sonnet clears the spec on five of the six with every prompt.** The only
+  genuine misses are both **TypeScript** (neutral and ATDD each landed one
+  requirement short at 0.92 — but TDD passed it), which reads as a
+  TypeScript-Sonnet quirk, not a methodology effect. (One Clojure cell was lost
+  to a usage limit, not a real failure.)
+
+So across **eight languages and two models**, the conclusion holds and sharpens:
+**the prompt is the smallest lever.** The dips that do happen track the
+*language* — TypeScript here, Go-with-ATDD earlier — not the testing discipline
+you prescribed. If you want to move reliability, change the model or pick the
+language carefully; the methodology mostly decides *what tests you're left with*
+and what you pay in tokens, not whether the thing ships.
+
 ## How it's measured
 
 Same harsh gate as everything else: a run passes only if its tests actually run

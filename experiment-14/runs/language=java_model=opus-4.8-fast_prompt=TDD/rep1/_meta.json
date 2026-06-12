@@ -1,0 +1,10 @@
+{
+  "replicate": 1,
+  "run_config": {
+    "language": "java",
+    "model": "opus-4.8-fast",
+    "prompt": "TDD"
+  },
+  "succeeded": true,
+  "visibility": "public"
+}

@@ -1,0 +1,23 @@
+{
+  "severity_counts": {
+    "critical": 0,
+    "high": 1,
+    "medium": 0,
+    "low": 0,
+    "info": 0
+  },
+  "penalty_score": 0.9,
+  "top_findings": [
+    {
+      "id": "R9",
+      "kind": "requirement_partial",
+      "severity": "high",
+      "title": "Standings and team/aggregate stats double-count matches for overlapping 2012-2019 seasons",
+      "evidence": "src/query-engine.ts:379-384 getStandings() sums BOTH store.brasileirao and store.historical for the same season; Brasileirao_Matches.csv (2012-2022) and novo_campeonato_brasileiro.csv (2003-2019) overlap on seasons 2012-2019 (verified via csv DictReader). queryMatches() (src/query-engine.ts:168-211) also emits each physical match twice because the dedup key at :231 includes the competition label ('Brasileira\u0303o Serie A' vs 'Brasileira\u0303o (Historical)'), so getTeamStats/getLeagueStats/getTopScoringTeams/getBiggestWins all double-count 2012-2019. Tests pass anyway because assertions are inequalities (e.g. index.test.ts:181 wins>10).",
+      "suggestion": "Dedup overlapping sources by (normalized teams, date, score) before aggregating, or pick one Brasileira\u0303o source per season range so standings/stats are computed once."
+    }
+  ],
+  "requirement_coverage": 0.9167,
+  "model": "sonnet",
+  "evaluated_at": "2026-06-12T15:44:11Z"
+}
