@@ -2961,11 +2961,12 @@ def evaluate(
          "automatically. Pass an explicit id to pin one.",
 )
 @click.option("--workers", default=2, show_default=True, type=int)
+@click.option("--languages", help="Comma-separated language filter (default: all).")
 @click.option(
     "--force", is_flag=True,
     help="Re-evaluate runs that already have requirement_coverage.",
 )
-def reevaluate(experiment_dir, config, eval_model, workers, force):
+def reevaluate(experiment_dir, config, eval_model, workers, languages, force):
     """Re-evaluate archived runs with the second-opinion spec eval, persisting
     requirement_coverage into the experiment's retort.db.
 
@@ -3007,6 +3008,7 @@ def reevaluate(experiment_dir, config, eval_model, workers, force):
         for rep in cell.iterdir()
         if rep.is_dir() and rep.name.startswith("rep") and not rep.name.endswith("-failed")
     )
+    lang_filter = {s.strip() for s in languages.split(",")} if languages else None
     work = []
     skipped = 0
     orphaned: list[str] = []   # archives whose factors match NO db row
@@ -3031,6 +3033,8 @@ def reevaluate(experiment_dir, config, eval_model, workers, force):
                 continue
             run_config = {k: cfg.get(k) for k in ("language", "model", "tooling")
                           if cfg.get(k) is not None}
+        if lang_filter and run_config.get("language") not in lang_filter:
+            continue
         m = re.search(r"rep(\d+)", rep.name)
         replicate = int(m.group(1)) if m else 1
         if not _run_completed_exists(db_path, run_config, replicate):
