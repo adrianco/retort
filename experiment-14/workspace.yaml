@@ -1,0 +1,61 @@
+# Experiment 14 — PROMPT factor, extended to the OTHER six languages
+# (exp-13 covered go + python; this covers clojure/rust/java/typescript/erlang/elixir
+# with the same two models and the same neutral/TDD/ATDD prompts).
+#
+# Methodology comes ONLY from the prompt — runs the methodology-NEUTRAL brazil
+# fork (BDD stripped from the repo — github://adrianco/brazil-bench-neutral).
+#   neutral — control, no methodology prescribed
+#   TDD     — test-first unit TDD
+#   ATDD    — executable acceptance test driven development
+#
+# Grid: language[clojure,rust,java,typescript,erlang,elixir]
+#       x model[sonnet, opus-4.8-fast] x prompt[neutral,TDD,ATDD]
+#       = 36 cells (full factorial; run via design-prompt.csv). tooling=none.
+#
+# Run (with all six toolchains on PATH):
+#   PYTHONPATH=src .venv/bin/python -c 'from retort.cli import main; main()' run \
+#     --phase screening --config experiment-14/workspace.yaml \
+#     --design experiment-14/design-prompt.csv --resume
+
+experiment:
+  name: experiment-14-prompt-methodology-brazil-other-langs
+  visibility: public
+
+factors:
+  language:
+    levels: [clojure, rust, java, typescript, erlang, elixir]
+  model:
+    levels: [sonnet, opus-4.8-fast]
+  prompt:
+    levels: [neutral, TDD, ATDD]
+
+responses:
+  - code_quality
+  - token_efficiency
+  - test_coverage
+  - defect_rate
+  - maintainability
+  - idiomatic
+
+tasks:
+  - source: github://adrianco/brazil-bench-neutral/brazilian-soccer-mcp-guide.md
+
+playpen:
+  runner: local
+  replicates: 3
+  timeout_minutes: 45
+  max_turns: 200
+
+design:
+  screening_resolution: 3
+  significance_threshold: 0.10
+
+promotion:
+  screening_to_trial: { p_value: 0.10 }
+  trial_to_production: { posterior_confidence: 0.80 }
+
+evaluation:
+  enabled: false
+  model: claude-opus-4-8
+  min_severity_to_file: high
+  issue_tracker: beads
