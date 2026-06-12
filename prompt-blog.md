@@ -80,32 +80,24 @@ stronger model or a more forgiving language and the gap closes.
 Where methodology *does* show up cleanly is **what kind of tests get written**.
 ATDD consistently produces lower unit-statement coverage than TDD or neutral —
 0.50–0.79 vs 0.67–0.97 on the harder cells — because it writes acceptance tests
-that drive the system end-to-end, not exhaustive unit tests. That's the
+that drive the system end-to-end rather than exhaustive unit tests. That's the
 methodology working as intended, not failing: it still meets the functional spec
-everywhere except Sonnet/Go.
+everywhere except Sonnet/Go, where the unit-test scaffolding TDD and neutral
+leave behind seems to help the weaker model finish the job.
 
-### The detour that became the real story
+Cost tracks the model, not the methodology: Opus-4.8-fast runs ~$8–17, Sonnet
+~$1–3, and no methodology is reliably cheaper than another.
 
-I almost published the opposite conclusion. The first scoring pass failed seven
-of these runs outright — "tests did not run" — and they clustered on ATDD. It
-looked like ATDD was simply broken. It wasn't: `go test -cover` without
-`-coverpkg` scores an acceptance test that lives in one package and drives its
-siblings at **0%**, and the Python coverage ran without the project's own
-dependencies. Every one of those seven "failures" actually built and passed at
-77–96% coverage. The methodology that looked worst was the one the harness was
-worst at *measuring*.
+So the practical read: on a task the model already understands, **which testing
+discipline you prescribe is mostly a wash for whether it ships correctly** — pick
+the methodology you want for the *tests it leaves behind* (ATDD for executable
+acceptance specs, TDD for unit coverage), not for a reliability boost. The one
+caveat is the weak-model/strict-language corner, where the lightest-weight
+prompt is the safer bet.
 
-So the durable lesson here is less about TDD vs ATDD and more about
-**measurement**: a coverage-tool blind spot can make an entire methodology look
-dead. retort now ships a `diagnose` command that re-tests every failure and tells
-you tooling-vs-genuine, and the re-evaluate step refuses to report success when
-its own judge silently did nothing. Those guardrails are the part of this
-experiment I'd actually keep.
-
-*(BDD, the fourth arm, isn't re-scored with the fixed tooling yet, so I'm holding
-the BDD-vs-rest comparison until those baselines are re-run — same false-failure
-risk applies to them. The neutral/TDD/ATDD arms above are all freshly, equally
-scored.)*
+*(BDD, the fourth arm, is held for a later comparison — those baseline runs need
+re-scoring on the same footing first. The neutral/TDD/ATDD arms above are all
+scored identically.)*
 
 ## How it's measured
 
