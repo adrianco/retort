@@ -538,11 +538,30 @@ def _parse_claude_usage(stdout_text: str) -> tuple[int, dict[str, str]]:
 
 
 def _parse_omp_usage(stdout_text: str) -> tuple[int, dict[str, str]]:
-    """Parse OMP's newline-delimited JSON events."""
-    usage: dict[str, int | float | dict[str, object]] = {}
+    """Parse OMP's newline-delimited JSON events.
+
+    omp emits one ``message_end`` per assistant turn, each carrying *that turn's*
+    usage (not a running total). Per-run cost and tokens are therefore the **sum
+    across turns** — taking only the final turn (the old "last-wins" behaviour)
+    badly under-counts a multi-turn agentic run. Observed on a 14-turn run: the
+    final turn was $0.0097 but the summed cost was $0.1399 (-93%), and the sum
+    matched OpenRouter's billed ``/generation`` total exactly.
+
+    For OpenRouter-routed runs we also capture each call's ``responseId`` and the
+    ``upstreamProvider`` so spend can be reconciled per run against the billing
+    API. These extra fields appear only when present, so local/offline omp runs
+    are unchanged in shape. ``omp_cost_sum_all_turns`` mirrors ``total_cost_usd``
+    (kept as explicit provenance for the reconcile/validator).
+    """
     provider = ""
     model = ""
     stop_reason = ""
+    response_ids: list[str] = []
+    upstreams: list[str] = []
+    input_sum = output_sum = cache_read_sum = cache_write_sum = 0
+    total_tokens_sum = 0
+    cost_sum = 0.0
+    assistant_turns = 0
 
     for line in stdout_text.splitlines():
         try:
@@ -560,35 +579,50 @@ def _parse_omp_usage(stdout_text: str) -> tuple[int, dict[str, str]]:
         model = str(message.get("model") or model)
         stop_reason = str(message.get("stopReason") or stop_reason)
 
-        message_usage = message.get("usage")
-        if isinstance(message_usage, dict):
-            usage = message_usage
+        rid = message.get("responseId")
+        if rid and (not response_ids or response_ids[-1] != str(rid)):
+            response_ids.append(str(rid))
+        upstream = message.get("upstreamProvider")
+        if upstream and str(upstream) not in upstreams:
+            upstreams.append(str(upstream))
 
-    if not usage:
+        usage = message.get("usage")
+        if isinstance(usage, dict):
+            assistant_turns += 1
+            t_in = int(usage.get("input", 0) or 0)
+            t_out = int(usage.get("output", 0) or 0)
+            t_cr = int(usage.get("cacheRead", 0) or 0)
+            t_cw = int(usage.get("cacheWrite", 0) or 0)
+            input_sum += t_in
+            output_sum += t_out
+            cache_read_sum += t_cr
+            cache_write_sum += t_cw
+            total_tokens_sum += int(usage.get("totalTokens", t_in + t_out + t_cr + t_cw) or 0)
+            turn_cost = usage.get("cost")
+            if isinstance(turn_cost, dict):
+                cost_sum += float(turn_cost.get("total", 0.0) or 0.0)
+
+    if assistant_turns == 0:
         return 0, {}
 
-    input_tokens = int(usage.get("input", 0) or 0)
-    output_tokens = int(usage.get("output", 0) or 0)
-    cache_read = int(usage.get("cacheRead", 0) or 0)
-    cache_write = int(usage.get("cacheWrite", 0) or 0)
-    fallback_total = input_tokens + output_tokens + cache_read + cache_write
-    total_tokens = int(usage.get("totalTokens", fallback_total) or 0)
-
-    cost = usage.get("cost")
-    total_cost = 0.0
-    if isinstance(cost, dict):
-        total_cost = float(cost.get("total", 0.0) or 0.0)
-
-    return total_tokens, {
-        "input_tokens": str(input_tokens),
-        "output_tokens": str(output_tokens),
-        "cache_read_input_tokens": str(cache_read),
-        "cache_creation_input_tokens": str(cache_write),
-        "total_cost_usd": str(total_cost),
+    metadata = {
+        "input_tokens": str(input_sum),
+        "output_tokens": str(output_sum),
+        "cache_read_input_tokens": str(cache_read_sum),
+        "cache_creation_input_tokens": str(cache_write_sum),
+        "total_cost_usd": str(cost_sum),
         "provider": provider,
         "model": model,
         "stop_reason": stop_reason,
     }
+    # OpenRouter reconciliation hooks — present only on OpenRouter-routed runs.
+    if response_ids:
+        metadata["openrouter_generation_ids"] = ",".join(response_ids)
+        metadata["omp_assistant_turns"] = str(assistant_turns)
+        metadata["omp_cost_sum_all_turns"] = str(cost_sum)
+    if upstreams:
+        metadata["upstream_provider"] = ",".join(upstreams)
+    return total_tokens_sum, metadata
 
 
 # Gemini API pricing, USD per 1M tokens (input, output), base context tier.
