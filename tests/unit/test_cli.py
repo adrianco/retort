@@ -141,6 +141,45 @@ def test_archive_excludes_build_output(tmp_path: Path):
     assert not list(dest.rglob("node_modules"))
 
 
+def test_iter_archive_cells_handles_slashed_model_ids(tmp_path: Path):
+    # Regression: OpenRouter model ids contain '/' (provider/org/model), so the
+    # archive cell dir nests several levels deep
+    # (…model=openrouter/anthropic/claude-opus-4.8_tooling=none/rep1). The old
+    # one-level runs_root.iterdir() stopped at '…model=openrouter', parsed a
+    # truncated name, and so rescore/reevaluate/evaluate silently processed 0
+    # runs. _iter_archive_cells must find the leaf cell dir at any depth and
+    # yield a cell_name that round-trips through _run_config_from_cell_name.
+    from retort.cli import (
+        _archive_run_workspace,
+        _iter_archive_cells,
+        _run_config_from_cell_name,
+    )
+    from retort.playpen.runner import RunArtifacts
+
+    runs = tmp_path / "runs"
+    slashed = {"agent": "omp", "language": "go",
+               "model": "openrouter/anthropic/claude-opus-4.8", "tooling": "none"}
+    plain = {"agent": "omp", "language": "python",
+             "model": "opus-4.8", "tooling": "none"}
+    for cfg in (slashed, plain):
+        pp = tmp_path / "pp"
+        (pp / "src").mkdir(parents=True, exist_ok=True)
+        (pp / "src" / "main.txt").write_text("x = 1\n")
+        art = RunArtifacts(output_dir=pp, stdout="", stderr="", exit_code=0,
+                           duration_seconds=1.0)
+        assert _archive_run_workspace(runs, cfg, 1, art, visibility="private")
+
+    parsed = [_run_config_from_cell_name(name) for name, _ in _iter_archive_cells(runs)]
+    # Both cells are discovered and their factors round-trip — the '/'-bearing
+    # model id is reconstructed whole, not truncated at the first segment.
+    assert slashed in parsed
+    assert plain in parsed
+    # The old one-level walk would only have seen the truncated stub.
+    assert "agent=omp_language=go_model=openrouter" in {
+        p.name for p in runs.iterdir() if p.is_dir()
+    }
+
+
 def test_persist_rescore_recovers_failed_run(tmp_path: Path):
     # Regression: re-scoring a false-failed run must flip it completed, update
     # the scorer metrics, and PRESERVE the _-prefixed telemetry (cost/tokens/
