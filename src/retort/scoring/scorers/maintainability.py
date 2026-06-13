@@ -47,6 +47,15 @@ _FUNCTION_PATTERNS: dict[str, list[re.Pattern[str]]] = {
     "erlang": [re.compile(r"^[a-z]\w*\s*\(", re.MULTILINE)],
     # Elixir: def / defp / defmacro definitions.
     "elixir": [re.compile(r"^\s*defp?(?:macro)?\s+\w+", re.MULTILINE)],
+    # C#: access-modified methods inside classes (heuristic, mirrors java; adds
+    # internal/async). Won't match constructors — close enough for avg-length.
+    "csharp": [
+        re.compile(
+            r"^\s*(?:public|private|protected|internal)\s+(?:static\s+)?"
+            r"(?:async\s+)?[\w<>\[\]]+\s+\w+\s*\(",
+            re.MULTILINE,
+        ),
+    ],
 }
 
 _SOURCE_EXTENSIONS: dict[str, set[str]] = {
@@ -58,6 +67,7 @@ _SOURCE_EXTENSIONS: dict[str, set[str]] = {
     "clojure": {".clj", ".cljc", ".cljs"},
     "erlang": {".erl", ".hrl"},
     "elixir": {".ex", ".exs"},
+    "csharp": {".cs"},
 }
 
 # Build/dependency output that must never be counted as project source.

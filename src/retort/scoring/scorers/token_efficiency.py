@@ -55,6 +55,7 @@ class TokenEfficiencyScorer:
             "rust": {".rs"},
             "java": {".java"},
             "clojure": {".clj", ".cljc", ".cljs"},
+            "csharp": {".cs"},
         }
         exts = extensions.get(language, {".py"})
 

@@ -30,6 +30,8 @@ LINT_COMMANDS: dict[str, list[str]] = {
     # Erlang: rebar3 compile covers most project layouts; falls back to
     # neutral 0.5 if rebar3 is not installed.
     "erlang": ["rebar3", "compile"],
+    # C#: `dotnet build` catches compile errors + warnings (mirrors java's mvn compile).
+    "csharp": ["dotnet", "build", "--nologo"],
 }
 
 
@@ -107,6 +109,7 @@ class CodeQualityScorer:
             "clojure": ".clj",
             "elixir": ".ex",
             "erlang": ".erl",
+            "csharp": ".cs",
         }
         ext = extensions.get(language, ".py")
         source_files = list(output_dir.rglob(f"*{ext}"))

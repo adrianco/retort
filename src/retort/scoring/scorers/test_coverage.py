@@ -40,6 +40,7 @@ COVERAGE_COMMANDS: dict[str, list[str]] = {
 # plugin before tests run).
 _TESTS_ONLY_COMMANDS: dict[str, list[str]] = {
     "java": ["mvn", "test"],
+    "csharp": ["dotnet", "test", "--nologo", "--verbosity", "quiet"],
     "python": ["python", "-m", "pytest", "-q", "--tb=no"],
     "go": ["go", "test", "./..."],
     # -M:test runs :main-opts (most common agent pattern); -X:test requires
@@ -120,6 +121,8 @@ class TestCoverageScorer:
             pct = self._typescript_coverage(artifacts.output_dir)
         elif stack.language == "go":
             pct = self._go_coverage(artifacts.output_dir)
+        elif stack.language == "csharp":
+            pct = self._csharp_coverage(artifacts.output_dir)
         else:
             pct = self._coverage_via_command(artifacts.output_dir, stack.language)
 
@@ -342,6 +345,73 @@ class TestCoverageScorer:
                 return rate * 100.0
         return None
 
+    def _csharp_coverage(self, output_dir: Path) -> float | None:
+        """C# coverage via `dotnet test` + coverlet's XPlat collector.
+
+        `dotnet test --collect:"XPlat Code Coverage"` drops a Cobertura XML at
+        TestResults/<guid>/coverage.cobertura.xml whose root `line-rate` is the
+        fraction of lines covered. coverlet.collector must be referenced by the
+        test project for the XML to appear; when it isn't, fall back to the
+        dotnet-test pass rate — the same proxy java uses (jacoco writes a file,
+        not stdout, so java's "coverage" is really its pass rate too).
+        """
+        out = output_dir.resolve()
+        results = out / ".retort-coverage"
+        shutil.rmtree(results, ignore_errors=True)
+        try:
+            res = subprocess.run(
+                ["dotnet", "test", "--collect:XPlat Code Coverage",
+                 "--results-directory", str(results), "--nologo"],
+                cwd=out, capture_output=True, text=True, timeout=300,
+            )
+        except (subprocess.TimeoutExpired, FileNotFoundError):
+            return None
+        try:
+            xmls = sorted(
+                results.rglob("coverage.cobertura.xml"),
+                key=lambda p: p.stat().st_mtime,
+            )
+            if xmls:
+                pct = _parse_cobertura(xmls[-1])
+                if pct is not None:
+                    return pct
+        finally:
+            shutil.rmtree(results, ignore_errors=True)
+        # Fallback: pass rate from the dotnet test summary.
+        combined = _strip_ansi((res.stdout or "") + "\n" + (res.stderr or ""))
+        rate = _parse_test_pass_rate(combined, "csharp")
+        return rate * 100.0 if rate is not None else None
+
+
+def _parse_cobertura(path: Path) -> float | None:
+    """Read line coverage % from a Cobertura XML report (coverlet output).
+
+    The root <coverage> element carries `line-rate` as a 0-1 fraction.
+    """
+    import xml.etree.ElementTree as ET
+
+    try:
+        root = ET.parse(path).getroot()
+    except (ET.ParseError, OSError):
+        return None
+    # An empty report (lines-valid="0", no instrumented classes — e.g. coverlet
+    # didn't attach in a single-project layout) is *no data*, not 0% coverage.
+    # Return None so the caller falls back to the test pass rate (a real 0% would
+    # have lines-valid > 0 with lines-covered = 0).
+    valid = root.get("lines-valid")
+    try:
+        if valid is not None and int(valid) == 0:
+            return None
+    except ValueError:
+        pass
+    rate = root.get("line-rate")
+    if rate is None:
+        return None
+    try:
+        return float(rate) * 100.0
+    except ValueError:
+        return None
+
 
 def _parse_coverage(output: str, language: str) -> float | None:
     """Extract a coverage percentage from tool output. Heuristic per language."""
@@ -408,6 +478,16 @@ _TEST_PASS_PATTERNS: dict[str, list[re.Pattern[str]]] = {
         #   24 Scenarios (24 passed)
         #   83 Steps (83 passed)
         re.compile(r"(?P<total>\d+)\s+Scenarios\s+\((?P<passed>\d+)\s+passed\)"),
+    ],
+    "csharp": [
+        # `dotnet test` summary line:
+        #   Passed!  - Failed: 0, Passed: 12, Skipped: 0, Total: 12, Duration: ...
+        #   Failed!  - Failed: 2, Passed: 10, Skipped: 0, Total: 12, ...
+        re.compile(
+            r"(?:Passed|Failed)!\s*-\s*Failed:\s*(?P<failed>\d+),\s*"
+            r"Passed:\s*(?P<passed>\d+),\s*Skipped:\s*(?P<skipped>\d+),\s*"
+            r"Total:\s*(?P<total>\d+)"
+        ),
     ],
     "go": [
         # `go test`: each PASS/FAIL line. Use ratio of PASS lines to total lines
