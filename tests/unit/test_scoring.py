@@ -333,6 +333,18 @@ class TestTestCoverageScorer:
         assert _parse_test_pass_rate("      Tests  45 passed | 4 failed (49)",
                                      "typescript") == 45 / 49
 
+    def test_parse_node_test_tap_pass_rate(self):
+        # Regression: TypeScript projects using Node's built-in runner
+        # (`node --test`, no jest/vitest dep) emit a TAP summary, not a
+        # vitest/jest line. Without parsing it the run scores 0 and the gate
+        # vetoes a fully-passing suite — exp-15's opus node:sqlite CRUD passed
+        # 7/7 yet was failed. The pass/fail counts sit on separate lines.
+        from retort.scoring.scorers.test_coverage import _parse_test_pass_rate
+        passing = "# tests 7\n# suites 0\n# pass 7\n# fail 0\n# cancelled 0\n"
+        assert _parse_test_pass_rate(passing, "typescript") == 1.0
+        mixed = "# tests 5\n# pass 3\n# fail 2\n# cancelled 0\n"
+        assert _parse_test_pass_rate(mixed, "typescript") == 3 / 5
+
     def test_clojure_runner_follows_project_layout(self, tmp_path):
         # Regression: a Leiningen project (project.clj, no deps.edn) must be
         # tested with `lein test`, not the clojure CLI's `-M:test` (which finds
