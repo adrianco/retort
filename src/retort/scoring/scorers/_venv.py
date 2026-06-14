@@ -88,6 +88,55 @@ def install_project_deps(venv: Path, output_dir: Path) -> None:
             )
         except (subprocess.TimeoutExpired, FileNotFoundError):
             logger.debug("Failed editable-installing project in %s", output_dir)
+    # Fall back to installing third-party packages the sources IMPORT but the
+    # project never declared (no requirements/pyproject, or an incomplete one).
+    # This fulfils the docstring's purpose: a passing suite must not score 0
+    # merely because the agent shipped working code without a deps manifest —
+    # exp-17's brazil-bench cells imported mcp/pandas/pytest_bdd undeclared and
+    # false-failed the gate. Installed one at a time so a single unresolvable
+    # name doesn't block the rest.
+    for pkg in _undeclared_third_party_imports(output_dir):
+        try:
+            subprocess.run(
+                [str(pip), "install", "-q", pkg],
+                cwd=output_dir, capture_output=True, timeout=300,
+            )
+        except (subprocess.TimeoutExpired, FileNotFoundError):
+            logger.debug("Failed installing inferred import %s", pkg)
+
+
+def _undeclared_third_party_imports(output_dir: Path) -> list[str]:
+    """Top-level package names the project's python sources import that are
+    neither stdlib nor local modules — a best-effort list of deps an agent
+    imported but failed to declare. pip normalises underscore/hyphen variants
+    (``pytest_bdd`` → ``pytest-bdd``); names where the import differs from the
+    package simply fail to install and are skipped by the caller.
+    """
+    import ast
+
+    skip = {"node_modules", ".venv", "venv", "site-packages", "__pycache__"}
+    py_files = [
+        p for p in output_dir.rglob("*.py")
+        if not any(part in skip for part in p.parts)
+    ]
+    local = {p.stem for p in py_files} | {
+        d.name for d in output_dir.iterdir() if d.is_dir()
+    }
+    imported: set[str] = set()
+    for p in py_files:
+        try:
+            tree = ast.parse(p.read_text())
+        except (SyntaxError, ValueError, OSError):
+            continue
+        for node in ast.walk(tree):
+            if isinstance(node, ast.Import):
+                imported.update(n.name.split(".")[0] for n in node.names)
+            elif isinstance(node, ast.ImportFrom) and node.level == 0 and node.module:
+                imported.add(node.module.split(".")[0])
+    return sorted(
+        m for m in imported
+        if m and m not in sys.stdlib_module_names and m not in local
+    )
 
 
 def ensure_python_env(output_dir: Path) -> tuple[dict[str, str] | None, Path | None]:

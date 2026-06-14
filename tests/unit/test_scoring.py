@@ -750,6 +750,24 @@ class TestGoCrossPackageCoverage:
 class TestPythonEnvPreparation:
     """The python scorer must prepare deps without polluting the workspace."""
 
+    def test_undeclared_third_party_imports(self, tmp_path):
+        # Regression: brazil-bench cells imported mcp/pandas/pytest_bdd without a
+        # requirements.txt, so the scorer installed nothing and the passing suite
+        # scored test_coverage=0 (exp-17). The fallback must surface exactly the
+        # third-party imports — not stdlib, not the project's own local modules.
+        from retort.scoring.scorers._venv import _undeclared_third_party_imports
+        (tmp_path / "app.py").write_text(
+            "import os\nimport pandas\n"
+            "from mcp import server\nfrom data_loader import load\n"
+        )
+        (tmp_path / "data_loader.py").write_text("def load():\n    return 1\n")
+        (tmp_path / "tests").mkdir()
+        (tmp_path / "tests" / "test_app.py").write_text(
+            "from pytest_bdd import scenario\nimport pathlib\nfrom app import server\n"
+        )
+        got = _undeclared_third_party_imports(tmp_path)
+        assert got == ["mcp", "pandas", "pytest_bdd"]  # stdlib/local excluded
+
     def test_throwaway_venv_is_outside_output_dir(self, tmp_path):
         from retort.scoring.scorers._venv import ensure_python_env
         (tmp_path / "app.py").write_text("x = 1\n")

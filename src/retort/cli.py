@@ -629,7 +629,9 @@ def run_experiments(
     failed = 0
     skipped = 0
     accumulated_cost = 0.0
+    accumulated_tokens = 0
     cost_limit = workspace_config.playpen.cost_limit_usd
+    token_limit = workspace_config.playpen.token_limit
 
     session = get_session(engine)
     try:
@@ -757,10 +759,16 @@ def run_experiments(
                             accumulated_cost += float(artifacts.metadata.get("total_cost_usd") or 0)
                         except (TypeError, ValueError):
                             pass
+                    accumulated_tokens += artifacts.token_count or 0
                     if cost_limit is not None and accumulated_cost > cost_limit:
                         raise click.ClickException(
                             f"cost_limit_usd ${cost_limit:.2f} exceeded "
                             f"(accumulated ${accumulated_cost:.4f}) — aborting"
+                        )
+                    if token_limit is not None and accumulated_tokens > token_limit:
+                        raise click.ClickException(
+                            f"token_limit {token_limit:,} exceeded "
+                            f"(accumulated {accumulated_tokens:,} tokens) — aborting"
                         )
                 finally:
                     runner.teardown(env_id)
