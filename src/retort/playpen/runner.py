@@ -77,6 +77,14 @@ class RunArtifacts:
     def succeeded(self) -> bool:
         return self.exit_code == 0
 
+    @property
+    def usage_limited(self) -> bool:
+        """True if the agent was cut off by a usage/rate limit (not a real
+        failure). The runner sets ``metadata['usage_limited']`` when the agent
+        output carries a limit signature; such a cell should be re-run on resume,
+        never scored as a model failure."""
+        return self.metadata.get("usage_limited") == "true"
+
     def to_dict(self) -> dict:
         return {
             "output_dir": str(self.output_dir) if self.output_dir else None,

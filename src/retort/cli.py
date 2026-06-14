@@ -663,6 +663,13 @@ def run_experiments(
                 env_id = runner.provision(stack, task)
                 try:
                     artifacts = runner.execute(env_id, stack, task)
+                    if artifacts.usage_limited:
+                        # Not a model failure — the agent never got to do the
+                        # work. Leave this cell UNRECORDED so --resume re-runs it,
+                        # and stop the run so the remaining cells aren't burned
+                        # against the same exhausted limit. (teardown via finally)
+                        click.echo(" — usage limit (not recorded)", err=True)
+                        raise _UsageLimitStop()
                     scores = collector.collect(artifacts, stack)
 
                     # Conformance gate: an agent-succeeded run whose tests never
@@ -764,6 +771,17 @@ def run_experiments(
                         )
                 finally:
                     runner.teardown(env_id)
+    except _UsageLimitStop:
+        # Graceful stop: commit what finished, leave the limited + remaining
+        # cells unrecorded. A plain `--resume` picks them up — no --retry-failed
+        # needed, and no usage-limit casualty is mis-scored as a model failure.
+        session.commit()
+        click.echo(
+            "\n⚠ Usage/rate limit reached — stopped cleanly. Completed cells are "
+            "saved; the interrupted cell was NOT recorded. Resume with --resume "
+            "once your limit resets.",
+            err=True,
+        )
     except Exception:
         session.rollback()
         raise
@@ -946,6 +964,11 @@ _ARCHIVE_NOISE = {
 def _ignore_archive_noise(_dir: str, names: list[str]) -> set[str]:
     """`shutil.copytree` ignore callback: skip build output and vendored deps."""
     return {n for n in names if n in _ARCHIVE_NOISE or n == "erl_crash.dump"}
+
+
+class _UsageLimitStop(Exception):
+    """Raised mid-run when the agent hit a usage/rate limit, to stop the run
+    cleanly without recording the interrupted (or remaining) cells as failures."""
 
 
 def _archive_run_workspace(
@@ -3365,6 +3388,18 @@ def diagnose(experiment_dir, as_json):
             rep_dir = runs_root / cell / f"rep{rep}"
         req_cov = _metric(run_id, "requirement_coverage")
         old_tc = _metric(run_id, "test_coverage")
+        cost = _metric(run_id, "_cost_usd")
+        dur = _metric(run_id, "_duration_seconds")
+        # A failure that burned ~$0 and finished almost instantly didn't fail on
+        # the model's merits — it was interrupted (usage/rate limit, a kill, a CLI
+        # error). The tell: a genuine failure spends minutes and dollars; an
+        # interruption is instant and free. Re-run it, don't trust the "failure".
+        if cost in (0, 0.0, None) and dur is not None and dur < 60 \
+                and old_tc in (0, 0.0, None):
+            findings.append((label, "INTERRUPTED",
+                             "~$0 cost / near-instant — a usage-limit or killed "
+                             "run, not a model failure; re-run with --resume"))
+            continue
         if not rep_dir.is_dir():
             findings.append((label, "UNKNOWN", "no archived run dir to inspect"))
             continue
@@ -3404,16 +3439,21 @@ def diagnose(experiment_dir, as_json):
         return
     tooling = [f for f in findings if f[1] == "TOOLING"]
     genuine = [f for f in findings if f[1] == "GENUINE"]
+    interrupted = [f for f in findings if f[1] == "INTERRUPTED"]
     if not findings:
         click.echo("No failed runs to diagnose — all runs are completed.")
         return
-    click.echo(f"Diagnosed {len(findings)} failed run(s): "
-               f"{len(tooling)} TOOLING, {len(genuine)} GENUINE\n")
+    click.echo(f"Diagnosed {len(findings)} failed run(s): {len(tooling)} TOOLING, "
+               f"{len(genuine)} GENUINE, {len(interrupted)} INTERRUPTED\n")
     for c, k, v in findings:
-        click.echo(f"  [{k:7}] {c}\n             {v}")
+        click.echo(f"  [{k:11}] {c}\n             {v}")
     if tooling:
         click.echo(f"\n→ {len(tooling)} tooling false-failure(s) recover with:\n"
                    f"    retort rescore --experiment-dir {experiment_dir} --only-failed")
+    if interrupted:
+        click.echo(f"\n→ {len(interrupted)} interrupted run(s) just need re-running:\n"
+                   f"    retort run … --config {experiment_dir}/workspace.yaml "
+                   "--resume --retry-failed")
 
 
 @report.command("compare")

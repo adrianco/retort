@@ -1244,4 +1244,35 @@ def test_diagnose_classifies_tooling_false_failure(tmp_path: Path):
     result = CliRunner().invoke(cli, ["diagnose", "--experiment-dir", str(exp)])
     assert result.exit_code == 0, result.output
     assert "1 TOOLING, 0 GENUINE" in result.output
-    assert "[TOOLING]" in result.output
+    assert "[TOOLING" in result.output
+
+
+def test_diagnose_flags_interrupted_usage_casualty(tmp_path: Path):
+    """A failed run that burned ~$0 and finished instantly is classified
+    INTERRUPTED (usage limit / kill), not a GENUINE model failure."""
+    import json
+
+    from retort.cli import main as _cli  # noqa: F401
+    exp = tmp_path
+    (exp / "runs").mkdir()
+    db = exp / "retort.db"
+    con = sqlite3.connect(db)
+    con.execute("CREATE TABLE experiment_runs (id INTEGER PRIMARY KEY, "
+                "run_config_json TEXT, replicate INTEGER, status TEXT, "
+                "error_message TEXT)")
+    con.execute("CREATE TABLE run_results (run_id INTEGER, metric_name TEXT, "
+                "value REAL)")
+    con.execute("INSERT INTO experiment_runs (run_config_json, replicate, status, "
+                "error_message) VALUES (?,?,?,?)",
+                (json.dumps({"language": "rust", "model": "sonnet"}), 1, "failed",
+                 ""))
+    # ~$0 cost, near-instant, no coverage = the interruption signature
+    con.executemany("INSERT INTO run_results VALUES (1, ?, ?)",
+                    [("_cost_usd", 0.0), ("_duration_seconds", 4.0),
+                     ("test_coverage", 0.0)])
+    con.commit()
+    con.close()
+    result = CliRunner().invoke(cli, ["diagnose", "--experiment-dir", str(exp)])
+    assert result.exit_code == 0, result.output
+    assert "INTERRUPTED" in result.output
+    assert "0 GENUINE" in result.output

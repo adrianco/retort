@@ -9,6 +9,7 @@ from __future__ import annotations
 
 import json
 import logging
+import re
 import shutil
 import subprocess
 import tempfile
@@ -48,6 +49,17 @@ MODEL_ALIASES: dict[str, str] = {
     # Claude Code fast mode on (faster output) — handled in _build_agent_command.
     "opus-4.8-fast": "claude-opus-4-8-fast",
 }
+
+
+# Signatures an agent CLI emits when it's cut off by a usage / rate limit (a
+# 5-hour or weekly cap, a 429, exhausted quota). A run that ends this way did NOT
+# fail on the model's merits — it never got to do the work — so the caller treats
+# it as "not attempted" (re-run on resume) rather than scoring it as a failure.
+_USAGE_LIMIT_RE = re.compile(
+    r"usage limit|rate.?limit|limit reached|limit will reset|too many requests"
+    r"|\b429\b|insufficient.*quota|quota.*exceeded|/upgrade to increase",
+    re.IGNORECASE,
+)
 
 
 def _model_cli_args(model_level: str) -> list[str]:
@@ -215,6 +227,14 @@ class LocalRunner:
                 if token_count > 0:
                     ept = self.local_inference_cost.effective_cost_per_token(token_count, elapsed)
                     metadata["effective_cost_per_token"] = str(ept)
+
+            # A usage/rate-limit cutoff is not a model failure — flag it so the
+            # caller leaves the cell unrecorded (re-run on resume) instead of
+            # scoring an incomplete workspace as a failure.
+            if result.returncode != 0 and _USAGE_LIMIT_RE.search(
+                (result.stderr or "") + "\n" + stdout_text
+            ):
+                metadata["usage_limited"] = "true"
 
             artifacts = RunArtifacts(
                 output_dir=info.workspace,

@@ -956,3 +956,16 @@ def test_model_cli_args_non_fast_has_no_settings():
     from retort.playpen.local_runner import _model_cli_args
     assert _model_cli_args("claude-opus-4-6") == ["--model", "claude-opus-4-6"]
     assert _model_cli_args("") == []
+
+
+def test_usage_limit_detection_and_artifact_flag():
+    """Usage/rate-limit signatures are recognised; ordinary failures are not."""
+    from retort.playpen.local_runner import _USAGE_LIMIT_RE
+    from retort.playpen.runner import RunArtifacts
+    for hit in ["Claude usage limit reached", "429 Too Many Requests",
+                "rate_limit_error", "your limit will reset at 3pm"]:
+        assert _USAGE_LIMIT_RE.search(hit), hit
+    for miss in ["compilation failed", "AssertionError: expected 3", "panic: nil"]:
+        assert not _USAGE_LIMIT_RE.search(miss), miss
+    assert RunArtifacts(metadata={"usage_limited": "true"}).usage_limited
+    assert not RunArtifacts(metadata={}).usage_limited
