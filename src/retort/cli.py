@@ -1537,6 +1537,37 @@ def _persist_design_matrix(
                 session.add(DesignMatrixCell(
                     row_id=existing_row.id, factor_level_id=level_id,
                 ))
+        else:
+            # Reusing a row from a prior run (resume). Verify its persisted
+            # factors match this config. Rows are keyed by POSITION, so if the
+            # supplied --design's row order has drifted from the matrix, mapping
+            # this config onto the existing row would silently overwrite a
+            # DIFFERENT cell's runs via the uq_run_replicate constraint — the
+            # row-index collision that clobbered 30 runs in exp-15 when a new
+            # --design reused run indices 0-9 that already held other models.
+            existing_factors = dict(
+                session.query(FactorLevel.factor_name, FactorLevel.level_name)
+                .join(
+                    DesignMatrixCell,
+                    DesignMatrixCell.factor_level_id == FactorLevel.id,
+                )
+                .filter(DesignMatrixCell.row_id == existing_row.id)
+                .all()
+            )
+            mismatch = {
+                fn: (lv, run_config.get(fn))
+                for fn, lv in existing_factors.items()
+                if run_config.get(fn) != lv
+            }
+            if mismatch:
+                raise click.ClickException(
+                    f"--design row {row_idx} already exists in matrix "
+                    f"'{matrix_name}' with factors {existing_factors}, but the "
+                    f"supplied design maps a different cell onto it (differs on "
+                    f"{mismatch}). Refusing to overwrite: a --design CSV's row "
+                    f"order must match the persisted matrix. Give new cells "
+                    f"non-overlapping run indices, or use a fresh experiment."
+                )
 
         config_to_row_id[json.dumps(run_config, sort_keys=True)] = existing_row.id
 

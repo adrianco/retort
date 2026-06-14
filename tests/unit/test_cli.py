@@ -322,6 +322,59 @@ def test_persist_design_matrix_creates_rows(tmp_path: Path):
     engine.dispose()
 
 
+def test_persist_design_matrix_rejects_row_collision(tmp_path: Path):
+    # Regression: design rows are keyed by POSITION, so a second --design whose
+    # row N holds a different cell than the persisted matrix's row N used to be
+    # silently remapped onto that row and overwrote its runs via
+    # uq_run_replicate — the collision that clobbered 30 runs in exp-15 when a
+    # new --design reused run indices 0-9 that already held other models. A
+    # drifted row must now ERROR, not overwrite.
+    import click
+    import pytest
+
+    from retort.cli import _persist_design_matrix
+    from retort.design.factors import FactorRegistry
+    from retort.design.generator import generate_design
+    from retort.storage.database import create_tables, get_engine, get_session_factory
+
+    db_path = tmp_path / "retort.db"
+    engine = get_engine(db_path)
+    create_tables(engine)
+
+    reg_a = FactorRegistry()
+    reg_a.add("language", ["python", "go"])
+    reg_a.add("model", ["opus", "sonnet"])
+    s1 = get_session_factory(engine)()
+    _persist_design_matrix(
+        s1, reg_a, generate_design(reg_a, "screening"), "screening",
+        _StubWorkspaceConfig(),
+    )
+    s1.commit()
+    s1.close()
+
+    # A different roster at the same row positions must be refused, not merged.
+    reg_b = FactorRegistry()
+    reg_b.add("language", ["python", "go"])
+    reg_b.add("model", ["glm", "kimi"])
+    s2 = get_session_factory(engine)()
+    with pytest.raises(click.ClickException, match="already exists"):
+        _persist_design_matrix(
+            s2, reg_b, generate_design(reg_b, "screening"), "screening",
+            _StubWorkspaceConfig(),
+        )
+    s2.close()
+
+    # Control: re-persisting the SAME roster still works (legit resume).
+    s3 = get_session_factory(engine)()
+    _persist_design_matrix(
+        s3, reg_a, generate_design(reg_a, "screening"), "screening",
+        _StubWorkspaceConfig(),
+    )
+    s3.commit()
+    s3.close()
+    engine.dispose()
+
+
 def test_persist_design_matrix_idempotent(tmp_path: Path):
     """Re-running --resume must not duplicate the matrix or its rows."""
     from retort.cli import _persist_design_matrix
