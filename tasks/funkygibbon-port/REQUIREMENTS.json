@@ -1,0 +1,19 @@
+{
+  "task": "funkygibbon-port",
+  "source": "github://adrianco/funkygibbon-port-bench/funkygibbon-mcp-port-guide.md",
+  "note": "Pinned, fixed requirement checklist for ALL runs of this task. Authored once from the guide's 'Required capabilities' section so requirement_coverage uses a constant denominator and is comparable across runs and languages. Do not regenerate per-run.",
+  "requirements": [
+    {"id": "R1", "requirement": "Speaks inbetweenies-v2: builds a valid SyncRequest and parses SyncResponse", "how_to_verify": "Code constructs a SyncRequest (protocol_version, device_id, user_id, sync_type, changes, filters) and parses SyncResponse (changes, conflicts, server_time, sync_stats); reserved fields (vector_clock, cursor) round-trip."},
+    {"id": "R2", "requirement": "Version strings: formats and parses the canonical format and orders lexically", "how_to_verify": "A formatter emits {utc-iso8601}-{counter:06d}-{user_id} with +00:00 and NO trailing Z; a parser extracts the UTC timestamp (tolerating a legacy Z and hyphenated user_id); comparison is lexical. Matches fixtures/version-strings.json."},
+    {"id": "R3", "requirement": "Delta watermark: persists server_time and replays it as an EXCLUSIVE since", "how_to_verify": "After a sync the client stores the response server_time and sends it as filters.since next time; the lower bound is strictly-greater-than (not >=); the client clock is never used as the watermark."},
+    {"id": "R4", "requirement": "Conflict resolution: canonical LWW + 1s window version tiebreak", "how_to_verify": "Same-id concurrent edits resolve by newer updated_at; within 1000ms the lexically greater version wins (NOT sync_id). Matches the conflict exchange in fixtures/sync-exchanges.json."},
+    {"id": "R5", "requirement": "Tombstone deletes", "how_to_verify": "A delete is applied/represented as a new version with content.deleted=true (prior version as parent); tombstoned entities are treated as gone but retained for sync."},
+    {"id": "R6", "requirement": "Local graph cache stored durably", "how_to_verify": "Entities and relationships are persisted (embedded DB or equivalent) and survive a restart; graph queries read from the cache."},
+    {"id": "R7", "requirement": "MCP server exposes all 12 tools over stdio with matching names/args", "how_to_verify": "The server lists exactly the 12 tools (search_entities, get_entity_details, create_entity, update_entity, create_relationship, get_devices_in_room, find_device_controls, get_room_connections, find_path, find_similar_entities, get_procedures_for_device, get_automations_in_room) with the required arguments."},
+    {"id": "R8", "requirement": "Initial sync on startup + background re-sync", "how_to_verify": "The MCP server connects to FunkyGibbon, syncs into the local cache on startup, and refreshes it periodically."},
+    {"id": "R9", "requirement": "Bearer-token authentication on sync requests", "how_to_verify": "Sync HTTP calls send an Authorization: Bearer <token> header sourced from config/env."},
+    {"id": "R10", "requirement": "Passes the provided fixtures", "how_to_verify": "Tests exercise fixtures/version-strings.json, fixtures/sync-exchanges.json and fixtures/mcp-tool-golden.json and assert the documented outcomes."},
+    {"id": "R11", "requirement": "Automated tests that build and run in the target language", "how_to_verify": "A test suite covers version strings, sync, conflict, tombstones and the tools; tests execute (test_coverage > 0)."},
+    {"id": "R12", "requirement": "README with build/test/run instructions", "how_to_verify": "The port directory has a README documenting how to build, test, and run the MCP server (with the env/config it needs)."}
+  ]
+}

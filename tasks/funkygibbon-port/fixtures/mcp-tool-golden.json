@@ -1,0 +1,50 @@
+{
+  "_note": "Golden MCP tool calls evaluated against knowledge-graph.json (the local cache seed). Tombstoned entities (note-old) are excluded from active results. The exact JSON envelope should match the reference clients; what is checked here is the essential content — which entity ids come back. Each tool returns a JSON text payload (success: the tool result; failure: {error}).",
+  "cases": [
+    {
+      "tool": "get_devices_in_room",
+      "arguments": {"room_id": "room-living"},
+      "expect_entity_ids": ["device-lamp"],
+      "note": "devices located_in the living room"
+    },
+    {
+      "tool": "get_devices_in_room",
+      "arguments": {"room_id": "room-kitchen"},
+      "expect_entity_ids": ["device-oven"]
+    },
+    {
+      "tool": "search_entities",
+      "arguments": {"query": "oven"},
+      "expect_entity_ids_contains": ["device-oven", "proc-oven"],
+      "note": "name/content match; ordering by score is fine"
+    },
+    {
+      "tool": "get_entity_details",
+      "arguments": {"entity_id": "device-oven"},
+      "expect": {"entity_id": "device-oven", "has_relationships": ["located_in -> room-kitchen", "documented_by <- proc-oven"]}
+    },
+    {
+      "tool": "get_procedures_for_device",
+      "arguments": {"device_id": "device-oven"},
+      "expect_entity_ids": ["proc-oven"]
+    },
+    {
+      "tool": "get_room_connections",
+      "arguments": {"room_id": "room-living"},
+      "expect_connected_room_ids": ["room-kitchen"],
+      "note": "via door-lk (connects)"
+    },
+    {
+      "tool": "find_path",
+      "arguments": {"from_entity_id": "device-lamp", "to_entity_id": "device-oven"},
+      "expect_path_contains_ids": ["device-lamp", "room-living", "room-kitchen", "device-oven"],
+      "note": "a relationship path exists lamp->living ...(door)... kitchen->oven; exact intermediate set may vary, but it must connect the endpoints"
+    },
+    {
+      "tool": "get_entity_details",
+      "arguments": {"entity_id": "note-old"},
+      "expect": {"deleted_or_not_found": true},
+      "note": "tombstoned entity: treated as gone (returns deleted/absent, not an active note)"
+    }
+  ]
+}

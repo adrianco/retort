@@ -1,0 +1,29 @@
+Port the FunkyGibbon MCP client to {{language}} by extending the existing
+the-goodies repository.
+
+Read funkygibbon-mcp-port-guide.md in full first, then:
+
+1. Clone https://github.com/adrianco/the-goodies at tag v0.2.2 and study the
+   protocol spec (inbetweenies/PROTOCOL.md) and the two reference clients — the
+   Python `blowing-off` (including blowingoff/mcp/server.py) and the TypeScript
+   `kittenkong` (rolandcanyon-cmd/the-goodies-typescript). Implement the SPEC, not
+   any one client's quirks.
+
+2. Add your port as a new top-level directory written idiomatically in {{language}}.
+   Do not modify the Python or TypeScript clients. Implement:
+   - the inbetweenies-v2 sync client (canonical version strings, the server_time
+     delta watermark used as an EXCLUSIVE `since`, the canonical conflict resolver
+     = last-write-wins + a 1-second-window tiebreak on the greater version,
+     tombstone deletes),
+   - a durable local graph cache of entities + relationships,
+   - a stdio MCP server exposing the 12 tools named in the guide,
+   - bearer-token auth on sync requests.
+
+3. Make it pass the provided fixtures (fixtures/version-strings.json,
+   sync-exchanges.json, mcp-tool-golden.json) and write automated tests covering
+   version strings, sync, conflict resolution, tombstones, and the tools.
+
+4. Add a README with build/test/run instructions and the MCP-server config it needs.
+
+Deliverables: the port source, passing tests, and the README, all inside the new
+directory. The reference clients must be left unchanged.

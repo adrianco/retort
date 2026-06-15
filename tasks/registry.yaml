@@ -36,3 +36,14 @@ tasks:
   - name: cli-data-pipeline
     source: bundled://cli-data-pipeline
     description: Command-line ETL data pipeline.
+
+  - name: funkygibbon-port
+    source: github://adrianco/funkygibbon-port-bench/funkygibbon-mcp-port-guide.md
+    description: >-
+      Port the FunkyGibbon MCP client to a new language by EXTENDING an existing
+      real repo (adrianco/the-goodies): a sync client (inbetweenies-v2) + local
+      graph cache + 12-tool stdio MCP server, conformant on the wire with Python
+      (blowing-off) and TypeScript (kittenkong) references. The "extend a large
+      existing codebase" task; guide + fixtures authored in tasks/funkygibbon-port/.
+      Until the GitHub template repo exists, switch source to
+      bundled://funkygibbon-port to run from this repo.
