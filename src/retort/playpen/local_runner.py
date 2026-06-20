@@ -186,6 +186,9 @@ class LocalRunner:
                 exit_code=1,
             )
 
+        if self._resolve_harness(stack) == "opencode":
+            self._write_opencode_config(info.workspace, stack)
+
         timeout_secs = self.timeout_minutes * 60
         start = time.monotonic()
 
@@ -293,6 +296,26 @@ class LocalRunner:
                 f"Create prompts/{prompt_level}.md next to workspace.yaml to define this prompt level."
             )
         return path.read_text().strip()
+
+    def _write_opencode_config(self, workspace: Path, stack: StackConfig) -> None:
+        """Register this run's model in a per-workspace ``opencode.json``.
+
+        opencode validates model ids against its catalog, which ``--pure`` disables;
+        a project ``opencode.json`` under ``--dir`` registers the model explicitly
+        (the omp ``models.yml`` analog). Keyed by the bare model id with the
+        ``openrouter/`` provider prefix stripped. Written per-workspace so runs are
+        self-contained and never depend on (or touch) a global opencode config.
+        """
+        model = self._model_for(stack)
+        if not model or model == "none":
+            return
+        prefix = "openrouter/"
+        bare = model[len(prefix):] if model.startswith(prefix) else model
+        config = {
+            "$schema": "https://opencode.ai/config.json",
+            "provider": {"openrouter": {"models": {bare: {}}}},
+        }
+        (workspace / "opencode.json").write_text(json.dumps(config))
 
     def _build_agent_command(
         self, stack: StackConfig, task: TaskSpec, workspace: Path | None = None

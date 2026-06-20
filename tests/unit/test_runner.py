@@ -1028,6 +1028,27 @@ class TestLocalRunnerOpencodeHarness:
         )
         assert runner._resolve_harness(stack) == "opencode"
 
+    def test_writes_per_workspace_opencode_config(self, tmp_path):
+        import json
+
+        from retort.playpen.local_runner import LocalRunner
+
+        runner = LocalRunner(
+            work_dir=tmp_path,
+            local_agents={"oc": self._profile()},
+        )
+        stack = StackConfig(
+            language="python", agent="oc", framework="stdlib",
+            extra={"model": "openrouter/z-ai/glm-5.2"},
+        )
+        ws = tmp_path / "ws"
+        ws.mkdir()
+        runner._write_opencode_config(ws, stack)
+
+        cfg = json.loads((ws / "opencode.json").read_text())
+        # model registered under the openrouter provider, prefix stripped.
+        assert "z-ai/glm-5.2" in cfg["provider"]["openrouter"]["models"]
+
     def test_parse_opencode_usage_sums_across_steps(self):
         from retort.playpen.local_runner import _parse_agent_usage
 
