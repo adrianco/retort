@@ -178,7 +178,7 @@ class LocalRunner:
             )
 
         try:
-            cmd = self._build_agent_command(stack, task)
+            cmd = self._build_agent_command(stack, task, info.workspace)
         except ValueError as exc:
             return RunArtifacts(
                 output_dir=info.workspace,
@@ -294,7 +294,9 @@ class LocalRunner:
             )
         return path.read_text().strip()
 
-    def _build_agent_command(self, stack: StackConfig, task: TaskSpec) -> list[str] | None:
+    def _build_agent_command(
+        self, stack: StackConfig, task: TaskSpec, workspace: Path | None = None
+    ) -> list[str] | None:
         """Build the CLI command to invoke the agent for this stack.
 
         The harness follows from the model — the agent is the *same variable* as
@@ -366,7 +368,28 @@ class LocalRunner:
             cmd.extend(["--prompt", _build_agent_prompt(stack, prompt_injection)])
             return cmd
 
-        # Unreachable: _resolve_harness only returns claude-code / omp / gemini.
+        if harness == "opencode":
+            # opencode headless. `--pure` is REQUIRED: without it a plugin hangs
+            # the run indefinitely. --pure also disables env-key auth and the
+            # models.dev catalog, so auth lives in ~/.local/share/opencode/auth.json
+            # and the model is registered in opencode.json (the omp models.yml
+            # analog). opencode resolves its workspace from `--dir`, NOT the
+            # subprocess cwd, so pass it explicitly. `--format json` streams
+            # step_finish events whose part.{cost,tokens} _parse_opencode_usage sums.
+            cmd = ["opencode", "run", "--pure", "--format", "json"]
+            if workspace is not None:
+                cmd.extend(["--dir", str(workspace)])
+
+            model = self._model_for(stack)
+            if model and model != "none":
+                cmd.extend(["--model", model])
+
+            prompt_level = stack.extra.get("prompt", "none")
+            prompt_injection = self._load_prompt_file(prompt_level) if prompt_level != "none" else ""
+            cmd.append(_build_agent_prompt(stack, prompt_injection))
+            return cmd
+
+        # Unreachable: _resolve_harness returns claude-code / omp / gemini / opencode.
         raise ValueError(
             f"No command builder for harness {harness!r} "
             f"(agent={stack.agent!r}, model={self._model_for(stack)!r})."
@@ -400,7 +423,7 @@ class LocalRunner:
         profile = self.local_agents.get(stack.agent)
         if profile is not None:
             return profile.harness
-        if stack.agent in ("claude-code", "gemini", "omp"):
+        if stack.agent in ("claude-code", "gemini", "omp", "opencode"):
             return stack.agent
         return _harness_for_model(self._model_for(stack))
 
@@ -483,6 +506,8 @@ def _parse_agent_usage(agent: str, stdout_text: str) -> tuple[int, dict[str, str
         return _parse_claude_usage(stdout_text)
     if agent == "omp":
         return _parse_omp_usage(stdout_text)
+    if agent == "opencode":
+        return _parse_opencode_usage(stdout_text)
     if agent == "gemini":
         return _parse_gemini_usage(stdout_text)
     return 0, {}
@@ -621,6 +646,57 @@ GEMINI_PRICING: dict[str, tuple[float, float]] = {
     "gemini-2.5-flash": (0.30, 2.50),
     "gemini-2.5-flash-lite": (0.10, 0.40),
 }
+
+
+def _parse_opencode_usage(stdout_text: str) -> tuple[int, dict[str, str]]:
+    """Parse opencode's ``--format json`` event stream.
+
+    opencode emits newline-delimited JSON events; each assistant step ends with a
+    ``step_finish`` event whose ``part`` carries that step's ``cost`` (USD) and
+    ``tokens`` ({total, input, output, reasoning, cache:{read,write}}). Per-run
+    usage is the **sum across steps** (like omp sums per-turn). opencode reports its
+    own dollar cost, so — unlike omp — no ``/generation`` reconcile is needed; it
+    also does not surface an OpenRouter generation id, so none is recorded.
+    """
+    input_sum = output_sum = cache_read_sum = cache_write_sum = 0
+    total_tokens_sum = 0
+    cost_sum = 0.0
+    steps = 0
+    for line in stdout_text.splitlines():
+        line = line.strip()
+        if not line:
+            continue
+        try:
+            event = json.loads(line)
+        except (json.JSONDecodeError, ValueError):
+            continue
+        if not isinstance(event, dict) or event.get("type") != "step_finish":
+            continue
+        part = event.get("part")
+        if not isinstance(part, dict):
+            continue
+        steps += 1
+        cost_sum += _parse_float(str(part.get("cost", 0.0)), 0.0)
+        tokens = part.get("tokens")
+        if isinstance(tokens, dict):
+            input_sum += int(tokens.get("input", 0) or 0)
+            output_sum += int(tokens.get("output", 0) or 0)
+            total_tokens_sum += int(tokens.get("total", 0) or 0)
+            cache = tokens.get("cache")
+            if isinstance(cache, dict):
+                cache_read_sum += int(cache.get("read", 0) or 0)
+                cache_write_sum += int(cache.get("write", 0) or 0)
+
+    if steps == 0:
+        return 0, {}
+
+    return total_tokens_sum, {
+        "input_tokens": str(input_sum),
+        "output_tokens": str(output_sum),
+        "cache_read_input_tokens": str(cache_read_sum),
+        "cache_creation_input_tokens": str(cache_write_sum),
+        "total_cost_usd": str(cost_sum),
+    }
 
 
 def _find_first(data: object, keys: tuple[str, ...]) -> object:
