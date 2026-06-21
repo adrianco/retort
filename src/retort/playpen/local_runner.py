@@ -189,7 +189,7 @@ class LocalRunner:
         env = self._build_env(stack)
         if self._resolve_harness(stack) == "opencode":
             self._write_opencode_config(info.workspace, stack)
-            env["OPENCODE_DATA_DIR"] = str(self._isolate_opencode_data(info.workspace))
+            env["OPENCODE_DB"] = str(self._opencode_db_path(info.workspace))
 
         timeout_secs = self.timeout_minutes * 60
         start = time.monotonic()
@@ -319,27 +319,30 @@ class LocalRunner:
         }
         (workspace / "opencode.json").write_text(json.dumps(config))
 
-    def _isolate_opencode_data(self, workspace: Path) -> Path:
-        """Per-run opencode data dir (set via ``OPENCODE_DATA_DIR``) to isolate its db.
+    def _opencode_db_path(self, workspace: Path) -> Path:
+        """Per-run SQLite db path for opencode (set via ``OPENCODE_DB``).
 
-        opencode stores all sessions in one shared SQLite db under its data dir
-        (default ``~/.local/share/opencode``). Concurrent ``opencode run`` processes
+        opencode stores all sessions in one shared db under its data dir (default
+        ``~/.local/share/opencode/opencode.db``). Concurrent ``opencode run`` processes
         contend on that single db and a fraction fail to start — controlled A/B at
         concurrency 10: shared db 6/10 vs isolated db 10/10, bails failing ~0.4s at
-        startup (db-lock contention). ``OPENCODE_DATA_DIR`` relocates the db/data per
-        run; auth.json resolves via ``XDG_DATA_HOME`` (not ``OPENCODE_DATA_DIR``), so it
-        stays read-only in the default location — no seeding needed — and model config
-        stays in ``XDG_CONFIG_HOME``. Also keeps retort out of the user's personal
-        opencode history. Kept beside (not inside) the workspace so it isn't
-        scored/archived; ``cleanup_all`` reclaims it.
+        startup (db-lock contention). ``OPENCODE_DB=<abs path>`` relocates **only the
+        db** per run (verified against the binary + empirically); unlike
+        ``XDG_DATA_HOME`` it does NOT move ``auth.json`` or config, so no seeding is
+        needed and other XDG tools are unaffected. ``OPENCODE_DATA_DIR`` does NOT work
+        for this (it's ignored for the db path — the db stays in the default location).
+        Also keeps retort out of the user's personal opencode history. The db sits
+        beside (not inside) the workspace so it isn't scored/archived; ``cleanup_all``
+        reclaims it.
 
-        Note: this isolates the *startup-lock* failure mode only; a separate, unproven
-        concurrency failure (mid-task aborts, no code) persists on heavy real tasks, so
-        opencode should still run at low concurrency (<=3-4 shards).
+        Note: db isolation fixes only the *startup-lock* concurrency mode and the
+        history pollution. A separate intermittent failure (mid-task abort, no code)
+        occurs even at concurrency 1, so opencode still needs low concurrency
+        (<=3-4 shards) and a tight timeout.
         """
         data_dir = workspace.parent / f"{workspace.name}.ocdata"
         data_dir.mkdir(parents=True, exist_ok=True)
-        return data_dir
+        return data_dir / "opencode.db"
 
     def _build_agent_command(
         self, stack: StackConfig, task: TaskSpec, workspace: Path | None = None

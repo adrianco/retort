@@ -1049,7 +1049,7 @@ class TestLocalRunnerOpencodeHarness:
         # model registered under the openrouter provider, prefix stripped.
         assert "z-ai/glm-5.2" in cfg["provider"]["openrouter"]["models"]
 
-    def test_isolate_opencode_data_beside_workspace(self, tmp_path):
+    def test_opencode_db_path_beside_workspace(self, tmp_path):
         from retort.playpen.local_runner import LocalRunner
 
         work = tmp_path / "work"
@@ -1057,14 +1057,14 @@ class TestLocalRunnerOpencodeHarness:
         ws = work / "env123"
         ws.mkdir(parents=True)
 
-        data_dir = runner._isolate_opencode_data(ws)
+        db_path = runner._opencode_db_path(ws)
 
-        # Set via OPENCODE_DATA_DIR; beside (not inside) the workspace so it isn't
-        # scored/archived. No auth seeding — auth resolves via XDG_DATA_HOME from the
-        # default location, which OPENCODE_DATA_DIR does not move.
-        assert data_dir == work / "env123.ocdata"
-        assert ws not in data_dir.parents
-        assert data_dir.is_dir()
+        # Set via OPENCODE_DB (relocates only the db; auth/config stay default, no
+        # seeding). Db dir is beside (not inside) the workspace so it isn't
+        # scored/archived; its parent dir is created.
+        assert db_path == work / "env123.ocdata" / "opencode.db"
+        assert ws not in db_path.parents
+        assert db_path.parent.is_dir()
 
     def test_parse_opencode_usage_sums_across_steps(self):
         from retort.playpen.local_runner import _parse_agent_usage
