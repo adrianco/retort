@@ -847,3 +847,12 @@ class TestInferredPackages:
 
         (tmp_path / "m.py").write_text("from . import sibling\nfrom .pkg import thing\n")
         assert _inferred_packages(tmp_path) == set()
+
+    def test_fastapi_pulls_httpx_companion(self, tmp_path):
+        # fastapi/starlette TestClient need httpx (a transitive test dep never
+        # imported directly), so it must be added as a companion.
+        from retort.scoring.scorers._venv import _inferred_packages
+
+        (tmp_path / "app.py").write_text("from fastapi import FastAPI\n")
+        pkgs = _inferred_packages(tmp_path)
+        assert "fastapi" in pkgs and "httpx" in pkgs
