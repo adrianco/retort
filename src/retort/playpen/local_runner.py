@@ -443,7 +443,10 @@ class LocalRunner:
             # analog). opencode resolves its workspace from `--dir`, NOT the
             # subprocess cwd, so pass it explicitly. `--format json` streams
             # step_finish events whose part.{cost,tokens} _parse_opencode_usage sums.
-            cmd = ["opencode", "run", "--pure", "--format", "json"]
+            # `--print-logs` sends opencode's internal logs (permission evaluations,
+            # step loop, errors) to stderr — separate from the json stdout — so a
+            # failed run's persisted _agent_stderr.log shows WHY it failed.
+            cmd = ["opencode", "run", "--pure", "--print-logs", "--format", "json"]
             if workspace is not None:
                 cmd.extend(["--dir", str(workspace)])
 

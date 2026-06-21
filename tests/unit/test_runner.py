@@ -994,8 +994,9 @@ class TestLocalRunnerOpencodeHarness:
 
         cmd = runner._build_agent_command(stack, task)
 
-        # `--pure` is load-bearing (without it opencode hangs headless).
-        assert cmd[:5] == ["opencode", "run", "--pure", "--format", "json"]
+        # `--pure` is load-bearing (without it opencode hangs headless);
+        # `--print-logs` routes diagnostic logs to stderr for failure analysis.
+        assert cmd[:6] == ["opencode", "run", "--pure", "--print-logs", "--format", "json"]
         assert cmd[cmd.index("--model") + 1] == "openrouter/z-ai/glm-5.2"
         assert "You are working in python." in cmd[-1]
 
