@@ -189,7 +189,7 @@ class LocalRunner:
         env = self._build_env(stack)
         if self._resolve_harness(stack) == "opencode":
             self._write_opencode_config(info.workspace, stack)
-            env["XDG_DATA_HOME"] = str(self._isolate_opencode_data(info.workspace))
+            env["OPENCODE_DATA_DIR"] = str(self._isolate_opencode_data(info.workspace))
 
         timeout_secs = self.timeout_minutes * 60
         start = time.monotonic()
@@ -320,24 +320,25 @@ class LocalRunner:
         (workspace / "opencode.json").write_text(json.dumps(config))
 
     def _isolate_opencode_data(self, workspace: Path) -> Path:
-        """Give this opencode run its own data dir (``XDG_DATA_HOME``), seeded with auth.
+        """Per-run opencode data dir (set via ``OPENCODE_DATA_DIR``) to isolate its db.
 
         opencode stores all sessions in one shared SQLite db under its data dir
         (default ``~/.local/share/opencode``). Concurrent ``opencode run`` processes
-        contend on that single db and a large fraction fail to start — measured in a
-        controlled A/B: shared db **6/10** vs isolated db **10/10** at concurrency 10,
-        the bails failing in ~0.4s at startup (db-lock contention). A per-run data dir
-        removes the contention and keeps retort runs out of the user's personal
-        opencode history. ``auth.json`` lives in the data dir, so it's copied in; model
-        config stays in ``XDG_CONFIG_HOME`` and is untouched. Kept beside (not inside)
-        the workspace so it isn't scored/archived; ``cleanup_all`` reclaims it.
+        contend on that single db and a fraction fail to start — controlled A/B at
+        concurrency 10: shared db 6/10 vs isolated db 10/10, bails failing ~0.4s at
+        startup (db-lock contention). ``OPENCODE_DATA_DIR`` relocates the db/data per
+        run; auth.json resolves via ``XDG_DATA_HOME`` (not ``OPENCODE_DATA_DIR``), so it
+        stays read-only in the default location — no seeding needed — and model config
+        stays in ``XDG_CONFIG_HOME``. Also keeps retort out of the user's personal
+        opencode history. Kept beside (not inside) the workspace so it isn't
+        scored/archived; ``cleanup_all`` reclaims it.
+
+        Note: this isolates the *startup-lock* failure mode only; a separate, unproven
+        concurrency failure (mid-task aborts, no code) persists on heavy real tasks, so
+        opencode should still run at low concurrency (<=3-4 shards).
         """
         data_dir = workspace.parent / f"{workspace.name}.ocdata"
-        oc = data_dir / "opencode"
-        oc.mkdir(parents=True, exist_ok=True)
-        src_auth = Path.home() / ".local" / "share" / "opencode" / "auth.json"
-        if src_auth.exists():
-            shutil.copy(src_auth, oc / "auth.json")
+        data_dir.mkdir(parents=True, exist_ok=True)
         return data_dir
 
     def _build_agent_command(

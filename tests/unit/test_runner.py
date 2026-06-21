@@ -1049,14 +1049,8 @@ class TestLocalRunnerOpencodeHarness:
         # model registered under the openrouter provider, prefix stripped.
         assert "z-ai/glm-5.2" in cfg["provider"]["openrouter"]["models"]
 
-    def test_isolate_opencode_data_beside_workspace_with_auth(self, tmp_path, monkeypatch):
+    def test_isolate_opencode_data_beside_workspace(self, tmp_path):
         from retort.playpen.local_runner import LocalRunner
-
-        # Seed a fake global auth.json under a fake HOME (Path.home() reads HOME).
-        auth = tmp_path / "home" / ".local" / "share" / "opencode" / "auth.json"
-        auth.parent.mkdir(parents=True)
-        auth.write_text('{"openrouter": {"type": "api", "key": "sk-or-x"}}')
-        monkeypatch.setenv("HOME", str(tmp_path / "home"))
 
         work = tmp_path / "work"
         runner = LocalRunner(work_dir=work)
@@ -1065,12 +1059,12 @@ class TestLocalRunnerOpencodeHarness:
 
         data_dir = runner._isolate_opencode_data(ws)
 
-        # Beside (not inside) the workspace, so it isn't scored/archived.
+        # Set via OPENCODE_DATA_DIR; beside (not inside) the workspace so it isn't
+        # scored/archived. No auth seeding — auth resolves via XDG_DATA_HOME from the
+        # default location, which OPENCODE_DATA_DIR does not move.
         assert data_dir == work / "env123.ocdata"
         assert ws not in data_dir.parents
-        # auth.json copied into the isolated data dir's opencode subdir.
-        seeded = data_dir / "opencode" / "auth.json"
-        assert seeded.read_text().startswith('{"openrouter"')
+        assert data_dir.is_dir()
 
     def test_parse_opencode_usage_sums_across_steps(self):
         from retort.playpen.local_runner import _parse_agent_usage
