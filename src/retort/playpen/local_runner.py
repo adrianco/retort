@@ -299,22 +299,39 @@ class LocalRunner:
             )
         return path.read_text().strip()
 
+    # opencode tools, granted "allow" so headless runs never auto-deny a tool call.
+    _OPENCODE_PERMISSION_TOOLS = ("read", "edit", "glob", "grep", "list", "bash", "task")
+
     def _write_opencode_config(self, workspace: Path, stack: StackConfig) -> None:
-        """Register this run's model in a per-workspace ``opencode.json``.
+        """Register this run's model + grant permissions in a per-workspace ``opencode.json``.
 
         opencode validates model ids against its catalog, which ``--pure`` disables;
         a project ``opencode.json`` under ``--dir`` registers the model explicitly
-        (the omp ``models.yml`` analog). Keyed by the bare model id with the
-        ``openrouter/`` provider prefix stripped. Written per-workspace so runs are
-        self-contained and never depend on (or touch) a global opencode config.
+        (the omp ``models.yml`` analog).
+
+        It also grants permissions so the autonomous run isn't auto-denied (the
+        headless equivalent of omp/gemini ``--yolo``). The decisive one is
+        **``external_directory``**: opencode's default policy is
+        ``external_directory: "*" -> ask`` (allowed only for its own tmp/project
+        paths), and it treats retort's ``/var/folders/.../<ws>`` workspace as
+        *external* — so workspace file access is auto-DENIED in headless and the
+        agent aborts mid-task with no code (an intermittent ~10-27% no-code failure,
+        root-caused from the recorded sessions + ``--print-logs``). Granting
+        ``external_directory: {"*": "allow"}`` (plus the tools) fixes it. Written
+        per-workspace so runs are self-contained and never touch a global config.
         """
         model = self._model_for(stack)
         if not model or model == "none":
             return
         prefix = "openrouter/"
         bare = model[len(prefix):] if model.startswith(prefix) else model
+        permission: dict[str, object] = {
+            t: "allow" for t in self._OPENCODE_PERMISSION_TOOLS
+        }
+        permission["external_directory"] = {"*": "allow"}
         config = {
             "$schema": "https://opencode.ai/config.json",
+            "permission": permission,
             "provider": {"openrouter": {"models": {bare: {}}}},
         }
         (workspace / "opencode.json").write_text(json.dumps(config))

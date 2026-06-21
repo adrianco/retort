@@ -1048,6 +1048,12 @@ class TestLocalRunnerOpencodeHarness:
         cfg = json.loads((ws / "opencode.json").read_text())
         # model registered under the openrouter provider, prefix stripped.
         assert "z-ai/glm-5.2" in cfg["provider"]["openrouter"]["models"]
+        # permissions granted so headless runs aren't auto-denied. The decisive one
+        # is external_directory: opencode treats the temp workspace as "external" and
+        # otherwise asks→denies access, aborting the run with no code.
+        perm = cfg["permission"]
+        assert perm["external_directory"] == {"*": "allow"}
+        assert perm["read"] == "allow" and perm["bash"] == "allow"
 
     def test_opencode_db_path_beside_workspace(self, tmp_path):
         from retort.playpen.local_runner import LocalRunner
