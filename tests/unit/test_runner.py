@@ -1049,6 +1049,29 @@ class TestLocalRunnerOpencodeHarness:
         # model registered under the openrouter provider, prefix stripped.
         assert "z-ai/glm-5.2" in cfg["provider"]["openrouter"]["models"]
 
+    def test_isolate_opencode_data_beside_workspace_with_auth(self, tmp_path, monkeypatch):
+        from retort.playpen.local_runner import LocalRunner
+
+        # Seed a fake global auth.json under a fake HOME (Path.home() reads HOME).
+        auth = tmp_path / "home" / ".local" / "share" / "opencode" / "auth.json"
+        auth.parent.mkdir(parents=True)
+        auth.write_text('{"openrouter": {"type": "api", "key": "sk-or-x"}}')
+        monkeypatch.setenv("HOME", str(tmp_path / "home"))
+
+        work = tmp_path / "work"
+        runner = LocalRunner(work_dir=work)
+        ws = work / "env123"
+        ws.mkdir(parents=True)
+
+        data_dir = runner._isolate_opencode_data(ws)
+
+        # Beside (not inside) the workspace, so it isn't scored/archived.
+        assert data_dir == work / "env123.ocdata"
+        assert ws not in data_dir.parents
+        # auth.json copied into the isolated data dir's opencode subdir.
+        seeded = data_dir / "opencode" / "auth.json"
+        assert seeded.read_text().startswith('{"openrouter"')
+
     def test_parse_opencode_usage_sums_across_steps(self):
         from retort.playpen.local_runner import _parse_agent_usage
 

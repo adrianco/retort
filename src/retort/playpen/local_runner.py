@@ -186,8 +186,10 @@ class LocalRunner:
                 exit_code=1,
             )
 
+        env = self._build_env(stack)
         if self._resolve_harness(stack) == "opencode":
             self._write_opencode_config(info.workspace, stack)
+            env["XDG_DATA_HOME"] = str(self._isolate_opencode_data(info.workspace))
 
         timeout_secs = self.timeout_minutes * 60
         start = time.monotonic()
@@ -201,7 +203,7 @@ class LocalRunner:
                 capture_output=True,
                 text=True,
                 timeout=timeout_secs,
-                env=self._build_env(stack),
+                env=env,
             )
             elapsed = time.monotonic() - start
 
@@ -316,6 +318,27 @@ class LocalRunner:
             "provider": {"openrouter": {"models": {bare: {}}}},
         }
         (workspace / "opencode.json").write_text(json.dumps(config))
+
+    def _isolate_opencode_data(self, workspace: Path) -> Path:
+        """Give this opencode run its own data dir (``XDG_DATA_HOME``), seeded with auth.
+
+        opencode stores all sessions in one shared SQLite db under its data dir
+        (default ``~/.local/share/opencode``). Concurrent ``opencode run`` processes
+        contend on that single db and a large fraction fail to start — measured in a
+        controlled A/B: shared db **6/10** vs isolated db **10/10** at concurrency 10,
+        the bails failing in ~0.4s at startup (db-lock contention). A per-run data dir
+        removes the contention and keeps retort runs out of the user's personal
+        opencode history. ``auth.json`` lives in the data dir, so it's copied in; model
+        config stays in ``XDG_CONFIG_HOME`` and is untouched. Kept beside (not inside)
+        the workspace so it isn't scored/archived; ``cleanup_all`` reclaims it.
+        """
+        data_dir = workspace.parent / f"{workspace.name}.ocdata"
+        oc = data_dir / "opencode"
+        oc.mkdir(parents=True, exist_ok=True)
+        src_auth = Path.home() / ".local" / "share" / "opencode" / "auth.json"
+        if src_auth.exists():
+            shutil.copy(src_auth, oc / "auth.json")
+        return data_dir
 
     def _build_agent_command(
         self, stack: StackConfig, task: TaskSpec, workspace: Path | None = None
