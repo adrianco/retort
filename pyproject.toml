@@ -60,6 +60,7 @@ mlflow = [
 
 [project.scripts]
 retort = "retort.cli:main"
+retort-metaharness = "retort_metaharness.cli:main"
 
 [project.entry-points."retort.plugins"]
 # Third-party plugins register here via their own pyproject.toml:
@@ -72,7 +73,7 @@ Repository = "https://github.com/adrianco/retort"
 Issues = "https://github.com/adrianco/retort/issues"
 
 [tool.hatch.build.targets.wheel]
-packages = ["src/retort"]
+packages = ["src/retort", "retort_metaharness"]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
