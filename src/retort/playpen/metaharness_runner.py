@@ -45,6 +45,24 @@ logger = logging.getLogger(__name__)
 DEFAULT_MODEL = "deepseek/deepseek-v4-pro"
 NODE_FLAGS = ["--experimental-strip-types", "--no-warnings"]
 
+# Short, slash-free model-factor levels → OpenRouter ids. Factor levels must be
+# slash-free so the archive cell-dir naming (`model=<value>`) and the resume
+# cell-name parser don't treat the provider prefix as a path separator. A level
+# already containing "/" (an explicit OpenRouter id) is passed through unchanged.
+_OPENROUTER_ALIASES = {
+    "deepseek-v4-pro": "deepseek/deepseek-v4-pro",
+    "glm-5.2": "z-ai/glm-5.2",
+    "opus-4.8": "anthropic/claude-opus-4.8",
+    "gpt-5.2": "openai/gpt-5.2",
+}
+
+
+def _resolve_openrouter_id(model_level: str) -> str:
+    """Translate a slash-free model-factor level to its OpenRouter id."""
+    if "/" in model_level:
+        return model_level
+    return _OPENROUTER_ALIASES.get(model_level, model_level)
+
 
 class MetaHarnessRunner:
     """Executes experiment runs by driving the MetaHarness agentic harness.
@@ -128,8 +146,9 @@ class MetaHarnessRunner:
                 exit_code=1,
             )
 
-        model = stack.extra.get("model") or self.default_model
-        escalate = stack.extra.get("escalate") or os.environ.get("METAHARNESS_ESCALATE", "")
+        model = _resolve_openrouter_id(stack.extra.get("model") or self.default_model)
+        escalate_level = stack.extra.get("escalate") or os.environ.get("METAHARNESS_ESCALATE", "")
+        escalate = _resolve_openrouter_id(escalate_level) if escalate_level else ""
         effective_max_turns = task.max_turns if task.max_turns is not None else self.max_turns
 
         cmd = [
