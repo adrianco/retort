@@ -64,6 +64,38 @@ def _resolve_openrouter_id(model_level: str) -> str:
     return _OPENROUTER_ALIASES.get(model_level, model_level)
 
 
+# iteration-3 task-difficulty routing factor. The `routing` level selects the
+# escalation target for the intrinsic difficulty router in the solver:
+#   off  → no escalation (pure cheap model, byte-identical to iteration-2)
+#   opus → escalate hard cells to anthropic/claude-opus-4.8 (frontier)
+#   glm  → escalate hard cells to z-ai/glm-5.2 (stronger-cheap)
+#   on   → default escalation target (opus-4.8)
+# An explicit `escalate` level still works and, when present, also turns the
+# difficulty router on. The router fires only on intrinsic signals (token burn /
+# rewrite churn / build failures), never on gold.
+_ROUTING_TARGET = {"opus": "opus-4.8", "glm": "glm-5.2", "on": "opus-4.8"}
+_ROUTING_OFF = ("off", "none", "", "false")
+
+
+def _resolve_routing(routing_level: str, escalate_level: str) -> tuple[str, bool]:
+    """Resolve the (escalate_openrouter_id, route_difficulty) pair from factors.
+
+    ``routing_level`` is the design-matrix ``routing`` factor; ``escalate_level``
+    is the explicit ``escalate`` factor / env default. Returns the OpenRouter id
+    to escalate to (``""`` when no escalation) and whether the difficulty router
+    should fire.
+    """
+    routing = (routing_level or "off").lower()
+    route_difficulty = False
+    if routing not in _ROUTING_OFF:
+        escalate_level = escalate_level or _ROUTING_TARGET.get(routing, "opus-4.8")
+        route_difficulty = True
+    elif escalate_level:
+        route_difficulty = True
+    escalate = _resolve_openrouter_id(escalate_level) if escalate_level else ""
+    return escalate, route_difficulty
+
+
 class MetaHarnessRunner:
     """Executes experiment runs by driving the MetaHarness agentic harness.
 
@@ -147,9 +179,12 @@ class MetaHarnessRunner:
             )
 
         model = _resolve_openrouter_id(stack.extra.get("model") or self.default_model)
-        escalate_level = stack.extra.get("escalate") or os.environ.get("METAHARNESS_ESCALATE", "")
-        escalate = _resolve_openrouter_id(escalate_level) if escalate_level else ""
         effective_max_turns = task.max_turns if task.max_turns is not None else self.max_turns
+
+        # iteration-3 task-difficulty routing factor — see `_resolve_routing`.
+        routing = str(stack.extra.get("routing", "off")).lower()
+        escalate_level = stack.extra.get("escalate") or os.environ.get("METAHARNESS_ESCALATE", "")
+        escalate, route_difficulty = _resolve_routing(routing, escalate_level)
 
         cmd = [
             self.node_bin, *NODE_FLAGS, self.solver,
@@ -160,6 +195,8 @@ class MetaHarnessRunner:
         ]
         if escalate:
             cmd += ["--escalate", escalate]
+        if route_difficulty:
+            cmd.append("--route-difficulty")
         if stack.extra.get("memory", "none") not in ("none", "off", "", "false"):
             cmd.append("--memory")
 
@@ -200,6 +237,8 @@ class MetaHarnessRunner:
             "harness": "metaharness",
             "model": meta.get("model", model),
             "escalated": str(meta.get("escalated", False)).lower(),
+            "routing": routing,
+            "route_difficulty": str(route_difficulty).lower(),
             "num_turns": str(meta.get("steps", 0)),
             "llm_calls": str(meta.get("calls", 0)),
         }

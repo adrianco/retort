@@ -9,6 +9,7 @@ from pathlib import Path
 from retort.playpen.metaharness_runner import (
     MetaHarnessRunner,
     _parse_solver_telemetry,
+    _resolve_routing,
 )
 from retort.playpen.runner import PlaypenRunner, StackConfig, TaskSpec
 
@@ -51,6 +52,46 @@ class TestMetaHarnessRunner:
             artifacts = runner.execute(env_id, stack, task)
             assert artifacts.exit_code == 1
             assert "not found" in artifacts.stderr
+
+
+class TestResolveRouting:
+    def test_off_is_no_escalation(self):
+        # iteration-2 parity: routing off, no explicit escalate → router stays off.
+        for level in ("off", "none", "", "false", "OFF"):
+            escalate, route = _resolve_routing(level, "")
+            assert escalate == ""
+            assert route is False
+
+    def test_opus_level_escalates_to_frontier(self):
+        escalate, route = _resolve_routing("opus", "")
+        assert escalate == "anthropic/claude-opus-4.8"
+        assert route is True
+
+    def test_glm_level_escalates_to_stronger_cheap(self):
+        escalate, route = _resolve_routing("glm", "")
+        assert escalate == "z-ai/glm-5.2"
+        assert route is True
+
+    def test_on_defaults_to_opus(self):
+        escalate, route = _resolve_routing("on", "")
+        assert escalate == "anthropic/claude-opus-4.8"
+        assert route is True
+
+    def test_explicit_escalate_turns_router_on_even_when_routing_off(self):
+        escalate, route = _resolve_routing("off", "gpt-5.2")
+        assert escalate == "openai/gpt-5.2"
+        assert route is True
+
+    def test_explicit_escalate_overrides_routing_target(self):
+        # An explicit escalate level wins over the routing factor's default target.
+        escalate, route = _resolve_routing("opus", "glm-5.2")
+        assert escalate == "z-ai/glm-5.2"
+        assert route is True
+
+    def test_unknown_routing_level_falls_back_to_opus(self):
+        escalate, route = _resolve_routing("frontier", "")
+        assert escalate == "anthropic/claude-opus-4.8"
+        assert route is True
 
 
 class TestSolverTelemetry:
