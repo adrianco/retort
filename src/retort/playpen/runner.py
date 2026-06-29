@@ -155,10 +155,12 @@ def create_default_runner_registry() -> RunnerRegistry:
     """
     from retort.playpen.docker_runner import DockerRunner
     from retort.playpen.local_runner import LocalRunner
+    from retort.playpen.metaharness_runner import MetaHarnessRunner
 
     registry = RunnerRegistry()
     registry.register("docker", DockerRunner())
     registry.register("local", LocalRunner())
+    registry.register("metaharness", MetaHarnessRunner())
 
     from retort.plugins import discover_runners
 

@@ -606,6 +606,13 @@ def run_experiments(
             local_inference_cost=workspace_config.playpen.local_inference_cost,
             prompts_dir=prompts_dir if prompts_dir.is_dir() else None,
         )
+    elif runner_type == "metaharness":
+        from retort.playpen.metaharness_runner import MetaHarnessRunner
+        runner = MetaHarnessRunner(
+            timeout_minutes=workspace_config.playpen.timeout_minutes,
+            max_turns=workspace_config.playpen.max_turns,
+            default_model=workspace_config.playpen.model,
+        )
     else:
         runner = DockerRunner(timeout_minutes=workspace_config.playpen.timeout_minutes)
     metric_names = [r.name for r in workspace_config.responses]
