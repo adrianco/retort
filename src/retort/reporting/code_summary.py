@@ -27,6 +27,7 @@ _SOURCE_EXTENSIONS: dict[str, set[str]] = {
     "clojure": {".clj", ".cljc", ".cljs"},
     "elixir": {".ex", ".exs"},
     "erlang": {".erl", ".hrl"},
+    "csharp": {".cs"},
 }
 
 _SKIP_PARTS = {
@@ -76,6 +77,20 @@ _SYMBOL_PATTERNS: dict[str, list[tuple[str, re.Pattern[str]]]] = {
     "erlang": [
         ("module",   re.compile(r"^-module\((\w+)\)", re.MULTILINE)),
         ("function", re.compile(r"^(\w+)\s*\(", re.MULTILINE)),
+    ],
+    "csharp": [
+        ("class",     re.compile(
+            r"^\s*(?:public\s+|abstract\s+|sealed\s+|static\s+|internal\s+|partial\s+)*"
+            r"class\s+(\w+)", re.MULTILINE)),
+        ("interface", re.compile(
+            r"^\s*(?:public\s+|internal\s+)?interface\s+(\w+)", re.MULTILINE)),
+        ("record", re.compile(
+            r"^\s*(?:public\s+|internal\s+)?record\s+(\w+)", re.MULTILINE)),
+        ("method",    re.compile(
+            r"^\s*(?:public|private|protected|internal)\s+(?:static\s+)?(?:async\s+)?"
+            r"[\w<>\[\]]+\s+(\w+)\s*\(",
+            re.MULTILINE,
+        )),
     ],
 }
 

@@ -53,6 +53,10 @@ _DEFECT_COMMANDS: dict[str, list[list[str]]] = {
     "erlang": [
         ["rebar3", "compile"],
     ],
+    # C#: `dotnet build` surfaces compile errors + warnings (mirrors java/go).
+    "csharp": [
+        ["dotnet", "build", "--nologo"],
+    ],
 }
 
 
@@ -65,6 +69,7 @@ _LOC_EXTENSIONS: dict[str, set[str]] = {
     "clojure": {".clj", ".cljc", ".cljs"},
     "erlang": {".erl", ".hrl"},
     "elixir": {".ex", ".exs"},
+    "csharp": {".cs"},
 }
 
 
