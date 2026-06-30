@@ -248,6 +248,16 @@ class PlaypenConfig(BaseModel):
         ),
     )]
     local_inference_cost: Annotated[LocalInferenceCost | None, Field(default=None, description="Cost model for local inference hardware; enables cost_usd metric for local/offline models")]
+    auto_install_toolchains: Annotated[bool, Field(
+        default=True,
+        description=(
+            "Before a run starts, check the build/test toolchain each `language` "
+            "factor level needs (go, cargo, dotnet, mvn, …) and best-effort "
+            "install any missing ones via the platform package manager (Homebrew "
+            "/ apt). Keeps cross-language comparisons fair — a missing toolchain "
+            "otherwise silently fails/zeroes that language. Set false to skip."
+        ),
+    )]
 
     @field_validator("thinking", mode="before")
     @classmethod

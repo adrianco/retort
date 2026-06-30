@@ -1,0 +1,56 @@
+# Experiment 15 — Sonnet 5 shakedown (HARD task: brazil-bench-neutral)
+#
+# Same factors and fractional design as the rest-api arm, on the hard
+# Brazilian-soccer MCP-server task. Uses the methodology-NEUTRAL brazil fork so
+# the test methodology is supplied ONLY by the prompt factor (matches exp-13).
+#
+# Factors (fractional, resolution III, 50% of the full grid):
+#   language [python, typescript, go, rust, csharp]  — toolchains auto-installed by preflight
+#   model    [sonnet-5, sonnet-4.6, opus-4.8]
+#   prompt   [none, tdd, bdd]
+# Full factorial = 5 x 3 x 3 = 45 cells; fraction 0.5 -> ~22 cells; replicates 1.
+#
+# Run (with python + node on PATH):
+#   PYTHONPATH=src .venv/bin/python -c 'from retort.cli import main; main()' run \
+#     --phase screening --config experiment-15-sonnet5/brazil/workspace.yaml --resume
+
+experiment:
+  name: experiment-15-sonnet5-brazil
+  visibility: public
+
+factors:
+  language:
+    levels: [python, typescript, go, rust, csharp]
+  model:
+    levels: [sonnet-5, sonnet-4.6, opus-4.8]
+  prompt:
+    levels: [none, tdd, bdd]
+
+responses:
+  - code_quality
+  - token_efficiency
+  - test_coverage
+  - defect_rate
+  - maintainability
+  - idiomatic
+
+tasks:
+  - source: github://adrianco/brazil-bench-neutral/brazilian-soccer-mcp-guide.md
+
+playpen:
+  runner: local
+  replicates: 1
+  timeout_minutes: 45
+  max_turns: 200
+
+design:
+  fraction: 0.5
+  screening_resolution: 3
+  significance_threshold: 0.10
+
+promotion:
+  screening_to_trial: { p_value: 0.10 }
+  trial_to_production: { posterior_confidence: 0.80 }
+
+evaluation:
+  enabled: false

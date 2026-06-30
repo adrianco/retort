@@ -1,0 +1,56 @@
+# Experiment 15 — Sonnet 5 shakedown (EASY task: rest-api-crud)
+#
+# Question: where does the new claude-sonnet-5 land versus the current Sonnet
+# (4.6) and the current Opus flagship (4.8), across languages and prompt
+# methodology — on the easy CRUD task.
+#
+# Factors (fractional, resolution III, 50% of the full grid):
+#   language [python, typescript, go, rust, csharp]  — toolchains auto-installed by preflight
+#   model    [sonnet-5, sonnet-4.6, opus-4.8]
+#   prompt   [none, tdd, bdd]        — methodology injection (prompts/<level>.md)
+# Full factorial = 5 x 3 x 3 = 45 cells; fraction 0.5 -> ~22 cells; replicates 1.
+#
+# Run (with python + node on PATH):
+#   PYTHONPATH=src .venv/bin/python -c 'from retort.cli import main; main()' run \
+#     --phase screening --config experiment-15-sonnet5/rest-api/workspace.yaml --resume
+
+experiment:
+  name: experiment-15-sonnet5-rest-api
+  visibility: public
+
+factors:
+  language:
+    levels: [python, typescript, go, rust, csharp]
+  model:
+    levels: [sonnet-5, sonnet-4.6, opus-4.8]
+  prompt:
+    levels: [none, tdd, bdd]
+
+responses:
+  - code_quality
+  - token_efficiency
+  - test_coverage
+  - defect_rate
+  - maintainability
+  - idiomatic
+
+tasks:
+  - source: bundled://rest-api-crud
+
+playpen:
+  runner: local
+  replicates: 1
+  timeout_minutes: 20
+  max_turns: 120
+
+design:
+  fraction: 0.5
+  screening_resolution: 3
+  significance_threshold: 0.10
+
+promotion:
+  screening_to_trial: { p_value: 0.10 }
+  trial_to_production: { posterior_confidence: 0.80 }
+
+evaluation:
+  enabled: false

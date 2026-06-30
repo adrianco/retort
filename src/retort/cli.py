@@ -437,6 +437,16 @@ def _load_from_stdin() -> FactorRegistry:
         "Overrides the workspace design.fraction setting."
     ),
 )
+@click.option(
+    "--install-toolchains/--no-install-toolchains",
+    "install_toolchains",
+    default=None,
+    help=(
+        "Override playpen.auto_install_toolchains: install (or skip installing) "
+        "the build/test toolchains the language factor needs (go, cargo, dotnet, "
+        "…) before running. Defaults to the workspace config."
+    ),
+)
 def run_experiments(
     phase: str,
     config: str,
@@ -447,6 +457,7 @@ def run_experiments(
     retry_failed: bool,
     shard: str | None,
     design_csv: str | None,
+    install_toolchains: bool | None,
 ) -> None:
     """Execute experiment runs for a design matrix.
 
@@ -473,6 +484,15 @@ def run_experiments(
 
     if len(registry) < 2:
         raise click.ClickException("Need at least 2 factors for experiment runs.")
+
+    # Languages whose build/test toolchain the run will need (for the preflight).
+    _lang_factor = workspace_config.factors.get("language") or workspace_config.factors.get("languages")
+    languages = list(_lang_factor.levels) if _lang_factor else []
+    do_install_toolchains = (
+        workspace_config.playpen.auto_install_toolchains
+        if install_toolchains is None
+        else install_toolchains
+    )
 
     if retry_failed and not resume:
         raise click.ClickException("--retry-failed requires --resume.")
@@ -590,8 +610,30 @@ def run_experiments(
             msg += f", {will_other_shard} owned by other shards"
         msg += "). Exiting."
         click.echo(msg)
+        if languages and workspace_config.playpen.runner == "local":
+            from retort.playpen.toolchains import ensure_toolchains, format_report
+
+            statuses = ensure_toolchains(languages, install=False)
+            click.echo("\n[dry-run] Toolchain preflight (no install):")
+            for line in format_report(statuses, installed_action=False):
+                click.echo(line)
         engine.dispose()
         return
+
+    # Toolchain preflight — ensure the build/test toolchain each language factor
+    # level needs is present, installing missing ones when enabled. Best-effort:
+    # failures warn but never abort (scorers already skip on a missing tool), so
+    # a run is never worse off than without this step.
+    if languages and workspace_config.playpen.runner == "local":
+        from retort.playpen.toolchains import ensure_toolchains, format_report
+
+        if do_install_toolchains:
+            click.echo("Toolchain preflight (installing missing toolchains):")
+        else:
+            click.echo("Toolchain preflight (check only — auto-install disabled):")
+        statuses = ensure_toolchains(languages, install=do_install_toolchains)
+        for line in format_report(statuses, installed_action=do_install_toolchains):
+            click.echo(line)
 
     # Set up runner and scorer
     runner_type = workspace_config.playpen.runner
