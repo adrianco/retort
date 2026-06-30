@@ -584,6 +584,32 @@ class TestLocalRunnerGeminiHarness:
         assert artifacts.stdout == "completed\n"
         assert artifacts.token_count == 0
 
+    def test_execute_persists_full_agent_output_for_diagnosis(self, tmp_path):
+        # The full stdout/stderr is the only record of WHY a run failed; the runner
+        # writes it into the run dir (the archive) so failures are diagnosable.
+        from unittest.mock import MagicMock, patch
+
+        from retort.playpen.local_runner import LocalRunner
+
+        runner = LocalRunner(
+            work_dir=tmp_path,
+            local_agents={"qwen-local": self._profile()},
+        )
+        stack = StackConfig(language="python", agent="qwen-local", framework="stdlib")
+        task = TaskSpec(name="plain", description="d", prompt="hi")
+        env_id = runner.provision(stack, task)
+        ws = runner._envs[env_id].workspace
+
+        fake_result = MagicMock()
+        fake_result.returncode = 1
+        fake_result.stdout = '{"type":"step_finish"}\nlong full stream'
+        fake_result.stderr = "permission requested: external_directory; auto-rejecting"
+        with patch("retort.playpen.local_runner.subprocess.run", return_value=fake_result):
+            runner.execute(env_id, stack, task)
+
+        assert (ws / "_agent_stdout.log").read_text() == fake_result.stdout
+        assert "external_directory" in (ws / "_agent_stderr.log").read_text()
+
     def test_unknown_agent_still_captures_claude_cost(self, tmp_path):
         """Regression for the PR#6 (OMP harness) cost-drop bug.
 

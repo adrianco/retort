@@ -208,6 +208,13 @@ class LocalRunner:
             elapsed = time.monotonic() - start
 
             stdout_text = result.stdout or ""
+            # Persist the agent's FULL stdout/stderr into the run dir so a failed
+            # run is diagnosable after the fact. RunArtifacts keeps only a truncated
+            # copy, and the workspace IS the archive — without this, the raw output
+            # (the only record of WHY an agent aborted, e.g. a denied tool
+            # permission) is lost when the workspace is cleaned. See the
+            # diagnose-failed-run skill.
+            _persist_agent_output(info.workspace, stdout_text, result.stderr or "")
             # The usage parser must key on the SAME harness the command builder
             # ran (claude-code / omp / gemini), else total_cost_usd/tokens are
             # silently dropped while runner-measured _duration_seconds survives
@@ -568,6 +575,22 @@ def _build_agent_prompt(stack: StackConfig, prompt_injection: str = "") -> str:
         prompt += " " + prompt_injection
 
     return prompt
+
+
+def _persist_agent_output(workspace: Path, stdout: str, stderr: str) -> None:
+    """Write the agent's raw stdout/stderr into the run dir for post-hoc diagnosis.
+
+    The full ``--format json`` / ``--mode json`` stream and stderr are often the
+    only record of WHY an agent run failed (a denied tool permission, an empty
+    model response, a hung step). Persisted as ``_agent_stdout.log`` /
+    ``_agent_stderr.log`` (underscore-prefixed ``.log`` so scorers ignore them);
+    the workspace is the archive, so these survive into ``runs/.../repN/``.
+    """
+    try:
+        (workspace / "_agent_stdout.log").write_text(stdout)
+        (workspace / "_agent_stderr.log").write_text(stderr)
+    except OSError:
+        logger.debug("Failed to persist agent output in %s", workspace)
 
 
 def _parse_agent_usage(agent: str, stdout_text: str) -> tuple[int, dict[str, str]]:
