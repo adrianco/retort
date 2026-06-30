@@ -712,10 +712,12 @@ class TestLocalRunnerGeminiHarness:
         # Prompt text is the last arg; it should contain no injected content
         assert "none" not in cmd[-1]
 
-    def test_parse_omp_usage_last_message_end_wins(self):
+    def test_parse_omp_usage_sums_across_turns(self):
         from retort.playpen.local_runner import _parse_agent_usage
 
-        # Two message_end events — the second (final) one should win.
+        # omp emits one message_end per turn carrying THAT turn's usage; per-run
+        # cost/tokens are the sum across turns, not the final turn (the old
+        # last-wins behaviour under-counted multi-turn runs ~14x / -93%).
         stdout = (
             '{"type":"message_end","message":{"provider":"llama.cpp",'
             '"model":"first.gguf","usage":{"input":10,"output":2,'
@@ -727,10 +729,13 @@ class TestLocalRunnerGeminiHarness:
 
         token_count, metadata = _parse_agent_usage("omp", stdout)
 
-        assert token_count == 30
+        assert token_count == 42                                       # 12 + 30
+        assert abs(float(metadata["total_cost_usd"]) - 0.0133) < 1e-9  # 0.001 + 0.0123
+        assert metadata["input_tokens"] == "30"                        # 10 + 20
+        assert metadata["output_tokens"] == "7"                        # 2 + 5
+        # provider/model/stop reflect the final turn (state, not a sum)
         assert metadata["provider"] == "mlx"
         assert metadata["model"] == "final.gguf"
-        assert metadata["total_cost_usd"] == "0.0123"
         assert metadata["stop_reason"] == "end_turn"
 
     def test_parse_omp_usage_malformed_lines_skipped(self):
@@ -748,6 +753,47 @@ class TestLocalRunnerGeminiHarness:
 
         assert token_count == 10
         assert metadata["provider"] == "p"
+
+    def test_parse_omp_usage_captures_openrouter_reconcile_fields(self):
+        from retort.playpen.local_runner import _parse_agent_usage
+
+        # Two assistant turns (two responseIds), routed to two upstreams.
+        stdout = (
+            '{"type":"message_end","message":{"provider":"openrouter",'
+            '"model":"deepseek/deepseek-v3.2","responseId":"gen-aaa",'
+            '"upstreamProvider":"Baidu","usage":{"input":10,"output":2,'
+            '"totalTokens":12,"cost":{"total":0.001}},"stopReason":"stop"}}\n'
+            '{"type":"message_end","message":{"provider":"openrouter",'
+            '"model":"deepseek/deepseek-v3.2","responseId":"gen-bbb",'
+            '"upstreamProvider":"DeepSeek","usage":{"input":20,"output":5,'
+            '"totalTokens":30,"cost":{"total":0.0123}},"stopReason":"end_turn"}}\n'
+        )
+
+        token_count, metadata = _parse_agent_usage("omp", stdout)
+
+        # per-run token/cost summed across the two turns
+        assert token_count == 42                                       # 12 + 30
+        assert abs(float(metadata["total_cost_usd"]) - 0.0133) < 1e-9  # 0.001 + 0.0123
+        # every generation id captured, in order, for per-run reconcile
+        assert metadata["openrouter_generation_ids"] == "gen-aaa,gen-bbb"
+        assert metadata["omp_assistant_turns"] == "2"
+        # explicit sum provenance mirrors total_cost_usd
+        assert abs(float(metadata["omp_cost_sum_all_turns"]) - 0.0133) < 1e-9
+        # distinct upstreams recorded for reproducibility
+        assert metadata["upstream_provider"] == "Baidu,DeepSeek"
+
+    def test_parse_omp_usage_no_reconcile_fields_for_local(self):
+        # Local omp (no responseId/upstream) must not gain OpenRouter keys.
+        from retort.playpen.local_runner import _parse_agent_usage
+
+        stdout = (
+            '{"type":"message_end","message":{"provider":"llama.cpp","model":"m",'
+            '"usage":{"input":5,"output":5,"totalTokens":10,'
+            '"cost":{"total":0.0}},"stopReason":"stop"}}\n'
+        )
+        _, metadata = _parse_agent_usage("omp", stdout)
+        assert "openrouter_generation_ids" not in metadata
+        assert "upstream_provider" not in metadata
 
 
 class TestLocalInferenceCost:

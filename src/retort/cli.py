@@ -1746,10 +1746,25 @@ def _store_run_result(
     cost_str = artifacts.metadata.get("total_cost_usd") if artifacts.metadata else None
     if cost_str:
         try:
+            # Attach OpenRouter reconcile provenance so validate_openrouter_spend.py
+            # can cross-check this run's omp-reported cost against the billing API
+            # (/api/v1/generation per id). Present only on OpenRouter-routed runs;
+            # None otherwise so non-OpenRouter rows stay clean.
+            reconcile = {
+                k: artifacts.metadata[k]
+                for k in (
+                    "openrouter_generation_ids",
+                    "upstream_provider",
+                    "omp_cost_sum_all_turns",
+                    "omp_assistant_turns",
+                )
+                if artifacts.metadata and k in artifacts.metadata
+            }
             session.add(RunResult(
                 run_id=run.id,
                 metric_name="_cost_usd",
                 value=float(cost_str),
+                metadata_json=json.dumps(reconcile) if reconcile else None,
             ))
         except (TypeError, ValueError):
             pass
