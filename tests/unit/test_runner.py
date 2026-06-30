@@ -1015,3 +1015,152 @@ def test_usage_limit_detection_and_artifact_flag():
         assert not _USAGE_LIMIT_RE.search(miss), miss
     assert RunArtifacts(metadata={"usage_limited": "true"}).usage_limited
     assert not RunArtifacts(metadata={}).usage_limited
+
+
+class TestLocalRunnerOpencodeHarness:
+    def _profile(self, **kwargs):
+        from retort.config.schema import LocalAgentConfig
+
+        return LocalAgentConfig(harness="opencode", **kwargs)
+
+    def test_builds_opencode_command_with_model_factor(self, tmp_path):
+        from retort.playpen.local_runner import LocalRunner
+
+        runner = LocalRunner(
+            work_dir=tmp_path,
+            local_agents={"oc": self._profile()},
+        )
+        stack = StackConfig(
+            language="python",
+            agent="oc",
+            framework="stdlib",
+            extra={"model": "openrouter/z-ai/glm-5.2"},
+        )
+        task = TaskSpec(name="plain", description="d", prompt="hi")
+
+        cmd = runner._build_agent_command(stack, task)
+
+        # `--pure` is load-bearing (without it opencode hangs headless);
+        # `--print-logs` routes diagnostic logs to stderr for failure analysis.
+        assert cmd[:6] == ["opencode", "run", "--pure", "--print-logs", "--format", "json"]
+        assert cmd[cmd.index("--model") + 1] == "openrouter/z-ai/glm-5.2"
+        assert "You are working in python." in cmd[-1]
+
+    def test_builds_opencode_command_passes_workspace_dir(self, tmp_path):
+        from retort.playpen.local_runner import LocalRunner
+
+        runner = LocalRunner(
+            work_dir=tmp_path,
+            local_agents={"oc": self._profile(model="openrouter/z-ai/glm-5.2")},
+        )
+        stack = StackConfig(language="go", agent="oc", framework="stdlib")
+        task = TaskSpec(name="plain", description="d", prompt="hi")
+
+        cmd = runner._build_agent_command(stack, task, tmp_path)
+
+        # opencode resolves its workspace from --dir, not the subprocess cwd.
+        assert "--dir" in cmd
+        assert cmd[cmd.index("--dir") + 1] == str(tmp_path)
+
+    def test_opencode_profile_resolves_harness(self, tmp_path):
+        from retort.playpen.local_runner import LocalRunner
+
+        runner = LocalRunner(
+            work_dir=tmp_path,
+            local_agents={"oc": self._profile()},
+        )
+        stack = StackConfig(
+            language="python", agent="oc", framework="stdlib",
+            extra={"model": "openrouter/z-ai/glm-5.2"},
+        )
+        assert runner._resolve_harness(stack) == "opencode"
+
+    def test_writes_per_workspace_opencode_config(self, tmp_path):
+        import json
+
+        from retort.playpen.local_runner import LocalRunner
+
+        runner = LocalRunner(
+            work_dir=tmp_path,
+            local_agents={"oc": self._profile()},
+        )
+        stack = StackConfig(
+            language="python", agent="oc", framework="stdlib",
+            extra={"model": "openrouter/z-ai/glm-5.2"},
+        )
+        ws = tmp_path / "ws"
+        ws.mkdir()
+        runner._write_opencode_config(ws, stack)
+
+        cfg = json.loads((ws / "opencode.json").read_text())
+        # model registered under the openrouter provider, prefix stripped.
+        assert "z-ai/glm-5.2" in cfg["provider"]["openrouter"]["models"]
+        # permissions granted so headless runs aren't auto-denied. The decisive one
+        # is external_directory: opencode treats the temp workspace as "external" and
+        # otherwise asks→denies access, aborting the run with no code.
+        perm = cfg["permission"]
+        assert perm["external_directory"] == {"*": "allow"}
+        assert perm["read"] == "allow" and perm["bash"] == "allow"
+
+    def test_opencode_db_path_beside_workspace(self, tmp_path):
+        from retort.playpen.local_runner import LocalRunner
+
+        work = tmp_path / "work"
+        runner = LocalRunner(work_dir=work)
+        ws = work / "env123"
+        ws.mkdir(parents=True)
+
+        db_path = runner._opencode_db_path(ws)
+
+        # Set via OPENCODE_DB (relocates only the db; auth/config stay default, no
+        # seeding). Db dir is beside (not inside) the workspace so it isn't
+        # scored/archived; its parent dir is created.
+        assert db_path == work / "env123.ocdata" / "opencode.db"
+        assert ws not in db_path.parents
+        assert db_path.parent.is_dir()
+
+    def test_parse_opencode_usage_sums_across_steps(self):
+        from retort.playpen.local_runner import _parse_agent_usage
+
+        # opencode emits one step_finish per assistant step carrying THAT step's
+        # cost + tokens; per-run usage is the sum across steps.
+        stdout = (
+            '{"type":"step_start"}\n'
+            '{"type":"text","part":{"text":"working"}}\n'
+            '{"type":"step_finish","part":{"cost":0.001,"tokens":'
+            '{"total":100,"input":80,"output":20,"reasoning":0,'
+            '"cache":{"read":10,"write":5}}}}\n'
+            '{"type":"step_finish","part":{"cost":0.002,"tokens":'
+            '{"total":200,"input":150,"output":50,"reasoning":0,'
+            '"cache":{"read":30,"write":0}}}}\n'
+        )
+
+        token_count, metadata = _parse_agent_usage("opencode", stdout)
+
+        assert token_count == 300                                       # 100 + 200
+        assert abs(float(metadata["total_cost_usd"]) - 0.003) < 1e-9    # 0.001 + 0.002
+        assert metadata["input_tokens"] == "230"                        # 80 + 150
+        assert metadata["output_tokens"] == "70"                        # 20 + 50
+        assert metadata["cache_read_input_tokens"] == "40"              # 10 + 30
+        assert metadata["cache_creation_input_tokens"] == "5"           # 5 + 0
+
+    def test_parse_opencode_usage_malformed_lines_skipped(self):
+        from retort.playpen.local_runner import _parse_agent_usage
+
+        stdout = (
+            "not json at all\n"
+            "{bad json}\n"
+            '{"type":"step_finish","part":{"cost":0.005,"tokens":'
+            '{"total":10,"input":5,"output":5,"cache":{"read":0,"write":0}}}}\n'
+        )
+
+        token_count, metadata = _parse_agent_usage("opencode", stdout)
+
+        assert token_count == 10
+        assert metadata["total_cost_usd"] == "0.005"
+
+    def test_parse_opencode_usage_no_steps_returns_zero(self):
+        from retort.playpen.local_runner import _parse_opencode_usage
+
+        assert _parse_opencode_usage('{"type":"step_start"}\n') == (0, {})
+        assert _parse_opencode_usage("not json") == (0, {})

@@ -17,7 +17,7 @@ from pydantic import BaseModel, Field, field_validator, model_validator
 
 Visibility = Literal["public", "private"]
 ThinkingMode = Literal["off", "minimal", "low", "medium", "high", "xhigh", "max"]
-LocalHarness = Literal["omp", "gemini"]
+LocalHarness = Literal["omp", "gemini", "opencode"]
 
 
 class ExperimentConfig(BaseModel):

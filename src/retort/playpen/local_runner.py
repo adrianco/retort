@@ -178,13 +178,18 @@ class LocalRunner:
             )
 
         try:
-            cmd = self._build_agent_command(stack, task)
+            cmd = self._build_agent_command(stack, task, info.workspace)
         except ValueError as exc:
             return RunArtifacts(
                 output_dir=info.workspace,
                 stderr=str(exc),
                 exit_code=1,
             )
+
+        env = self._build_env(stack)
+        if self._resolve_harness(stack) == "opencode":
+            self._write_opencode_config(info.workspace, stack)
+            env["OPENCODE_DB"] = str(self._opencode_db_path(info.workspace))
 
         timeout_secs = self.timeout_minutes * 60
         start = time.monotonic()
@@ -198,7 +203,7 @@ class LocalRunner:
                 capture_output=True,
                 text=True,
                 timeout=timeout_secs,
-                env=self._build_env(stack),
+                env=env,
             )
             elapsed = time.monotonic() - start
 
@@ -294,7 +299,71 @@ class LocalRunner:
             )
         return path.read_text().strip()
 
-    def _build_agent_command(self, stack: StackConfig, task: TaskSpec) -> list[str] | None:
+    # opencode tools, granted "allow" so headless runs never auto-deny a tool call.
+    _OPENCODE_PERMISSION_TOOLS = ("read", "edit", "glob", "grep", "list", "bash", "task")
+
+    def _write_opencode_config(self, workspace: Path, stack: StackConfig) -> None:
+        """Register this run's model + grant permissions in a per-workspace ``opencode.json``.
+
+        opencode validates model ids against its catalog, which ``--pure`` disables;
+        a project ``opencode.json`` under ``--dir`` registers the model explicitly
+        (the omp ``models.yml`` analog).
+
+        It also grants permissions so the autonomous run isn't auto-denied (the
+        headless equivalent of omp/gemini ``--yolo``). The decisive one is
+        **``external_directory``**: opencode's default policy is
+        ``external_directory: "*" -> ask`` (allowed only for its own tmp/project
+        paths), and it treats retort's ``/var/folders/.../<ws>`` workspace as
+        *external* — so workspace file access is auto-DENIED in headless and the
+        agent aborts mid-task with no code (an intermittent ~10-27% no-code failure,
+        root-caused from the recorded sessions + ``--print-logs``). Granting
+        ``external_directory: {"*": "allow"}`` (plus the tools) fixes it. Written
+        per-workspace so runs are self-contained and never touch a global config.
+        """
+        model = self._model_for(stack)
+        if not model or model == "none":
+            return
+        prefix = "openrouter/"
+        bare = model[len(prefix):] if model.startswith(prefix) else model
+        permission: dict[str, object] = {
+            t: "allow" for t in self._OPENCODE_PERMISSION_TOOLS
+        }
+        permission["external_directory"] = {"*": "allow"}
+        config = {
+            "$schema": "https://opencode.ai/config.json",
+            "permission": permission,
+            "provider": {"openrouter": {"models": {bare: {}}}},
+        }
+        (workspace / "opencode.json").write_text(json.dumps(config))
+
+    def _opencode_db_path(self, workspace: Path) -> Path:
+        """Per-run SQLite db path for opencode (set via ``OPENCODE_DB``).
+
+        opencode stores all sessions in one shared db under its data dir (default
+        ``~/.local/share/opencode/opencode.db``). Concurrent ``opencode run`` processes
+        contend on that single db and a fraction fail to start — controlled A/B at
+        concurrency 10: shared db 6/10 vs isolated db 10/10, bails failing ~0.4s at
+        startup (db-lock contention). ``OPENCODE_DB=<abs path>`` relocates **only the
+        db** per run (verified against the binary + empirically); unlike
+        ``XDG_DATA_HOME`` it does NOT move ``auth.json`` or config, so no seeding is
+        needed and other XDG tools are unaffected. ``OPENCODE_DATA_DIR`` does NOT work
+        for this (it's ignored for the db path — the db stays in the default location).
+        Also keeps retort out of the user's personal opencode history. The db sits
+        beside (not inside) the workspace so it isn't scored/archived; ``cleanup_all``
+        reclaims it.
+
+        Note: db isolation fixes only the *startup-lock* concurrency mode and the
+        history pollution. A separate intermittent failure (mid-task abort, no code)
+        occurs even at concurrency 1, so opencode still needs low concurrency
+        (<=3-4 shards) and a tight timeout.
+        """
+        data_dir = workspace.parent / f"{workspace.name}.ocdata"
+        data_dir.mkdir(parents=True, exist_ok=True)
+        return data_dir / "opencode.db"
+
+    def _build_agent_command(
+        self, stack: StackConfig, task: TaskSpec, workspace: Path | None = None
+    ) -> list[str] | None:
         """Build the CLI command to invoke the agent for this stack.
 
         The harness follows from the model — the agent is the *same variable* as
@@ -366,7 +435,31 @@ class LocalRunner:
             cmd.extend(["--prompt", _build_agent_prompt(stack, prompt_injection)])
             return cmd
 
-        # Unreachable: _resolve_harness only returns claude-code / omp / gemini.
+        if harness == "opencode":
+            # opencode headless. `--pure` is REQUIRED: without it a plugin hangs
+            # the run indefinitely. --pure also disables env-key auth and the
+            # models.dev catalog, so auth lives in ~/.local/share/opencode/auth.json
+            # and the model is registered in opencode.json (the omp models.yml
+            # analog). opencode resolves its workspace from `--dir`, NOT the
+            # subprocess cwd, so pass it explicitly. `--format json` streams
+            # step_finish events whose part.{cost,tokens} _parse_opencode_usage sums.
+            # `--print-logs` sends opencode's internal logs (permission evaluations,
+            # step loop, errors) to stderr — separate from the json stdout — so a
+            # failed run's persisted _agent_stderr.log shows WHY it failed.
+            cmd = ["opencode", "run", "--pure", "--print-logs", "--format", "json"]
+            if workspace is not None:
+                cmd.extend(["--dir", str(workspace)])
+
+            model = self._model_for(stack)
+            if model and model != "none":
+                cmd.extend(["--model", model])
+
+            prompt_level = stack.extra.get("prompt", "none")
+            prompt_injection = self._load_prompt_file(prompt_level) if prompt_level != "none" else ""
+            cmd.append(_build_agent_prompt(stack, prompt_injection))
+            return cmd
+
+        # Unreachable: _resolve_harness returns claude-code / omp / gemini / opencode.
         raise ValueError(
             f"No command builder for harness {harness!r} "
             f"(agent={stack.agent!r}, model={self._model_for(stack)!r})."
@@ -400,7 +493,7 @@ class LocalRunner:
         profile = self.local_agents.get(stack.agent)
         if profile is not None:
             return profile.harness
-        if stack.agent in ("claude-code", "gemini", "omp"):
+        if stack.agent in ("claude-code", "gemini", "omp", "opencode"):
             return stack.agent
         return _harness_for_model(self._model_for(stack))
 
@@ -483,6 +576,8 @@ def _parse_agent_usage(agent: str, stdout_text: str) -> tuple[int, dict[str, str
         return _parse_claude_usage(stdout_text)
     if agent == "omp":
         return _parse_omp_usage(stdout_text)
+    if agent == "opencode":
+        return _parse_opencode_usage(stdout_text)
     if agent == "gemini":
         return _parse_gemini_usage(stdout_text)
     return 0, {}
@@ -655,6 +750,57 @@ GEMINI_PRICING: dict[str, tuple[float, float]] = {
     "gemini-2.5-flash": (0.30, 2.50),
     "gemini-2.5-flash-lite": (0.10, 0.40),
 }
+
+
+def _parse_opencode_usage(stdout_text: str) -> tuple[int, dict[str, str]]:
+    """Parse opencode's ``--format json`` event stream.
+
+    opencode emits newline-delimited JSON events; each assistant step ends with a
+    ``step_finish`` event whose ``part`` carries that step's ``cost`` (USD) and
+    ``tokens`` ({total, input, output, reasoning, cache:{read,write}}). Per-run
+    usage is the **sum across steps** (like omp sums per-turn). opencode reports its
+    own dollar cost, so — unlike omp — no ``/generation`` reconcile is needed; it
+    also does not surface an OpenRouter generation id, so none is recorded.
+    """
+    input_sum = output_sum = cache_read_sum = cache_write_sum = 0
+    total_tokens_sum = 0
+    cost_sum = 0.0
+    steps = 0
+    for line in stdout_text.splitlines():
+        line = line.strip()
+        if not line:
+            continue
+        try:
+            event = json.loads(line)
+        except (json.JSONDecodeError, ValueError):
+            continue
+        if not isinstance(event, dict) or event.get("type") != "step_finish":
+            continue
+        part = event.get("part")
+        if not isinstance(part, dict):
+            continue
+        steps += 1
+        cost_sum += _parse_float(str(part.get("cost", 0.0)), 0.0)
+        tokens = part.get("tokens")
+        if isinstance(tokens, dict):
+            input_sum += int(tokens.get("input", 0) or 0)
+            output_sum += int(tokens.get("output", 0) or 0)
+            total_tokens_sum += int(tokens.get("total", 0) or 0)
+            cache = tokens.get("cache")
+            if isinstance(cache, dict):
+                cache_read_sum += int(cache.get("read", 0) or 0)
+                cache_write_sum += int(cache.get("write", 0) or 0)
+
+    if steps == 0:
+        return 0, {}
+
+    return total_tokens_sum, {
+        "input_tokens": str(input_sum),
+        "output_tokens": str(output_sum),
+        "cache_read_input_tokens": str(cache_read_sum),
+        "cache_creation_input_tokens": str(cache_write_sum),
+        "total_cost_usd": str(cost_sum),
+    }
 
 
 def _find_first(data: object, keys: tuple[str, ...]) -> object:
