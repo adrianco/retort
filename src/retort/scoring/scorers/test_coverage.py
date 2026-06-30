@@ -326,6 +326,19 @@ class TestCoverageScorer:
                 ["npx", "jest", "--coverage", "--coverageReporters=text-summary"],
                 ["npx", "jest"],
             ]
+        elif "node --test" in text or "node:test" in text:
+            # Node's built-in test runner (node:test) — no jest/vitest dependency.
+            # Such projects define a `test` script like
+            # `tsc && node --test dist/**/*.test.js`. Run it (with a type-stripping
+            # `node --test` as a fallback) and score from the TAP `# pass`/`# fail`
+            # summary. The exit code is unreliable: node:sqlite's DatabaseSync can
+            # throw during finalization on process exit AFTER the tests pass, so a
+            # fully-passing suite still exits non-zero — so this scorer (which
+            # already ignores exit_code) reads the result from the output.
+            cmds = [
+                ["npm", "test"],
+                ["node", "--test", "--experimental-strip-types"],
+            ]
         else:
             return None
 
@@ -465,6 +478,13 @@ _TEST_PASS_PATTERNS: dict[str, list[re.Pattern[str]]] = {
         # jest summary (--verbose or default):
         #   Tests:      49 passed, 49 total
         re.compile(r"Tests:\s+(?P<passed>\d+)\s+passed(?:,\s*\d+\s+\w+)*,\s*(?P<total>\d+)\s+total"),
+        # node:test (`node --test`) TAP summary — pass/fail counts on their own
+        # lines (DOTALL spans the intervening `# suites`/`# tests` lines):
+        #   # pass 7
+        #   # fail 0
+        re.compile(
+            r"#\s+pass\s+(?P<passed>\d+).*?#\s+fail\s+(?P<failed>\d+)", re.DOTALL
+        ),
     ],
     "java": [
         # JUnit Surefire summary:
