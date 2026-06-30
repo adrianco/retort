@@ -2,8 +2,10 @@
 
 from __future__ import annotations
 
+import ast
 import logging
 import os
+import re
 import shutil
 import subprocess
 import sys
@@ -13,6 +15,32 @@ from pathlib import Path
 logger = logging.getLogger(__name__)
 
 _VENV_DIRS = ("venv", ".venv")
+
+# Import name -> PyPI package name, for the common cases where they differ.
+# Most web/test deps (flask, fastapi, httpx, pydantic, requests, …) match, so
+# they need no entry; this only lists the well-known mismatches.
+_IMPORT_TO_PACKAGE = {
+    "yaml": "PyYAML",
+    "PIL": "Pillow",
+    "cv2": "opencv-python",
+    "bs4": "beautifulsoup4",
+    "sklearn": "scikit-learn",
+    "dotenv": "python-dotenv",
+    "jwt": "PyJWT",
+    "jose": "python-jose",
+    "dateutil": "python-dateutil",
+    "psycopg2": "psycopg2-binary",
+    "serial": "pyserial",
+    "attr": "attrs",
+}
+
+# Packages whose TEST path needs a transitive dep that's never imported directly.
+# fastapi/starlette TestClient import httpx internally and raise a custom error
+# (not ModuleNotFoundError) when it's absent — so AST inference can't see it.
+_COMPANION_DEPS = {
+    "fastapi": {"httpx"},
+    "starlette": {"httpx"},
+}
 
 
 def find_venv(output_dir: Path) -> Path | None:
@@ -90,6 +118,125 @@ def install_project_deps(venv: Path, output_dir: Path) -> None:
             logger.debug("Failed editable-installing project in %s", output_dir)
 
 
+def _imported_top_modules(output_dir: Path) -> set[str]:
+    """Top-level module names imported by the project's ``.py`` files (via AST).
+
+    Only absolute imports count — relative imports (``from . import x``) are the
+    project's own modules, never third-party.
+    """
+    names: set[str] = set()
+    for py in output_dir.rglob("*.py"):
+        if any(part in _VENV_DIRS or part.startswith(".") for part in py.parts):
+            continue
+        try:
+            tree = ast.parse(py.read_text(encoding="utf-8", errors="ignore"))
+        except (SyntaxError, ValueError, OSError):
+            continue
+        for node in ast.walk(tree):
+            if isinstance(node, ast.Import):
+                for alias in node.names:
+                    names.add(alias.name.split(".")[0])
+            elif isinstance(node, ast.ImportFrom):
+                if node.level == 0 and node.module:
+                    names.add(node.module.split(".")[0])
+    return names
+
+
+def _inferred_packages(output_dir: Path) -> set[str]:
+    """PyPI package names the project imports but does not declare.
+
+    Drops the stdlib and the project's own local modules (top-level ``.py`` files
+    and directories), skips the test runner (handled separately), and maps the
+    known import->PyPI name mismatches. Pure (no installation) so it's testable.
+    """
+    local = {p.stem for p in output_dir.glob("*.py")}
+    local |= {p.name for p in output_dir.iterdir() if p.is_dir()}
+    skip = {"pytest", "pytest_cov", "_pytest"}
+    packages: set[str] = set()
+    for name in _imported_top_modules(output_dir):
+        if not name or name in sys.stdlib_module_names or name in local or name in skip:
+            continue
+        packages.add(_IMPORT_TO_PACKAGE.get(name, name))
+    for trigger, companions in _COMPANION_DEPS.items():
+        if trigger in packages:
+            packages |= companions
+    return packages
+
+
+def install_inferred_imports(venv: Path, output_dir: Path) -> None:
+    """Install third-party packages the project IMPORTS but does not DECLARE.
+
+    Models sometimes ship working code + tests but omit ``requirements.txt``, so a
+    passing suite is scored 0 on ModuleNotFoundError at collection — the
+    undeclared-dependency confound. This installs the inferred imports
+    (best-effort, one at a time so one bad guess doesn't abort the rest).
+    """
+    pip = venv / "bin" / "pip"
+    if not pip.exists():
+        return
+    for pkg in sorted(_inferred_packages(output_dir)):
+        try:
+            subprocess.run(
+                [str(pip), "install", "-q", pkg],
+                cwd=output_dir, capture_output=True, timeout=300,
+            )
+        except (subprocess.TimeoutExpired, FileNotFoundError):
+            logger.debug("Failed installing inferred dep %s", pkg)
+
+
+_MISSING_MODULE_RE = re.compile(
+    r"No module named ['\"]([a-zA-Z0-9_]+)['\"]"
+    r"|requires the ([a-zA-Z0-9_]+) package"
+)
+
+
+def resolve_missing_imports(venv: Path, output_dir: Path, rounds: int = 3) -> None:
+    """Install modules pytest collection still can't find (transitive/undeclared).
+
+    AST inference (``install_inferred_imports``) catches *directly* imported
+    third-party packages, but some deps are only pulled in transitively at import
+    time — e.g. ``httpx``, which fastapi/starlette ``TestClient`` import internally
+    but which the test files never name. Probe with ``pytest --collect-only``,
+    install whatever module the collection error reports, and retry a few rounds.
+    Requires pytest already installed (call after ``ensure_test_deps``).
+    """
+    python = venv / "bin" / "python"
+    pip = venv / "bin" / "pip"
+    if not python.exists() or not pip.exists():
+        return
+    local = {p.stem for p in output_dir.glob("*.py")}
+    local |= {p.name for p in output_dir.iterdir() if p.is_dir()}
+    for _ in range(rounds):
+        try:
+            result = subprocess.run(
+                [str(python), "-m", "pytest", "--collect-only", "-q"],
+                cwd=output_dir, capture_output=True, text=True, timeout=180,
+            )
+        except (subprocess.TimeoutExpired, FileNotFoundError):
+            return
+        if result.returncode == 0:
+            return  # collection clean — nothing missing
+        missing = {
+            m.group(1) or m.group(2)
+            for m in _MISSING_MODULE_RE.finditer(result.stdout + result.stderr)
+        }
+        pkgs = {
+            _IMPORT_TO_PACKAGE.get(m, m)
+            for m in missing
+            if m and m not in sys.stdlib_module_names and m not in local
+        }
+        if not pkgs:
+            return  # collection fails for a non-installable reason; give up
+        for pkg in sorted(pkgs):
+            try:
+                subprocess.run(
+                    [str(pip), "install", "-q", pkg],
+                    cwd=output_dir, capture_output=True, timeout=300,
+                )
+            except (subprocess.TimeoutExpired, FileNotFoundError):
+                logger.debug("Failed installing missing dep %s", pkg)
+
+
 def ensure_python_env(output_dir: Path) -> tuple[dict[str, str] | None, Path | None]:
     """Prepare an env that runs pytest with the project's deps available.
 
@@ -122,5 +269,7 @@ def ensure_python_env(output_dir: Path) -> tuple[dict[str, str] | None, Path | N
         shutil.rmtree(tmp, ignore_errors=True)
         return None, None
     install_project_deps(venv, output_dir)
+    install_inferred_imports(venv, output_dir)
     ensure_test_deps(venv)
+    resolve_missing_imports(venv, output_dir)
     return make_venv_env(venv), tmp

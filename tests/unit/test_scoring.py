@@ -824,3 +824,47 @@ class TestPythonEnvPreparation:
         score = TestCoverageScorer().score(
             art, StackConfig(language="python", agent="t", framework="x"))
         assert score > 0.0, "relative output_dir scored 0"
+
+
+class TestInferredPackages:
+    """ensure_python_env installs undeclared third-party imports (the dep confound):
+    a project that ships working code + tests but no requirements.txt must not be
+    scored 0 on ModuleNotFoundError at collection."""
+
+    def test_infers_thirdparty_drops_stdlib_local_and_test(self, tmp_path):
+        from retort.scoring.scorers._venv import _inferred_packages
+
+        (tmp_path / "app.py").write_text(
+            "import os\nimport json\nfrom flask import Flask\nimport helper\n"
+        )
+        (tmp_path / "helper.py").write_text("x = 1\n")  # local module
+        (tmp_path / "test_app.py").write_text("import pytest\nimport app\n")
+
+        pkgs = _inferred_packages(tmp_path)
+
+        assert "flask" in pkgs                             # third-party, undeclared
+        assert "os" not in pkgs and "json" not in pkgs     # stdlib excluded
+        assert "helper" not in pkgs and "app" not in pkgs  # local modules excluded
+        assert "pytest" not in pkgs                        # test runner handled elsewhere
+
+    def test_maps_import_name_to_pypi_package(self, tmp_path):
+        from retort.scoring.scorers._venv import _inferred_packages
+
+        (tmp_path / "m.py").write_text("import yaml\nfrom PIL import Image\n")
+        pkgs = _inferred_packages(tmp_path)
+        assert "PyYAML" in pkgs and "Pillow" in pkgs
+
+    def test_relative_imports_not_treated_as_packages(self, tmp_path):
+        from retort.scoring.scorers._venv import _inferred_packages
+
+        (tmp_path / "m.py").write_text("from . import sibling\nfrom .pkg import thing\n")
+        assert _inferred_packages(tmp_path) == set()
+
+    def test_fastapi_pulls_httpx_companion(self, tmp_path):
+        # fastapi/starlette TestClient need httpx (a transitive test dep never
+        # imported directly), so it must be added as a companion.
+        from retort.scoring.scorers._venv import _inferred_packages
+
+        (tmp_path / "app.py").write_text("from fastapi import FastAPI\n")
+        pkgs = _inferred_packages(tmp_path)
+        assert "fastapi" in pkgs and "httpx" in pkgs
