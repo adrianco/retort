@@ -1,0 +1,30 @@
+{
+  "_note": "Conformance fixture for the version-string formatter/parser/comparator. Format: {utc-iso8601}-{counter:06d}-{user_id}; UTC offset is +00:00 with NO trailing Z; compare lexically (== chronological). A port MUST parse all 'parse' cases (including the legacy doubled-Z, for back-compat) but MUST NOT *produce* a doubled Z.",
+  "parse": [
+    {"version": "2026-06-15T09:41:02.581234+00:00-000417-alice", "utc_timestamp": "2026-06-15T09:41:02.581234+00:00", "canonical": true},
+    {"version": "2026-06-15T09:41:02.581234+00:00-000418-alice", "utc_timestamp": "2026-06-15T09:41:02.581234+00:00", "canonical": true},
+    {"version": "2026-06-15T09:41:03.000000+00:00-000001-bob", "utc_timestamp": "2026-06-15T09:41:03+00:00", "canonical": true},
+    {"version": "2026-06-15T09:41:02.581234+00:00-000417-local-client", "utc_timestamp": "2026-06-15T09:41:02.581234+00:00", "canonical": true, "note": "user_id may contain hyphens; do not split on '-' to find the timestamp"},
+    {"version": "2026-05-08T07:57:54.734914+00:00Z-000000-agent", "utc_timestamp": "2026-05-08T07:57:54.734914+00:00", "canonical": false, "note": "legacy doubled-Z; parse it, but never emit this form"}
+  ],
+  "format": {
+    "_note": "Given a UTC timestamp + counter + user_id, produce the canonical version.",
+    "utc_timestamp": "2026-06-15T09:41:02.581234+00:00",
+    "counter": 417,
+    "user_id": "alice",
+    "expected": "2026-06-15T09:41:02.581234+00:00-000417-alice"
+  },
+  "lexical_order": {
+    "_note": "Sorting these ascending lexically must equal chronological+counter order.",
+    "input": [
+      "2026-06-15T09:41:03.000000+00:00-000001-bob",
+      "2026-06-15T09:41:02.581234+00:00-000418-alice",
+      "2026-06-15T09:41:02.581234+00:00-000417-alice"
+    ],
+    "expected_ascending": [
+      "2026-06-15T09:41:02.581234+00:00-000417-alice",
+      "2026-06-15T09:41:02.581234+00:00-000418-alice",
+      "2026-06-15T09:41:03.000000+00:00-000001-bob"
+    ]
+  }
+}

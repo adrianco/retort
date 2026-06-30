@@ -1,0 +1,88 @@
+{
+  "_note": "Golden SyncRequest -> SyncResponse exchanges encoding the inbetweenies-v2 rules. Your sync client must build requests like these and handle responses like these. Bearer-token auth header omitted for brevity (required on every call).",
+  "exchanges": [
+    {
+      "name": "full_sync",
+      "description": "First sync: full pull. Response returns the latest version of every entity (tombstones as change_type=delete) and a server_time watermark the client persists.",
+      "request": {
+        "protocol_version": "inbetweenies-v2",
+        "device_id": "dev-1", "user_id": "alice", "sync_type": "full",
+        "changes": [], "filters": null
+      },
+      "response": {
+        "protocol_version": "inbetweenies-v2", "sync_type": "full",
+        "changes": [
+          {"change_type": "update", "entity": {"id": "room-living", "version": "2026-06-15T08:00:01.000000+00:00-000002-alice", "entity_type": "room", "name": "Living Room", "content": {"floor": 1}, "source_type": "manual", "user_id": "alice", "parent_versions": []}, "relationships": []},
+          {"change_type": "delete", "entity": {"id": "note-old", "version": "2026-06-15T09:00:00.000000+00:00-000008-bob", "entity_type": "note", "name": "Obsolete note", "content": {"deleted": true}, "source_type": "manual", "user_id": "bob", "parent_versions": ["2026-06-15T08:00:07.000000+00:00-000008-alice"]}, "relationships": []}
+        ],
+        "conflicts": [],
+        "server_time": "2026-06-15T10:00:00.000000+00:00",
+        "sync_stats": {"entities_synced": 0, "conflicts_resolved": 0}
+      },
+      "assert": ["client persists server_time=2026-06-15T10:00:00.000000+00:00 as its watermark", "note-old is applied as a tombstone (content.deleted=true) and treated as gone"]
+    },
+    {
+      "name": "delta_since_exclusive",
+      "description": "Next sync: delta with the persisted watermark as `since`. Server returns only entities with updated_at STRICTLY GREATER than since.",
+      "request": {
+        "protocol_version": "inbetweenies-v2",
+        "device_id": "dev-1", "user_id": "alice", "sync_type": "delta",
+        "changes": [], "filters": {"since": "2026-06-15T10:00:00.000000+00:00"}
+      },
+      "response": {
+        "protocol_version": "inbetweenies-v2", "sync_type": "delta",
+        "changes": [
+          {"change_type": "update", "entity": {"id": "device-lamp", "version": "2026-06-15T10:05:00.000000+00:00-000010-alice", "entity_type": "device", "name": "Living Room Lamp", "content": {"manufacturer": "Acme", "capabilities": ["on_off", "brightness", "color"]}, "source_type": "homekit", "user_id": "alice", "parent_versions": ["2026-06-15T08:00:03.000000+00:00-000004-alice"]}, "relationships": []}
+        ],
+        "conflicts": [],
+        "server_time": "2026-06-15T10:06:00.000000+00:00",
+        "sync_stats": {"entities_synced": 0, "conflicts_resolved": 0}
+      },
+      "assert": ["only device-lamp (updated after the watermark) is returned", "an entity whose updated_at == since is NOT returned (exclusive)", "client advances watermark to 2026-06-15T10:06:00.000000+00:00"]
+    },
+    {
+      "name": "concurrent_conflict_version_tiebreak",
+      "description": "Client pushes an update based on a stale parent; server already has a newer version at the same instant. Resolved by lexically greater version. Server is authoritative and returns the winner.",
+      "request": {
+        "protocol_version": "inbetweenies-v2",
+        "device_id": "dev-1", "user_id": "alice", "sync_type": "delta",
+        "changes": [
+          {"change_type": "update", "entity": {"id": "device-oven", "version": "2026-06-15T11:00:00.000000+00:00-000020-alice", "entity_type": "device", "name": "Oven", "content": {"manufacturer": "Bosch", "note": "client edit"}, "source_type": "manual", "user_id": "alice", "parent_versions": ["2026-06-15T08:00:04.000000+00:00-000005-alice"]}, "relationships": []}
+        ],
+        "filters": {"since": "2026-06-15T10:06:00.000000+00:00"}
+      },
+      "response": {
+        "protocol_version": "inbetweenies-v2", "sync_type": "delta",
+        "changes": [
+          {"change_type": "update", "entity": {"id": "device-oven", "version": "2026-06-15T11:00:00.000000+00:00-000021-bob", "entity_type": "device", "name": "Oven", "content": {"manufacturer": "Bosch", "note": "server edit"}, "source_type": "manual", "user_id": "bob", "parent_versions": ["2026-06-15T08:00:04.000000+00:00-000005-alice"]}, "relationships": []}
+        ],
+        "conflicts": [
+          {"entity_id": "device-oven", "local_version": "2026-06-15T11:00:00.000000+00:00-000021-bob", "remote_version": "2026-06-15T11:00:00.000000+00:00-000020-alice", "resolution_strategy": "timestamps within 1s, local has greater version", "resolved_version": "2026-06-15T11:00:00.000000+00:00-000021-bob"}
+        ],
+        "server_time": "2026-06-15T11:00:01.000000+00:00",
+        "sync_stats": {"entities_synced": 1, "conflicts_resolved": 1}
+      },
+      "assert": ["within 1s, the lexically greater version wins: ...-000021-bob > ...-000020-alice", "client applies the winning (server) version, discarding its own losing edit"]
+    },
+    {
+      "name": "tombstone_delete_push",
+      "description": "Client deletes an entity by pushing a tombstone version (content.deleted=true, prior version as parent). The server accepts it and it converges.",
+      "request": {
+        "protocol_version": "inbetweenies-v2",
+        "device_id": "dev-1", "user_id": "alice", "sync_type": "delta",
+        "changes": [
+          {"change_type": "delete", "entity": {"id": "device-lamp", "version": "2026-06-15T12:00:00.000000+00:00-000030-alice", "entity_type": "device", "name": "Living Room Lamp", "content": {"deleted": true}, "source_type": "manual", "user_id": "alice", "parent_versions": ["2026-06-15T10:05:00.000000+00:00-000010-alice"]}, "relationships": []}
+        ],
+        "filters": {"since": "2026-06-15T11:00:01.000000+00:00"}
+      },
+      "response": {
+        "protocol_version": "inbetweenies-v2", "sync_type": "delta",
+        "changes": [],
+        "conflicts": [],
+        "server_time": "2026-06-15T12:00:01.000000+00:00",
+        "sync_stats": {"entities_synced": 1, "conflicts_resolved": 0}
+      },
+      "assert": ["a delete is a NEW version with content.deleted=true and the prior version as parent — not a row removal", "after applying, device-lamp is treated as gone locally but its row is retained for sync"]
+    }
+  ]
+}
