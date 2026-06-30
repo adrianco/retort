@@ -1288,6 +1288,34 @@ def _run_config_from_cell_name(name: str) -> dict | None:
     return dict(pairs) if pairs else None
 
 
+def _iter_archive_cells(runs_root: Path) -> list[tuple[str, Path]]:
+    """Return ``(cell_name, cell_dir)`` for every archived cell under ``runs_root``.
+
+    A cell dir is any directory that *directly* contains a ``rep<N>`` (or
+    ``rep<N>-failed``) subdir; its ``cell_name`` is the path *relative to*
+    ``runs_root``. Using the relative path is what makes model ids containing
+    ``/`` work: ``openrouter/anthropic/claude-opus-4.8`` nests the cell several
+    directories deep (``…model=openrouter/anthropic/claude-opus-4.8_tooling=none``),
+    and a plain ``runs_root.iterdir()`` stops at the first segment
+    (``…model=openrouter``) — so rescore/reevaluate/evaluate found nothing and
+    silently processed zero runs. For a single-segment cell name (no ``/`` in any
+    factor value) this yields exactly what the old two-level walk did, so existing
+    experiments are unaffected. Feed each ``cell_name`` to
+    ``_run_config_from_cell_name`` (its value pattern already spans ``/``).
+    """
+    cells: list[tuple[str, Path]] = []
+    for dirpath, dirnames, _files in os.walk(runs_root):
+        d = Path(dirpath)
+        # A cell dir is one with a "rep…" child — same loose test the callers use
+        # to pick rep dirs (rep0, rep1, rep1-failed, and fixtures like rep-0).
+        rep_children = [n for n in dirnames if n.startswith("rep")]
+        if rep_children:
+            cells.append((str(d.relative_to(runs_root)), d))
+            # A rep dir holds source, not further cells — don't descend into it.
+            dirnames[:] = [n for n in dirnames if n not in rep_children]
+    return cells
+
+
 def _run_row_exists(db_path, run_config: dict, replicate: int) -> bool:
     """True if ANY experiment_runs row matches these factors+replicate.
 
@@ -2937,11 +2965,12 @@ def evaluate(
         runs_root = Path(experiment_dir) / "runs"
         if not runs_root.is_dir():
             raise click.ClickException(f"No runs/ directory found in {experiment_dir}")
-        # Walk two levels: runs/<cell>/<rep> — rep dirs contain the actual code.
-        # A rep dir is any subdir whose name starts with "rep".
+        # Cell dirs nest under runs/ (deeper when a model id contains '/'), and
+        # each holds rep dirs with the actual code. _iter_archive_cells finds the
+        # leaf cell dirs regardless of depth; a rep dir's name starts with "rep".
         targets = sorted(
             rep
-            for cell in runs_root.iterdir() if cell.is_dir()
+            for _cell_name, cell in _iter_archive_cells(runs_root)
             for rep in cell.iterdir() if rep.is_dir() and rep.name.startswith("rep")
         )
         if not targets:
@@ -3027,7 +3056,8 @@ def reevaluate(experiment_dir, config, eval_model, workers, languages, force):
     click.echo(f"Eval preflight OK — {msg}")
 
     reps = sorted(
-        rep for cell in runs_root.iterdir() if cell.is_dir()
+        rep
+        for _cell_name, cell in _iter_archive_cells(runs_root)
         for rep in cell.iterdir()
         if rep.is_dir() and rep.name.startswith("rep") and not rep.name.endswith("-failed")
     )
@@ -3040,9 +3070,11 @@ def reevaluate(experiment_dir, config, eval_model, workers, languages, force):
     for rep in reps:
         # The cell dir name (language=X_model=Y[_prompt=Z…]) is the
         # authoritative factor source and matches what's stored in
-        # run_config_json. Older experiments' stack.json omit `model`, so
+        # run_config_json. Use the path relative to runs_root, not just
+        # rep.parent.name, so a model id with '/' (which nests the cell) is
+        # reconstructed whole. Older experiments' stack.json omit `model`, so
         # deriving factors from stack.json silently fails to match the DB row.
-        run_config = _run_config_from_cell_name(rep.parent.name)
+        run_config = _run_config_from_cell_name(str(rep.parent.relative_to(runs_root)))
         if not run_config:
             sj = rep / "stack.json"
             if not sj.exists():
@@ -3229,8 +3261,8 @@ def rescore(experiment_dir, config, languages, only_failed, metrics_only, worker
 
     runs_root = exp / "runs"
     work = []
-    for cell in sorted(p for p in runs_root.iterdir() if p.is_dir()):
-        run_config = _run_config_from_cell_name(cell.name)
+    for cell_name, cell in sorted(_iter_archive_cells(runs_root)):
+        run_config = _run_config_from_cell_name(cell_name)
         if not run_config:
             continue
         if lang_filter and run_config.get("language") not in lang_filter:
