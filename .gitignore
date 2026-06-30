@@ -329,3 +329,8 @@ reeval-78.sh
 # in lib/ src/ test/). These rules come last, so they win for those paths.
 experiment-*/**/runs/**/_build/**
 experiment-*/**/runs/**/deps/**
+.venv/
+phase1-metaharness/
+phase1-baseline/
+.claude-flow/
+ruvector.db

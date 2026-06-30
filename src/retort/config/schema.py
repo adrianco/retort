@@ -139,6 +139,7 @@ class RunnerType(str, Enum):
     docker = "docker"
     cloud = "cloud"
     local = "local"
+    metaharness = "metaharness"
 
 
 class LocalInferenceCost(BaseModel):
