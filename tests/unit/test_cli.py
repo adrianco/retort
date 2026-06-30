@@ -1054,6 +1054,28 @@ class TestCostLimitEnforcement:
         assert result.exit_code != 0
         assert "cost_limit_usd" in result.output
 
+    def test_run_aborts_when_token_limit_exceeded(self, tmp_path: Path, monkeypatch):
+        """token_limit aborts even at $0 reported cost — the guardrail for agents
+        (omp via OpenRouter) that report tokens but no dollar cost, where
+        cost_limit_usd is blind. 10 tokens/run, 2 runs > 15-token limit."""
+        cfg = tmp_path / "workspace.yaml"
+        cfg.write_text(
+            "experiment:\n  name: test\n"
+            "factors:\n  language:\n    levels: [python, go]\n"
+            "  model:\n    levels: [opus, sonnet]\n"
+            "responses:\n  - code_quality\n"
+            "tasks:\n  - source: bundled://rest-api-crud\n"
+            "playpen:\n  runner: local\n  replicates: 1\n  token_limit: 15\n"
+        )
+        self._patch_runner(monkeypatch, cost_per_run=0.0)  # $0 cost — only tokens
+
+        runner = CliRunner()
+        args = ["run", "--phase", "screening", "--config", str(cfg)]
+        result = runner.invoke(cli, args)
+
+        assert result.exit_code != 0
+        assert "token_limit" in result.output
+
     def test_run_completes_when_no_cost_limit(self, tmp_path: Path, monkeypatch):
         """Without cost_limit_usd, all runs complete regardless of accumulated cost."""
         cfg = self._make_workspace(tmp_path)  # no cost_limit

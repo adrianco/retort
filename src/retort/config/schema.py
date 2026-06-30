@@ -238,6 +238,14 @@ class PlaypenConfig(BaseModel):
         ),
     )]
     cost_limit_usd: Annotated[float | None, Field(default=None, ge=0, description="Spend cap per screening phase")]
+    token_limit: Annotated[int | None, Field(
+        default=None, ge=0,
+        description=(
+            "Cumulative agent-token cap per phase; aborts when exceeded. More "
+            "reliable than cost_limit_usd for agents that report tokens but not "
+            "dollar cost (e.g. omp via OpenRouter, which reports $0 for some)."
+        ),
+    )]
     local_inference_cost: Annotated[LocalInferenceCost | None, Field(default=None, description="Cost model for local inference hardware; enables cost_usd metric for local/offline models")]
 
     @field_validator("thinking", mode="before")
