@@ -1,0 +1,10 @@
+{
+  "replicate": 1,
+  "run_config": {
+    "language": "go",
+    "model": "opus-4.8",
+    "prompt": "bdd"
+  },
+  "succeeded": true,
+  "visibility": "public"
+}

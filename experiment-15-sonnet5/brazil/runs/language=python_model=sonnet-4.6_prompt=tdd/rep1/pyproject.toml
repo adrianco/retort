@@ -1,0 +1,19 @@
+[build-system]
+requires = ["setuptools"]
+build-backend = "setuptools.backends.legacy:build"
+
+[project]
+name = "brazilian-soccer-mcp"
+version = "0.1.0"
+description = "MCP server for Brazilian soccer data"
+requires-python = ">=3.12"
+dependencies = [
+    "mcp>=1.0.0",
+    "pandas>=2.0.0",
+]
+
+[project.scripts]
+brazilian-soccer-mcp = "server:main"
+
+[tool.pytest.ini_options]
+asyncio_mode = "auto"

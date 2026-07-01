@@ -1,0 +1,16 @@
+run,language,model,prompt
+0,python,sonnet-5,none
+1,python,sonnet-5,tdd
+2,python,sonnet-5,bdd
+3,typescript,sonnet-5,none
+4,typescript,sonnet-5,tdd
+5,typescript,sonnet-5,bdd
+6,go,sonnet-5,none
+7,go,sonnet-5,tdd
+8,go,sonnet-5,bdd
+9,rust,sonnet-5,none
+10,rust,sonnet-5,tdd
+11,rust,sonnet-5,bdd
+12,csharp,sonnet-5,none
+13,csharp,sonnet-5,tdd
+14,csharp,sonnet-5,bdd

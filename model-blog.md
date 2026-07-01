@@ -188,3 +188,60 @@ Claude designs the experiment, installs the toolchains, runs the cells (resuming
 Leaderboards tell you which model wins in the abstract. Retort tells you which **stack** wins for the code you're shipping — how reliably, how fast, and for how much. Sometimes the answer is the newest model; sometimes it's the one that's four times cheaper. You won't know until you measure it.
 
 *Code, data, and full per-run results: [github.com/adrianco/retort](https://github.com/adrianco/retort)*
+
+<!-- exp15-sonnet5-auto:start -->
+## Sonnet 5 — how the new model behaves (experiment 15)
+
+_Auto-generated from master.csv. Sonnet 5 is the only newly-run model; Sonnet 4.6 / Opus 4.8 are read from prior experiments (Retort's incremental design). 17 Sonnet 5 runs. Single replicate; see `experiment-15-sonnet5/RESULTS.md` for full tables and caveats._
+
+On **rest-api-crud**, Sonnet 5 vs Sonnet 4.6:
+
+| metric | sonnet-5 | sonnet-4.6 | Δ |
+|---|---|---|---|
+| code_quality | 0.88 | 0.77 | +0.11 |
+| test_coverage | 0.87 | 0.78 | +0.09 |
+| defect_rate | 1.00 | 0.82 | +0.18 |
+| maintainability | 0.75 | 0.74 | +0.02 |
+| idiomatic | 0.72 | 0.64 | +0.08 |
+| token_efficiency | 0.35 | 0.39 | -0.04 |
+| cost_usd | 1.10 | 0.40 | +0.70 |
+| tokens | 1994248.00 | 557269.97 | +1436978.03 |
+| duration_seconds | 237.49 | 187.91 | +49.58 |
+
+
+Means by model on **brazil-soccer-mcp**:
+
+| model | n | code_quality | test_coverage | maintainability | token_efficiency |
+|---|---|---|---|---|---|
+| sonnet-5 | 2 | 0.83 | 0.97 | 0.50 | 0.50 |
+| sonnet-4.6 | 48 | 0.86 | 0.91 | 0.60 | 0.17 |
+| opus-4.8 | 26 | 0.86 | 0.87 | 0.58 | 0.35 |
+
+
+Cost/effort on **brazil-soccer-mcp**:
+
+| model | n | cost_usd | tokens | duration_seconds |
+|---|---|---|---|---|
+| sonnet-5 | 2 | 7.26 | 15894373.50 | 1291.44 |
+| sonnet-4.6 | 48 | 2.05 | 2744453.19 | 754.96 |
+| opus-4.8 | 26 | 5.53 | 5324000.50 | 1027.82 |
+
+
+Means by model on **rest-api-crud**:
+
+| model | n | code_quality | test_coverage | maintainability | token_efficiency |
+|---|---|---|---|---|---|
+| sonnet-5 | 15 | 0.88 | 0.87 | 0.75 | 0.35 |
+| sonnet-4.6 | 37 | 0.77 | 0.78 | 0.74 | 0.39 |
+| opus-4.8 | 45 | 0.88 | 0.95 | 0.69 | 0.26 |
+
+
+Cost/effort on **rest-api-crud**:
+
+| model | n | cost_usd | tokens | duration_seconds |
+|---|---|---|---|---|
+| sonnet-5 | 15 | 1.10 | 1994248.00 | 237.49 |
+| sonnet-4.6 | 37 | 0.40 | 557269.97 | 187.91 |
+| opus-4.8 | 45 | 0.96 | 614346.27 | 240.38 |
+
+<!-- exp15-sonnet5-auto:end -->

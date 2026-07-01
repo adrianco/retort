@@ -1,0 +1,10 @@
+{
+  "replicate": 1,
+  "run_config": {
+    "language": "typescript",
+    "model": "sonnet-4.6",
+    "prompt": "tdd"
+  },
+  "succeeded": true,
+  "visibility": "public"
+}
