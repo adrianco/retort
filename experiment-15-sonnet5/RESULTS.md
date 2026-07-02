@@ -2,7 +2,7 @@
 
 > Auto-generated from `master.csv` by the experiment driver. Sonnet 5 is the only newly-run model; **Sonnet 4.6 and Opus 4.8 baselines are read from prior experiments in master.db, not re-run** (Retort's incremental design).
 
-Sonnet 5 rows aggregated: **17**. Tasks with Sonnet 5 data: brazil-soccer-mcp, rest-api-crud.
+Sonnet 5 rows aggregated: **29**. Tasks with Sonnet 5 data: brazil-soccer-mcp, rest-api-crud.
 
 **Caveats:** single replicate (cell scores noisy); the `sonnet-4.6` family is the historical `sonnet` alias; the hard-task Sonnet 5 runs use `brazil-bench-neutral` while the master baseline is the BDD-baked `brazil-soccer-mcp` variant, so hard-task cross-model deltas are indicative, not exact.
 
@@ -13,7 +13,7 @@ Sonnet 5 rows aggregated: **17**. Tasks with Sonnet 5 data: brazil-soccer-mcp, r
 
 | model | n | code_quality | test_coverage | defect_rate | maintainability | idiomatic | token_efficiency | requirement_coverage |
 |---|---|---|---|---|---|---|---|---|
-| sonnet-5 | 2 | 0.83 | 0.97 | 0.99 | 0.50 | 0.85 | 0.50 | — |
+| sonnet-5 | 14 | 0.88 | 0.92 | 1.00 | 0.68 | 0.84 | 0.27 | — |
 | sonnet-4.6 | 48 | 0.86 | 0.91 | 0.94 | 0.60 | 0.71 | 0.17 | 0.95 |
 | opus-4.8 | 26 | 0.86 | 0.87 | 1.00 | 0.58 | 0.80 | 0.35 | 1.00 |
 
@@ -22,7 +22,7 @@ Sonnet 5 rows aggregated: **17**. Tasks with Sonnet 5 data: brazil-soccer-mcp, r
 
 | model | n | cost_usd | tokens | duration_seconds |
 |---|---|---|---|---|
-| sonnet-5 | 2 | 7.26 | 15894373.50 | 1291.44 |
+| sonnet-5 | 14 | 7.53 | 15602120.93 | 1246.19 |
 | sonnet-4.6 | 48 | 2.05 | 2744453.19 | 754.96 |
 | opus-4.8 | 26 | 5.53 | 5324000.50 | 1027.82 |
 
@@ -31,15 +31,20 @@ Sonnet 5 rows aggregated: **17**. Tasks with Sonnet 5 data: brazil-soccer-mcp, r
 
 | language | n | code_quality | test_coverage | defect_rate | maintainability | idiomatic | token_efficiency | requirement_coverage | cost_usd | tokens | duration_seconds |
 |---|---|---|---|---|---|---|---|---|---|---|---|
-| python | 1 | 0.83 | 0.94 | 1.00 | 0.60 | 0.87 | 1.00 | — | 3.70 | 6963769.00 | 869.52 |
-| rust | 1 | 0.83 | 1.00 | 0.98 | 0.39 | 0.83 | 0.00 | — | 10.82 | 24824978.00 | 1713.37 |
+| csharp | 3 | 1.00 | 0.89 | 1.00 | 0.83 | 0.85 | 0.00 | — | 9.96 | 21491868.00 | 1399.10 |
+| go | 3 | 1.00 | 0.80 | 1.00 | 0.59 | 0.87 | 0.00 | — | 5.96 | 11251454.00 | 1007.64 |
+| python | 3 | 0.83 | 0.94 | 1.00 | 0.76 | 0.84 | 0.34 | — | 5.18 | 9836606.67 | 1031.58 |
+| rust | 2 | 0.83 | 1.00 | 0.99 | 0.36 | 0.85 | 0.00 | — | 10.07 | 22375920.50 | 1672.09 |
+| typescript | 3 | 0.73 | 1.00 | 1.00 | 0.77 | 0.79 | 0.93 | — | 7.32 | 15312688.67 | 1262.50 |
 
 
 ### Sonnet 5 by prompt methodology (this task)
 
 | prompt | n | code_quality | test_coverage | defect_rate | maintainability | idiomatic | token_efficiency | requirement_coverage |
 |---|---|---|---|---|---|---|---|---|
-| none | 2 | 0.83 | 0.97 | 0.99 | 0.50 | 0.85 | 0.50 | — |
+| bdd | 5 | 0.88 | 0.90 | 1.00 | 0.63 | 0.85 | 0.20 | — |
+| none | 5 | 0.88 | 0.93 | 1.00 | 0.59 | 0.83 | 0.40 | — |
+| tdd | 4 | 0.89 | 0.94 | 1.00 | 0.87 | 0.84 | 0.20 | — |
 
 
 ## Task: rest-api-crud

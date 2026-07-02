@@ -192,7 +192,7 @@ Leaderboards tell you which model wins in the abstract. Retort tells you which *
 <!-- exp15-sonnet5-auto:start -->
 ## Sonnet 5 — how the new model behaves (experiment 15)
 
-_Auto-generated from master.csv. Sonnet 5 is the only newly-run model; Sonnet 4.6 / Opus 4.8 are read from prior experiments (Retort's incremental design). 17 Sonnet 5 runs. Single replicate; see `experiment-15-sonnet5/RESULTS.md` for full tables and caveats._
+_Auto-generated from master.csv. Sonnet 5 is the only newly-run model; Sonnet 4.6 / Opus 4.8 are read from prior experiments (Retort's incremental design). 29 Sonnet 5 runs. Single replicate; see `experiment-15-sonnet5/RESULTS.md` for full tables and caveats._
 
 On **rest-api-crud**, Sonnet 5 vs Sonnet 4.6:
 
@@ -213,7 +213,7 @@ Means by model on **brazil-soccer-mcp**:
 
 | model | n | code_quality | test_coverage | maintainability | token_efficiency |
 |---|---|---|---|---|---|
-| sonnet-5 | 2 | 0.83 | 0.97 | 0.50 | 0.50 |
+| sonnet-5 | 14 | 0.88 | 0.92 | 0.68 | 0.27 |
 | sonnet-4.6 | 48 | 0.86 | 0.91 | 0.60 | 0.17 |
 | opus-4.8 | 26 | 0.86 | 0.87 | 0.58 | 0.35 |
 
@@ -222,7 +222,7 @@ Cost/effort on **brazil-soccer-mcp**:
 
 | model | n | cost_usd | tokens | duration_seconds |
 |---|---|---|---|---|
-| sonnet-5 | 2 | 7.26 | 15894373.50 | 1291.44 |
+| sonnet-5 | 14 | 7.53 | 15602120.93 | 1246.19 |
 | sonnet-4.6 | 48 | 2.05 | 2744453.19 | 754.96 |
 | opus-4.8 | 26 | 5.53 | 5324000.50 | 1027.82 |
 
@@ -245,3 +245,4 @@ Cost/effort on **rest-api-crud**:
 | opus-4.8 | 45 | 0.96 | 614346.27 | 240.38 |
 
 <!-- exp15-sonnet5-auto:end -->
+
