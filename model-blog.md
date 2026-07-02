@@ -189,60 +189,41 @@ Leaderboards tell you which model wins in the abstract. Retort tells you which *
 
 *Code, data, and full per-run results: [github.com/adrianco/retort](https://github.com/adrianco/retort)*
 
-<!-- exp15-sonnet5-auto:start -->
-## Sonnet 5 — how the new model behaves (experiment 15)
+## Sonnet 5 — the quality is real, but so is the token bill (experiment 15)
 
-_Auto-generated from master.csv. Sonnet 5 is the only newly-run model; Sonnet 4.6 / Opus 4.8 are read from prior experiments (Retort's incremental design). 29 Sonnet 5 runs. Single replicate; see `experiment-15-sonnet5/RESULTS.md` for full tables and caveats._
+This is the first experiment run *incrementally*: we changed only one thing — added **Claude Sonnet 5** — and ran it across the same 5 languages × 3 prompt methodologies × 2 tasks grid. Sonnet 4.6 and Opus 4.8 aren't re-run; their numbers come straight from the accumulated `master.db`. That's the whole point of Retort: each new model is measured against everything already known, not benchmarked from scratch. 29 Sonnet 5 cells, one replicate. Full tables in [`experiment-15-sonnet5/RESULTS.md`](experiment-15-sonnet5/RESULTS.md).
 
-On **rest-api-crud**, Sonnet 5 vs Sonnet 4.6:
+**The headline: Sonnet 5 is the highest-quality model we've measured — and the most expensive to run, by a wide margin.**
 
-| metric | sonnet-5 | sonnet-4.6 | Δ |
+On the easy CRUD task it's a clean step up over the current Sonnet:
+
+| metric (rest-api-crud) | sonnet-5 | sonnet-4.6 | Δ |
 |---|---|---|---|
-| code_quality | 0.88 | 0.77 | +0.11 |
-| test_coverage | 0.87 | 0.78 | +0.09 |
-| defect_rate | 1.00 | 0.82 | +0.18 |
-| maintainability | 0.75 | 0.74 | +0.02 |
+| code_quality | 0.88 | 0.77 | **+0.11** |
+| test_coverage | 0.87 | 0.78 | **+0.09** |
+| defect_rate | 1.00 | 0.82 | **+0.18** |
 | idiomatic | 0.72 | 0.64 | +0.08 |
-| token_efficiency | 0.35 | 0.39 | -0.04 |
-| cost_usd | 1.10 | 0.40 | +0.70 |
-| tokens | 1994248.00 | 557269.97 | +1436978.03 |
-| duration_seconds | 237.49 | 187.91 | +49.58 |
+| token_efficiency | 0.35 | 0.39 | −0.04 |
+| **cost / run** | **$1.10** | **$0.40** | **+$0.70** |
+| tokens / run | 2.0M | 0.56M | **3.6×** |
 
+Every quality metric improves — a perfect defect rate, higher coverage, cleaner code — but it burns **3.6× the tokens** and costs nearly **3× more** per run. On the easy task Sonnet 5 is even pricier than Opus 4.8 ($1.10 vs $0.96), though Opus still edges it on raw test coverage (0.95).
 
-Means by model on **brazil-soccer-mcp**:
+The hard task (the Brazilian-soccer MCP server) is where the trade sharpens:
 
-| model | n | code_quality | test_coverage | maintainability | token_efficiency |
-|---|---|---|---|---|---|
-| sonnet-5 | 14 | 0.88 | 0.92 | 0.68 | 0.27 |
-| sonnet-4.6 | 48 | 0.86 | 0.91 | 0.60 | 0.17 |
-| opus-4.8 | 26 | 0.86 | 0.87 | 0.58 | 0.35 |
+| model (brazil) | n | code_quality | test_coverage | maintainability | cost / run | tokens / run |
+|---|---|---|---|---|---|---|
+| **sonnet-5** | 14 | **0.88** | **0.92** | **0.68** | **$7.53** | **15.6M** |
+| sonnet-4.6 | 48 | 0.86 | 0.91 | 0.60 | $2.05 | 2.7M |
+| opus-4.8 | 26 | 0.86 | 0.87 | 0.58 | $5.53 | 5.3M |
 
+Sonnet 5 tops every quality column on the hard task — but at **5.7× the tokens of Sonnet 4.6** and more cost than Opus 4.8. It's not a small effect: several cells ran to 20M+ tokens (csharp 21.5M, rust 22.4M) and $10+ each. Sonnet 5 "thinks" a great deal more to get there.
 
-Cost/effort on **brazil-soccer-mcp**:
+**Prompt methodology matters — and TDD is the lever.** Telling Sonnet 5 to work test-first gave it the best maintainability on *both* tasks (easy: 0.84, hard: 0.87) and the best coverage (easy: 0.94), while BDD and neutral prompts landed lower. If you run Sonnet 5, a TDD prompt is close to free quality.
 
-| model | n | cost_usd | tokens | duration_seconds |
-|---|---|---|---|---|
-| sonnet-5 | 14 | 7.53 | 15602120.93 | 1246.19 |
-| sonnet-4.6 | 48 | 2.05 | 2744453.19 | 754.96 |
-| opus-4.8 | 26 | 5.53 | 5324000.50 | 1027.82 |
+**By language**, the patterns from earlier experiments hold and sharpen: Go and C# reach perfect build-quality but are the most token-hungry (token_efficiency ≈ 0); TypeScript is the most token-efficient; Python is cheapest and fastest; Rust is the priciest — and it's where Sonnet 5 hit its **one genuine failure** (rust + TDD on the hard task, 14/15 hard cells passed; classified GENUINE by `retort diagnose`, not a scoring artefact).
 
+**How to read this.** If you're paying per token, Sonnet 5 is a *quality* upgrade you buy deliberately — best-in-class correctness and maintainability, especially on hard tasks, at 3–6× the token cost of Sonnet 4.6 and more than Opus 4.8. For routine work where 4.6 already passes, the extra spend may not pay for itself; for hard, correctness-critical builds, Sonnet 5 currently sets the bar.
 
-Means by model on **rest-api-crud**:
-
-| model | n | code_quality | test_coverage | maintainability | token_efficiency |
-|---|---|---|---|---|---|
-| sonnet-5 | 15 | 0.88 | 0.87 | 0.75 | 0.35 |
-| sonnet-4.6 | 37 | 0.77 | 0.78 | 0.74 | 0.39 |
-| opus-4.8 | 45 | 0.88 | 0.95 | 0.69 | 0.26 |
-
-
-Cost/effort on **rest-api-crud**:
-
-| model | n | cost_usd | tokens | duration_seconds |
-|---|---|---|---|---|
-| sonnet-5 | 15 | 1.10 | 1994248.00 | 237.49 |
-| sonnet-4.6 | 37 | 0.40 | 557269.97 | 187.91 |
-| opus-4.8 | 45 | 0.96 | 614346.27 | 240.38 |
-
-<!-- exp15-sonnet5-auto:end -->
+*Caveats: single replicate, so treat individual cells as noisy (we saw a cell's coverage swing 1.0↔0.22 across re-runs earlier in this experiment). The `sonnet-4.6` baseline is the historical `sonnet` alias in master.db. The hard-task Sonnet 5 runs use the methodology-neutral brazil fork while the master baseline is the BDD-baked variant, so hard-task cross-model deltas are indicative, not exact.*
 

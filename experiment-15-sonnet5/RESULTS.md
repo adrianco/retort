@@ -101,3 +101,12 @@ Sonnet 5 rows aggregated: **29**. Tasks with Sonnet 5 data: brazil-soccer-mcp, r
 | tokens | 1994248.00 | 557269.97 | +1436978.03 |
 | duration_seconds | 237.49 | 187.91 | +49.58 |
 
+## Failures
+
+1 of 15 hard-task (brazil) Sonnet 5 cells failed: **rust + tdd** — classified
+**GENUINE** by `retort diagnose` (the code genuinely didn't build/pass; not a
+scoring artefact recoverable by `rescore`). All 15 easy-task cells and the
+other 14 hard-task cells completed. The failure is left as a real data point
+rather than re-run. Rust was also the most expensive/token-heavy language for
+Sonnet 5 on both tasks.
+
