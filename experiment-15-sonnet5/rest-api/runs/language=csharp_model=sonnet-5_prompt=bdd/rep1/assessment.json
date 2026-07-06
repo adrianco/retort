@@ -1,0 +1,10 @@
+{
+  "severity_counts": {"critical": 0, "high": 0, "medium": 0, "low": 0, "info": 0},
+  "penalty_score": 1.0,
+  "top_findings": [],
+  "requirement_coverage": 1.0,
+  "model": "sonnet-5",
+  "evaluated_at": "2026-07-06T16:04:59Z",
+  "min_severity": "high",
+  "note": "3 findings exist in findings.jsonl (2 low, 1 info); all below min_severity=high, so excluded from counts. file-run-issues v2.0 produces assessment.json only and does not create beads/tracker issues (tracker=beads is not applicable to this skill version)."
+}

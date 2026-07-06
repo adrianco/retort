@@ -53,4 +53,5 @@ promotion:
   trial_to_production: { posterior_confidence: 0.80 }
 
 evaluation:
-  enabled: false
+  enabled: true       # spec-conformance gate — NEVER disable; it records requirement_coverage and is the pass/fail gate
+  model: opus-4.8     # neutral judge (do not let sonnet-5 grade its own output)

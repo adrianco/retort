@@ -1,0 +1,10 @@
+{
+  "severity_counts": {"critical": 0, "high": 0, "medium": 0, "low": 0, "info": 0},
+  "penalty_score": 1.0,
+  "top_findings": [],
+  "requirement_coverage": 1.0,
+  "model": "sonnet-5",
+  "evaluated_at": "2026-07-06T00:00:00Z",
+  "min_severity": "high",
+  "note": "5 findings total (3 low, 2 info); none at or above min_severity=high, so counts are zero. file-run-issues v2.0 aggregates only and does not create beads issues; tracker=beads is a no-op for this skill version."
+}

@@ -6,6 +6,23 @@ Sonnet 5 rows aggregated: **29**. Tasks with Sonnet 5 data: brazil-soccer-mcp, r
 
 **Caveats:** single replicate (cell scores noisy); the `sonnet-4.6` family is the historical `sonnet` alias; the hard-task Sonnet 5 runs use `brazil-bench-neutral` while the master baseline is the BDD-baked `brazil-soccer-mcp` variant, so hard-task cross-model deltas are indicative, not exact.
 
+## Headline: pass-proportion (spec-gated)
+
+The spec-conformance gate was applied to every Sonnet 5 cell via `retort reevaluate`
+(independent **opus-4.8** judge), so `requirement_coverage` is populated and the
+pass-proportion — fraction of cells that come out **completely** correct (spec fully
+met **and** tests pass) — is:
+
+| task | Sonnet 5 pass-proportion | detail |
+|---|---|---|
+| rest-api-crud (easy) | **1.00** | 15 / 15 cells fully correct; requirement_coverage = 1.0 on every completed cell |
+| brazil-soccer-mcp (hard) | **0.93** | 14 / 15 cells fully correct; the one miss (rust + tdd) is a GENUINE failure |
+
+Every *completed* Sonnet 5 cell scored `requirement_coverage = 1.0`; the only shortfall is
+the single genuine rust/tdd failure on the hard task (see Failures below). The per-metric
+tables that follow were generated before the gate backfill, so their `requirement_coverage`
+column reads "—"; the authoritative coverage result is the table above.
+
 
 ## Task: brazil-soccer-mcp
 

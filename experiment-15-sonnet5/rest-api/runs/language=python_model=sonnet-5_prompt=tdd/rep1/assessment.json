@@ -1,0 +1,10 @@
+{
+  "severity_counts": {"critical": 0, "high": 0, "medium": 0, "low": 0, "info": 0},
+  "penalty_score": 1.0,
+  "top_findings": [],
+  "requirement_coverage": 1.0,
+  "model": "sonnet-5",
+  "evaluated_at": "2026-07-06T16:18:32Z",
+  "min_severity": "high",
+  "note": "4 findings exist in findings.jsonl (1 low, 3 info); all below min_severity=high, so none counted. 12/12 requirements implemented."
+}

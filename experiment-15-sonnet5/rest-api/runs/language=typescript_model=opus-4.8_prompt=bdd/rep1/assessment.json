@@ -1,0 +1,10 @@
+{
+  "severity_counts": {"critical": 0, "high": 0, "medium": 0, "low": 0, "info": 0},
+  "penalty_score": 1.0,
+  "top_findings": [],
+  "requirement_coverage": 1.0,
+  "model": "opus-4.8",
+  "evaluated_at": "2026-07-06T16:24:35Z",
+  "min_severity": "high",
+  "note": "3 findings recorded in findings.jsonl (2 low, 1 info) all fall below min_severity=high, so they are excluded from counts. All 12 pinned requirements implemented (12/12). tracker=beads requested but file-run-issues v2.0 aggregates to assessment.json only; no beads/GitHub issues are created."
+}

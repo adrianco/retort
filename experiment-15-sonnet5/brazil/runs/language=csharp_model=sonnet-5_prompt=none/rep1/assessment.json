@@ -1,0 +1,8 @@
+{
+  "severity_counts": {"critical": 0, "high": 0, "medium": 0, "low": 0, "info": 0},
+  "penalty_score": 1.0,
+  "top_findings": [],
+  "requirement_coverage": 1.0,
+  "model": "sonnet-5",
+  "evaluated_at": "2026-07-06T16:31:52Z"
+}

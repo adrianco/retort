@@ -6,7 +6,7 @@
 
 Every few weeks a new frontier model tops the leaderboards, and the implicit advice is "upgrade." Sites like **[llm-stats.com](https://llm-stats.com/)** rank models well across many benchmarks — but they answer a question most engineering teams aren't actually asking. They hold the *stack* constant: one prompt, one harness, a fixed benchmark. They don't tell you whether the newest model is worth 4× the cost **in Rust**, how *reliably* each model gets a Go MCP server completely right, or how long any of it takes.
 
-Those are the variables that decide a real project. So I built **[retort](https://github.com/adrianco/retort)** to measure them properly — with statistical Design of Experiments, the same technique you'd use to tune a manufacturing process. Vary the factors you care about (here: programming **language** × **model version** × **tooling** — and, newly, the **coding agent** itself), run a factorial grid on a real task, score every cell, and let the analysis tell you which factors actually matter. Nine experiments, **258 scored runs**, two tasks, eight languages, four Claude models (plus a fast-mode variant and a next-tier model, Fable 5). Here's what came out.
+Those are the variables that decide a real project. So I built **[retort](https://github.com/adrianco/retort)** to measure them properly — with statistical Design of Experiments, the same technique you'd use to tune a manufacturing process. Vary the factors you care about (here: programming **language** × **model version** × **tooling** — and, newly, the **coding agent** and the **prompt methodology**), run a factorial grid on a real task, score every cell, and let the analysis tell you which factors actually matter. And because retort accumulates results across a shared database, each new model just gets *added* to what's already known — the point of the project is to measure how each new release behaves without re-running everything. Ten experiments, close to **290 scored runs**, two tasks, eight languages, five Claude models spanning the Sonnet and Opus lines (plus a fast-mode variant and the next-tier Fable 5). The newest arrival — **Claude Sonnet 5** — headlines this update.
 
 ## The metric that matters: how often is it *completely* right?
 
@@ -14,14 +14,15 @@ Most code scores grade on a curve — 80% test coverage, a clean linter run, a p
 
 Read it as **the probability that a single run comes out completely correct.** 3 of 3 → 1.00, 2 of 3 → 0.66, 1 of 3 → 0.33. A run that misses even one requirement counts as a fail, not a 0.9. That's a deliberately harsh bar, and it's the one that matters when you're deciding whether to trust an agent with a feature.
 
-## The headline: newer is more reliable — and you pay for it
+## The headline: Sonnet 5 vaults the Sonnet line to the frontier — at a frontier-*plus* price
 
-Aggregated per model per task:
+The newest model is the story. **Claude Sonnet 5** takes the Sonnet line from coin-flip to near-perfect — but it's the slowest, most token-hungry model on the board, and it costs *more* than Opus 4.8 to get there. Aggregated per model per task (pass-proportion = the fraction of runs that come out **completely** right):
 
 | Model | Brazil MCP (hard) | REST API (easy) | Speed (hard) | Cost (hard) |
 |---|---:|---:|---:|---:|
+| **sonnet-5** ⁴ *(newest)* | **0.93** | **1.00** | 1252 s | $7.64 |
 | opus-4.6 | 0.47 | 0.59 | 309 s | $1.30 |
-| sonnet | 0.50 | 0.63 | 440 s | $1.10 |
+| sonnet 4.6 | 0.50 | 0.63 | 440 s | $1.10 |
 | opus-4.7 | 0.85 | **1.00** | 774 s | $4.92 |
 | **opus-4.8** | **1.00** | **1.00** | 1035 s | $5.54 |
 | opus-4.8-fast² | **1.00** | **1.00** | 887 s | $8.72 |
@@ -29,13 +30,38 @@ Aggregated per model per task:
 
 ² Fast mode (`/fast`), 4 languages (clojure/go/python/rust). Cost is at fast mode's **2× per-token rate** ([announcement](https://www.anthropic.com/news/claude-opus-4-8)) — see [Fast mode](#fast-mode-speed-you-pay-double-for) below.
 ³ **Claude Fable 5** — a distinct model a *tier above* Opus 4.8 — same 4 languages, priced at the same $10/$50 rate as fast mode. More on it just below.
+⁴ **Sonnet 5** — experiment 15, a 15-cell **language × prompt** grid (5 languages × {neutral, TDD, BDD}), one replicate, spec-gated by an independent Opus-4.8 judge. Hard = **0.93** = 14 of 15 fully correct (the one miss: Rust with a TDD prompt). Only Sonnet 5 was newly run; every other row is read from the accumulated database — the incremental design in action. Full breakdown in [Sonnet 5 in depth](#sonnet-5-in-depth-the-token-bill-the-tdd-lever-and-one-rust-miss).
 
-Three things jump out:
+What jumps out:
 
-1. **Newer genuinely is more reliable — and the gap is enormous on hard tasks.** Opus-4.8 produced a completely-correct result **100% of the time, on both tasks.** The older, cheaper models (4.6 and Sonnet) got the *hard* task fully right only **about half the time.** On a difficult task, the cheap model is a coin-flip — it'll look fine in a demo and bite you in review.
-2. **You pay through the nose for that reliability.** Opus-4.8 was **~3× slower and ~4× more expensive** than 4.6/Sonnet on the hard task. Reliability isn't free; it's a line item, and it grows fast across model generations.
-3. **Opus-4.7 is the value sweet spot, and on easy work the newest model is pure overhead.** On the REST API, 4.7 and 4.8 are *tied* at 100% — so paying for 4.8 there buys you nothing but a slower, costlier run. On the hard task, 4.7 reaches 85% for noticeably less money than 4.8's 100%.
-4. **Fast mode is the same reliability at the *highest* price — and so is a tier *above* 4.8.** Opus-4.8 fast matches 4.8's 1.00/1.00 and trims wall-clock, but its 2× per-token rate makes it one of the costliest rows ($8.72/run on the hard task) — it buys latency, not value. And **Claude Fable 5**, a model a whole tier above 4.8 at that same 2× rate, *also* lands at 1.00/1.00 — because where 4.8 is already perfect there's simply no reliability left to buy. It ends up the priciest *and* slowest option, with nothing to show for it (more below).
+1. **The new Sonnet leapt a full reliability generation.** Sonnet 5 gets the easy task completely right *every* time (1.00) and the hard task 14 of 15 (0.93) — where the previous Sonnet (4.6) got the hard task fully right only **half** the time (0.50). On the metric that matters — completely correct, not just plausible — Sonnet 5 sits with the Opus frontier, not with its own predecessor.
+2. **But it spends like a frontier model — actually, more.** Sonnet 5 is the **slowest** row here and among the **priciest**: ~1250 s and **$7.64** per hard run, *above* Opus 4.8's $5.54. The cause is a startling token appetite — ≈16M tokens on a hard run versus Opus 4.8's ≈5M. Sonnet's traditional "cheaper tier" advantage is simply gone at the 5-series.
+3. **Opus 4.8 still owns the hardest task.** At a perfect 1.00 on Brazil for less money and less time than Sonnet 5, 4.8 remains the pick when a task is genuinely hard and has to be right the first time. Sonnet 5's single miss was Rust-with-TDD — the priciest language paired with the strictest prompt.
+4. **Newer is more reliable, and the older/cheaper models are coin-flips on hard work.** Opus 4.6 and Sonnet 4.6 got Brazil fully right only ~half the time — fine in a demo, a liability in review. Each generation buys reliability and charges time and money for it everywhere.
+5. **At the top, extra spend buys nothing.** Fast mode and the tier-above **Fable 5** both match Opus 4.8's 1.00/1.00 at the highest prices on the board — because where 4.8 is already perfect there's no reliability left to buy (more below).
+
+## Sonnet 5 in depth: the token bill, the TDD lever, and one Rust miss
+
+Sonnet 5 (experiment 15) is the first model added *incrementally* — a 15-cell **language × prompt** grid per task (5 languages × {neutral, TDD, BDD}, one replicate), every cell spec-gated by an independent Opus-4.8 judge. Nothing else was re-run; the other models come from the accumulated database. That *is* the project: measure the new arrival against everything already known.
+
+**Reliability: near-frontier.** Every easy cell fully correct (15/15, pass-proportion 1.00); on the hard task 14 of 15 (0.93), the lone miss Rust-with-TDD, confirmed GENUINE by `retort diagnose` (the code truly didn't pass — not a scoring artefact). That's a hair below Opus 4.8's perfect Brazil and a chasm above the previous Sonnet (0.50).
+
+**Why it costs what it does — the token bill.** Same-tier, Sonnet 5 is a clean quality jump over Sonnet 4.6 — bought with a lot of tokens:
+
+| metric | sonnet-5 | sonnet-4.6 | Δ |
+|---|---:|---:|---|
+| code_quality (easy / hard) | 0.88 / 0.88 | 0.77 / 0.86 | up on both |
+| defect_rate (easy) | 1.00 | 0.82 | **+0.18** |
+| cost / run (easy / hard) | **$1.10 / $7.64** | $0.41 / $2.05 | **~3× / ~4×** |
+| tokens / run (easy / hard) | **2.0M / 16M** | 0.6M / 2.7M | **3.6× / ~6×** |
+
+Cleaner code and a perfect defect rate — but 3.6–6× the tokens, and on the hard task **more dollars than Opus 4.8** ($7.64 vs $5.54 in the table above). Several cells ran past 20M tokens (C# 21.5M, Rust 22.4M) and $10. Sonnet 5 simply *thinks* more to land those scores; Sonnet's traditional cheaper-tier advantage is gone at the 5-series.
+
+**TDD is the cheap lever.** Across both tasks a test-first prompt gave Sonnet 5 its best maintainability (easy 0.84, hard 0.87) and best coverage (easy 0.94), while neutral and BDD trailed — prompt methodology is a real, nearly-free knob. (The wrinkle: Rust + TDD is also where it failed — the strictest prompt on the fiddliest language.)
+
+**By language**, the older patterns sharpen: Go and C# reach perfect build-quality but are the most token-hungry (token_efficiency ≈ 0); TypeScript is the most token-efficient; Python is cheapest and fastest; Rust is priciest and the sole failure site. Full per-cell tables: [`experiment-15-sonnet5/RESULTS.md`](experiment-15-sonnet5/RESULTS.md).
+
+**How to read it.** Sonnet 5 drags the Sonnet line up to the reliability frontier — but pays for it, landing *above* Opus 4.8 on cost while a notch below on the hardest task. Buy it where its quality edge earns the token bill; for routine work that 4.6/4.7 already pass, it's overhead. *Caveats: single replicate (cells are noisy — one coverage score swung 1.0↔0.22 on a re-run); the `sonnet 4.6` baseline is the historical `sonnet` alias; the hard-task runs use the methodology-neutral Brazil fork vs the master's BDD-baked variant, so hard-task cross-model deltas are indicative, not exact.*
 
 ## The controlled view: same cells, two models
 
@@ -147,9 +173,11 @@ And the discipline kept paying off. When I went back to re-run a batch of old `b
 
 None of these were model failures; they were all mine, and all are now fixed (or, in the rerun's case, rolled back) — the genuine signal restored intact. The genuine failures, once the harness was honest, fell exactly where the rest of the data predicts: the hard task, with the cheaper models or the extra tooling. The meta-lesson is the same discipline the whole project is built on — **measure, then check that what you measured is real** before you draw a conclusion from it.
 
-## The factor I haven't varied yet: the prompt
+## The prompt lever: first data in
 
-There's a large lever I deliberately held constant: **the prompt.** Every run got the same terse "implement TASK.md" instruction. But how you ask plausibly moves reliability as much as which model you pick — and it's nearly free to change. Does a test-first prompt, or one with a worked example, or a "list the requirements before you code" preamble, lift a cheap model's hard-task pass rate from 0.5 toward the expensive model's 1.0? If so, a better prompt could be worth more than a model upgrade, at a fraction of the cost. retort treats `prompt` as just another factor, so the next study writes itself: **`prompt × model` on a hard task.** That's the experiment I'd run next, and it's the one with the most direct impact on a real engineering budget.
+For most of these experiments I held one big lever constant: **the prompt** — every run got the same terse "implement TASK.md" instruction. The Sonnet 5 experiment above is the first to vary it as a real factor (neutral / TDD / BDD), and the first data point is encouraging: a **test-first prompt was the cheapest quality Sonnet 5 got** — best maintainability and coverage on both tasks, essentially for free. How you ask plausibly moves reliability as much as which model you pick, and it costs nothing to change.
+
+What's still missing is the *cross-model* version. The high-value question is whether a better prompt lifts a **cheap** model's hard-task pass rate from 0.5 toward the expensive model's 1.0 — because if it does, a prompt change could be worth more than a model upgrade at a fraction of the cost. retort treats `prompt` as just another factor, so the study writes itself: **`prompt × model` on a hard task**, sweeping the full model range rather than one model. That's the experiment I'd run next, and the one with the most direct impact on an engineering budget.
 
 ## Beyond the model: varying the *agent* itself
 
@@ -188,42 +216,4 @@ Claude designs the experiment, installs the toolchains, runs the cells (resuming
 Leaderboards tell you which model wins in the abstract. Retort tells you which **stack** wins for the code you're shipping — how reliably, how fast, and for how much. Sometimes the answer is the newest model; sometimes it's the one that's four times cheaper. You won't know until you measure it.
 
 *Code, data, and full per-run results: [github.com/adrianco/retort](https://github.com/adrianco/retort)*
-
-## Sonnet 5 — the quality is real, but so is the token bill (experiment 15)
-
-This is the first experiment run *incrementally*: we changed only one thing — added **Claude Sonnet 5** — and ran it across the same 5 languages × 3 prompt methodologies × 2 tasks grid. Sonnet 4.6 and Opus 4.8 aren't re-run; their numbers come straight from the accumulated `master.db`. That's the whole point of Retort: each new model is measured against everything already known, not benchmarked from scratch. 29 Sonnet 5 cells, one replicate. Full tables in [`experiment-15-sonnet5/RESULTS.md`](experiment-15-sonnet5/RESULTS.md).
-
-**The headline: Sonnet 5 is the highest-quality model we've measured — and the most expensive to run, by a wide margin.**
-
-On the easy CRUD task it's a clean step up over the current Sonnet:
-
-| metric (rest-api-crud) | sonnet-5 | sonnet-4.6 | Δ |
-|---|---|---|---|
-| code_quality | 0.88 | 0.77 | **+0.11** |
-| test_coverage | 0.87 | 0.78 | **+0.09** |
-| defect_rate | 1.00 | 0.82 | **+0.18** |
-| idiomatic | 0.72 | 0.64 | +0.08 |
-| token_efficiency | 0.35 | 0.39 | −0.04 |
-| **cost / run** | **$1.10** | **$0.40** | **+$0.70** |
-| tokens / run | 2.0M | 0.56M | **3.6×** |
-
-Every quality metric improves — a perfect defect rate, higher coverage, cleaner code — but it burns **3.6× the tokens** and costs nearly **3× more** per run. On the easy task Sonnet 5 is even pricier than Opus 4.8 ($1.10 vs $0.96), though Opus still edges it on raw test coverage (0.95).
-
-The hard task (the Brazilian-soccer MCP server) is where the trade sharpens:
-
-| model (brazil) | n | code_quality | test_coverage | maintainability | cost / run | tokens / run |
-|---|---|---|---|---|---|---|
-| **sonnet-5** | 14 | **0.88** | **0.92** | **0.68** | **$7.53** | **15.6M** |
-| sonnet-4.6 | 48 | 0.86 | 0.91 | 0.60 | $2.05 | 2.7M |
-| opus-4.8 | 26 | 0.86 | 0.87 | 0.58 | $5.53 | 5.3M |
-
-Sonnet 5 tops every quality column on the hard task — but at **5.7× the tokens of Sonnet 4.6** and more cost than Opus 4.8. It's not a small effect: several cells ran to 20M+ tokens (csharp 21.5M, rust 22.4M) and $10+ each. Sonnet 5 "thinks" a great deal more to get there.
-
-**Prompt methodology matters — and TDD is the lever.** Telling Sonnet 5 to work test-first gave it the best maintainability on *both* tasks (easy: 0.84, hard: 0.87) and the best coverage (easy: 0.94), while BDD and neutral prompts landed lower. If you run Sonnet 5, a TDD prompt is close to free quality.
-
-**By language**, the patterns from earlier experiments hold and sharpen: Go and C# reach perfect build-quality but are the most token-hungry (token_efficiency ≈ 0); TypeScript is the most token-efficient; Python is cheapest and fastest; Rust is the priciest — and it's where Sonnet 5 hit its **one genuine failure** (rust + TDD on the hard task, 14/15 hard cells passed; classified GENUINE by `retort diagnose`, not a scoring artefact).
-
-**How to read this.** If you're paying per token, Sonnet 5 is a *quality* upgrade you buy deliberately — best-in-class correctness and maintainability, especially on hard tasks, at 3–6× the token cost of Sonnet 4.6 and more than Opus 4.8. For routine work where 4.6 already passes, the extra spend may not pay for itself; for hard, correctness-critical builds, Sonnet 5 currently sets the bar.
-
-*Caveats: single replicate, so treat individual cells as noisy (we saw a cell's coverage swing 1.0↔0.22 across re-runs earlier in this experiment). The `sonnet-4.6` baseline is the historical `sonnet` alias in master.db. The hard-task Sonnet 5 runs use the methodology-neutral brazil fork while the master baseline is the BDD-baked variant, so hard-task cross-model deltas are indicative, not exact.*
 
