@@ -1,0 +1,88 @@
+# Future experiments & model candidates
+
+A running scratchpad of ideas to try next, so they aren't lost. Nothing here is
+committed to; it's a queue. Current stack context: the local-model work runs on a
+**MacBook Pro M5, 64 GB** (GPU wired limit raised to ~56 GB), serving MLX models
+via **oMLX** and driving them with the **Hermes** agent (+ `hermes-lcm` lossless
+SQLite context). Best result so far: exp-18, Qwen3.6-35B-A3B, **0.38** pass-
+proportion on bookshop (cracked TypeScript; Rust still fails/non-terminates).
+
+Credits for the local-model direction: **Birgitta Böckeler** (the
+[local-models writeup](https://martinfowler.com/articles/exploring-gen-ai/local-models-for-coding-experiences.html))
+and **kamihack** (@kamihack@mastodon.cr) for the oMLX / model / tool-template
+pointers.
+
+---
+
+## Candidate models to test next (claim better than what we've run, and fit 64 GB)
+
+Fit budget: ~56 GB wired GPU → **~45 GB weight ceiling** (leaving room for KV +
+compute buffers). We've already run Qwen3-Coder-30B-A3B and Qwen3.6-35B-A3B (both
+MoE, ~3B active, ~18–20 GB Q4).
+
+| Model | Size (total/active) | Fit on 64 GB (MLX) | Claim vs ours | Tool format |
+|---|---|---|---|---|
+| **Qwen3-Coder-Next (80B-A3B)** ⭐ primary | 80B / 3B MoE | 4-bit ≈ **44.8 GB** (tight; reduce ctx) or 3-bit ≈ **34 GB** (comfortable) | "~96% of the 480B flagship"; "comparable to 10–20× more active params" | **Same Qwen `<tool_call>` format oMLX already parses** — zero new integration risk |
+| **Devstral Small 2 (24B)** secondary | 24B dense | ~14 GB Q4 — huge headroom, fast | **68% SWE-bench**; *purpose-built for coding agents* (tool-use loops) | Mistral format — tool-probe first (older Devstral needed OpenHands scaffolding) |
+| gpt-oss-120b | 117B / 5.1B MoE | **~64–65 GB — likely won't fit** at 56 GB wired | best raw coder (83% Multi-LCB; Codeforces 2622) | Harmony format; only if we push memory limits (OOM risk) |
+| GLM-4.5-Air / 4.7-Flash | ~100B+ MoE | borderline → probably too tight | SWE-bench ~57.6% (Air) | MLX-tested; confirm exact size before trying |
+
+**Excluded — too big (multi-GPU tier):** MiniMax M3 (428B/23B; 4-bit ≈ 228 GB —
+tops open SWE-Bench Pro but no chance), GLM-4.6 (355B), DeepSeek-V4-Pro,
+Kimi K2.6, Qwen3-Coder-480B.
+
+**Recommendation:** add **Qwen3-Coder-Next (80B-A3B)** first — the bigger sibling
+of what we've run, same architecture/tool-format, strongest fitting quality
+claim. Direct "80B vs 35B, same stack" comparison: does doubling the model crack
+Rust / raise the 0.38 ceiling? Optionally add **Devstral Small 2** as a cheap
+second arm (different bet: agent-tuned, not just bigger).
+
+MLX builds seen: `mlx-community/Qwen3-Next-80B-A3B-Instruct-4bit` (44.8 GB,
+general instruct); `majentik/Qwen3-Coder-Next-MLX-3bit` (~34 GB, coding-tuned);
+`unsloth/Qwen3-Coder-Next-GGUF` (llama.cpp fallback).
+
+---
+
+## exp-21 — self-repair with evaluation feedback
+
+Give exp-20's **near-miss** failures a **second try, prompted with the evaluation
+results**, across all 9 languages, and measure the lift over the exp-20 baseline.
+This is the model's first sight of the *independent* evaluation (it never saw the
+spec-gate's requirement checklist or the scorer's build/test errors first pass),
+so it's a clean test of self-repair.
+
+- **Scope:** every exp-20 failed cell that produced a code artifact (skip $0
+  crashes with no code).
+- **Feedback (both, per failure type):** spec-failed runs → `assessment.json`
+  `top_findings` (unmet requirements); tests-didn't-run runs → scorer /
+  `retort diagnose` build-test error.
+- **Mechanism:** seed a fresh playpen with the failed code + TASK.md, inject a
+  REPAIR prompt ("your previous attempt is here; the evaluation found <feedback>;
+  fix it, don't start over"), run the same stack, rescore + spec-gate. New
+  exp-21 DB; compare pass-proportion vs exp-20 per language.
+- **Attempts:** one second try to start; extend to an iterative loop if it helps.
+- **Build:** needs a seed-workspace + augment-prompt hook (a `retort repair`
+  subcommand or a script reusing LocalRunner).
+
+---
+
+## Cheap opportunistic checks
+
+- **oMLX 0.5.0 MTP (multi-token prediction).** A *speed* optimisation (lossless
+  speculative decoding), not a capability one — shouldn't move pass-proportion.
+  Worth only a quick check on the crash-prone cells (Rust/Go): does faster
+  generation let slow-but-terminating runs finish before the 30-min wall
+  (crash → completed)? Only helps if Qwen3.6-35B actually ships MTP heads.
+- **Timeout / turn-cap tuning.** Several failures were non-termination at the
+  wall. A higher timeout or lower `max_turns` converts crashes to real data
+  points more cleanly than MTP does.
+
+---
+
+## Standing method notes
+
+- Incremental design: add ONE new model/factor at a time; run only the new cells;
+  compare against `master.db`. Never re-run existing baselines.
+- Spec-gate always ON. Clean archive bloat (truncate `_agent_stdout.log`, strip
+  node_modules/target) before committing.
+- After each experiment: update `model-blog.md` + push to GitHub.
