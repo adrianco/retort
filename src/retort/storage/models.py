@@ -27,7 +27,15 @@ class RunStatus(str, enum.Enum):
     pending = "pending"
     running = "running"
     completed = "completed"
+    # ``failed`` = the agent RAN TO COMPLETION and produced a scoreable archive,
+    # but the result fell short of the gate (tests didn't run, or the spec eval
+    # judged it incomplete). This is a VALID DATA POINT — a real measurement of
+    # the stack failing this cell — so it counts as progress and is NOT retried.
     failed = "failed"
+    # ``crashed`` = the agent did NOT complete (CLI error, timeout kill, server
+    # unreachable). No valid data point was produced, so this cell still needs a
+    # real attempt and IS retried on ``--resume``.
+    crashed = "crashed"
     cancelled = "cancelled"
 
 

@@ -412,7 +412,9 @@ def _load_from_stdin() -> FactorRegistry:
 @click.option(
     "--retry-failed",
     is_flag=True,
-    help="With --resume, also re-run cells whose prior attempts only failed (no completed replicate).",
+    help="With --resume, also re-run `failed` DATA-POINT cells (agent completed "
+         "but fell short of a gate) to re-measure them. Note: `crashed` cells "
+         "(agent never completed) are ALWAYS re-run on --resume regardless.",
 )
 @click.option(
     "--shard",
@@ -567,6 +569,12 @@ def run_experiments(
 
         existing_session = get_session(engine)
         try:
+            # Skip cells that already hold a DATA POINT: `completed` (passed) and
+            # `failed` (ran to completion but fell short of a gate — a genuine
+            # measurement). `crashed` rows are never skipped, so a cell whose
+            # agent never completed is always re-attempted on --resume.
+            # --retry-failed additionally re-runs the `failed` data points (to
+            # re-measure genuine failures, e.g. after a fix or for more samples).
             statuses = [RunStatus.completed]
             if not retry_failed:
                 statuses.append(RunStatus.failed)
@@ -676,6 +684,7 @@ def run_experiments(
 
     completed = 0
     failed = 0
+    crashed = 0
     skipped = 0
     accumulated_cost = 0.0
     accumulated_tokens = 0
@@ -765,8 +774,12 @@ def run_experiments(
                             click.echo(f"  (spec gate crashed: {exc}; not gating)", err=True)
 
                     run_ok = artifacts.succeeded and not tests_failed and not spec_failed
+                    # A run that never completed (agent crash / timeout kill /
+                    # server unreachable) is not a data point — it is retried.
+                    # A completed-but-gate-failed run IS a data point (progress).
+                    run_crashed = not artifacts.succeeded
 
-                    status = "ok" if run_ok else "FAIL"
+                    status = "ok" if run_ok else ("CRASH" if run_crashed else "FAIL")
                     score_str = ", ".join(
                         f"{k}={v:.2f}" for k, v in scores.to_dict().items()
                     )
@@ -807,6 +820,8 @@ def run_experiments(
 
                     if run_ok:
                         completed += 1
+                    elif run_crashed:
+                        crashed += 1
                     else:
                         failed += 1
 
@@ -847,6 +862,8 @@ def run_experiments(
         engine.dispose()
 
     summary = f"\nDone: {completed} completed, {failed} failed out of {total_runs}"
+    if crashed:
+        summary += f" ({crashed} crashed — retried on --resume)"
     if skipped:
         summary += f" ({skipped} skipped via resume)"
     click.echo(summary)
@@ -1709,10 +1726,12 @@ def _store_run_result(
 ) -> None:
     """Store a run and its scores in the database.
 
-    ``conformance_failed`` marks an agent-succeeded run that nonetheless fails a
-    conformance gate (tests did not run, or the spec gate failed) as ``failed``
-    — so the matrix records it as a genuine failure to retry, not a zero-scored
-    success. ``requirement_coverage``, when the spec eval produced one, is
+    Status is three-way: a run whose agent never completed (``artifacts.succeeded``
+    is False — CLI error, timeout kill, server unreachable) is ``crashed`` and is
+    retried on ``--resume``. A run whose agent completed but that ``conformance_failed``
+    (tests did not run, or the spec gate judged it short) is ``failed`` — a VALID
+    data point that counts as progress and is not retried by default. Otherwise it
+    is ``completed``. ``requirement_coverage``, when the spec eval produced one, is
     persisted as a metric so the eval's verdict feeds the scored data.
     """
     from retort.storage.models import (
@@ -1722,11 +1741,19 @@ def _store_run_result(
     )
     from datetime import datetime, timezone
 
-    status = (
-        RunStatus.completed
-        if (artifacts.succeeded and not conformance_failed)
-        else RunStatus.failed
-    )
+    # Three-way outcome:
+    #   crashed   — the agent did not complete (CLI error / timeout kill / server
+    #               unreachable): no scoreable result → retried on --resume.
+    #   failed    — the agent completed but the run fell short of a gate (tests
+    #               did not run, or spec eval judged it incomplete): a VALID data
+    #               point → counts as progress, not retried by default.
+    #   completed — the agent completed and passed every gate.
+    if not artifacts.succeeded:
+        status = RunStatus.crashed
+    elif conformance_failed:
+        status = RunStatus.failed
+    else:
+        status = RunStatus.completed
 
     # Resume + retry-failed: a failed ExperimentRun for this same
     # (design_row_id, replicate) already exists. The unique constraint on
@@ -1787,14 +1814,16 @@ def _store_run_result(
     # marks them as side-channel data (vs. configured response metrics) so
     # downstream tools (analyze, web report) can choose to surface or hide
     # them. Without this, token/cost/duration are visible only at run-time
-    # and lost forever.
-    if artifacts.duration_seconds:
+    # and lost forever. Stored for EVERY run — including `failed` and `crashed`
+    # — even when zero, so a failure always records how long it took and how
+    # many tokens it burned (a $0/0-token crash is itself a diagnostic signal).
+    if artifacts.duration_seconds is not None:
         session.add(RunResult(
             run_id=run.id,
             metric_name="_duration_seconds",
             value=float(artifacts.duration_seconds),
         ))
-    if artifacts.token_count:
+    if artifacts.token_count is not None:
         session.add(RunResult(
             run_id=run.id,
             metric_name="_tokens",
@@ -3503,7 +3532,7 @@ def diagnose(experiment_dir, as_json):
     con = sqlite3.connect(db_path)
     failed = con.execute(
         "SELECT id, run_config_json, replicate, error_message FROM experiment_runs "
-        "WHERE status='failed' ORDER BY run_config_json, replicate").fetchall()
+        "WHERE status IN ('failed','crashed') ORDER BY run_config_json, replicate").fetchall()
 
     def _metric(run_id, name):
         r = con.execute(
@@ -3739,7 +3768,14 @@ def _discover_active_runs(db_path: Path) -> list[dict]:
     determine them (no process access / not the run host). Local-only.
     """
     import json as _json
+    import os
     import subprocess
+
+    # Agent CLIs retort shells out to. The active job is one of these — NOT just
+    # `claude`: a local-model cell runs `omp`/`hermes`/`gemini`/`opencode`, so
+    # keying only on `claude` showed nothing while a local model was working and
+    # only lit up during the (claude) spec-gate eval.
+    _AGENT_BINS = ("claude", "omp", "hermes", "gemini", "opencode")
 
     def _run(args: list[str]) -> subprocess.CompletedProcess | None:
         try:
@@ -3762,9 +3798,23 @@ def _discover_active_runs(db_path: Path) -> list[dict]:
         for cpid in ch.stdout.split():
             psc = _run(["ps", "-o", "command=", "-p", cpid])
             cmd = psc.stdout.strip() if psc else ""
-            if "claude" not in cmd or " -p" not in cmd:
+            if not cmd:
                 continue
-            evaluating = "haiku" in cmd
+            # Which agent CLI is this child? Check the basename of the first two
+            # argv tokens — the binary is either the program itself (`claude`,
+            # `omp`, `gemini`) or the script run by an interpreter (a pip/npm
+            # entry point like `Python .../bin/hermes` or `node .../opencode`).
+            # Scanning only the first two tokens avoids matching an agent name
+            # that merely appears inside the prompt text.
+            tokens = cmd.split()
+            candidates = {os.path.basename(t) for t in tokens[:2]}
+            agent_bin = next((b for b in _AGENT_BINS if b in candidates), None)
+            if agent_bin is None:
+                continue
+            # The spec-gate eval is a `claude` child WITHOUT `--max-turns` (the
+            # claude-code *agent* always passes --max-turns). Any local-agent CLI
+            # child (omp/hermes/…) is the job itself, never the eval.
+            evaluating = agent_bin == "claude" and "--max-turns" not in cmd
             lf = _run(["lsof", "-a", "-p", cpid, "-d", "cwd", "-Fn"])
             cwd = ""
             if lf is not None:
@@ -3780,8 +3830,8 @@ def _discover_active_runs(db_path: Path) -> list[dict]:
                 sj = _json.loads((Path(cwd) / "stack.json").read_text())
                 label = "/".join(
                     str(sj[k])
-                    for k in ("language", "model", "tooling", "prompt")
-                    if k in sj
+                    for k in ("language", "model", "agent", "tooling", "prompt")
+                    if k in sj and str(sj[k]) not in ("", "unknown")
                 )
             except Exception:  # noqa: BLE001
                 pass

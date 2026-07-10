@@ -104,6 +104,7 @@ class CellProgress:
     factors: dict[str, str]
     completed: int = 0
     failed: int = 0
+    crashed: int = 0
     cost_usd: float = 0.0
     tokens: float = 0.0
     duration_total_s: float = 0.0
@@ -126,6 +127,7 @@ class MonitorSnapshot:
 
     completed: int
     failed: int
+    crashed: int
     expected_total: int | None
     design_cells: int
     replicates: int | None
@@ -142,52 +144,53 @@ class MonitorSnapshot:
 
     @property
     def terminal(self) -> int:
-        """Runs that currently hold a terminal-status row (completed or failed)."""
+        """Runs that hold a DATA POINT — ``completed`` (passed) or ``failed``
+        (ran to completion but fell short of a gate). Both are real measurements
+        and count as progress. ``crashed`` rows are excluded: the agent never
+        completed, so the cell is retried and still needs a real attempt."""
         return self.completed + self.failed
 
     @property
     def remaining(self) -> int | None:
-        """Slots still needing a *successful* run.
+        """Slots still needing a real attempt: expected minus the cells that
+        already hold a DATA POINT (``completed`` + ``failed``).
 
-        Counts toward ``completed`` only — a ``failed`` row is NOT progress,
-        because under ``retort run --resume --retry-failed`` it is re-executed.
-        This keeps a resume run from reading as "almost done" when most of its
-        rows are stale failures awaiting retry.
+        A ``failed`` row IS progress — a completed run that the eval judged short
+        of spec is a genuine measurement, not stale work awaiting retry. Only
+        ``crashed`` cells (agent never completed) and never-run slots remain, so
+        the ETA converges even when most cells fail their eval.
         """
         if self.expected_total is None:
             return None
-        return max(self.expected_total - self.completed, 0)
+        return max(self.expected_total - self.terminal, 0)
 
     @property
     def pct_complete(self) -> float | None:
-        """Percent of expected runs that have completed successfully."""
+        """Percent of expected runs that hold a data point (completed or failed)."""
         if not self.expected_total:
             return None
-        return 100.0 * self.completed / self.expected_total
+        return 100.0 * self.terminal / self.expected_total
 
     @property
     def all_terminal(self) -> bool:
-        """True once every expected slot holds a terminal-status row (completed
-        or failed). Informational only — NOT used to stop ``--watch``, because
-        under ``--retry-failed`` failed rows are re-run, so a run with stale
-        failures is "all terminal" yet far from finished."""
+        """True once every expected slot holds a data point (completed or
+        failed) — i.e. no crashed or un-run cells remain."""
         if self.expected_total is None:
             return False
         return self.terminal >= self.expected_total
 
     @property
     def is_done(self) -> bool:
-        """True only when every expected run has completed *successfully*.
+        """True when every expected cell holds a DATA POINT (completed or failed).
 
-        Failed rows do not count — under ``--retry-failed`` they are re-run, so
-        ``completed + failed >= expected`` (``all_terminal``) is not "done".
-        ``--watch`` loops until this is true (or the user interrupts), so it
-        keeps refreshing through a resume that is still converting failures to
-        completions.
+        A ``failed`` (completed-but-gate-short) run is a valid result, so it
+        counts toward done — the experiment is finished once every cell has been
+        measured, even if many measurements are failures. Only ``crashed`` cells
+        (retried) keep a run un-done. ``--watch`` loops until this is true.
         """
         if self.expected_total is None:
             return False
-        return self.completed >= self.expected_total
+        return self.terminal >= self.expected_total
 
     @property
     def eta_finish(self) -> datetime | None:
@@ -243,7 +246,7 @@ def build_snapshot(
     started_times: list[datetime] = []
     finished: list[tuple[datetime, ExperimentRun]] = []
     failures: list[dict] = []
-    completed = failed = 0
+    completed = failed = crashed = 0
 
     for run in runs:
         try:
@@ -258,6 +261,20 @@ def build_snapshot(
         res = results_by_run.get(run.id, {})
 
         status = run.status.value if hasattr(run.status, "value") else str(run.status)
+        if status == RunStatus.crashed.value:
+            # Agent never completed → no data point. Retried on --resume, so it
+            # is NOT progress: don't count it toward the pace/ETA, list it as a
+            # (retryable) failure for visibility.
+            crashed += 1
+            cell.crashed += 1
+            failures.append(
+                {
+                    "label": label,
+                    "replicate": run.replicate,
+                    "error": (run.error_message or "") + "  [crashed — will retry]",
+                }
+            )
+            continue
         if status == RunStatus.failed.value:
             failed += 1
             cell.failed += 1
@@ -268,6 +285,11 @@ def build_snapshot(
                     "error": run.error_message or "",
                 }
             )
+            # A failed run IS a data point that took wall-clock time — count its
+            # start toward the session pace so the ETA reflects the real rate at
+            # which cells are being measured, not just the successful ones.
+            if run.started_at is not None:
+                started_times.append(_as_utc(run.started_at))
             continue
         if status != RunStatus.completed.value:
             # pending / running rows are not normally persisted; skip if present.
@@ -323,10 +345,11 @@ def build_snapshot(
         wall_elapsed = (now - session_start).total_seconds()
         if wall_elapsed > 0 and session_count > 0:
             throughput = session_count / (wall_elapsed / 3600.0)
-            # Remaining counts toward successful completion only (failures are
-            # retried under --retry-failed), so the ETA reflects real work left.
+            # Remaining = cells without a DATA POINT yet (completed + failed).
+            # A failed run is a finished measurement, not outstanding work, so it
+            # does not inflate the ETA; only crashed/un-run cells count as left.
             remaining = (
-                max(expected_total - completed, 0)
+                max(expected_total - (completed + failed), 0)
                 if expected_total is not None
                 else None
             )
@@ -360,6 +383,7 @@ def build_snapshot(
     return MonitorSnapshot(
         completed=completed,
         failed=failed,
+        crashed=crashed,
         expected_total=expected_total,
         design_cells=design_cells,
         replicates=replicates,
@@ -435,24 +459,27 @@ def render_text(
     if snap.expected_total is not None:
         pct = snap.pct_complete or 0.0
         bar_w = 30
-        frac = snap.completed / snap.expected_total if snap.expected_total else 0
+        # A cell is "measured" once it holds a data point (completed OR failed).
+        frac = snap.terminal / snap.expected_total if snap.expected_total else 0
         filled = int(bar_w * frac)
         bar = "█" * filled + "·" * (bar_w - filled)
         lines.append(
-            f"Progress   : {snap.completed:>3} / {snap.expected_total:<3} done "
+            f"Progress   : {snap.terminal:>3} / {snap.expected_total:<3} measured "
             f"({pct:4.1f}%)  [{bar}]"
         )
-        # Failures are pending work, not progress: they re-run under --retry-failed.
-        fail_note = (
-            f"  ({snap.failed} failed, pending retry)" if snap.failed else ""
+        # Only crashed cells (agent never completed) are outstanding — they retry
+        # on --resume. Passed and failed are both real, finished measurements.
+        crash_note = (
+            f"  ({snap.crashed} crashed — retry on --resume)" if snap.crashed else ""
         )
         lines.append(
-            f"             remaining={snap.remaining}{fail_note}"
+            f"             {snap.completed} completed · {snap.failed} failed · "
+            f"remaining={snap.remaining}{crash_note}"
         )
     else:
         lines.append(
-            f"Progress   : {snap.completed} completed, {snap.failed} failed "
-            f"(total unknown — pass --config or --total)"
+            f"Progress   : {snap.completed} completed, {snap.failed} failed, "
+            f"{snap.crashed} crashed (total unknown — pass --config or --total)"
         )
 
     lines.append(
@@ -486,6 +513,8 @@ def render_text(
         done = f"{c.completed}/{reps}" if reps else str(c.completed)
         if c.failed:
             done += f" ✗{c.failed}"
+        if c.crashed:
+            done += f" ⚠{c.crashed}"
         cq = c.metric_means.get("code_quality")
         cov = c.metric_means.get("test_coverage")
         cq_s = f"{cq:.2f}" if cq is not None else "—"
@@ -540,6 +569,8 @@ def render_json(snap: MonitorSnapshot, active: list[dict] | None = None) -> str:
         "active": active or [],
         "completed": snap.completed,
         "failed": snap.failed,
+        "crashed": snap.crashed,
+        "measured": snap.terminal,
         "remaining": snap.remaining,
         "expected_total": snap.expected_total,
         "pct_complete": snap.pct_complete,

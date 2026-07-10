@@ -86,11 +86,11 @@ def test_counts_and_progress(db_session):
     assert snap.failed == 1
     assert snap.design_cells == 2
     assert snap.expected_total == 6  # 2 cells × 3 reps
-    assert snap.terminal == 4  # rows with a terminal status (completed + failed)
-    # Progress counts completed only; the failed run is pending retry, not done.
-    assert snap.remaining == 3  # 6 expected - 3 completed
-    assert round(snap.pct_complete, 2) == round(3 / 6 * 100, 2)
-    assert snap.all_terminal is False  # 4 terminal < 6 expected
+    assert snap.terminal == 4  # data points = completed + failed
+    # A failed run is a real data point → progress. Only crashed/un-run remain.
+    assert snap.remaining == 2  # 6 expected - 4 measured (completed + failed)
+    assert round(snap.pct_complete, 2) == round(4 / 6 * 100, 2)
+    assert snap.all_terminal is False  # 4 measured < 6 expected
     assert snap.is_done is False
 
 
@@ -122,11 +122,11 @@ def test_per_cell_aggregation(db_session):
 def test_throughput_and_eta(db_session):
     _seed(db_session)
     snap = build_snapshot(db_session, replicates=3, now=NOW)
-    # wall elapsed = 1h from T0 to NOW; 3 completed -> 3 runs/hr
-    assert abs(snap.throughput_per_hour - 3.0) < 1e-9
-    # 3 remaining (6 expected - 3 completed) at 3/hr -> 3600s
-    assert abs(snap.eta_seconds - 3600.0) < 1e-6
-    assert snap.eta_finish == NOW + timedelta(seconds=3600)
+    # wall elapsed = 1h; 4 data points (3 completed + 1 failed) -> 4 runs/hr
+    assert abs(snap.throughput_per_hour - 4.0) < 1e-9
+    # 2 remaining (6 expected - 4 measured) at 4/hr -> 1800s
+    assert abs(snap.eta_seconds - 1800.0) < 1e-6
+    assert snap.eta_finish == NOW + timedelta(seconds=1800)
 
 
 def test_throughput_uses_recent_session_only(db_session):
@@ -165,7 +165,7 @@ def test_expected_total_override(db_session):
     _seed(db_session)
     snap = build_snapshot(db_session, expected_total=10, now=NOW)
     assert snap.expected_total == 10
-    assert snap.remaining == 7  # 10 expected - 3 completed (failed != progress)
+    assert snap.remaining == 6  # 10 expected - 4 measured (completed + failed)
 
 
 def test_unknown_total_when_no_hint(db_session):
@@ -190,9 +190,10 @@ def test_is_done_when_all_terminal(db_session):
     assert snap.eta_seconds == 0.0
 
 
-def test_is_done_false_when_failures_pending_retry(db_session):
-    """Regression: all slots terminal but completed < expected must NOT be done
-    (the --watch one-shot bug: completed+failed==expected exited after 1 render).
+def test_is_done_true_when_all_measured_even_if_failures(db_session):
+    """A completed-but-failed run is a data point, so an experiment is DONE once
+    every cell has been measured — even if many measurements are failures. This
+    is the corrected behavior: a failure is progress, not pending retry.
     """
     _add_design_cells(db_session, 2)  # 2 cells x 3 reps = 6
     for i in range(2):
@@ -201,13 +202,39 @@ def test_is_done_false_when_failures_pending_retry(db_session):
                  finished=T0 + timedelta(seconds=60 * (i + 1)))
     for i in range(4):
         _add_run(db_session, {"language": "rust", "tooling": f"f{i}"}, 1,
-                 RunStatus.failed, {}, error="Timeout")
+                 RunStatus.failed, {}, error="tests did not run")
     snap = build_snapshot(db_session, replicates=3, now=NOW)
     assert snap.completed == 2
     assert snap.failed == 4
-    assert snap.terminal == 6          # all slots hold a terminal row...
-    assert snap.all_terminal is True   # ...so all_terminal is True...
-    assert snap.is_done is False       # ...but the run is NOT done (4 to retry)
+    assert snap.crashed == 0
+    assert snap.terminal == 6          # all 6 cells hold a data point...
+    assert snap.all_terminal is True
+    assert snap.is_done is True        # ...so the experiment IS done
+    assert snap.remaining == 0
+
+
+def test_crashed_cells_are_remaining_not_done(db_session):
+    """A crashed run (agent never completed) is NOT a data point: it is retried,
+    so it counts as remaining and keeps the experiment un-done — unlike a failed
+    run, which is a finished measurement.
+    """
+    _add_design_cells(db_session, 2)  # 2 cells x 3 reps = 6
+    for i in range(2):
+        _add_run(db_session, {"language": "go", "tooling": f"c{i}"}, 1,
+                 RunStatus.completed, {"_duration_seconds": 60},
+                 finished=T0 + timedelta(seconds=60 * (i + 1)))
+    _add_run(db_session, {"language": "py", "tooling": "f0"}, 1,
+             RunStatus.failed, {}, error="tests did not run")   # data point
+    for i in range(3):
+        _add_run(db_session, {"language": "rust", "tooling": f"x{i}"}, 1,
+                 RunStatus.crashed, {}, error="server unreachable")  # retry
+    snap = build_snapshot(db_session, replicates=3, now=NOW)
+    assert snap.completed == 2
+    assert snap.failed == 1
+    assert snap.crashed == 3
+    assert snap.terminal == 3          # data points = 2 completed + 1 failed
+    assert snap.remaining == 3         # 6 expected - 3 measured (crashed remain)
+    assert snap.is_done is False       # crashed cells still need a real attempt
 
 
 def test_failures_captured(db_session):
@@ -223,14 +250,14 @@ def test_render_text_contains_key_fields(db_session):
     snap = build_snapshot(db_session, replicates=3, now=NOW)
     out = render_text(snap, db_path="/tmp/retort.db")
     assert "Retort run monitor" in out
-    assert "3 / 6" in out  # completed / expected (not 4 — failed isn't progress)
+    assert "4 / 6" in out  # measured (completed + failed) / expected
     assert "~dur" in out  # cells table has a per-run duration column
     assert "15m50s" in out  # go cell mean duration (1000+900)/2 = 950s
     assert "Recent completions:" in out
     # date stamp on recent completions (finished_at), shown in LOCAL time
     latest_local = (T0 + timedelta(seconds=3000)).astimezone().strftime("%m-%d %H:%M")
     assert latest_local in out
-    assert "1 failed, pending retry" in out
+    assert "3 completed" in out and "1 failed" in out and "remaining=2" in out
     assert "$14.00" in out
     assert "Failures (1)" in out
     assert "go/claude-opus-4-7/none" in out
@@ -255,37 +282,44 @@ def test_render_json_roundtrip(db_session):
     data = _json.loads(render_json(snap))
     assert data["completed"] == 3
     assert data["failed"] == 1
-    assert data["remaining"] == 3  # 6 expected - 3 completed
+    assert data["crashed"] == 0
+    assert data["measured"] == 4
+    assert data["remaining"] == 2  # 6 expected - 4 measured (completed + failed)
     assert data["expected_total"] == 6
     assert data["is_done"] is False
     assert any(c["label"] == "go/claude-opus-4-7/none" for c in data["cells"])
 
 
-def test_stale_failures_are_not_progress(db_session):
-    """Regression: a --retry-failed run with mostly stale failures must not
-    read as 'almost done' (the exp-5 bug: 9 completed + 62 failed showed 98.6%).
+def test_failures_are_progress_crashes_are_not(db_session):
+    """A run with many genuine failures reads as real progress (each failure is
+    a measured data point), while crashed cells (agent never completed) stay
+    remaining and keep the ETA converging on actual work left.
     """
     _add_design_cells(db_session, 24)  # 24 cells x 3 reps = 72
-    # 3 completed, 9 failed (stale, awaiting retry)
     for i in range(3):
         _add_run(
             db_session, {"language": "go", "tooling": f"c{i}"}, 1,
             RunStatus.completed, {"_duration_seconds": 600, "code_quality": 1.0},
             finished=T0 + timedelta(seconds=600 * (i + 1)),
         )
-    for i in range(9):
+    for i in range(9):  # genuine data-point failures
         _add_run(db_session, {"language": "rust", "tooling": f"f{i}"}, 1,
-                 RunStatus.failed, {}, error="Timeout")
+                 RunStatus.failed, {}, error="tests did not run")
+    for i in range(6):  # crashed → still need a real attempt
+        _add_run(db_session, {"language": "ts", "tooling": f"x{i}"}, 1,
+                 RunStatus.crashed, {}, error="server unreachable")
     snap = build_snapshot(db_session, replicates=3, now=NOW)
     assert snap.completed == 3
     assert snap.failed == 9
+    assert snap.crashed == 6
     assert snap.expected_total == 72
-    assert snap.remaining == 69        # 72 - 3 completed, NOT 72 - 12
-    assert round(snap.pct_complete) == 4  # ~4%, not ~17%
+    assert snap.terminal == 12         # 3 completed + 9 failed = measured
+    assert snap.remaining == 60        # 72 - 12 measured (crashed are remaining)
+    assert round(snap.pct_complete) == 17  # 12/72, not 4%
     assert snap.is_done is False
     out = render_text(snap)
-    assert "3 / 72" in out
-    assert "9 failed, pending retry" in out
+    assert "12 / 72" in out
+    assert "9 failed" in out and "6 crashed" in out
 
 
 def test_render_active_empty():
