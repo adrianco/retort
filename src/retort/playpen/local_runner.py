@@ -223,7 +223,7 @@ class LocalRunner:
             # (the exp-7/8 bug). _resolve_harness derives it from the model, so
             # there is one source of truth for both.
             token_count, metadata = _parse_agent_usage(
-                self._resolve_harness(stack), stdout_text
+                self._resolve_harness(stack), stdout_text, info.workspace
             )
             cost_usd = _parse_float(metadata.get("total_cost_usd"), 0.0)
 
@@ -411,6 +411,17 @@ class LocalRunner:
                 "json",
             ]
 
+            # Bound the agent, mirroring the claude-code `--max-turns` cap. omp
+            # runs until the model stops calling tools; a slow local model that
+            # over-iterates (never emitting a final answer) would otherwise run
+            # until retort's hard subprocess timeout — which *kills* omp and
+            # discards its stdout, so the completed workspace is never scored
+            # (it just records "Timeout after Ns", all-zero). `--max-time` makes
+            # omp self-terminate gracefully a bit *before* that hard wall, so its
+            # output is captured and the code it produced gets built/tested/gated.
+            graceful_secs = max(60, self.timeout_minutes * 60 - 120)
+            cmd.extend(["--max-time", str(graceful_secs)])
+
             model = self._model_for(stack)
             if model and model != "none":
                 cmd.extend(["--model", model])
@@ -422,6 +433,28 @@ class LocalRunner:
             prompt_level = stack.extra.get("prompt", "none")
             prompt_injection = self._load_prompt_file(prompt_level) if prompt_level != "none" else ""
             cmd.append(_build_agent_prompt(stack, prompt_injection))
+            return cmd
+
+        if harness == "hermes":
+            # NousResearch Hermes in headless one-shot mode: reads the prompt via
+            # `-z`, runs in the playpen cwd, auto-approves tools with `--yolo`.
+            # Token/cost telemetry is written to `--usage-file` (Hermes has no
+            # JSON usage on stdout), so the parser reads that file, not stdout.
+            # Provider + model resolve from ~/.hermes/config.yaml (an
+            # openai-compatible `providers.<id>` entry pointing at the local
+            # server); the model factor level is passed explicitly with `-m`.
+            usage_path = workspace / ".hermes_usage.json"
+            cmd = [
+                "hermes",
+                "--usage-file", str(usage_path),
+                "--yolo",
+            ]
+            model = self._model_for(stack)
+            if model and model != "none":
+                cmd.extend(["-m", model])
+            prompt_level = stack.extra.get("prompt", "none")
+            prompt_injection = self._load_prompt_file(prompt_level) if prompt_level != "none" else ""
+            cmd.extend(["-z", _build_agent_prompt(stack, prompt_injection)])
             return cmd
 
         if harness == "gemini":
@@ -595,7 +628,9 @@ def _persist_agent_output(workspace: Path, stdout: str, stderr: str) -> None:
         logger.debug("Failed to persist agent output in %s", workspace)
 
 
-def _parse_agent_usage(agent: str, stdout_text: str) -> tuple[int, dict[str, str]]:
+def _parse_agent_usage(
+    agent: str, stdout_text: str, workspace: Path | None = None
+) -> tuple[int, dict[str, str]]:
     """Parse token/cost metadata from known local-agent output formats."""
     if agent == "claude-code":
         return _parse_claude_usage(stdout_text)
@@ -605,7 +640,35 @@ def _parse_agent_usage(agent: str, stdout_text: str) -> tuple[int, dict[str, str
         return _parse_opencode_usage(stdout_text)
     if agent == "gemini":
         return _parse_gemini_usage(stdout_text)
+    if agent == "hermes":
+        # Hermes writes telemetry to a --usage-file in the playpen, not stdout.
+        return _parse_hermes_usage(workspace)
     return 0, {}
+
+
+def _parse_hermes_usage(workspace: Path | None) -> tuple[int, dict[str, str]]:
+    """Read Hermes' ``--usage-file`` JSON (.hermes_usage.json) from the playpen.
+
+    Fields: input_tokens / output_tokens / total_tokens / estimated_cost_usd /
+    completed / failed. Local inference reports a null cost, so cost falls back
+    to 0 (the runner then applies any configured hardware-cost model).
+    """
+    if workspace is None:
+        return 0, {}
+    path = workspace / ".hermes_usage.json"
+    try:
+        data = json.loads(path.read_text())
+    except (OSError, ValueError):
+        return 0, {}
+    total = data.get("total_tokens")
+    if total is None:
+        total = (data.get("input_tokens") or 0) + (data.get("output_tokens") or 0)
+    metadata: dict[str, str] = {}
+    cost = data.get("estimated_cost_usd")
+    metadata["total_cost_usd"] = str(cost if cost is not None else 0.0)
+    if data.get("model"):
+        metadata["model"] = str(data["model"])
+    return int(total or 0), metadata
 
 
 def _parse_float(value: str | None, default: float) -> float:
