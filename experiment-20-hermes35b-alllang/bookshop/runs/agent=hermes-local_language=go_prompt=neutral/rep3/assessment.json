@@ -1,0 +1,10 @@
+{
+  "severity_counts": {"critical": 0, "high": 1, "medium": 0, "low": 0, "info": 0},
+  "penalty_score": 0.9,
+  "top_findings": [
+    {"id": "R7", "kind": "requirement_partial", "severity": "high", "title": "SQLite runs in :memory: mode — no durable persistence", "evidence": "main.go:342 NewBookStore(\":memory:\"); schema created at main.go:42, but data is lost on every restart. REQUIREMENTS.json R7 how_to_verify: 'Persistence uses SQLite/embedded DB, not just in-memory state.'", "suggestion": "Open a file-backed DB (e.g. sql.Open(\"sqlite\", \"books.db\")) so data survives restarts, or make the path configurable via flag/env."}
+  ],
+  "requirement_coverage": 0.9167,
+  "model": "hermes-local",
+  "evaluated_at": "2026-07-10T19:28:51Z"
+}

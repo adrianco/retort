@@ -1,0 +1,10 @@
+{
+  "replicate": 1,
+  "run_config": {
+    "agent": "hermes-local",
+    "language": "java",
+    "prompt": "neutral"
+  },
+  "succeeded": true,
+  "visibility": "public"
+}

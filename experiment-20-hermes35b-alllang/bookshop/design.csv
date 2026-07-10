@@ -1,0 +1,10 @@
+run,language,agent,prompt
+0,python,hermes-local,neutral
+1,go,hermes-local,neutral
+2,typescript,hermes-local,neutral
+3,rust,hermes-local,neutral
+4,clojure,hermes-local,neutral
+5,java,hermes-local,neutral
+6,csharp,hermes-local,neutral
+7,elixir,hermes-local,neutral
+8,erlang,hermes-local,neutral

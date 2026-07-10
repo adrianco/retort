@@ -1,0 +1,60 @@
+# Experiment 20 — best prompt (neutral, from exp-19) × EVERY language, on the
+# best local stack (Hermes + hermes-lcm -> oMLX -> Qwen3.6-35B-A3B MLX).
+# language[all 9] × prompt[neutral] × 3 replicates = 27 runs. Tests how far the
+# local stack reaches across the full language set (adds clojure/java/csharp/
+# elixir/erlang to python/go/typescript/rust).
+#
+# NOTE: needs toolchains for clojure(+lein/clj-kondo), java(+maven), csharp(.NET),
+# elixir, erlang(+rebar3) — retort preflight auto-installs via brew. clojure and
+# erlang are historically the flakiest (see README "why did every run fail").
+#
+# Run:
+#   export PATH="$HOME/hermes-venv/bin:/opt/homebrew/bin:$HOME/go/bin:$PATH"
+#   PYTHONPATH=src .venv/bin/python -c 'from retort.cli import main; main()' run \
+#     --phase screening --config experiment-20-hermes35b-alllang/bookshop/workspace.yaml \
+#     --design experiment-20-hermes35b-alllang/bookshop/design.csv --replicates 3 --resume
+
+experiment:
+  name: experiment-20-hermes35b-alllang-bookshop
+  visibility: public
+
+factors:
+  language:
+    levels: [python, go, typescript, rust, clojure, java, csharp, elixir, erlang]
+  agent:
+    levels: [hermes-local, claude-code]
+  prompt:
+    levels: [neutral, TDD]   # registry needs >=2 levels; --design lists ONLY neutral
+
+responses:
+  - code_quality
+  - token_efficiency
+  - test_coverage
+  - defect_rate
+  - maintainability
+  - idiomatic
+
+tasks:
+  - source: bundled://rest-api-crud
+
+playpen:
+  runner: local
+  replicates: 3
+  timeout_minutes: 30
+  max_turns: 200
+  local_agents:
+    hermes-local:
+      harness: hermes
+      model: mlxlocal/Qwen3.6-35B-A3B
+
+design:
+  screening_resolution: 3
+  significance_threshold: 0.10
+
+promotion:
+  screening_to_trial: { p_value: 0.10 }
+  trial_to_production: { posterior_confidence: 0.80 }
+
+evaluation:
+  enabled: true
+  model: opus-4.8

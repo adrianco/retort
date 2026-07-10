@@ -1,0 +1,10 @@
+{
+  "severity_counts": {"critical": 0, "high": 1, "medium": 0, "low": 0, "info": 0},
+  "penalty_score": 0.9,
+  "top_findings": [
+    {"id": "R11", "kind": "requirement_missing", "severity": "high", "title": "No README.md deliverable", "evidence": "run_dir has no README.md (ls shows only app.py, models.py, test_app.py, requirements.txt, TASK.md); REQUIREMENTS.json R11 requires setup/run docs", "suggestion": "Add a README.md documenting install (pip install -r requirements.txt), how to run (python app.py), and how to run tests (pytest)"}
+  ],
+  "requirement_coverage": 0.9167,
+  "model": "hermes-local",
+  "evaluated_at": "2026-07-10T16:52:12Z"
+}
