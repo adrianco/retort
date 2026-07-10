@@ -1,0 +1,10 @@
+{
+  "replicate": 1,
+  "run_config": {
+    "agent": "hermes-local",
+    "language": "python",
+    "prompt": "neutral"
+  },
+  "succeeded": false,
+  "visibility": "public"
+}

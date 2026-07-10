@@ -1,0 +1,71 @@
+# Experiment 18 — the "best option" local stack: Hermes + hermes-lcm (lossless
+# SQLite DAG context management) driving Qwen3.6-35B-A3B (MLX 4-bit) served by
+# oMLX, on the bookshop task. This is the setup the original advice pointed at:
+# a stronger model than the exp-16/17 Qwen3-Coder-30B, served with MLX (oMLX,
+# which parses the model's Qwen <tool_call><function=...> format that mlx-lm
+# could not), and Hermes' ADVANCED context engine enabled (exp-17 used only
+# Hermes' default compression and lost to omp — hermes-lcm is the real test).
+#
+# Three things change at once vs exp-17 (model 30B->35B, server llama.cpp->oMLX,
+# context default->lcm), so it is the "best option" stack, not a clean ablation.
+# Compare against exp-16 (omp/30B) and exp-17 (Hermes-default/30B).
+#
+# Credit: Birgitta Böckeler (local-models direction); kamihack (oMLX DMG, the
+# 35B MLX model, and the tool-call chat template).
+#
+# Prereqs: oMLX serving Qwen3.6-35B-A3B on 127.0.0.1:8080 (model symlinked into
+# ~/models; `omlx-cli serve --model-dir ~/models --port 8080`); Hermes with
+# hermes-lcm cloned to ~/.hermes/plugins and config.yaml `plugins.enabled:
+# [hermes-lcm]`, `context.engine: lcm`, provider api=http://127.0.0.1:8080/v1
+# api_mode=openai default_provider set, model=Qwen3.6-35B-A3B; claude authed.
+#
+# Run:
+#   export PATH="$HOME/hermes-venv/bin:/opt/homebrew/bin:$HOME/go/bin:$PATH"
+#   PYTHONPATH=src .venv/bin/python -c 'from retort.cli import main; main()' run \
+#     --phase screening --config experiment-18-hermes-35b-lcm/bookshop/workspace.yaml \
+#     --design experiment-18-hermes-35b-lcm/bookshop/design.csv --replicates 3 --resume
+
+experiment:
+  name: experiment-18-hermes-35b-lcm-bookshop
+  visibility: public
+
+factors:
+  language:
+    levels: [python, go, typescript, rust]
+  agent:
+    levels: [hermes-local, claude-code]
+  prompt:
+    levels: [neutral, ATDD]
+
+responses:
+  - code_quality
+  - token_efficiency
+  - test_coverage
+  - defect_rate
+  - maintainability
+  - idiomatic
+
+tasks:
+  - source: bundled://rest-api-crud
+
+playpen:
+  runner: local
+  replicates: 3
+  timeout_minutes: 30
+  max_turns: 200
+  local_agents:
+    hermes-local:
+      harness: hermes
+      model: mlxlocal/Qwen3.6-35B-A3B   # oMLX model id; provider (llama.cpp analog) is oMLX :8080
+
+design:
+  screening_resolution: 3
+  significance_threshold: 0.10
+
+promotion:
+  screening_to_trial: { p_value: 0.10 }
+  trial_to_production: { posterior_confidence: 0.80 }
+
+evaluation:
+  enabled: true       # spec-conformance gate — NEVER disable
+  model: opus-4.8     # neutral independent judge

@@ -1,0 +1,31 @@
+{
+  "severity_counts": {
+    "critical": 0,
+    "high": 2,
+    "medium": 0,
+    "low": 0,
+    "info": 0
+  },
+  "penalty_score": 0.8,
+  "top_findings": [
+    {
+      "id": "P1-atdd",
+      "kind": "test_failure",
+      "severity": "high",
+      "title": "ATDD acceptance suite fails: 16 of 24 tests fail",
+      "evidence": "pytest run of test_app.py: 16 failed, 8 passed. POST/PUT tests use data=<dict> with content_type=\"application/json\" (e.g. test_app.py:66-70, 101-105, 262-266) which Werkzeug form-encodes; app.py:34 request.get_json() then rejects the body (400/None). Agent diagnosed this in _agent_stdout.log ('use json=payload instead of data=payload') but its fix write was refused by the sandbox.",
+      "suggestion": "Replace `data=payload, content_type='application/json'` with `json=payload` at the ~26 affected sites in test_app.py so bodies are sent as JSON. Under ATDD the passing suite is the deliverable."
+    },
+    {
+      "id": "R11",
+      "kind": "requirement_missing",
+      "severity": "high",
+      "title": "Required README.md deliverable is absent",
+      "evidence": "Directory listing of run_dir shows no README.md; REQUIREMENTS.json R11 requires a README with setup and run instructions.",
+      "suggestion": "Add README.md documenting `pip install -r requirements.txt`, `python app.py`, and `pytest` usage."
+    }
+  ],
+  "requirement_coverage": 0.9167,
+  "model": "hermes-local",
+  "evaluated_at": "2026-07-10T07:08:17Z"
+}

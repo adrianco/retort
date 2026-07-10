@@ -1,0 +1,13 @@
+{
+  "severity_counts": {"critical": 0, "high": 1, "medium": 0, "low": 0, "info": 0},
+  "penalty_score": 0.9,
+  "top_findings": [
+    {"id": "R7", "kind": "requirement_partial", "severity": "high", "title": "SQLite store is in-memory (`:memory:`) over a pooled sql.DB — non-persistent and unsafe under concurrency", "evidence": "main.go:15 NewBookStore(\":memory:\"); database.go:19-44 opens a database/sql pool with no SetMaxOpenConns(1). With mattn/go-sqlite3 each pooled connection to :memory: is a SEPARATE database, so under concurrent requests a query can land on a connection whose books table/data is absent (no such table: books / lost writes). Data is also lost on every restart. Tests pass only because they run sequentially on one reused connection.", "suggestion": "Use a file-backed DSN (e.g. books.db) or file::memory:?cache=shared, and call db.SetMaxOpenConns(1) for in-memory use to keep all access on one connection."}
+  ],
+  "requirement_coverage": 0.9167,
+  "min_severity": "high",
+  "tracker_requested": "beads",
+  "tracker_note": "file-run-issues v2.0 aggregates into assessment.json only; it does not create beads/GitHub issues (see skill Constraints). tracker=beads had no effect.",
+  "model": "hermes-local",
+  "evaluated_at": "2026-07-10T03:52:03Z"
+}

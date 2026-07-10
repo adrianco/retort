@@ -1,0 +1,25 @@
+{
+  "name": "book-collection-api",
+  "version": "1.0.0",
+  "description": "REST API service for managing a book collection",
+  "main": "dist/server.js",
+  "scripts": {
+    "build": "tsc",
+    "start": "node dist/server.js",
+    "test": "ts-mocha -p tsconfig.json 'tests/**/*.test.ts'",
+    "test:watch": "ts-mocha -p tsconfig.json 'tests/**/*.test.ts' --watch"
+  },
+  "dependencies": {
+    "express": "^4.21.0",
+    "better-sqlite3": "^11.0.0"
+  },
+  "devDependencies": {
+    "@types/better-sqlite3": "^7.6.0",
+    "@types/express": "^5.0.0",
+    "@types/node": "^22.0.0",
+    "@types/supertest": "^6.0.0",
+    "supertest": "^7.0.0",
+    "ts-mocha": "^10.0.0",
+    "typescript": "^5.7.0"
+  }
+}
