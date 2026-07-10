@@ -1,0 +1,72 @@
+# Experiment 16 — a LOCAL model (Qwen3-Coder-30B-A3B via llama.cpp) on the
+# bookshop REST-API/CRUD task. The first local model to attempt the FULL
+# pipeline (build -> tests -> spec-gate), following experiment-12's two-bar
+# lesson: a usable local coding agent needs BOTH (a) tool calls the server can
+# structure into `tool_calls`, AND (b) enough agentic capability to drive the
+# loop. exp-12's 7B/3B models each missed one; ~30B is the floor.
+#
+# Model choice: Qwen3-Coder-30B-A3B (MoE, 3B active), Q4_K_M GGUF via unsloth —
+# Birgitta Boeckeler's daily-driver pick on this exact machine (M5 Pro 64GB) and
+# our docs' top recommendation ("extremely stable tool calling").
+#
+# Server: llama.cpp `llama-server --jinja` (jschoch's path — the setup that
+# actually COMPLETED tasks in the exp-12 writeup), OpenAI-compatible on :8080.
+# omp routes to it via the `lmlocal` openai-completions provider.
+#
+# Incremental: ONLY the qwen3-coder-local cells run (design.csv lists just those);
+# every claude-code baseline for these 4 languages comes from master.db.
+#
+# Prereqs: `omp` on PATH; `llama-server -hf unsloth/Qwen3-Coder-30B-A3B-Instruct-GGUF:Q4_K_M
+#   --jinja -ngl 99 -c 32768 --host 127.0.0.1 --port 8080` running;
+#   `~/.omp/agent/models.yml` has the lmlocal provider; `claude` authed (spec-gate judge).
+#
+# Run:
+#   export PATH="/opt/homebrew/bin:$HOME/go/bin:$PATH"
+#   PYTHONPATH=src .venv/bin/python -c 'from retort.cli import main; main()' run \
+#     --phase screening --config experiment-16-qwen3coder/bookshop/workspace.yaml \
+#     --design experiment-16-qwen3coder/bookshop/design.csv --replicates 3 --resume
+
+experiment:
+  name: experiment-16-qwen3coder-local-bookshop-128k
+  visibility: public
+
+factors:
+  language:
+    levels: [python, go, typescript, rust]
+  agent:
+    # registry needs >=2 levels; the --design CSV lists ONLY qwen3-coder-local,
+    # so ONLY the local cells run (claude-code baselines come from master.db).
+    levels: [qwen3-coder-local, claude-code]
+
+responses:
+  - code_quality
+  - token_efficiency
+  - test_coverage
+  - defect_rate
+  - maintainability
+  - idiomatic
+
+tasks:
+  - source: bundled://rest-api-crud
+
+playpen:
+  runner: local
+  replicates: 3
+  timeout_minutes: 30
+  max_turns: 200
+  local_agents:
+    qwen3-coder-local:
+      harness: omp
+      model: lmlocal/qwen3-coder-30b   # llama.cpp single-model server; id is a label
+
+design:
+  screening_resolution: 3
+  significance_threshold: 0.10
+
+promotion:
+  screening_to_trial: { p_value: 0.10 }
+  trial_to_production: { posterior_confidence: 0.80 }
+
+evaluation:
+  enabled: true       # spec-conformance gate — NEVER disable; records requirement_coverage, the pass/fail gate
+  model: opus-4.8     # neutral independent judge (do not let the local model grade its own output)

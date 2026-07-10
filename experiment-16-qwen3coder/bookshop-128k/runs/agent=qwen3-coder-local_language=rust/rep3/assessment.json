@@ -1,0 +1,39 @@
+{
+  "severity_counts": {
+    "critical": 0,
+    "high": 3,
+    "medium": 0,
+    "low": 0,
+    "info": 0
+  },
+  "penalty_score": 0.7,
+  "top_findings": [
+    {
+      "id": "R12",
+      "kind": "requirement_missing",
+      "severity": "high",
+      "title": "Fewer than 3 tests \u2014 only a trivial placeholder test exists",
+      "evidence": "src/lib.rs:11 `it_works` asserts add(2,2)==4; tests/ is empty; no test exercises any book route or DB call. test_coverage=1.0 only reflects 1/1 trivial test passing.",
+      "suggestion": "Add >=3 integration tests hitting the CRUD/health routes (e.g. via actix_web::test) that assert status codes and JSON bodies."
+    },
+    {
+      "id": "R3",
+      "kind": "requirement_partial",
+      "severity": "high",
+      "title": "?author= filter uses the wrong extractor and does not work",
+      "evidence": "src/main.rs:64 `author: web::Query<Option<String>>` \u2014 serde_urlencoded cannot bind the `author` key into `Option<String>`; `GET /books?author=X` fails Query extraction (400) rather than filtering. Only the no-param list path yields None and works.",
+      "suggestion": "Deserialize into a struct, e.g. `#[derive(Deserialize)] struct BookQuery { author: Option<String> }` and pass `web::Query<BookQuery>`."
+    },
+    {
+      "id": "db-connect",
+      "kind": "build_failure",
+      "severity": "high",
+      "title": "SQLite connect string lacks create-if-missing; server fails to start on a fresh checkout",
+      "evidence": "src/main.rs:217 and src/main.rs:36/65/94/144/178 use `sqlite://books.db` with sqlx default create_if_missing=false. No books.db ships in the run_dir, so `SqlitePool::connect` errors and main() calls process::exit(1) before binding.",
+      "suggestion": "Use `sqlite://books.db?mode=rwc` or SqliteConnectOptions with create_if_missing(true)."
+    }
+  ],
+  "requirement_coverage": 0.8333,
+  "model": "qwen3-coder-local",
+  "evaluated_at": "2026-07-09T09:53:20Z"
+}

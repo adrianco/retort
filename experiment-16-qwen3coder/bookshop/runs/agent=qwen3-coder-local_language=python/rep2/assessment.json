@@ -1,0 +1,10 @@
+{
+  "severity_counts": {"critical": 0, "high": 0},
+  "penalty_score": 1.0,
+  "top_findings": [],
+  "requirement_coverage": 1.0,
+  "model": "qwen3-coder-local",
+  "evaluated_at": "2026-07-09T03:50:01Z",
+  "min_severity": "high",
+  "note": "6 findings total in findings.jsonl (3 medium, 2 low, 1 info); none at or above min_severity=high, so counts/top_findings/penalty reflect the filtered (empty) set."
+}

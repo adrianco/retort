@@ -1,0 +1,11 @@
+{
+  "severity_counts": {"critical": 0, "high": 2, "medium": 0, "low": 0, "info": 0},
+  "penalty_score": 0.8,
+  "top_findings": [
+    {"id": "R4", "kind": "requirement_partial", "severity": "high", "title": "PUT /books/{id} returns 200 for a non-existent book", "evidence": "main.go:106-110 UpdateBook uses db.Exec, which never returns sql.ErrNoRows, so the 404 branch at main.go:391-393 (and handleUpdateBook at main.go:243) is dead — updating a missing ID reports 200 'Book updated successfully'", "suggestion": "Check RowsAffected() from the Exec result and return 404 when zero rows were updated"},
+    {"id": "R5", "kind": "requirement_partial", "severity": "high", "title": "DELETE /books/{id} returns 200 for a non-existent book", "evidence": "main.go:112-115 DeleteBook uses db.Exec, so the sql.ErrNoRows 404 branch at main.go:405-406 (and handleDeleteBook at main.go:274) is dead — deleting a missing ID reports 200 'Book deleted successfully'", "suggestion": "Check RowsAffected() and return 404 when zero rows were deleted"}
+  ],
+  "requirement_coverage": 0.8182,
+  "model": "qwen3-coder-local",
+  "evaluated_at": "2026-07-09T02:55:59Z"
+}

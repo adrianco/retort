@@ -1,0 +1,10 @@
+{
+  "severity_counts": {"critical": 0, "high": 0, "medium": 0, "low": 0, "info": 0},
+  "penalty_score": 1.0,
+  "top_findings": [],
+  "requirement_coverage": 1.0,
+  "model": "qwen3-coder-local",
+  "evaluated_at": "2026-07-09T19:17:23Z",
+  "min_severity": "high",
+  "note": "12/12 requirements implemented; all 7 recorded findings are medium/low and fall below min_severity=high, so they are excluded from counts. See findings.jsonl for the full unfiltered list."
+}

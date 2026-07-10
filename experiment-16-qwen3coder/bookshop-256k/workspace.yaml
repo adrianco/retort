@@ -1,0 +1,67 @@
+# Experiment 16 — Qwen3-Coder-30B local, 256K context + PROMPT factor on bookshop.
+#
+# Two changes vs the 64K/128K arms:
+#   1. Context raised to the model's training max, 256K
+#      (llama-server --parallel 1 -c 262144; needs iogpu.wired_limit_mb raised to
+#      ~57344 so the ~41GB weights+KV fit under the Metal wired limit).
+#      omp `contextWindow` in ~/.omp/agent/models.yml must also be 262144.
+#   2. PROMPT factor added: neutral vs ATDD. Hypothesis: Qwen3-Coder's dominant
+#      failure is runaway verbosity / never terminating; ATDD (which used the
+#      FEWEST tokens in exp-13) front-loads executable acceptance tests through
+#      the public interface, so it may make the model CONVERGE where neutral
+#      spins. Tests whether prompt structure buys reliability for a local model.
+#
+# Grid: language[python, go, typescript, rust] x prompt[neutral, ATDD]
+#       = 8 cells x 3 replicates = 24 runs. Only qwen3-coder-local runs
+#       (design.csv); prompt files in prompts/<level>.md.
+#
+# Run:
+#   export PATH="/opt/homebrew/bin:$HOME/go/bin:$PATH"
+#   PYTHONPATH=src .venv/bin/python -c 'from retort.cli import main; main()' run \
+#     --phase screening --config experiment-16-qwen3coder/bookshop-256k/workspace.yaml \
+#     --design experiment-16-qwen3coder/bookshop-256k/design.csv --replicates 3 --resume
+
+experiment:
+  name: experiment-16-qwen3coder-local-bookshop-256k-prompt
+  visibility: public
+
+factors:
+  language:
+    levels: [python, go, typescript, rust]
+  agent:
+    levels: [qwen3-coder-local, claude-code]
+  prompt:
+    levels: [neutral, ATDD]
+
+responses:
+  - code_quality
+  - token_efficiency
+  - test_coverage
+  - defect_rate
+  - maintainability
+  - idiomatic
+
+tasks:
+  - source: bundled://rest-api-crud
+
+playpen:
+  runner: local
+  replicates: 3
+  timeout_minutes: 30
+  max_turns: 200
+  local_agents:
+    qwen3-coder-local:
+      harness: omp
+      model: lmlocal/qwen3-coder-30b
+
+design:
+  screening_resolution: 3
+  significance_threshold: 0.10
+
+promotion:
+  screening_to_trial: { p_value: 0.10 }
+  trial_to_production: { posterior_confidence: 0.80 }
+
+evaluation:
+  enabled: true       # spec-conformance gate — NEVER disable
+  model: opus-4.8     # neutral independent judge

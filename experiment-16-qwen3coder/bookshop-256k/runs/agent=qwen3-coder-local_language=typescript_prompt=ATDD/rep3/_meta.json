@@ -1,0 +1,10 @@
+{
+  "replicate": 3,
+  "run_config": {
+    "agent": "qwen3-coder-local",
+    "language": "typescript",
+    "prompt": "ATDD"
+  },
+  "succeeded": true,
+  "visibility": "public"
+}

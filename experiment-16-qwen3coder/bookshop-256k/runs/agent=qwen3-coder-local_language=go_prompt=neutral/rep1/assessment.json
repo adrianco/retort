@@ -1,0 +1,47 @@
+{
+  "severity_counts": {
+    "critical": 1,
+    "high": 3,
+    "medium": 0,
+    "low": 0,
+    "info": 0
+  },
+  "penalty_score": 0.45,
+  "top_findings": [
+    {
+      "id": "runtime-panic",
+      "kind": "build_failure",
+      "severity": "critical",
+      "title": "Server panics on startup: duplicate route registrations",
+      "evidence": "main.go:295-299 registers /books twice (handleGetBooks, handleCreateBook) and /books/ three times (handleGetBook, handleUpdateBook, handleDeleteBook) on http.DefaultServeMux; running the binary crashes with 'panic: http: multiple registrations for /books' at main.go:297 (confirmed by executing ./bookapi).",
+      "suggestion": "Register one handler per pattern that dispatches on r.Method internally (handlers already guard on method): http.HandleFunc(\"/books\", store.handleBooks) and http.HandleFunc(\"/books/\", store.handleBookByID)."
+    },
+    {
+      "id": "R1",
+      "kind": "requirement_partial",
+      "severity": "high",
+      "title": "POST /books unreachable as an HTTP endpoint",
+      "evidence": "handleCreateBook (main.go:187) is correct and unit-tested, but its route registration (main.go:297) both panics at startup and is shadowed by handleGetBooks registered first on /books (main.go:295) \u2014 even without the panic, ServeMux keeps only the first handler per pattern, so POST would never reach the create handler.",
+      "suggestion": "Dispatch POST inside a single /books handler based on r.Method."
+    },
+    {
+      "id": "R5",
+      "kind": "requirement_partial",
+      "severity": "high",
+      "title": "PUT /books/{id} unreachable and never returns 404 for a missing id",
+      "evidence": "handleUpdateBook (main.go:218) is shadowed on /books/ (main.go:296 registered first) and unreachable at runtime; additionally UpdateBook uses db.Exec (main.go:107) which never returns sql.ErrNoRows, so the err==sql.ErrNoRows 404 branch (main.go:248) is dead \u2014 updating a non-existent id returns 200.",
+      "suggestion": "Dispatch PUT inside one /books/ handler; check RowsAffected()==0 to return 404."
+    },
+    {
+      "id": "R6",
+      "kind": "requirement_partial",
+      "severity": "high",
+      "title": "DELETE /books/{id} unreachable and never returns 404 for a missing id",
+      "evidence": "handleDeleteBook (main.go:259) is shadowed on /books/ (main.go:296) and unreachable at runtime; DeleteBook uses db.Exec (main.go:117) which never yields sql.ErrNoRows, so the 404 branch (main.go:273) is dead \u2014 deleting a non-existent id returns 200.",
+      "suggestion": "Dispatch DELETE inside one /books/ handler; check RowsAffected()==0 to return 404."
+    }
+  ],
+  "requirement_coverage": 0.6667,
+  "model": "qwen3-coder-local",
+  "evaluated_at": "2026-07-09T15:39:32Z"
+}

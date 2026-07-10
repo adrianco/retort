@@ -1,0 +1,10 @@
+{
+  "severity_counts": {"critical": 0, "high": 1, "medium": 0, "low": 0, "info": 0},
+  "penalty_score": 0.9,
+  "top_findings": [
+    {"id": "R7", "kind": "requirement_missing", "severity": "high", "title": "Data is not stored in SQLite or any embedded DB", "evidence": "src/main.rs:37-40 uses process-global lazy_static Mutex<Vec<Book>> in-memory storage; Cargo.toml lists no DB dependency (rusqlite/sqlx/diesel); README.md states 'uses in-memory storage ... without external dependencies like a database'. All data is lost on restart.", "suggestion": "Persist books in SQLite (e.g. rusqlite or sqlx with the bundled sqlite feature) so the storage requirement is met."}
+  ],
+  "requirement_coverage": 0.9167,
+  "model": "qwen3-coder-local",
+  "evaluated_at": "2026-07-09T19:05:49Z"
+}

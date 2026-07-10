@@ -1,0 +1,13 @@
+{
+  "severity_counts": {"critical": 0, "high": 4, "medium": 0, "low": 0, "info": 0},
+  "penalty_score": 0.6,
+  "top_findings": [
+    {"id": "R7", "kind": "requirement_missing", "severity": "high", "title": "No SQLite/embedded DB persistence — data held in an in-memory global", "evidence": "src/main.rs:23 static mut BOOKS; sqlx/uuid unused; README admits in-memory", "suggestion": "Wire an actual sqlx SqlitePool into the handlers"},
+    {"id": "storage-unsafe", "kind": "security_concern", "severity": "high", "title": "Shared mutable state via unsafe static mut is a data race under concurrent requests", "evidence": "src/main.rs:23 static mut BOOKS accessed in unsafe blocks (62,81,103,125,140); warp runs handlers concurrently -> UB", "suggestion": "Use Arc<Mutex<Vec<Book>>> or the SqlitePool"},
+    {"id": "test-dead-file", "kind": "disabled_test", "severity": "high", "title": "The only substantive tests are in a dead file never compiled or run", "evidence": "src/main_test.rs (331 LOC) not declared as a module in main.rs; cargo never compiles it", "suggestion": "Move into tests/ and exercise the real routes"},
+    {"id": "test-placeholder", "kind": "test_failure", "severity": "high", "title": "All tests that actually run are placeholders — the application is effectively untested", "evidence": "tests/api_tests.rs:9 and tests/integration_tests.rs:10 assert_eq!(true,true); none invoke main.rs handlers", "suggestion": "Write integration tests that call the real warp routes"}
+  ],
+  "requirement_coverage": 0.75,
+  "model": "qwen3-coder-local",
+  "evaluated_at": "2026-07-09T21:19:33Z"
+}

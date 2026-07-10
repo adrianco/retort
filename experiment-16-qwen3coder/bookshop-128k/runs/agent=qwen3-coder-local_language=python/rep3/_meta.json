@@ -1,0 +1,9 @@
+{
+  "replicate": 3,
+  "run_config": {
+    "agent": "qwen3-coder-local",
+    "language": "python"
+  },
+  "succeeded": true,
+  "visibility": "public"
+}

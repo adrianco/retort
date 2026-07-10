@@ -1,0 +1,1 @@
+No particular testing or development methodology is prescribed. Implement the task using whatever approach you judge best, and include tests that demonstrate the implementation meets the requirements.

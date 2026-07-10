@@ -1,0 +1,17 @@
+{
+  "name": "book-collection-api",
+  "version": "1.0.0",
+  "description": "REST API for managing a book collection",
+  "main": "server.ts",
+  "scripts": {
+    "start": "bun run server.ts",
+    "test": "bun test"
+  },
+  "keywords": ["book", "api", "rest", "sqlite"],
+  "author": "Book API Developer",
+  "license": "MIT",
+  "dependencies": {
+    "@types/bun": "latest",
+    "typescript": "^5"
+  }
+}

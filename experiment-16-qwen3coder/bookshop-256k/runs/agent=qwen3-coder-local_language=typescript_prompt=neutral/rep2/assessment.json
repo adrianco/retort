@@ -1,0 +1,10 @@
+{
+  "severity_counts": {"critical": 0, "high": 1, "medium": 0, "low": 0, "info": 0},
+  "penalty_score": 0.9,
+  "top_findings": [
+    {"id": "lang-mismatch", "kind": "lint_warning", "severity": "high", "title": "Delivered JavaScript, not the specified TypeScript", "evidence": "stack.json sets language=typescript, but the workspace contains only .js files (server.js, test.js, demo.js) with no .ts sources, no tsconfig.json, and no type annotations; scores.json records idiomatic=0.0 and maintainability=0.20 as a result.", "suggestion": "Implement in TypeScript (typed Express handlers, tsconfig.json, ts-jest) to satisfy the language factor for this cell."}
+  ],
+  "requirement_coverage": 0.9167,
+  "model": "qwen3-coder-local",
+  "evaluated_at": "2026-07-09T18:32:23Z"
+}

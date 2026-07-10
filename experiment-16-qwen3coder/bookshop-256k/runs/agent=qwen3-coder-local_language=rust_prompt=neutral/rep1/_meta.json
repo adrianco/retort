@@ -1,0 +1,10 @@
+{
+  "replicate": 1,
+  "run_config": {
+    "agent": "qwen3-coder-local",
+    "language": "rust",
+    "prompt": "neutral"
+  },
+  "succeeded": true,
+  "visibility": "public"
+}

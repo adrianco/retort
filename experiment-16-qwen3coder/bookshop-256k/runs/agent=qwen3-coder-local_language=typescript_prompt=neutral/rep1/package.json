@@ -1,0 +1,13 @@
+{
+  "name": "book-api",
+  "version": "1.0.0",
+  "description": "REST API for managing a book collection",
+  "main": "index.js",
+  "scripts": {
+    "start": "node index.js",
+    "test": "node test-suite.js"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "MIT"
+}

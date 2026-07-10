@@ -1,0 +1,23 @@
+{
+  "severity_counts": {
+    "critical": 0,
+    "high": 1,
+    "medium": 0,
+    "low": 0,
+    "info": 0
+  },
+  "penalty_score": 0.9,
+  "top_findings": [
+    {
+      "id": "P1",
+      "kind": "requirement_partial",
+      "severity": "high",
+      "title": "ATDD prompt not followed: no failing-first, atomic, independent acceptance tests",
+      "evidence": "prompt=ATDD required client-perspective acceptance tests that are atomic/independent and each start from an empty service. simple_test.py:13 is one monolithic test_api() that runs create->list->get->update->delete sharing a single book with no per-scenario reset; verify_implementation.py:68 verify_requirements() greps app.py source and always returns True (asserts on HOW, not behavior). No red/green or tests-first evidence.",
+      "suggestion": "Split into independent HTTP-level acceptance scenarios (one per requirement), each resetting to an empty store; delete the grep-based verifier which is not a behavioral test."
+    }
+  ],
+  "requirement_coverage": 0.9167,
+  "model": "qwen3-coder-local",
+  "evaluated_at": "2026-07-09T16:38:47Z"
+}

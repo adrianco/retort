@@ -1,0 +1,10 @@
+{
+  "severity_counts": {"critical": 0, "high": 1, "medium": 0, "low": 0, "info": 0},
+  "penalty_score": 0.9,
+  "top_findings": [
+    {"id": "R8", "kind": "requirement_partial", "severity": "high", "title": "PUT /books/{id} and DELETE /books/{id} return 200 OK for a non-existent id instead of 404", "evidence": "main.go:243-251 and main.go:260-267 branch on err.Error()=='sql: no rows in result set', but UpdateBook/DeleteBook use bs.db.Exec (main.go:106-116) which returns a nil error and never sql.ErrNoRows; RowsAffected is unchecked, so updates/deletes of missing ids silently succeed with 200", "suggestion": "Inspect res.RowsAffected() after Exec and return http.StatusNotFound when it is 0"}
+  ],
+  "requirement_coverage": 0.9167,
+  "model": "qwen3-coder-local",
+  "evaluated_at": "2026-07-09T05:30:49Z"
+}

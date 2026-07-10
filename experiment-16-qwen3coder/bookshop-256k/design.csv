@@ -1,0 +1,9 @@
+run,language,agent,prompt
+0,python,qwen3-coder-local,neutral
+1,go,qwen3-coder-local,neutral
+2,typescript,qwen3-coder-local,neutral
+3,rust,qwen3-coder-local,neutral
+4,python,qwen3-coder-local,ATDD
+5,go,qwen3-coder-local,ATDD
+6,typescript,qwen3-coder-local,ATDD
+7,rust,qwen3-coder-local,ATDD

@@ -1,0 +1,5 @@
+run,language,agent
+0,python,qwen3-coder-local
+1,go,qwen3-coder-local
+2,typescript,qwen3-coder-local
+3,rust,qwen3-coder-local
