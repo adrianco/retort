@@ -1,0 +1,39 @@
+{
+  "severity_counts": {
+    "critical": 1,
+    "high": 2,
+    "medium": 0,
+    "low": 0,
+    "info": 0
+  },
+  "penalty_score": 0.55,
+  "top_findings": [
+    {
+      "id": "P1",
+      "kind": "requirement_partial",
+      "severity": "critical",
+      "title": "ATDD prompt not followed \u2014 7 of 8 acceptance tests are assert!(true) placeholders",
+      "evidence": "src/main.rs:213-252 \u2014 test_create_book/list/get/update/delete/validation/filter_by_author all contain only `// placeholder` + `assert!(true)`; only test_health_check (main.rs:198-209) exercises the service, and it wires a fresh App with just the /health route rather than the real app. The ATDD prompt required executable acceptance tests driving the HTTP interface from an external client, starting from an empty service; none of the CRUD/validation behaviors are actually asserted.",
+      "suggestion": "Replace each placeholder with a real actix test that builds the full App, issues the HTTP request, and asserts on status code + JSON body, starting from an empty store."
+    },
+    {
+      "id": "R7",
+      "kind": "requirement_missing",
+      "severity": "high",
+      "title": "No SQLite/embedded DB \u2014 data held in an in-memory Mutex<Vec<Book>>",
+      "evidence": "src/main.rs:30 `books: Mutex<Vec<Book>>`; Cargo.toml has no rusqlite/sled/diesel dependency. main.rs:48 creates a `data/` dir via fs::create_dir_all but nothing is ever written to it; state is lost on restart and seeded with 2 hardcoded sample books.",
+      "suggestion": "Persist books to SQLite (e.g. rusqlite) or an embedded store; remove the unused data/ dir creation and hardcoded sample data."
+    },
+    {
+      "id": "disabled-tests",
+      "kind": "disabled_test",
+      "severity": "high",
+      "title": "test_coverage=1.0 is inflated by 7 trivially-passing placeholder tests",
+      "evidence": "src/main.rs:211-252 \u2014 7 tests assert!(true); cargo test reports 8 passing (test_coverage=1.0 in scores.json) but only 1 test verifies any behavior. Effective tests = 1, not 8.",
+      "suggestion": "Treat these as non-tests; the true test signal for cross-run comparison is 1 effective test."
+    }
+  ],
+  "requirement_coverage": 0.75,
+  "model": "hermes-local",
+  "evaluated_at": "2026-07-10T03:12:10Z"
+}

@@ -1,0 +1,23 @@
+{
+  "severity_counts": {
+    "critical": 0,
+    "high": 1,
+    "medium": 0,
+    "low": 0,
+    "info": 0
+  },
+  "penalty_score": 0.9,
+  "top_findings": [
+    {
+      "id": "P2",
+      "kind": "test_failure",
+      "severity": "high",
+      "title": "Acceptance tests are not isolated \u2014 share a persistent on-disk DB, suite is non-repeatable",
+      "evidence": "integration_test.go:107 asserts assert.Len(t, books, 1) for author 'Author A', but tests open the shared file ./books.db (database.go:19 sql.Open(\"sqlite3\",\"./books.db\")) with no reset/cleanup; the archived books.db is non-empty, so a second `go test` run accumulates rows and this assertion fails. main_test.go 'List Books' also depends on the prior 'Create Book' subtest.",
+      "suggestion": "Use a fresh temp/in-memory DB per test (e.g. an initDB variant taking a DSN, or t.TempDir()); the ATDD prompt requires each scenario to start from an empty service and share no data."
+    }
+  ],
+  "requirement_coverage": 1.0,
+  "model": "hermes-local",
+  "evaluated_at": "2026-07-09T23:51:46Z"
+}

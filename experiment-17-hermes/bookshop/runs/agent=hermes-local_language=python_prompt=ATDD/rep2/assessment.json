@@ -1,0 +1,10 @@
+{
+  "severity_counts": {"critical": 0, "high": 1, "medium": 0, "low": 0, "info": 0},
+  "penalty_score": 0.9,
+  "top_findings": [
+    {"id": "P1", "kind": "requirement_partial", "severity": "high", "title": "ATDD prompt violated: acceptance tests use back-door DB access", "evidence": "test_app.py seeds fixtures via db.session.add(Book(...)) in 6 of 11 tests (lines 65,79,97,116,141,161) instead of using the public HTTP API; the ATDD prompt requires exercising the SUT only through its REST interface with no back-door DB access.", "suggestion": "Arrange test state by POSTing books through the API instead of inserting rows directly."}
+  ],
+  "requirement_coverage": 1.0,
+  "model": "hermes-local",
+  "evaluated_at": "2026-07-10T01:03:51Z"
+}

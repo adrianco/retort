@@ -1,0 +1,69 @@
+# Experiment 17 — the HERMES agent (NousResearch) with SQLite context
+# management, on the bookshop task. Same MODEL and SERVER as experiment-16
+# (Qwen3-Coder-30B-A3B Q4_K_M via llama.cpp --jinja, 128K), so this is a
+# CONTROLLED comparison isolating the AGENT: Hermes vs omp. The hypothesis:
+# Hermes' persistent SQLite context (vs omp's lossy mid-task compaction, which
+# exp-16 showed was the first-order cause of failures) raises the success rate
+# on the same language x prompt grid.
+#
+# Serving note: the plan was MLX (oMLX/mlx-lm), but mlx-lm's OpenAI server did
+# not parse THIS model's <function=...> tool-call format into structured
+# tool_calls (Hermes then saw text and executed nothing). llama.cpp --jinja
+# parses this model's tool calls correctly (proven in exp-16), so it is the
+# serving layer here — which also makes the omp-vs-Hermes comparison exact.
+#
+# Prereqs: llama.cpp serving Qwen3-Coder-30B on 127.0.0.1:8080 (the exp-16
+# supervisor); `hermes` on PATH with ~/.hermes/config.yaml having an
+# openai-compatible provider (api: http://127.0.0.1:8080/v1, api_mode: openai)
+# set as default_provider; `claude` authed for the spec-gate judge.
+#
+# Run:
+#   export PATH="$HOME/hermes-venv/bin:/opt/homebrew/bin:$HOME/go/bin:$PATH"
+#   PYTHONPATH=src .venv/bin/python -c 'from retort.cli import main; main()' run \
+#     --phase screening --config experiment-17-hermes/bookshop/workspace.yaml \
+#     --design experiment-17-hermes/bookshop/design.csv --replicates 3 --resume
+
+experiment:
+  name: experiment-17-hermes-local-bookshop
+  visibility: public
+
+factors:
+  language:
+    levels: [python, go, typescript, rust]
+  agent:
+    levels: [hermes-local, claude-code]
+  prompt:
+    levels: [neutral, ATDD]
+
+responses:
+  - code_quality
+  - token_efficiency
+  - test_coverage
+  - defect_rate
+  - maintainability
+  - idiomatic
+
+tasks:
+  - source: bundled://rest-api-crud
+
+playpen:
+  runner: local
+  replicates: 3
+  timeout_minutes: 30
+  max_turns: 200
+  local_agents:
+    hermes-local:
+      harness: hermes
+      model: qwen3-coder-30b   # resolves via ~/.hermes provider (llama.cpp :8080)
+
+design:
+  screening_resolution: 3
+  significance_threshold: 0.10
+
+promotion:
+  screening_to_trial: { p_value: 0.10 }
+  trial_to_production: { posterior_confidence: 0.80 }
+
+evaluation:
+  enabled: true       # spec-conformance gate — NEVER disable
+  model: opus-4.8     # neutral independent judge
