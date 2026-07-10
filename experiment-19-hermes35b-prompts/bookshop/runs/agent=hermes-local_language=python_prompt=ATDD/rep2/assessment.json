@@ -1,0 +1,39 @@
+{
+  "severity_counts": {
+    "critical": 0,
+    "high": 3,
+    "medium": 0,
+    "low": 0,
+    "info": 0
+  },
+  "penalty_score": 0.7,
+  "top_findings": [
+    {
+      "id": "test-run-1",
+      "kind": "test_failure",
+      "severity": "high",
+      "title": "Acceptance suite never validates the app under scoring (test_coverage=0.14, app.py ~0% covered)",
+      "evidence": "test_app.py:13 and conftest.py:17 issue HTTP requests to a live server, but no fixture/harness starts one; scores.json test_coverage=0.14 and .coverage shows app.py essentially unexercised \u2014 all 25 tests error on connection when run headless via `pytest --cov`.",
+      "suggestion": "Start the Flask app in-process for tests (Flask test_client or a session-scoped fixture that launches/tears down the server) so the acceptance suite is self-hosting and actually exercises app.py."
+    },
+    {
+      "id": "port-1",
+      "kind": "test_failure",
+      "severity": "high",
+      "title": "Port mismatch: app.py binds 5000 but tests/conftest/README target 5001",
+      "evidence": "app.py:217 `app.run(..., port=5000, ...)` vs test_app.py:13 and conftest.py:8 `BASE_URL=http://127.0.0.1:5001` and README.md:73 'server starts at 5001'. Following the README, `python app.py` binds 5000 and every test fails to connect.",
+      "suggestion": "Make the port consistent \u2014 bind 5000\u21925001 in app.py (or read from env) so the documented run instructions actually make the tests pass."
+    },
+    {
+      "id": "R12",
+      "kind": "requirement_partial",
+      "severity": "high",
+      "title": "R12: >=3 tests exist but do not effectively run/pass (coverage 0.14)",
+      "evidence": "25 tests defined in test_app.py, but they require an externally-started server on the wrong port, so none pass under scoring; test_coverage=0.14 barely clears >0 and no behavior is actually verified.",
+      "suggestion": "Make at least the core CRUD/health tests self-hosting so they pass without manual setup, satisfying 'tests exist and run'."
+    }
+  ],
+  "requirement_coverage": 0.9167,
+  "model": "hermes-local",
+  "evaluated_at": "2026-07-10T13:15:32Z"
+}

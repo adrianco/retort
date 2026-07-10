@@ -1,0 +1,5 @@
+flask>=3.0,<4.0
+pytest>=7.0,<8.0
+pytest-bdd>=7.0,<8.0
+pytest-flask>=1.2,<2.0
+requests>=2.31,<3.0

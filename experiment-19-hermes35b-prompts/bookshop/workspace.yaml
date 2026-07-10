@@ -1,0 +1,60 @@
+# Experiment 19 — PROMPT sweep on the best local stack, Python only.
+# Same stack as exp-18 (Hermes + hermes-lcm -> oMLX -> Qwen3.6-35B-A3B MLX), but
+# fix language=python and vary the prompt across ALL FOUR methodologies
+# (neutral, TDD, ATDD, BDD) to add TDD and BDD to the results and find the best
+# prompt for this local stack. exp-20 then runs that winning prompt across every
+# language.
+#
+# language[python] × prompt[neutral, TDD, ATDD, BDD] × 3 replicates = 12 runs.
+# Prereqs identical to exp-18 (oMLX on :8080, Hermes+hermes-lcm, max_turns 30).
+#
+# Run:
+#   export PATH="$HOME/hermes-venv/bin:/opt/homebrew/bin:$HOME/go/bin:$PATH"
+#   PYTHONPATH=src .venv/bin/python -c 'from retort.cli import main; main()' run \
+#     --phase screening --config experiment-19-hermes35b-prompts/bookshop/workspace.yaml \
+#     --design experiment-19-hermes35b-prompts/bookshop/design.csv --replicates 3 --resume
+
+experiment:
+  name: experiment-19-hermes35b-prompts-python
+  visibility: public
+
+factors:
+  language:
+    levels: [python, go]   # registry needs >=2 levels; --design CSV lists ONLY python
+  agent:
+    levels: [hermes-local, claude-code]
+  prompt:
+    levels: [neutral, TDD, ATDD, BDD]
+
+responses:
+  - code_quality
+  - token_efficiency
+  - test_coverage
+  - defect_rate
+  - maintainability
+  - idiomatic
+
+tasks:
+  - source: bundled://rest-api-crud
+
+playpen:
+  runner: local
+  replicates: 3
+  timeout_minutes: 30
+  max_turns: 200
+  local_agents:
+    hermes-local:
+      harness: hermes
+      model: mlxlocal/Qwen3.6-35B-A3B
+
+design:
+  screening_resolution: 3
+  significance_threshold: 0.10
+
+promotion:
+  screening_to_trial: { p_value: 0.10 }
+  trial_to_production: { posterior_confidence: 0.80 }
+
+evaluation:
+  enabled: true
+  model: opus-4.8
