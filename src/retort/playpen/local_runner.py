@@ -451,7 +451,16 @@ class LocalRunner:
             ]
             model = self._model_for(stack)
             if model and model != "none":
-                cmd.extend(["-m", model])
+                # Hermes resolves a bare `-m <model>` to no provider ("No LLM
+                # provider configured") — it needs the provider explicitly. Encode
+                # the profile model as "provider/model" (as omp does) and split it
+                # into `--provider <p> -m <m>`; a bare id (no slash) relies on the
+                # config's default_provider.
+                if "/" in model:
+                    provider, model_id = model.split("/", 1)
+                    cmd.extend(["--provider", provider, "-m", model_id])
+                else:
+                    cmd.extend(["-m", model])
             prompt_level = stack.extra.get("prompt", "none")
             prompt_injection = self._load_prompt_file(prompt_level) if prompt_level != "none" else ""
             cmd.extend(["-z", _build_agent_prompt(stack, prompt_injection)])
