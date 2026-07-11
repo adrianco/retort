@@ -449,6 +449,35 @@ def _load_from_stdin() -> FactorRegistry:
         "…) before running. Defaults to the workspace config."
     ),
 )
+@click.option(
+    "--repair-from",
+    type=click.Path(exists=True),
+    default=None,
+    help=(
+        "SELF-REPAIR mode. Path to a base experiment dir (or its retort.db). For "
+        "each (language, replicate) cell, seed the playpen with that cell's prior "
+        "attempt from the base experiment, drop in a FEEDBACK.md (requirement "
+        "checklist + the prior evaluation verdict), and let the agent fix it — "
+        "instead of building from scratch. Cells whose prior attempt already "
+        "passed are skipped. Use a `prompt: [repair]` factor with a "
+        "prompts/repair.md that tells the agent to read FEEDBACK.md and repair the "
+        "existing code. Produces a normal retort.db, scored/gated like any run."
+    ),
+)
+@click.option(
+    "--no-second-chance",
+    is_flag=True,
+    default=False,
+    help=(
+        "Disable the DEFAULT self-repair second chance. By default, when a cell "
+        "fails the gate (agent completed but fell short), it gets ONE repair "
+        "attempt — re-seeded with its own code + FEEDBACK.md — before being "
+        "recorded; a run that only passes on the second try is a `_second_try` run "
+        "counted at HALF credit toward pass-proportion. Use this to turn that off "
+        "(e.g. to avoid doubling paid-model cost on failures). Crashes are never "
+        "second-chanced (nothing to repair); they retry via --resume."
+    ),
+)
 def run_experiments(
     phase: str,
     config: str,
@@ -460,6 +489,8 @@ def run_experiments(
     shard: str | None,
     design_csv: str | None,
     install_toolchains: bool | None,
+    repair_from: str | None,
+    no_second_chance: bool,
 ) -> None:
     """Execute experiment runs for a design matrix.
 
@@ -711,6 +742,15 @@ def run_experiments(
                     click.echo(f"  {label} {stack.language}/{stack.framework}/{stack.agent} — skip (resume)")
                     skipped += 1
                     continue
+                # Self-repair mode: only run cells whose prior attempt failed and
+                # left code to fix; skip the rest (nothing to repair).
+                repair_prior = None
+                if repair_from is not None:
+                    repair_prior = _repair_prior_run(repair_from, stack.language, rep)
+                    if repair_prior is None:
+                        click.echo(f"  {label} {stack.language}/{stack.framework}/{stack.agent} — skip (no repairable prior)")
+                        skipped += 1
+                        continue
                 click.echo(f"  {label} {stack.language}/{stack.framework}/{stack.agent}", nl=False)
 
                 estimated_timeout = _estimate_run_timeout(
@@ -721,6 +761,11 @@ def run_experiments(
                 runner.timeout_minutes = estimated_timeout
 
                 env_id = runner.provision(stack, task)
+                if repair_prior is not None:
+                    _seed_repair_workspace(
+                        runner.work_dir / env_id, repair_prior,
+                        config_dir / "REQUIREMENTS.json",
+                    )
                 try:
                     artifacts = runner.execute(env_id, stack, task)
                     if artifacts.usage_limited:
@@ -779,7 +824,64 @@ def run_experiments(
                     # A completed-but-gate-failed run IS a data point (progress).
                     run_crashed = not artifacts.succeeded
 
-                    status = "ok" if run_ok else ("CRASH" if run_crashed else "FAIL")
+                    # DEFAULT self-repair: a gate-FAILURE (agent completed but fell
+                    # short) gets ONE repair attempt, re-seeded with its own code +
+                    # FEEDBACK.md. A crash has no artifact to repair; a --repair-from
+                    # cell is already a repair. A second-try PASS is recorded like
+                    # any run but flagged `_second_try` → HALF credit in analysis.
+                    second_try = False
+                    if (not run_ok and not run_crashed and not no_second_chance
+                            and repair_from is None and archived is not None):
+                        click.echo(" — 2nd chance…", nl=False)
+                        # count the first attempt's spend toward the run totals
+                        if artifacts.metadata:
+                            try:
+                                accumulated_cost += float(artifacts.metadata.get("total_cost_usd") or 0)
+                            except (TypeError, ValueError):
+                                pass
+                        accumulated_tokens += artifacts.token_count or 0
+                        prior = {"dir": archived, "status": "failed", "req_cov": req_cov}
+                        env_id2 = runner.provision(stack, task)
+                        try:
+                            _seed_repair_workspace(
+                                runner.work_dir / env_id2, prior,
+                                config_dir / "REQUIREMENTS.json",
+                            )
+                            a2 = runner.execute(env_id2, stack, task)
+                            if not a2.usage_limited:
+                                s2 = collector.collect(a2, stack)
+                                tf2 = _tests_did_not_run(s2)
+                                arch2 = _archive_run_workspace(
+                                    archive_root, run_config, rep, a2,
+                                    visibility=workspace_config.experiment.visibility,
+                                )
+                                if arch2 is not None:
+                                    try:
+                                        (arch2 / "scores.json").write_text(json.dumps(s2.to_dict()))
+                                    except OSError:
+                                        pass
+                                sf2 = False
+                                rc2 = None
+                                if (workspace_config.evaluation.enabled and a2.succeeded
+                                        and not tf2 and arch2 is not None):
+                                    try:
+                                        v2, rc2 = _spec_conformance_passes(
+                                            arch2, workspace_config.evaluation,
+                                            workspace_config.experiment.visibility)
+                                        sf2 = v2 is False
+                                    except Exception as exc:
+                                        click.echo(f"  (2nd-chance gate crashed: {exc})", err=True)
+                                # adopt the second attempt as the recorded result
+                                artifacts, scores = a2, s2
+                                tests_failed, spec_failed, req_cov, archived = tf2, sf2, rc2, arch2
+                                run_ok = a2.succeeded and not tf2 and not sf2
+                                run_crashed = not a2.succeeded
+                                second_try = True
+                        finally:
+                            runner.teardown(env_id2)
+
+                    status = ("ok*" if (run_ok and second_try) else "ok" if run_ok
+                              else "CRASH" if run_crashed else "FAIL")
                     score_str = ", ".join(
                         f"{k}={v:.2f}" for k, v in scores.to_dict().items()
                     )
@@ -802,6 +904,9 @@ def run_experiments(
                         design_row_id=run_config_to_row_id.get(config_key),
                         conformance_failed=(tests_failed or spec_failed),
                         requirement_coverage=req_cov,
+                        # a --repair-from cell is itself a repair (2nd attempt),
+                        # so it too counts at half credit.
+                        second_try=(second_try or repair_from is not None),
                     )
                     # Commit per-run so an interrupt loses at most one run.
                     session.commit()
@@ -888,6 +993,138 @@ def _parse_shard(spec: str | None) -> tuple[int, int]:
     if idx < 0 or idx >= total:
         raise click.ClickException(f"--shard INDEX must be in [0, {total - 1}], got {idx}")
     return (idx, total)
+
+
+def _repair_prior_run(base: str, language: str, replicate: int):
+    """For --repair-from: find the base experiment's prior attempt for this
+    (language, replicate). Returns ``{'dir', 'status', 'req_cov'}`` for a
+    REPAIRABLE prior (it failed/crashed AND left a code archive), or ``None``
+    when there is nothing to repair (no prior, no code, or it already passed).
+    """
+    import glob as _glob
+    import sqlite3 as _sqlite
+
+    base_path = Path(base)
+    db_path = base_path if base_path.suffix == ".db" else base_path / "retort.db"
+    runs_root = (base_path.parent if base_path.suffix == ".db" else base_path) / "runs"
+    if not db_path.exists():
+        return None
+    con = _sqlite.connect(db_path)
+    con.row_factory = _sqlite.Row
+    status = None
+    req_cov = None
+    for r in con.execute("SELECT id, status, replicate, run_config_json FROM experiment_runs"):
+        try:
+            cfg = json.loads(r["run_config_json"])
+        except (TypeError, ValueError):
+            continue
+        if cfg.get("language") != language or r["replicate"] != replicate:
+            continue
+        status = r["status"]
+        row = con.execute(
+            "SELECT value FROM run_results WHERE run_id=? AND metric_name='requirement_coverage'",
+            (r["id"],),
+        ).fetchone()
+        req_cov = row[0] if row else None
+        break
+    con.close()
+    if status is None:
+        return None
+    # already passed → nothing to repair
+    if status == "completed" and req_cov is not None and abs(req_cov - 1.0) < 1e-9:
+        return None
+    # locate the archived code dir for this (language, replicate)
+    matches = _glob.glob(str(runs_root / f"*language={language}*" / f"rep{replicate}"))
+    prior_dir = next((Path(m) for m in matches if Path(m).is_dir()), None)
+    if prior_dir is None:
+        return None
+    # must contain some source to seed
+    has_code = any(
+        not f.name.startswith("_")
+        and f.name not in ("TASK.md", "stack.json", "scores.json", "assessment.json",
+                            "evaluation.md", "findings.jsonl", "_meta.json", "REQUIREMENTS.json")
+        for f in prior_dir.rglob("*") if f.is_file()
+    )
+    if not has_code:
+        return None
+    return {"dir": prior_dir, "status": status, "req_cov": req_cov}
+
+
+def _seed_repair_workspace(env_dir: Path, prior, requirements_path: Path | None) -> None:
+    """Seed a provisioned playpen with a prior attempt's code + a FEEDBACK.md so
+    the agent repairs rather than rebuilds. TASK.md (written by provision) stays.
+    """
+    import shutil as _shutil
+
+    skip = {"TASK.md", "stack.json", "scores.json", "assessment.json", "evaluation.md",
+            "findings.jsonl", "_meta.json", ".coverage", "FEEDBACK.md", "REQUIREMENTS.json"}
+    for item in prior["dir"].iterdir():
+        if item.name in skip or item.name.startswith("_"):
+            continue
+        dst = env_dir / item.name
+        try:
+            if item.is_dir():
+                _shutil.copytree(item, dst, dirs_exist_ok=True)
+            else:
+                _shutil.copy2(item, dst)
+        except OSError:
+            pass
+    # Build FEEDBACK.md: the requirement checklist + the prior evaluation verdict.
+    lines = [
+        "# Evaluation feedback on your previous attempt",
+        "",
+        "A previous attempt is already in this directory. It did NOT pass an "
+        "independent evaluation. Fix it.",
+        "",
+        "## Requirements that must ALL be met",
+    ]
+    reqs = {}
+    if requirements_path and Path(requirements_path).exists():
+        try:
+            reqs = json.loads(Path(requirements_path).read_text())
+        except (OSError, ValueError):
+            reqs = {}
+    for rq in reqs.get("requirements", []):
+        lines.append(f"- [{rq.get('id','')}] {rq.get('requirement','')}"
+                     + (f"  (verify: {rq['how_to_verify']})" if rq.get("how_to_verify") else ""))
+    lines += ["", "## What went wrong last time"]
+    if prior["status"] == "crashed":
+        lines.append("- The previous run never finished a testable build. Make sure the "
+                     "project builds and the tests actually run and terminate.")
+    else:
+        rc = f", requirement_coverage {prior['req_cov']:.2f}" if prior["req_cov"] is not None else ""
+        lines.append(f"- The build/tests did not fully pass (status: {prior['status']}{rc}).")
+    findings_file = prior["dir"] / "assessment.json"
+    if findings_file.exists():
+        try:
+            for f in json.loads(findings_file.read_text()).get("top_findings", [])[:10]:
+                lines.append(f"- {f.get('title') or f.get('description') or f}")
+        except (OSError, ValueError):
+            pass
+    lines += ["", "Fix the existing code so every requirement above is met and the tests run and pass."]
+    (env_dir / "FEEDBACK.md").write_text("\n".join(lines))
+    if requirements_path and Path(requirements_path).exists():
+        try:
+            _shutil.copy2(requirements_path, env_dir / "REQUIREMENTS.json")
+        except OSError:
+            pass
+    # Prompt-agnostic repair instruction: prepend a banner to TASK.md so the
+    # agent repairs the seeded code and reads FEEDBACK.md whatever prompt the
+    # experiment uses (needed for the default in-line second chance, which keeps
+    # the experiment's own prompt).
+    task_md = env_dir / "TASK.md"
+    banner = (
+        "# REPAIR TASK\n\nA previous attempt at the task below is ALREADY in this "
+        "directory but did NOT pass an independent evaluation. Read `FEEDBACK.md` "
+        "for exactly what was wrong, then FIX the existing code so it builds, all "
+        "tests run and pass, and every requirement is met. Do NOT start over.\n\n"
+        "---\n\n"
+    )
+    try:
+        orig = task_md.read_text() if task_md.exists() else ""
+        task_md.write_text(banner + orig)
+    except OSError:
+        pass
 
 
 def _estimate_run_timeout(session, run_config: dict, fallback_minutes: int) -> int:
@@ -1723,6 +1960,7 @@ def _store_run_result(
     design_row_id: int | None = None,
     conformance_failed: bool = False,
     requirement_coverage: float | None = None,
+    second_try: bool = False,
 ) -> None:
     """Store a run and its scores in the database.
 
@@ -1828,6 +2066,15 @@ def _store_run_result(
             run_id=run.id,
             metric_name="_tokens",
             value=float(artifacts.token_count),
+        ))
+    # Flag a run that only reached its outcome on the self-repair SECOND attempt.
+    # A second-try PASS counts at HALF credit toward pass-proportion in analysis;
+    # the raw scores stay at their true final values.
+    if second_try:
+        session.add(RunResult(
+            run_id=run.id,
+            metric_name="_second_try",
+            value=1.0,
         ))
     cost_str = artifacts.metadata.get("total_cost_usd") if artifacts.metadata else None
     if cost_str:

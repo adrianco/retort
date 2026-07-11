@@ -26,6 +26,9 @@ TELEMETRY = {
     "_tokens": "tokens",
     "_cost_usd": "cost_usd",
     "_turns": "turns",
+    # 1.0 when the run only reached its outcome on the self-repair SECOND attempt.
+    # A `second_try` pass counts at HALF credit toward pass-proportion.
+    "_second_try": "second_try",
 }
 FACTORS = ["language", "model", "tooling", "prompt"]
 TEXT_COLS = ["experiment", "task", "status", "started_at", "finished_at"] + FACTORS
