@@ -1,0 +1,10 @@
+{
+  "severity_counts": {"critical": 0, "high": 0, "medium": 0, "low": 0, "info": 0},
+  "penalty_score": 1.0,
+  "top_findings": [],
+  "requirement_coverage": 1.0,
+  "model": "hermes-local",
+  "evaluated_at": "2026-07-11T16:41:46Z",
+  "min_severity": "high",
+  "note": "4 findings in findings.jsonl (3 low, 1 info); none at or above min_severity=high"
+}

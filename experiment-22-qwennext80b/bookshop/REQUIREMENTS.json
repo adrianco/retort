@@ -1,0 +1,19 @@
+{
+  "task": "rest-api-crud",
+  "source": "bundled://rest-api-crud",
+  "note": "Pinned, fixed requirement checklist for ALL runs of this task. Authored once from the bundled task spec so requirement_coverage uses a constant denominator and is comparable across runs. Do not regenerate per-run.",
+  "requirements": [
+    {"id": "R1", "requirement": "POST /books creates a new book (title, author, year, isbn)", "how_to_verify": "A create route accepts the four fields and persists a book."},
+    {"id": "R2", "requirement": "GET /books lists all books", "how_to_verify": "A list route returns the collection."},
+    {"id": "R3", "requirement": "GET /books supports an ?author= filter", "how_to_verify": "The list route filters by author query param."},
+    {"id": "R4", "requirement": "GET /books/{id} returns a single book by id", "how_to_verify": "A get-by-id route returns one book (404 if absent)."},
+    {"id": "R5", "requirement": "PUT /books/{id} updates a book", "how_to_verify": "An update route modifies an existing book."},
+    {"id": "R6", "requirement": "DELETE /books/{id} deletes a book", "how_to_verify": "A delete route removes a book."},
+    {"id": "R7", "requirement": "Data stored in SQLite (or an embedded DB equivalent)", "how_to_verify": "Persistence uses SQLite/embedded DB, not just in-memory state."},
+    {"id": "R8", "requirement": "Returns JSON responses with appropriate HTTP status codes", "how_to_verify": "Routes return JSON and correct codes (201/200/404/400 etc.)."},
+    {"id": "R9", "requirement": "Input validation: title and author are required", "how_to_verify": "Creating without title/author is rejected (400)."},
+    {"id": "R10", "requirement": "GET /health health-check endpoint", "how_to_verify": "A /health route returns a healthy status."},
+    {"id": "R11", "requirement": "README.md with setup and run instructions", "how_to_verify": "README.md documents how to set up and run the service."},
+    {"id": "R12", "requirement": "At least 3 unit/integration tests", "how_to_verify": ">= 3 tests exist and run (test_coverage > 0)."}
+  ]
+}

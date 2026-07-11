@@ -1,0 +1,11 @@
+{
+  "severity_counts": {"critical": 1, "high": 0, "medium": 0, "low": 0, "info": 0},
+  "penalty_score": 0.75,
+  "top_findings": [
+    {"id": "archive-empty", "kind": "build_failure", "severity": "critical", "title": "Deliverables written outside the workspace — archive contains no source, README, or tests", "evidence": "run_dir has only TASK.md/logs/meta/scores; no src/*.ts. _agent_stdout.log lists files created at /Users/adriancockcroft/code/book-api/...; code exists only at that external hardcoded path.", "suggestion": "Agent must create files relative to the provided workspace cwd, not a hardcoded /Users/... path. As archived, the run cannot be built or run and is not reproducible."}
+  ],
+  "requirement_coverage": 1.0,
+  "model": "hermes-local",
+  "min_severity": "high",
+  "evaluated_at": "2026-07-11T19:17:22Z"
+}

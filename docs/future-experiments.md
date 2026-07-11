@@ -37,10 +37,13 @@ claim. Direct "80B vs 35B, same stack" comparison: does doubling the model crack
 Rust / raise the 0.38 ceiling? Optionally add **Devstral Small 2** as a cheap
 second arm (different bet: agent-tuned, not just bigger).
 
-> **Status:** Qwen3-Coder-Next-80B (`mlx-community/Qwen3-Coder-Next-4bit`, ~45 GB,
-> fits the 56 GB wired limit; hybrid linear-attn + MoE keeps KV small) is **now
-> running as experiment-22** — mainstream 4 languages first, then expand to all 9
-> if it beats the 35B. **Devstral Small 2** remains the queued second arm.
+> **Status — exp-22 DONE, NEGATIVE result:** Qwen3-Coder-Next-80B
+> (`mlx-community/Qwen3-Coder-Next-4bit`, ~45 GB) did **not** beat the 35B — first-try
+> pass 0.33 vs the 35B's 0.50 on the mainstream four, slower, and more prone to
+> never terminating (a Rust run hit the wall at 3.9M tokens). Bigger ≠ better on
+> this easy task; the 35B has no headroom to improve on. Did NOT expand to 9
+> languages. **Next: try a *different* bet, not a bigger one — Devstral Small 2**
+> (24B, agent-tuned, fast) is the queued arm.
 
 MLX builds seen: `mlx-community/Qwen3-Next-80B-A3B-Instruct-4bit` (44.8 GB,
 general instruct); `majentik/Qwen3-Coder-Next-MLX-3bit` (~34 GB, coding-tuned);

@@ -1,0 +1,11 @@
+{
+  "severity_counts": {"critical": 1, "high": 1, "medium": 0, "low": 0, "info": 0},
+  "penalty_score": 0.65,
+  "top_findings": [
+    {"id": "archive-empty", "kind": "build_failure", "severity": "critical", "title": "Archived run_dir contains no source code — deliverable is unreproducible from the archive", "evidence": "run_dir has only TASK.md/stack.json/scores.json/logs; no Cargo.toml, src/, tests/, or README.md. The scored code (test_coverage=1.0) lives in the self-repair clone temp workspace retort-0f2422d0999c, which was not archived.", "suggestion": "Fix the archiver to copy the winning self-repair clone into runs/<cell>/rep1 instead of the empty first-attempt dir."},
+    {"id": "sandbox-write-guard", "kind": "build_failure", "severity": "high", "title": "First attempt produced zero files — local hermes write-guard refused all writes under /private/var/folders", "evidence": "_agent_stdout.log: 'Refusing to write to sensitive system path: /private/var/folders/.../retort-d88eeb957eb5/Cargo.toml'. First-attempt workspace has no source and no git commits; run only passed via the self-repair clone.", "suggestion": "Whitelist the retort-local temp workspace root in the file-write guard so the agent can create source on the first attempt."}
+  ],
+  "requirement_coverage": 1.0,
+  "model": "hermes-local",
+  "evaluated_at": "2026-07-11T16:32:49Z"
+}

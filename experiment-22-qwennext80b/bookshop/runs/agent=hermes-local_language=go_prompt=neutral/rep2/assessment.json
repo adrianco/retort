@@ -1,0 +1,10 @@
+{
+  "severity_counts": {"critical": 0, "high": 0, "medium": 0, "low": 0, "info": 0},
+  "penalty_score": 1.0,
+  "top_findings": [],
+  "requirement_coverage": 1.0,
+  "model": "hermes-local",
+  "evaluated_at": "2026-07-11T16:54:15Z",
+  "min_severity": "high",
+  "note": "4 findings in findings.jsonl (1 medium, 3 low) all fall below min_severity=high, so counts are zero and penalty_score is 1.0. requirement_coverage=12/12 implemented. file-run-issues v2.0 aggregates only; tracker=beads is not applicable (this skill creates no tracker issues)."
+}

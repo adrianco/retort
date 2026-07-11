@@ -28,6 +28,7 @@ Here is the full board, every model measured on the two tasks — **pass-proport
 | Claude Sonnet 4.6 | cloud | 0.50 | 0.63 | $1.10 |
 | Claude Opus 4.6 | cloud | 0.47 | 0.59 | $1.30 |
 | **Qwen3.6-35B-A3B** *(best local)* ⁵ | **local · $0** | — | **0.38** | **$0** |
+| **Qwen3-Coder-Next-80B-A3B** *(bigger ≠ better)* ⁷ | **local · $0** | — | 0.33 | **$0** |
 | **Qwen3-Coder-30B-A3B** ⁶ | **local · $0** | — | **0.33** | **$0** |
 
 ² Fast mode (`/fast`), 4 languages. Cost at fast mode's **2× per-token rate** ([announcement](https://www.anthropic.com/news/claude-opus-4-8)) — see [Fast mode](#fast-mode-speed-you-pay-double-for).
@@ -35,6 +36,7 @@ Here is the full board, every model measured on the two tasks — **pass-proport
 ⁴ **Sonnet 5** — experiment 15, a 15-cell language × prompt grid, spec-gated by an independent Opus-4.8 judge; 0.93 hard = 14 of 15 (the miss: Rust + TDD). See [Sonnet 5 in depth](#sonnet-5-in-depth-the-token-bill-the-tdd-lever-and-one-rust-miss).
 ⁵ **Qwen3.6-35B-A3B**, served with MLX/oMLX and driven by the Hermes agent on an **M5 / 64 GB laptop** — the *easy* task, four mainstream languages (python/go/typescript/rust). Across **all nine** languages it drops to **0.11** — the niche-language wall (Clojure/Java/C#/Elixir/Erlang all fail); a self-repair second chance lifts that to **0.22**, but only within the mainstream. It's the first local stack to crack TypeScript. Full story in the local-model sections just below.
 ⁶ **Qwen3-Coder-30B-A3B** via llama.cpp — **0.08** at a 32 K context, **0.33** at 128 K: context is the first-order lever for a local model.
+⁷ **Qwen3-Coder-Next-80B-A3B** (exp-22), same stack as the 35B. Doubling the model *lowered* first-try reliability (0.33 vs the 35B's 0.50 on these languages) — slower and more prone to never terminating (a Rust run hit the wall at 3.9M tokens). The local mirror of "at the top, extra spend buys nothing."
 
 The one-line reading, newest first: **a good local model on a laptop gets about a third of the way to the cloud frontier for free — and only in the languages it actually knows** — while the cloud frontier is a solved ~1.00 on easy work, where extra spend (Sonnet 5, fast mode, the tier-above Fable 5) buys latency and cost but no more reliability. The rest of this piece works newest-first: the local-model arc (how it was built and where the wall is), then the cloud-frontier detail.
 

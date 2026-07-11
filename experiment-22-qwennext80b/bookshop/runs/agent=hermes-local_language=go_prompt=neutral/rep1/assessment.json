@@ -1,0 +1,11 @@
+{
+  "severity_counts": {"critical": 1, "high": 1, "medium": 0, "low": 0, "info": 0},
+  "penalty_score": 0.65,
+  "top_findings": [
+    {"id": "build-fail-panic", "kind": "build_failure", "severity": "critical", "title": "Server panics on startup — duplicate ServeMux route registration", "evidence": "main.go:28-29 register \"/books\" twice on http.NewServeMux(); confirmed at runtime: panic: pattern \"/books\" conflicts with pattern \"/books\" from net/http (*ServeMux).register. main() never reaches ListenAndServe. /books/{id} is also registered 3x.", "suggestion": "Build the production router the same way the tests do — a single gorilla/mux router with one HandleFunc per (path, method) using .Methods(). The panic makes the primary deliverable non-functional."},
+    {"id": "routing-mux-mismatch", "kind": "build_failure", "severity": "high", "title": "main.go uses stdlib ServeMux but handlers require gorilla/mux (broken even without the panic)", "evidence": "main.go:22 uses http.NewServeMux() with no method filter, while handler/book_handler.go:41,95,138 read path params via mux.Vars(r). Under stdlib ServeMux mux.Vars returns empty, so id parsing fails and GET/POST/PUT/DELETE on the same path cannot be dispatched.", "suggestion": "Use gorilla/mux in main.go (router.HandleFunc(...).Methods(...)) exactly as test/api_test.go does."}
+  ],
+  "requirement_coverage": 1.0,
+  "model": "hermes-local",
+  "evaluated_at": "2026-07-11T15:14:00Z"
+}

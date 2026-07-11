@@ -1,0 +1,31 @@
+{
+  "severity_counts": {
+    "critical": 1,
+    "high": 1,
+    "medium": 0,
+    "low": 0,
+    "info": 0
+  },
+  "penalty_score": 0.65,
+  "top_findings": [
+    {
+      "id": "run-integrity",
+      "kind": "security_concern",
+      "severity": "critical",
+      "title": "Agent wrote all deliverables outside the sandboxed workspace; run archive contains no source code",
+      "evidence": "run_dir has only TASK.md/stack.json/logs (no src/, tests, README, package.json). _agent_stdout.log reports the project was created at /Users/adriancockcroft/dev/book-api/ and the file-mutation verifier flagged a REFUSED write to the temp workspace package.json (/private/var/folders/.../retort-a1f98eae3c2a/package.json \u2014 'Refusing to write to sensitive system path'). scores.json test_coverage=0.75 matches the agent's self-reported 23/31 pass rate, so scoring ran against the escaped copy, not the workspace.",
+      "suggestion": "Constrain the local agent to write only inside the run workspace; treat out-of-sandbox writes as a hard run failure. This run is non-reproducible from its archive."
+    },
+    {
+      "id": "R4",
+      "kind": "requirement_partial",
+      "severity": "high",
+      "title": "GET/PUT/DELETE /books/{id} reject the only pre-existing books: id schema requires a UUID but seeded ids are '1','2','3'",
+      "evidence": "validation.ts:12 bookIdSchema = z.string().uuid(); database.ts:45-49 seeds books with ids '1','2','3'; server.ts:37-40,74-77,100-103 return 400 'Invalid book ID format' for any non-UUID id. So /books/1 -> 400, never 200/404. Works only for POST-created books (createBook uses crypto.randomUUID()). R5/R6 share this defect.",
+      "suggestion": "Either seed UUID ids or relax bookIdSchema to accept the id format actually used; add a test that fetches a seeded book by id."
+    }
+  ],
+  "requirement_coverage": 0.9167,
+  "model": "hermes-local",
+  "evaluated_at": "2026-07-11T17:40:28Z"
+}
