@@ -12,6 +12,35 @@ behaviour scenarios — does the resulting code come out more reliably correct? 
 is methodology a ritual the model can take or leave on a task it already knows
 how to do?
 
+## Newest first: on a *local* model the prompt is NOT a flat line — and ATDD is the worst
+
+The most recent prompt data comes from the other end of the capability range: a
+**local** model on a laptop (Qwen3.6-35B-A3B, served with MLX/oMLX, driven by the
+Hermes agent — the stack from the [model blog](model-blog.md)). On the strong
+cloud models below, the prompt is a flat line — they pass whatever you ask. On a
+*weak* model it is not. Sweeping all four methodologies on Python
+(experiment-19, pass-proportion over 3 replicates):
+
+| prompt | pass | avg test-cov | avg tokens |
+|---|:--:|:--:|:--:|
+| **neutral** | **2/3** | 0.96 | **0.40 M** |
+| **BDD** | **2/3** | 0.97 | 1.03 M |
+| TDD | 1/3 | 0.98 | 0.54 M |
+| **ATDD** | **0/3** | 0.41 | 0.73 M |
+
+Two things land. First, **neutral and BDD tie for best, but neutral gets there at
+~2.5× fewer tokens** — the plain prompt is the cheap winner. Second, and more
+strongly: **ATDD is dead last — 0/3** — and it isn't a one-off. Across *four*
+local experiments (exp-16/18/19/20) ATDD has come in worst every time: 0.17 vs
+neutral's 0.33, 0.25 vs 0.50, and 0/3 here. A weak model can't carry ATDD's
+front-loaded discipline (turn every acceptance criterion into an executable test
+through the public interface *before* implementing); it flails and burns tokens.
+
+So the sharpened, current advice for a local model **inverts the usual "more
+discipline is better"**: keep the prompt plain, and *don't* reach for ATDD. The
+cloud story below is where that pattern first showed up in miniature — ATDD on the
+one weak-ish cloud stack (Sonnet + Go) was the single place a prompt broke a run.
+
 ## Setting it up so the prompt is the only thing that changes
 
 The hard task (a Brazilian-soccer MCP server built from a multi-file spec) is the

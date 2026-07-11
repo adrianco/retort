@@ -1,12 +1,12 @@
 # How Reliable Is Your AI Coding Stack? I Measured It
 
-*June 2026 — Adrian Cockcroft*
+*June 2026, updated July 2026 — Adrian Cockcroft*
 
 ---
 
 Every few weeks a new frontier model tops the leaderboards, and the implicit advice is "upgrade." Sites like **[llm-stats.com](https://llm-stats.com/)** rank models well across many benchmarks — but they answer a question most engineering teams aren't actually asking. They hold the *stack* constant: one prompt, one harness, a fixed benchmark. They don't tell you whether the newest model is worth 4× the cost **in Rust**, how *reliably* each model gets a Go MCP server completely right, or how long any of it takes.
 
-Those are the variables that decide a real project. So I built **[retort](https://github.com/adrianco/retort)** to measure them properly — with statistical Design of Experiments, the same technique you'd use to tune a manufacturing process. Vary the factors you care about (here: programming **language** × **model version** × **tooling** — and, newly, the **coding agent** and the **prompt methodology**), run a factorial grid on a real task, score every cell, and let the analysis tell you which factors actually matter. And because retort accumulates results across a shared database, each new model just gets *added* to what's already known — the point of the project is to measure how each new release behaves without re-running everything. Ten experiments, close to **290 scored runs**, two tasks, eight languages, five Claude models spanning the Sonnet and Opus lines (plus a fast-mode variant and the next-tier Fable 5). The newest arrival — **Claude Sonnet 5** — headlines this update.
+Those are the variables that decide a real project. So I built **[retort](https://github.com/adrianco/retort)** to measure them properly — with statistical Design of Experiments, the same technique you'd use to tune a manufacturing process. Vary the factors you care about (here: programming **language** × **model version** × **tooling** — and, newly, the **coding agent**, the **prompt methodology**, and **local self-hosted models**), run a factorial grid on a real task, score every cell, and let the analysis tell you which factors actually matter. And because retort accumulates results across a shared database, each new model just gets *added* to what's already known — the point of the project is to measure how each new release behaves without re-running everything. It now spans two tasks, nine languages, the Claude Sonnet/Opus lines (plus a fast-mode variant and the tier-above Fable 5), and **local models running for free on a laptop**. **Newest first:** the most recent work took the whole thing down to an on-device local stack — an M5 laptop, $0 per token — and measured exactly how far it gets against the cloud frontier. That's the headline below; the cloud-model detail (Sonnet 5 and the rest) follows.
 
 ## The metric that matters: how often is it *completely* right?
 
@@ -14,31 +14,34 @@ Most code scores grade on a curve — 80% test coverage, a clean linter run, a p
 
 Read it as **the probability that a single run comes out completely correct.** 3 of 3 → 1.00, 2 of 3 → 0.66, 1 of 3 → 0.33. A run that misses even one requirement counts as a fail, not a 0.9. That's a deliberately harsh bar, and it's the one that matters when you're deciding whether to trust an agent with a feature.
 
-## The headline: Sonnet 5 vaults the Sonnet line to the frontier — at a frontier-*plus* price
+## The headline: the whole landscape, cloud frontier down to a laptop
 
-The newest model is the story. **Claude Sonnet 5** takes the Sonnet line from coin-flip to near-perfect — but it's the slowest, most token-hungry model on the board, and it costs *more* than Opus 4.8 to get there. Aggregated per model per task (pass-proportion = the fraction of runs that come out **completely** right):
+Here is the full board, every model measured on the two tasks — **pass-proportion = the probability a single run comes out completely correct** — with the newest additions (local, on-device, $0) in bold at the bottom:
 
-| Model | Brazil MCP (hard) | REST API (easy) | Speed (hard) | Cost (hard) |
-|---|---:|---:|---:|---:|
-| **sonnet-5** ⁴ *(newest)* | **0.93** | **1.00** | 1252 s | $7.64 |
-| opus-4.6 | 0.47 | 0.59 | 309 s | $1.30 |
-| sonnet 4.6 | 0.50 | 0.63 | 440 s | $1.10 |
-| opus-4.7 | 0.85 | **1.00** | 774 s | $4.92 |
-| **opus-4.8** | **1.00** | **1.00** | 1035 s | $5.54 |
-| opus-4.8-fast² | **1.00** | **1.00** | 887 s | $8.72 |
-| fable-5³ | **1.00** | **1.00** | 1039 s | $8.98 |
+| Model | Serving | Brazil MCP (hard) | REST-API (easy) | Cost/run |
+|---|---|---:|---:|---:|
+| Claude Opus 4.8 | cloud | **1.00** | **1.00** | $5.54 |
+| Claude Opus 4.7 | cloud | 0.85 | **1.00** | $4.92 |
+| Claude Sonnet 5 *(newest cloud)* ⁴ | cloud | 0.93 | **1.00** | $7.64 |
+| Claude Fable 5 ³ | cloud | **1.00** | **1.00** | $8.98 |
+| Claude Opus 4.8 fast ² | cloud | **1.00** | **1.00** | $8.72 |
+| Claude Sonnet 4.6 | cloud | 0.50 | 0.63 | $1.10 |
+| Claude Opus 4.6 | cloud | 0.47 | 0.59 | $1.30 |
+| **Qwen3.6-35B-A3B** *(best local)* ⁵ | **local · $0** | — | **0.38** | **$0** |
+| **Qwen3-Coder-30B-A3B** ⁶ | **local · $0** | — | **0.33** | **$0** |
 
-² Fast mode (`/fast`), 4 languages (clojure/go/python/rust). Cost is at fast mode's **2× per-token rate** ([announcement](https://www.anthropic.com/news/claude-opus-4-8)) — see [Fast mode](#fast-mode-speed-you-pay-double-for) below.
-³ **Claude Fable 5** — a distinct model a *tier above* Opus 4.8 — same 4 languages, priced at the same $10/$50 rate as fast mode. More on it just below.
-⁴ **Sonnet 5** — experiment 15, a 15-cell **language × prompt** grid (5 languages × {neutral, TDD, BDD}), one replicate, spec-gated by an independent Opus-4.8 judge. Hard = **0.93** = 14 of 15 fully correct (the one miss: Rust with a TDD prompt). Only Sonnet 5 was newly run; every other row is read from the accumulated database — the incremental design in action. Full breakdown in [Sonnet 5 in depth](#sonnet-5-in-depth-the-token-bill-the-tdd-lever-and-one-rust-miss).
+² Fast mode (`/fast`), 4 languages. Cost at fast mode's **2× per-token rate** ([announcement](https://www.anthropic.com/news/claude-opus-4-8)) — see [Fast mode](#fast-mode-speed-you-pay-double-for).
+³ **Claude Fable 5** — a distinct model a *tier above* Opus 4.8, priced at the same $10/$50 rate as fast mode. More below.
+⁴ **Sonnet 5** — experiment 15, a 15-cell language × prompt grid, spec-gated by an independent Opus-4.8 judge; 0.93 hard = 14 of 15 (the miss: Rust + TDD). See [Sonnet 5 in depth](#sonnet-5-in-depth-the-token-bill-the-tdd-lever-and-one-rust-miss).
+⁵ **Qwen3.6-35B-A3B**, served with MLX/oMLX and driven by the Hermes agent on an **M5 / 64 GB laptop** — the *easy* task, four mainstream languages (python/go/typescript/rust). Across **all nine** languages it drops to **0.11** — the niche-language wall (Clojure/Java/C#/Elixir/Erlang all fail); a self-repair second chance lifts that to **0.22**, but only within the mainstream. It's the first local stack to crack TypeScript. Full story in the local-model sections just below.
+⁶ **Qwen3-Coder-30B-A3B** via llama.cpp — **0.08** at a 32 K context, **0.33** at 128 K: context is the first-order lever for a local model.
 
-What jumps out:
+The one-line reading, newest first: **a good local model on a laptop gets about a third of the way to the cloud frontier for free — and only in the languages it actually knows** — while the cloud frontier is a solved ~1.00 on easy work, where extra spend (Sonnet 5, fast mode, the tier-above Fable 5) buys latency and cost but no more reliability. The rest of this piece works newest-first: the local-model arc (how it was built and where the wall is), then the cloud-frontier detail.
 
-1. **The new Sonnet leapt a full reliability generation.** Sonnet 5 gets the easy task completely right *every* time (1.00) and the hard task 14 of 15 (0.93) — where the previous Sonnet (4.6) got the hard task fully right only **half** the time (0.50). On the metric that matters — completely correct, not just plausible — Sonnet 5 sits with the Opus frontier, not with its own predecessor.
-2. **But it spends like a frontier model — actually, more.** Sonnet 5 is the **slowest** row here and among the **priciest**: ~1250 s and **$7.64** per hard run, *above* Opus 4.8's $5.54. The cause is a startling token appetite — ≈16M tokens on a hard run versus Opus 4.8's ≈5M. Sonnet's traditional "cheaper tier" advantage is simply gone at the 5-series.
-3. **Opus 4.8 still owns the hardest task.** At a perfect 1.00 on Brazil for less money and less time than Sonnet 5, 4.8 remains the pick when a task is genuinely hard and has to be right the first time. Sonnet 5's single miss was Rust-with-TDD — the priciest language paired with the strictest prompt.
-4. **Newer is more reliable, and the older/cheaper models are coin-flips on hard work.** Opus 4.6 and Sonnet 4.6 got Brazil fully right only ~half the time — fine in a demo, a liability in review. Each generation buys reliability and charges time and money for it everywhere.
-5. **At the top, extra spend buys nothing.** Fast mode and the tier-above **Fable 5** both match Opus 4.8's 1.00/1.00 at the highest prices on the board — because where 4.8 is already perfect there's no reliability left to buy (more below).
+Two things worth pulling out of the board before the deep dives:
+
+- **On the cloud frontier, newer is more reliable — and the older/cheaper models are coin-flips on hard work.** Opus 4.6 and Sonnet 4.6 got the hard task fully right only ~half the time; each generation buys reliability and charges time and money for it. But at the very top, extra spend buys nothing: Sonnet 5, fast mode, and Fable 5 all match Opus 4.8's 1.00/1.00 at higher prices, because where 4.8 is already perfect there's no reliability left to buy.
+- **On a laptop, the whole stack around the model matters more than the model.** Going from 0.08 to 0.38 came from context size, an MLX serving layer that parses the model's tool calls, a model one size up, and an agent that doesn't throw away its own context — none of it a new model. But none of it moves the one hard limit either: language reach.
 
 ## Sonnet 5 in depth: the token bill, the TDD lever, and one Rust miss
 

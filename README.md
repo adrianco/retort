@@ -112,20 +112,26 @@ The headline metric is **pass-proportion**: with N replicates of a stack, the fr
 
 ### Model reliability vs. cost (the main result)
 
-Aggregated per model per task (larger samples → robust):
+The whole landscape, cloud frontier down to a local laptop stack (**pass-proportion = fraction of runs that fully implement the spec**), newest additions (local, $0) in bold at the bottom:
 
-| Model | Brazil MCP (hard) | REST-API (easy) | Speed¹ | Cost/run¹ |
-|---|---:|---:|---:|---:|
-| opus-4.6 | 0.47 | 0.59 | 309 s | $1.30 |
-| sonnet | 0.50 | 0.63 | 440 s | $1.10 |
-| opus-4.7 | 0.85 | **1.00** | 774 s | $4.92 |
-| **opus-4.8** | **1.00** | **1.00** | 1035 s | $5.54 |
-| opus-4.8-fast² | **1.00** | **1.00** | 887 s | $8.72 |
-| fable-5³ | **1.00** | **1.00** | 1039 s | $8.98 |
+| Model | Serving | Brazil MCP (hard) | REST-API (easy) | Cost/run¹ |
+|---|---|---:|---:|---:|
+| **opus-4.8** | cloud | **1.00** | **1.00** | $5.54 |
+| opus-4.7 | cloud | 0.85 | **1.00** | $4.92 |
+| sonnet-5 ⁴ *(newest cloud)* | cloud | 0.93 | **1.00** | $7.64 |
+| fable-5³ | cloud | **1.00** | **1.00** | $8.98 |
+| opus-4.8-fast² | cloud | **1.00** | **1.00** | $8.72 |
+| sonnet 4.6 | cloud | 0.50 | 0.63 | $1.10 |
+| opus-4.6 | cloud | 0.47 | 0.59 | $1.30 |
+| **Qwen3.6-35B-A3B** ⁵ *(best local)* | **local · $0** | — | **0.38** | **$0** |
+| **Qwen3-Coder-30B-A3B** ⁶ | **local · $0** | — | **0.33** | **$0** |
 
-¹ Brazil task. **Pass-proportion = fraction of that model's runs that fully implement the spec.**
+¹ Cost on the Brazil (hard) task for cloud; local inference is $0. **Pass-proportion = fraction of that model's runs that fully implement the spec.**
 ² Fast mode (`/fast`), 4 languages (clojure/go/python/rust). Cost is at fast mode's **2× per-token rate** ([announcement](https://www.anthropic.com/news/claude-opus-4-8)) — see [Fast mode](#fast-mode-speed-for-a-2x-price-premium).
-³ Claude Fable 5 (`claude-fable-5`), same 4 languages. A **distinct model a tier above Opus 4.8**, priced at the same **$10/$50 per Mtok** rate as fast mode (2× Opus 4.8's standard rate); the CLI prices it natively. See [exp-10 results](experiment-10/results.md).
+³ Claude Fable 5 (`claude-fable-5`), same 4 languages. A **distinct model a tier above Opus 4.8**, priced at the same **$10/$50 per Mtok** rate as fast mode; the CLI prices it natively. See [exp-10 results](experiment-10/results.md).
+⁴ Claude Sonnet 5 (exp-15). Only Sonnet 5 was newly run; every other cloud row is read from the accumulated `master.db` — the incremental design.
+⁵ **Qwen3.6-35B-A3B** on an **M5/64 GB laptop** (MLX via oMLX, Hermes agent), REST-API easy task, four mainstream languages. Across **all nine** languages it drops to **0.11** — the niche-language wall (Clojure/Java/C#/Elixir/Erlang all fail); a default self-repair second chance lifts that to **0.22**, mainstream only. First local stack to crack TypeScript. Exp 16–21.
+⁶ **Qwen3-Coder-30B-A3B** via llama.cpp — **0.08** at a 32 K context, **0.33** at 128 K: context is the first-order lever for a local model.
 
 - **Newer *is* more reliable — markedly so on hard tasks.** Opus-4.8 produces a completely-correct result **100% of the time on both tasks**; 4.7 is 85% / 100%. The cheaper models (4.6, Sonnet) get the *hard* task completely right only **~half the time** — they're a coin-flip.
 - **You pay steeply for that reliability.** On the hard task Opus-4.8 is **~3× slower and ~4× pricier** than 4.6 / Sonnet.
@@ -134,6 +140,7 @@ Aggregated per model per task (larger samples → robust):
 - **A tier *above* 4.8 buys no extra reliability either.** Claude Fable 5 — a distinct model above Opus 4.8, at the same $10/$50 rate as fast mode — also lands at **1.00 / 1.00**, matching 4.8 exactly. But where 4.8 is already perfect there is no headroom to buy: Fable 5 is the **priciest *and* slowest** option on the hard task ($8.98, 1039 s), with no measurable reliability gain. Paying up a tier is pure overhead until a task is hard enough that 4.8 itself drops below 1.00 — neither task here reaches that.
 - **On easy tasks, almost anything works**, so the cheapest reliable model wins (often 4.7 or even 4.6).
 - **It's a reliability-vs-cost decision, and it's task-dependent** — precisely what a leaderboard can't tell you.
+- **A local model on a laptop is about a third of the way to the frontier — for free, and only in the languages it knows.** The best local stack (Qwen3.6-35B, MLX + Hermes on an M5) reaches **0.38** on the easy task's mainstream languages ($0/run) but **0.11 across all nine** — Clojure/Java/C#/Elixir/Erlang are a hard capability wall no agent/context/serving upgrade moves. Context size was the biggest lever (0.08→0.33). A default self-repair second chance (any model, half credit) lifts local to 0.22, but only within the mainstream. See exp 16–21 and the [model blog](model-blog.md).
 
 ### Recommended leading stack per language
 
@@ -260,8 +267,18 @@ Reproduce with `retort report effects --db <experiment>/retort.db --metric <resp
 
 Each row links to its **full per-cell results table** (every language × model × tooling, with pass-proportion, speed, cost, and quality, generated from `master.db`).
 
+Newest first — the recent work is the **local-model arc** (exp 16–21) plus **Sonnet 5** (exp-15):
+
 | # | Task | Models | Covered | Results table | Headline (clean data) |
 |---|---|---|---:|---|---|
+| 21 | REST-API (**local**) | Self-repair: 2nd try + feedback on Qwen3.6-35B | 27 | **[results →](experiment-21-repair-lcm/RESULTS.md)** | Repair doubles pass **0.11→0.22**, but only mainstream; niche wall is a true capability ceiling |
+| 20 | REST-API (**local**) | Qwen3.6-35B × **all 9 languages** | 27 | **[results →](experiment-20-hermes35b-alllang/RESULTS.md)** | Mainstream/niche split: 0.11; Clojure/Java/C#/Elixir/Erlang all fail (all genuine) |
+| 19 | REST-API (**local**) | Qwen3.6-35B × **prompt**[neutral/TDD/ATDD/BDD], Python | 12 | **[results →](experiment-19-hermes35b-prompts/RESULTS.md)** | neutral & BDD tie best; **ATDD worst (0/3)**; neutral ~2.5× cheaper |
+| 18 | REST-API (**local**) | **Hermes-lcm + Qwen3.6-35B** (MLX/oMLX) | 24 | **[results →](experiment-18-hermes-35b-lcm/RESULTS.md)** | Best local: **0.38**; **cracks TypeScript**; Rust non-terminating |
+| 17 | REST-API (**local**) | **Hermes agent** vs `omp`, Qwen3-Coder-30B | 24 | **[results →](experiment-17-hermes/RESULTS.md)** | Agent swap: default Hermes 0.12 < omp 0.33 (LCM plugin not yet on) |
+| 16 | REST-API (**local**) | **Qwen3-Coder-30B** (llama.cpp), 64K/128K/256K + prompt | 48 | **[results →](experiment-16-qwen3coder/RESULTS.md)** | First local model: **0.08→0.33** (context is the first-order lever); ATDD hurts |
+| 15 | Brazil + REST-API | **Claude Sonnet 5** × prompt | 30 | **[results →](experiment-15-sonnet5/RESULTS.md)** | Sonnet 5 vaults to the frontier (0.93 / 1.00) — but priciest & slowest |
+| 14 | Brazil-neutral | Sonnet, Opus-fast × prompt × **8 languages** | — | **[results →](experiment-14/results.md)** | Prompt is the smallest lever, across 8 languages |
 | 1 | REST-API | Opus-4.6, Sonnet | 56 | **[results →](experiment-1/results.md)** | Both ~0.6 reliable; Java/Go/Rust strongest; cheap but not certain |
 | 2 | Brazil | Opus-4.6, Sonnet | 22 | **[results →](experiment-2/results.md)** | Hard task exposes them — only ~half of runs fully correct |
 | 3 | Brazil | Opus-4.6, 4.7 | 7 | **[results →](experiment-3/results.md)** | 4.7 more reliable but **3× slower, 5.5× pricier** |
