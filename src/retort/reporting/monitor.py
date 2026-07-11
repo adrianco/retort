@@ -272,6 +272,7 @@ def build_snapshot(
                     "label": label,
                     "replicate": run.replicate,
                     "error": (run.error_message or "") + "  [crashed — will retry]",
+                    "duration_s": res.get(DURATION_METRIC),
                 }
             )
             continue
@@ -283,6 +284,7 @@ def build_snapshot(
                     "label": label,
                     "replicate": run.replicate,
                     "error": run.error_message or "",
+                    "duration_s": res.get(DURATION_METRIC),
                 }
             )
             # A failed run IS a data point that took wall-clock time — count its
@@ -551,7 +553,8 @@ def render_text(
         lines.append(f"Failures ({n}){suffix}:")
         for f in shown:
             err = (f["error"] or "").splitlines()[0][:80] if f["error"] else ""
-            lines.append(f"  ✗ {f['label']} rep{f['replicate']}  {err}")
+            dur = f" ({_fmt_duration(f.get('duration_s'))})" if f.get("duration_s") else ""
+            lines.append(f"  ✗ {f['label']} rep{f['replicate']}{dur}  {err}")
     else:
         lines.append("Failures   : none")
 
