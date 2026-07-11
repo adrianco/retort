@@ -37,6 +37,11 @@ claim. Direct "80B vs 35B, same stack" comparison: does doubling the model crack
 Rust / raise the 0.38 ceiling? Optionally add **Devstral Small 2** as a cheap
 second arm (different bet: agent-tuned, not just bigger).
 
+> **Status:** Qwen3-Coder-Next-80B (`mlx-community/Qwen3-Coder-Next-4bit`, ~45 GB,
+> fits the 56 GB wired limit; hybrid linear-attn + MoE keeps KV small) is **now
+> running as experiment-22** — mainstream 4 languages first, then expand to all 9
+> if it beats the 35B. **Devstral Small 2** remains the queued second arm.
+
 MLX builds seen: `mlx-community/Qwen3-Next-80B-A3B-Instruct-4bit` (44.8 GB,
 general instruct); `majentik/Qwen3-Coder-Next-MLX-3bit` (~34 GB, coding-tuned);
 `unsloth/Qwen3-Coder-Next-GGUF` (llama.cpp fallback).
@@ -61,8 +66,20 @@ so it's a clean test of self-repair.
   fix it, don't start over"), run the same stack, rescore + spec-gate. New
   exp-21 DB; compare pass-proportion vs exp-20 per language.
 - **Attempts:** one second try to start; extend to an iterative loop if it helps.
+- **Scoring — half credit on pass-proportion ONLY; quality metrics reflect final
+  quality.** A repaired pass is worth less as a *reliability* signal (it needed the
+  evaluation handed to it), but the *code it ends up with* is as good as it is. So:
+  - **Repair-adjusted pass-proportion** (headline): first-try pass = 1.0,
+    second-try/repaired pass = **0.5**, still-failing = 0.
+  - **All quality/coverage metrics stay at their true final values** — code_quality,
+    test_coverage, defect_rate, maintainability, idiomatic, requirement_coverage,
+    token_efficiency are recorded raw (the repaired code's actual quality). Do NOT
+    halve them.
+  - The 0.5 is a *pass-count* weight applied at the reporting layer, not a
+    discount on the stored scores. Gate on raw req_cov; a repaired req_cov==1.0
+    is a real pass that simply counts 0.5 toward the adjusted pass-proportion.
 - **Build:** needs a seed-workspace + augment-prompt hook (a `retort repair`
-  subcommand or a script reusing LocalRunner).
+  subcommand or a script reusing LocalRunner) plus a repair-adjusted scorer view.
 
 ---
 
