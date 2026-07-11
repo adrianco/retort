@@ -23,7 +23,7 @@ MoE, ~3B active, ~18–20 GB Q4).
 | Model | Size (total/active) | Fit on 64 GB (MLX) | Claim vs ours | Tool format |
 |---|---|---|---|---|
 | **Qwen3-Coder-Next (80B-A3B)** ⭐ primary | 80B / 3B MoE | 4-bit ≈ **44.8 GB** (tight; reduce ctx) or 3-bit ≈ **34 GB** (comfortable) | "~96% of the 480B flagship"; "comparable to 10–20× more active params" | **Same Qwen `<tool_call>` format oMLX already parses** — zero new integration risk |
-| **Devstral Small 2 (24B)** secondary | 24B dense | ~14 GB Q4 — huge headroom, fast | **68% SWE-bench**; *purpose-built for coding agents* (tool-use loops) | Mistral format — tool-probe first (older Devstral needed OpenHands scaffolding) |
+| ~~**Devstral Small 2 (24B)**~~ **BLOCKED** | 24B dense | ~14 GB Q4 — fits fine | 68% SWE-bench; agent-tuned | **oMLX does NOT parse Devstral's Mistral `[TOOL_CALLS]` format** (it emits the call as text; Hermes executes nothing — gate-probe on `mlx-community/Devstral-Small-2507-4bit` confirmed). Same wall as exp-12. Would need a different serving layer (vLLM with the mistral tool parser, or llama.cpp with the right template). |
 | gpt-oss-120b | 117B / 5.1B MoE | **~64–65 GB — likely won't fit** at 56 GB wired | best raw coder (83% Multi-LCB; Codeforces 2622) | Harmony format; only if we push memory limits (OOM risk) |
 | GLM-4.5-Air / 4.7-Flash | ~100B+ MoE | borderline → probably too tight | SWE-bench ~57.6% (Air) | MLX-tested; confirm exact size before trying |
 
@@ -37,13 +37,24 @@ claim. Direct "80B vs 35B, same stack" comparison: does doubling the model crack
 Rust / raise the 0.38 ceiling? Optionally add **Devstral Small 2** as a cheap
 second arm (different bet: agent-tuned, not just bigger).
 
-> **Status — exp-22 DONE, NEGATIVE result:** Qwen3-Coder-Next-80B
-> (`mlx-community/Qwen3-Coder-Next-4bit`, ~45 GB) did **not** beat the 35B — first-try
-> pass 0.33 vs the 35B's 0.50 on the mainstream four, slower, and more prone to
-> never terminating (a Rust run hit the wall at 3.9M tokens). Bigger ≠ better on
-> this easy task; the 35B has no headroom to improve on. Did NOT expand to 9
-> languages. **Next: try a *different* bet, not a bigger one — Devstral Small 2**
-> (24B, agent-tuned, fast) is the queued arm.
+> **Status — the fitting + tool-calling search is largely exhausted; Qwen3.6-35B
+> remains the best local stack.**
+> - **exp-22 (Qwen3-Coder-Next-80B):** bigger is NOT better — first-try 0.33 vs
+>   the 35B's 0.50, slower, more non-terminating (Rust to the wall at 3.9M
+>   tokens). The 35B has no headroom to improve on (local mirror of "at the top,
+>   extra spend buys nothing"). Did not expand to 9 languages.
+> - **Devstral (different bet):** BLOCKED — oMLX can't parse its Mistral tool-call
+>   format (see the table above).
+> - **What's left, all with a catch:** gpt-oss-120b (best raw coder but ~64 GB —
+>   over the 56 GB wired limit; would need to push memory limits) or gpt-oss-20b
+>   (fits, Harmony format — oMLX has a `harmony` reasoning parser, tool-parse
+>   unverified — but 20B is unlikely to beat the 35B); GLM/MiniMax/DeepSeek are
+>   all too big. To try Devstral or a Mistral-family coder, switch the serving
+>   layer to vLLM or llama.cpp (they parse the Mistral tool format).
+>
+> **Bottom line:** among models that both fit 64 GB and tool-call cleanly via
+> oMLX, **Qwen3.6-35B-A3B is the winner.** Further gains need either more memory
+> (bigger models) or a different serving layer (broader tool-format support).
 
 MLX builds seen: `mlx-community/Qwen3-Next-80B-A3B-Instruct-4bit` (44.8 GB,
 general instruct); `majentik/Qwen3-Coder-Next-MLX-3bit` (~34 GB, coding-tuned);
