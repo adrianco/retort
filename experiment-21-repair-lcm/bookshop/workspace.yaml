@@ -1,0 +1,33 @@
+# Experiment 21 — SELF-REPAIR with evaluation feedback. Re-run every non-passing
+# exp-20 cell as a SECOND attempt: seed the playpen with that cell's prior code +
+# a FEEDBACK.md (requirement checklist + the prior evaluation verdict), and let
+# the same stack (Hermes-lcm + Qwen3.6-35B via oMLX) fix it. Run via:
+#   retort run --config .../workspace.yaml --design .../design.csv --replicates 3 \
+#     --repair-from experiment-20-hermes35b-alllang/bookshop
+# Produces a normal retort.db. Scoring rule (analysis-time): a repaired pass counts
+# 0.5 toward pass-proportion; quality/coverage metrics are the true final values.
+experiment:
+  name: experiment-21-repair-lcm-bookshop
+  visibility: public
+factors:
+  language:
+    levels: [python, go, typescript, rust, clojure, java, csharp, elixir, erlang]
+  agent:
+    levels: [hermes-local, claude-code]
+  prompt:
+    levels: [repair, neutral]   # registry needs >=2; --design lists ONLY repair
+responses: [code_quality, token_efficiency, test_coverage, defect_rate, maintainability, idiomatic]
+tasks:
+  - source: bundled://rest-api-crud
+playpen:
+  runner: local
+  replicates: 3
+  timeout_minutes: 30
+  max_turns: 200
+  local_agents:
+    hermes-local: { harness: hermes, model: mlxlocal/Qwen3.6-35B-A3B }
+design: { screening_resolution: 3, significance_threshold: 0.10 }
+promotion:
+  screening_to_trial: { p_value: 0.10 }
+  trial_to_production: { posterior_confidence: 0.80 }
+evaluation: { enabled: true, model: opus-4.8 }

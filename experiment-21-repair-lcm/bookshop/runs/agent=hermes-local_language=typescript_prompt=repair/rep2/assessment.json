@@ -1,0 +1,11 @@
+{
+  "severity_counts": {"critical": 0, "high": 1, "medium": 0, "low": 0, "info": 0},
+  "penalty_score": 0.9,
+  "top_findings": [
+    {"id": "test-gate", "kind": "test_failure", "severity": "high", "title": "Independent test/coverage gate scored 0.294, far below a passing suite", "evidence": "scores.json test_coverage=0.2941 (TypeScript scorer parses jest --coverage statement %). Agent _agent_stdout.log claims 'All 16 tests pass' but the independent scorer recorded ~29.4%, so a fully-passing, well-covered run (=1.0) is not demonstrated. This was the repair task's explicit success criterion.", "suggestion": "Re-run `npx jest --coverage` in a clean checkout, confirm 16/16 actually pass on a freshly rebuilt better-sqlite3 binary, and raise statement coverage (server.ts and error/404 handlers are uncovered)."}
+  ],
+  "requirement_coverage": 1.0,
+  "model": "hermes-local",
+  "evaluated_at": "2026-07-11T02:14:30Z",
+  "min_severity": "high"
+}

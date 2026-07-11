@@ -1,0 +1,39 @@
+{
+  "severity_counts": {
+    "critical": 1,
+    "high": 2,
+    "medium": 0,
+    "low": 0,
+    "info": 0
+  },
+  "penalty_score": 0.55,
+  "top_findings": [
+    {
+      "id": "tests",
+      "kind": "test_failure",
+      "severity": "critical",
+      "title": "Repair objective unmet: 5 of 11 tests fail (test_coverage=0.545)",
+      "evidence": "scores.json test_coverage=0.5454545454545454 (=6/11 pass); FEEDBACK.md required all tests to run AND pass; the 5 inserting tests (testCreateBook, testGetAllBooks, testGetBooksByAuthorFilter, testGetBookById, testUpdateBook) fail",
+      "suggestion": "Fix test DB isolation (see finding 'db-state') so inserts do not collide; the run cannot be considered repaired while tests fail"
+    },
+    {
+      "id": "db-state",
+      "kind": "test_failure",
+      "severity": "high",
+      "title": "Persistent file SQLite DB + committed rows + no test isolation cause unique-ISBN collisions",
+      "evidence": "src/main/resources/application.properties:1 jdbc:sqlite:src/main/resources/books.db with ddl-auto=update; the shipped books.db already holds 6 rows whose ISBNs (978-0743273565, 978-0451524935, 978-0061120084, 978-0060850524, 000-0000000000, 000-0000000001) equal the exact values the 5 failing tests insert; BookControllerIntegrationTest.java has no @Transactional/@Sql/@BeforeEach/@AfterEach cleanup",
+      "suggestion": "Use an isolated per-test DB (in-memory H2 or sqlite :memory:) or add @Transactional rollback / @BeforeEach deleteAll; do not ship a populated books.db in resources"
+    },
+    {
+      "id": "broad-catch",
+      "kind": "lint_warning",
+      "severity": "high",
+      "title": "GlobalExceptionHandler maps every RuntimeException to 404, masking 500-class errors",
+      "evidence": "src/main/java/com/example/bookapi/config/GlobalExceptionHandler.java handleNotFoundException(RuntimeException) returns 404 for ALL RuntimeExceptions, so a DataIntegrityViolationException (duplicate isbn) or any internal error is reported as 404 Not Found instead of 409/500",
+      "suggestion": "Introduce a dedicated NotFoundException caught specifically; let integrity/other errors surface as 409/500"
+    }
+  ],
+  "requirement_coverage": 1.0,
+  "model": "hermes-local",
+  "evaluated_at": "2026-07-11T03:20:48Z"
+}
