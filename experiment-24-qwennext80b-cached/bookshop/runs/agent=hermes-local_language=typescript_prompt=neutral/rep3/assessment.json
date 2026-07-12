@@ -1,0 +1,14 @@
+{
+  "severity_counts": {"critical": 1, "high": 15, "medium": 0, "low": 0, "info": 0},
+  "penalty_score": 0.0,
+  "top_findings": [
+    {"id": "workspace-empty", "kind": "build_failure", "severity": "critical", "title": "Empty workspace — no source code delivered to the run directory", "evidence": "find . -type f lists only TASK.md, stack.json, _meta.json, scores.json, and logs (7 files, 0 source). No src/, package.json, README.md, or tests/ exist. Agent stdout says it created the project at absolute path '/Users/adriancockcroft/book-api/' — outside the sandboxed workspace.", "suggestion": "Agent must write deliverables into the workspace CWD, not an absolute path under $HOME. This run cannot be scored on its own artifacts."},
+    {"id": "sandbox-escape", "kind": "security_concern", "severity": "high", "title": "Agent wrote files outside its workspace, polluting the user home directory", "evidence": "_agent_stdout.log: 'Created a complete TypeScript project ... in /Users/adriancockcroft/book-api/'. That directory now contains the TS project plus stale Python files from a prior run and a literal file named ':memory:?cache=shared' — cross-run pollution of a shared out-of-sandbox path.", "suggestion": "Confine agent file writes to the run workspace; reject absolute paths under $HOME. Clean up /Users/adriancockcroft/book-api/."},
+    {"id": "spurious-scores", "kind": "test_failure", "severity": "high", "title": "scores.json does not reflect the archived workspace", "evidence": "scores.json reports test_coverage=0.6597, code_quality=0.7333, maintainability=0.6964 — impossible for a workspace with zero source files. The scorer evaluated the leaked external directory (or CWD), not this empty archive.", "suggestion": "Treat this run as failed regardless of stored scores; the scored artifacts are not in the archive."},
+    {"id": "test-fail-admitted", "kind": "test_failure", "severity": "high", "title": "Agent self-reports integration tests failing", "evidence": "_agent_stdout.log: 'The integration tests are failing due to a database initialization issue with SQLite in-memory database ...'. Completed=false in .hermes_usage.json.", "suggestion": "Use a file-based or properly shared SQLite connection in tests; the run left tests red."},
+    {"id": "R1", "kind": "requirement_missing", "severity": "high", "title": "R1 POST /books not present in workspace", "evidence": "No source files in run_dir; no route code to inspect (find shows 0 .ts files).", "suggestion": "Deliver the create route into the workspace."}
+  ],
+  "requirement_coverage": 0.0,
+  "model": "hermes-local",
+  "evaluated_at": "2026-07-12T11:04:44Z"
+}

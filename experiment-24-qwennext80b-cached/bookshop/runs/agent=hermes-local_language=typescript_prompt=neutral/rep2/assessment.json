@@ -1,0 +1,11 @@
+{
+  "severity_counts": {"critical": 0, "high": 2, "medium": 0, "low": 0, "info": 0},
+  "penalty_score": 0.8,
+  "top_findings": [
+    {"id": "R7", "kind": "requirement_missing", "severity": "high", "title": "No SQLite / embedded DB — storage is a plain in-memory array", "evidence": "src/database/Database.ts:17-95 stores books in a private BookRow[] (default DB_PATH=':memory:'); optional persistence is hand-rolled JSON via fs.writeFileSync (Database.ts:32-36). package.json dependencies list only express — no sqlite/better-sqlite3/sql.js. README states 'In-memory storage'.", "suggestion": "Use better-sqlite3 (or sql.js) with a books table and parameterized queries, or at minimum a real embedded DB, per the task's technical constraint."},
+    {"id": "test-shared-state", "kind": "test_failure", "severity": "high", "title": "Integration tests share a module-singleton DB with no per-test reset — count assertions are order-dependent", "evidence": "tests/integration.test.ts uses the module-singleton db (src/database/Database.ts:95) but only clears require.cache once in beforeAll; there is no beforeEach/afterEach reset. By 'should list all books' an earlier POST test (line 40) has inserted a book, so expect(response.body.length).toBe(2) (line 114) and the author-filter count (line 135) fail. Consistent with test_coverage=0.1761.", "suggestion": "Reset the store between tests (beforeEach re-import or db.clear()), or assert on relative counts / created ids rather than absolute lengths."}
+  ],
+  "requirement_coverage": 0.9167,
+  "model": "hermes-local",
+  "evaluated_at": "2026-07-12T00:00:00Z"
+}

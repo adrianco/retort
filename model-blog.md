@@ -237,6 +237,14 @@ The developer takeaway is concrete: **choose the language, then choose the model
 
 The bottom line: on a 64 GB laptop, a good local model is a **plan-with-a-big-model, execute-small, review-everything** tool — free and private, but a third as likely to get an *easy* task completely right as the cloud frontier, and no help at all on the languages it can't do. Worth knowing exactly where that line is *before* you rely on it.
 
+## A cache trick that "should" have fixed the 80B — and didn't
+
+Before closing the book on the 80B being *slower and crashier* than the smaller 35B, I chased a tempting explanation. A widely-shared [Mac-Studio tuning write-up](https://mrzk.io/posts/qmlx-maximising-ai-psychosis-minmaxing-mac-studio/) reports **~137×** speedups from an on-disk **KV prefix cache** — and it turned out oMLX's prefix cache is **off by default**. Every local run above had been re-processing its entire growing context *every turn*. That's exactly the kind of serving artifact that could make a big model look worse than it is, so I turned the cache on (`--paged-ssd-cache-dir`) and re-ran the identical 80B grid as a clean on-vs-off comparison.
+
+**The cache works perfectly and it changed nothing.** First-try pass-proportion stayed at **0.33**, crashes went **2 → 3**, and completed-run durations were flat. The server log proves the cache is *hitting* — an **88,000-token prefix restored in ~2.5 seconds** (a cold prefill costs ~150 s), and oMLX even snapshots this hybrid architecture's tricky "non-sliceable" layers to disk correctly. So why no gain? Because our workload is **generation-bound, not prefill-bound**: the 80B generates at ~61 tokens/sec, the context grows to 75–88 K tokens, and each turn spends **~75 seconds *writing* its ~3,400-token reply** — over many turns, straight into the 30-minute wall, no matter how fast the prefix loads. The 137× result is the *mirror image* of agentic coding: it comes from a huge fixed prompt with almost no generation (all prefill), whereas coding is a moderate prompt with heavy multi-turn generation.
+
+The lesson is methodological, and it's why the harness exists: **measure where the time actually goes before you blame the model — or credit a fix.** The 80B wasn't hobbled by a cache miss; it's genuinely throughput-bound in this loop. "Bigger isn't better" survives the ablation, now with a mechanism. And the real lever for slow big models is exposed as *generation* speed — speculative / multi-token decoding to convert wall-crashes into finished runs — not prefix caching, which is worth leaving on but simply isn't the bottleneck here. *(This ablation lives in its own database; it re-runs an existing model with one serving flag flipped, so it's deliberately kept out of the model grid to avoid double-counting the 80B.)*
+
 ## So how should you actually choose?
 
 The data suggests a simple decision procedure:

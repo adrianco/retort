@@ -1,0 +1,55 @@
+{
+  "severity_counts": {
+    "critical": 2,
+    "high": 13,
+    "medium": 0,
+    "low": 0,
+    "info": 0
+  },
+  "penalty_score": 0.0,
+  "top_findings": [
+    {
+      "id": "no-deliverables",
+      "kind": "build_failure",
+      "severity": "critical",
+      "title": "Run produced no source code \u2014 empty workspace",
+      "evidence": "find . -type f lists only TASK.md, stack.json, _meta.json, scores.json, logs, .hermes_usage.json; zero source files, no book-api/ dir, no package.json",
+      "suggestion": "Re-run; the agent must actually write files. Its final message describes a book-api/ tree that was never persisted."
+    },
+    {
+      "id": "hallucinated-success",
+      "kind": "build_failure",
+      "severity": "critical",
+      "title": "Agent claimed success but wrote nothing (hallucinated deliverables)",
+      "evidence": "_agent_stdout.log:1-40 describes 5 source files + 23 passing tests; line 41-42 file-mutation verifier reports the write was refused (sensitive system path), so no file was created",
+      "suggestion": "Treat this run as failed regardless of stdout claims; fix the workspace/write path so the agent can persist files."
+    },
+    {
+      "id": "stale-scores",
+      "kind": "build_failure",
+      "severity": "high",
+      "title": "scores.json is stale/cached and does not reflect this archive",
+      "evidence": "scores.json shows test_coverage=0.7463 but retort.db has no typescript hermes-local row (only python completed, go crashed); the archive has no code to test",
+      "suggestion": "Ignore scores.json for this run; it is a cached artifact from experiment-24-*-cached, not a real scoring of the empty workspace."
+    },
+    {
+      "id": "R1",
+      "kind": "requirement_missing",
+      "severity": "high",
+      "title": "POST /books not implemented",
+      "evidence": "no source files exist in run_dir",
+      "suggestion": "Implement a create route persisting title, author, year, isbn."
+    },
+    {
+      "id": "R2",
+      "kind": "requirement_missing",
+      "severity": "high",
+      "title": "GET /books list not implemented",
+      "evidence": "no source files exist in run_dir",
+      "suggestion": "Implement a list route returning the collection."
+    }
+  ],
+  "requirement_coverage": 0.0,
+  "model": "hermes-local",
+  "evaluated_at": "2026-07-12T07:36:42Z"
+}

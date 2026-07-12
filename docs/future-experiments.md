@@ -100,13 +100,31 @@ so it's a clean test of self-repair.
 
 ---
 
+## Resolved — KV prefix cache (exp-24)
+
+- **SSD prefix cache does NOT rescue the 80B.** oMLX's on-disk prefix cache is off
+  by default (`--paged-ssd-cache-dir` enables it), so exp-22 ran without it. exp-24
+  turned it on and re-ran the identical 80B grid:
+  [RESULTS](../experiment-24-qwennext80b-cached/RESULTS.md). First-try pass-
+  proportion **0.33 → 0.33**, crashes **2 → 3**, completed-run duration unchanged.
+  The cache demonstrably *hits* (an 88K-token prefix restored in ~2.5 s vs ~150 s
+  cold, hybrid DeltaNet layers snapshotted to disk correctly) — but our runs are
+  **generation-bound, not prefill-bound**: the 80B does ~61 tok/s, `hermes-lcm`
+  grows context to 75–88K tokens, each turn is ~75 s of generation, and many turns
+  march into the 30-min wall regardless of prefill speed. The mrzk.io 137× is the
+  mirror image of our workload (huge fixed prompt, little generation). **"Bigger
+  isn't better" stands; the mechanism is throughput, not caching.** Leave the cache
+  on (free prefill latency) but don't expect pass-proportion from it.
+
 ## Cheap opportunistic checks
 
-- **oMLX 0.5.0 MTP (multi-token prediction).** A *speed* optimisation (lossless
-  speculative decoding), not a capability one — shouldn't move pass-proportion.
-  Worth only a quick check on the crash-prone cells (Rust/Go): does faster
-  generation let slow-but-terminating runs finish before the 30-min wall
-  (crash → completed)? Only helps if Qwen3.6-35B actually ships MTP heads.
+- **oMLX 0.5.0 MTP (multi-token prediction) — now the top speed lever.** exp-24
+  showed the binding constraint is **generation throughput**, so lossless
+  speculative decoding is the right thing to try next: does faster generation let
+  slow-but-terminating runs (esp. the 80B, and Rust/Go on the 35B) finish before
+  the 30-min wall (crash → completed)? It won't raise *quality*, but converting
+  crashes to real data points is exactly what our wall-bound failures need. Matters
+  far more for the slow 80B than the 35B.
 - **Timeout / turn-cap tuning.** Several failures were non-termination at the
   wall. A higher timeout or lower `max_turns` converts crashes to real data
   points more cleanly than MTP does.

@@ -1,0 +1,23 @@
+{
+  "severity_counts": {
+    "critical": 0,
+    "high": 1,
+    "medium": 0,
+    "low": 0,
+    "info": 0
+  },
+  "penalty_score": 0.9,
+  "top_findings": [
+    {
+      "id": "test-decoupled",
+      "kind": "disabled_test",
+      "severity": "high",
+      "title": "Tests reimplement the app inline and never exercise app.py",
+      "evidence": "tests/test_api.py:14 create_test_app() duplicates the entire Flask app; grep shows no `import app`/`from app`, so app.py has no direct coverage (test_coverage=0.65 from scores.json)",
+      "suggestion": "Import the routes/factory from app.py in the tests so the production code under test is the code that ships"
+    }
+  ],
+  "requirement_coverage": 1.0,
+  "model": "hermes-local",
+  "evaluated_at": "2026-07-12T10:16:58Z"
+}

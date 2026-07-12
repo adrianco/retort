@@ -1,0 +1,55 @@
+{
+  "severity_counts": {
+    "critical": 2,
+    "high": 12,
+    "medium": 0,
+    "low": 0,
+    "info": 0
+  },
+  "penalty_score": 0.0,
+  "top_findings": [
+    {
+      "id": "empty-archive",
+      "kind": "build_failure",
+      "severity": "critical",
+      "title": "Archive contains no generated code \u2014 all deliverables missing",
+      "evidence": "find . shows only TASK.md remains; no main.py/app.py, no test files, no README.md, no requirements.txt. Compare rep1 which has app.py, test_app.py, README.md, requirements.txt. _agent_stdout.log shows the write_file tool 'Refusing to write to sensitive system path: .../retort-9bcf44e083a6/requirements.txt', so the agent's file writes never landed in the workspace.",
+      "suggestion": "Fix the write_file guard that classifies the retort temp workspace under /private/var/folders as a 'sensitive system path'; re-run so deliverables are actually persisted and archived."
+    },
+    {
+      "id": "spurious-scores",
+      "kind": "test_failure",
+      "severity": "critical",
+      "title": "scores.json misrepresents the run: test_coverage=0.96 but zero code was measured",
+      "evidence": "scores.json reports test_coverage=0.96, defect_rate=1.0, code_quality=0.833; but .coverage SQLite 'file' table has 0 rows (no files instrumented) and no .py files exist in the archive. This run is absent from retort.db (only replicate 1 is 'completed'). The scores are unbacked by any code and must not be treated as a passing run.",
+      "suggestion": "Have the scorer fail closed when the workspace has no source files / coverage instruments zero files, instead of emitting a high test_coverage."
+    },
+    {
+      "id": "R12",
+      "kind": "requirement_missing",
+      "severity": "high",
+      "title": "At least 3 unit/integration tests \u2014 no test files present",
+      "evidence": "No test_*.py in archive; .coverage 'file' table count = 0.",
+      "suggestion": "Persist and run tests in the workspace."
+    },
+    {
+      "id": "R11",
+      "kind": "requirement_missing",
+      "severity": "high",
+      "title": "README.md with setup/run instructions \u2014 absent",
+      "evidence": "find . finds no README.md (rep1 has one).",
+      "suggestion": "Persist README.md to the workspace."
+    },
+    {
+      "id": "R1",
+      "kind": "requirement_missing",
+      "severity": "high",
+      "title": "POST /books create endpoint \u2014 no source code",
+      "evidence": "No main.py/app.py in archive to define the route.",
+      "suggestion": "Persist the API source to the workspace."
+    }
+  ],
+  "requirement_coverage": 0.0,
+  "model": "hermes-local",
+  "evaluated_at": "2026-07-12T08:52:01Z"
+}

@@ -1,0 +1,23 @@
+{
+  "severity_counts": {
+    "critical": 0,
+    "high": 1,
+    "medium": 0,
+    "low": 0,
+    "info": 0
+  },
+  "penalty_score": 0.9,
+  "top_findings": [
+    {
+      "id": "R5",
+      "kind": "requirement_partial",
+      "severity": "high",
+      "title": "Partial PUT /books/{id} updates fail at runtime for non-prefix field subsets",
+      "evidence": "src/lib.rs:228-263 \u2014 hardcodes placeholders (title=?1, author=?2, year=?3, isbn=?4) but binds params positionally via params_from_iter over only the present fields, so a body that omits an earlier field (e.g. {\"author\":\"X\"} -> query references ?2 with only one supplied param bound to ?1) leaves a placeholder unbound and rusqlite errors -> 500. Only full updates or a leading prefix (title / title+author / ...) work. README:95 promises 'All fields are optional'.",
+      "suggestion": "Build the SET clause and the parameter list together with sequential placeholders (?1, ?2, ... in push order) instead of fixed field-indexed placeholders."
+    }
+  ],
+  "requirement_coverage": 0.9167,
+  "model": "hermes-local",
+  "evaluated_at": "2026-07-12T08:03:31Z"
+}

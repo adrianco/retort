@@ -1,0 +1,14 @@
+{
+  "severity_counts": {"critical": 1, "high": 13, "medium": 0, "low": 0, "info": 0},
+  "penalty_score": 0.0,
+  "top_findings": [
+    {"id": "no-deliverables", "kind": "build_failure", "severity": "critical", "title": "No source code delivered — workspace is empty", "evidence": "find . in run_dir lists only TASK.md, logs, and *.json; there are no .rs files, no Cargo.toml, no src/, no README.md. _agent_stdout.log claims to have created src/lib.rs, src/main.rs, Cargo.toml, README.md, but the file-mutation verifier reports write_file was 'Refusing to write to sensitive system path' for Cargo.toml.", "suggestion": "Fix the agent harness so writes target the run workspace (relative paths), not the host temp dir; treat this run as a hard failure regardless of cached scores."},
+    {"id": "stale-scores", "kind": "test_failure", "severity": "high", "title": "scores.json is inconsistent with the archive (test_coverage=1.0 but zero code/tests exist)", "evidence": "scores.json reports test_coverage=1.0 but the workspace contains no buildable code or tests; no matching row exists in retort.db. Scores appear cached/stale.", "suggestion": "Do not trust these scores; re-score against the actual (empty) archive or mark the run failed."},
+    {"id": "R1", "kind": "requirement_missing", "severity": "high", "title": "POST /books not delivered", "evidence": "No source files in workspace; no create route exists on disk.", "suggestion": "Deliver a create-book route in the workspace."},
+    {"id": "R2", "kind": "requirement_missing", "severity": "high", "title": "GET /books (list) not delivered", "evidence": "No source files in workspace; no list route exists on disk.", "suggestion": "Deliver a list-books route."},
+    {"id": "R3", "kind": "requirement_missing", "severity": "high", "title": "GET /books ?author= filter not delivered", "evidence": "No source files in workspace.", "suggestion": "Deliver author filtering on the list route."}
+  ],
+  "requirement_coverage": 0.0,
+  "model": "hermes-local",
+  "evaluated_at": "2026-07-12T11:54:49Z"
+}

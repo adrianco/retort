@@ -1,0 +1,23 @@
+{
+  "severity_counts": {
+    "critical": 0,
+    "high": 1,
+    "medium": 0,
+    "low": 0,
+    "info": 0
+  },
+  "penalty_score": 0.9,
+  "top_findings": [
+    {
+      "id": "init-db-never-called",
+      "kind": "build_failure",
+      "severity": "high",
+      "title": "init_db() never called \u2014 running service 500s on first request (no 'books' table)",
+      "evidence": "app.py:38 defines init_db() but it is called nowhere; __main__ (app.py:272-275) only runs app.run(). On a fresh books.db the table is never created, so GET/POST /books raise sqlite3.OperationalError: no such table: books. Tests pass only because test_app.py:31 creates the schema itself and monkey-patches get_db.",
+      "suggestion": "Call init_db() inside an app context at startup (e.g. with app.app_context(): init_db()) before app.run()."
+    }
+  ],
+  "requirement_coverage": 1.0,
+  "model": "hermes-local",
+  "evaluated_at": "2026-07-12T06:29:19Z"
+}

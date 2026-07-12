@@ -1,0 +1,35 @@
+# Experiment 22 — a BIGGER local model: Qwen3-Coder-Next-80B-A3B (MLX 4-bit) via
+# oMLX + Hermes-lcm, on the bookshop task. Direct "80B vs 35B, same stack"
+# comparison against exp-18 (Qwen3.6-35B-A3B): does doubling the model beat 0.38
+# on the mainstream languages / crack Rust? Same Qwen tool-call format (oMLX
+# parses it). Default self-repair second chance is ON (any failure gets one
+# feedback-guided retry, half credit).
+#
+# language[python, go, typescript, rust] × prompt[neutral] × 3 replicates.
+# Serve: mlx-community/Qwen3-Coder-Next-4bit (~45GB) symlinked into ~/models;
+#   omlx-cli serve --model-dir ~/models --port 8080. Hermes provider points there.
+experiment:
+  name: experiment-24-qwennext80b-cached-bookshop
+  visibility: public
+factors:
+  language:
+    levels: [python, go, typescript, rust]
+  agent:
+    levels: [hermes-local, claude-code]
+  prompt:
+    levels: [neutral, TDD]   # registry needs >=2; --design lists ONLY neutral
+responses: [code_quality, token_efficiency, test_coverage, defect_rate, maintainability, idiomatic]
+tasks:
+  - source: bundled://rest-api-crud
+playpen:
+  runner: local
+  replicates: 3
+  timeout_minutes: 30
+  max_turns: 30
+  local_agents:
+    hermes-local: { harness: hermes, model: mlxlocal/Qwen3-Coder-Next }
+design: { screening_resolution: 3, significance_threshold: 0.10 }
+promotion:
+  screening_to_trial: { p_value: 0.10 }
+  trial_to_production: { posterior_confidence: 0.80 }
+evaluation: { enabled: true, model: opus-4.8 }
