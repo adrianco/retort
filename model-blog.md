@@ -214,6 +214,27 @@ Then I pushed the same stack across **every** language retort measures — the m
 
 One more lever was worth testing, because it's how real agents work: give a failed run a **second chance, handed the evaluation feedback** — the exact requirements it missed and the build/test errors it produced — and let it fix its own code. Counting a repaired pass at half credit (it needed the answer handed to it), this **doubled the effective pass-proportion, 0.11 → 0.22**. That's a cheap, real win, and it's now retort's default: any failure gets one feedback-guided repair attempt before it's recorded. But the doubling came from exactly one place — the languages the model already knows. Python and Go had *every* first-shot failure rescued; hand the same precise feedback to Clojure, C#, Elixir or Erlang and **nothing moved — zero repaired.** The repair attempts even burned 7–30 minutes apiece before producing code that still wouldn't build. So self-repair amplifies competence; it doesn't create it. It patches the languages a local model can already write most of the way to done, and does nothing at all for the ones it can't — which is the whole story of local coding models in one number: the ceiling is *reach*, and feedback only helps you climb toward it where you were already standing.
 
+## Pick the language first, then the model: the best local model *per language*
+
+Developers rarely choose a model in a vacuum — you pick a **language** for the project, then optimize the stack around it. So the practical question isn't "what's the best local model" but "for *my* language, which local model is most reliable?" Broken down that way, across the four local models I ran on the mainstream languages, two things jump out:
+
+| language | 30B | 35B | 80B | Devstral-24B | **best local model** |
+|---|---:|---:|---:|---:|---|
+| **python** | **1.00** | 0.67 | 0.33 | 0.67 | **30B — 1.00** |
+| **go** | 0.33 | 0.50 | **1.00** | 0.00 | **80B — 1.00** |
+| typescript | 0.00 | 0.17 | 0.33 | 0.00 | 80B — 0.33 |
+| rust | 0.00 | 0.17 | 0.33 | 0.00 | 80B — 0.33 |
+| clojure / java / c# / elixir / erlang | — | 0.00 | — | — | *none* |
+
+*(Pass-proportion, neutral prompt, on the M5 laptop. Single-digit replicates, so read the per-cell picks as directional, not exact — but the tiers are robust.)*
+
+- **Python is the most reliable local language, and it isn't close.** *Every* local model handles it — the 30B nails it outright (1.00), and even the models that flounder elsewhere clear it a good share of the time. If your project is Python, a local model is a genuinely viable, free option; it's the one language where a laptop model just works.
+- **The best model is language-dependent — there is no universal winner.** The 80B was the *worst* model on average, yet it's the *best* model for **Go** (1.00, where the 30B is a coin-flip). That's the entire case for this view: optimize the model *per language*, not in aggregate, because the aggregate ranking would have told you to skip the 80B and you'd have picked the wrong model for Go.
+- **TypeScript and Rust are marginal at best (~0.33)** — reachable, but you'll retry a lot; not something to rely on unattended.
+- **The five less-common languages are a flat zero for every model** — the capability wall again. If your project is Clojure, Java, C#, Elixir or Erlang, no local model on this stack is viable today; use the cloud.
+
+The developer takeaway is concrete: **choose the language, then choose the model for that language.** And if the language is yours to pick and you want to stay local and free, choose **Python** — it's where a laptop model is most likely to just get it right.
+
 The bottom line: on a 64 GB laptop, a good local model is a **plan-with-a-big-model, execute-small, review-everything** tool — free and private, but a third as likely to get an *easy* task completely right as the cloud frontier, and no help at all on the languages it can't do. Worth knowing exactly where that line is *before* you rely on it.
 
 ## So how should you actually choose?
