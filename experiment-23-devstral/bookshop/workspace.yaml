@@ -1,0 +1,37 @@
+# Experiment 23 — a DIFFERENT bet, not a bigger one: Devstral Small (24B, dense,
+# Mistral, AGENT-TUNED for coding tool-loops) on the bookshop task. Tests whether
+# agent-tuning beats raw size: does a 24B model fine-tuned for coding agents beat
+# the general Qwen3.6-35B (0.38) on our agentic task?
+#
+# SERVING LAYER: llama.cpp (not oMLX). oMLX can't parse Devstral's Mistral
+# [TOOL_CALLS] tool format; llama.cpp --jinja does. This is the "allow for either
+# serving layer" path — oMLX for Qwen-format models, llama.cpp for Mistral-format.
+#   llama-server -hf unsloth/Devstral-Small-2507-GGUF:Q4_K_M --jinja -fa on \
+#     -ngl 99 -c 65536 --host 127.0.0.1 --port 8080
+# Hermes provider (api :8080/v1, api_mode openai) + model id 'devstral'.
+# Default self-repair second chance ON.
+experiment:
+  name: experiment-23-devstral-bookshop
+  visibility: public
+factors:
+  language:
+    levels: [python, go, typescript, rust]
+  agent:
+    levels: [hermes-local, claude-code]
+  prompt:
+    levels: [neutral, TDD]   # registry needs >=2; --design lists ONLY neutral
+responses: [code_quality, token_efficiency, test_coverage, defect_rate, maintainability, idiomatic]
+tasks:
+  - source: bundled://rest-api-crud
+playpen:
+  runner: local
+  replicates: 3
+  timeout_minutes: 30
+  max_turns: 30
+  local_agents:
+    hermes-local: { harness: hermes, model: mlxlocal/devstral }
+design: { screening_resolution: 3, significance_threshold: 0.10 }
+promotion:
+  screening_to_trial: { p_value: 0.10 }
+  trial_to_production: { posterior_confidence: 0.80 }
+evaluation: { enabled: true, model: opus-4.8 }

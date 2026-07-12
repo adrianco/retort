@@ -43,8 +43,11 @@ second arm (different bet: agent-tuned, not just bigger).
 >   the 35B's 0.50, slower, more non-terminating (Rust to the wall at 3.9M
 >   tokens). The 35B has no headroom to improve on (local mirror of "at the top,
 >   extra spend buys nothing"). Did not expand to 9 languages.
-> - **Devstral (different bet):** BLOCKED — oMLX can't parse its Mistral tool-call
->   format (see the table above).
+> - **Devstral (different bet, exp-23):** unblocked by switching the serving layer
+>   to **llama.cpp `--jinja`** (parses the Mistral tool format oMLX can't) — the
+>   "allow for either layer" result. But it scored the WORST (0.17, 7/12 never
+>   terminating), and it's tuned for OpenHands not Hermes (wrong harness). Neither
+>   bigger nor agent-tuned-different beat the general 35B.
 > - **What's left, all with a catch:** gpt-oss-120b (best raw coder but ~64 GB —
 >   over the 56 GB wired limit; would need to push memory limits) or gpt-oss-20b
 >   (fits, Harmony format — oMLX has a `harmony` reasoning parser, tool-parse

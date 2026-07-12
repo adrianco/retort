@@ -1,0 +1,10 @@
+{
+  "replicate": 3,
+  "run_config": {
+    "agent": "hermes-local",
+    "language": "typescript",
+    "prompt": "neutral"
+  },
+  "succeeded": false,
+  "visibility": "public"
+}

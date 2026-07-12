@@ -126,6 +126,7 @@ The whole landscape, cloud frontier down to a local laptop stack (**pass-proport
 | **Qwen3.6-35B-A3B** ⁵ *(best local)* | **local · $0** | — | **0.38** | **$0** |
 | **Qwen3-Coder-Next-80B-A3B** ⁷ *(bigger ≠ better)* | **local · $0** | — | 0.33 | **$0** |
 | **Qwen3-Coder-30B-A3B** ⁶ | **local · $0** | — | **0.33** | **$0** |
+| **Devstral-24B** ⁸ *(agent-tuned, wrong harness)* | **local · $0** | — | 0.17 | **$0** |
 
 ¹ Cost on the Brazil (hard) task for cloud; local inference is $0. **Pass-proportion = fraction of that model's runs that fully implement the spec.**
 ² Fast mode (`/fast`), 4 languages (clojure/go/python/rust). Cost is at fast mode's **2× per-token rate** ([announcement](https://www.anthropic.com/news/claude-opus-4-8)) — see [Fast mode](#fast-mode-speed-for-a-2x-price-premium).
@@ -134,6 +135,7 @@ The whole landscape, cloud frontier down to a local laptop stack (**pass-proport
 ⁵ **Qwen3.6-35B-A3B** on an **M5/64 GB laptop** (MLX via oMLX, Hermes agent), REST-API easy task, four mainstream languages. Across **all nine** languages it drops to **0.11** — the niche-language wall (Clojure/Java/C#/Elixir/Erlang all fail); a default self-repair second chance lifts that to **0.22**, mainstream only. First local stack to crack TypeScript. Exp 16–21.
 ⁶ **Qwen3-Coder-30B-A3B** via llama.cpp — **0.08** at a 32 K context, **0.33** at 128 K: context is the first-order lever for a local model.
 ⁷ **Qwen3-Coder-Next-80B-A3B** (exp-22, same stack as the 35B). Doubling the model *lowered* first-try reliability (0.33 vs the 35B's 0.50) — slower and more prone to never terminating. Bigger ≠ better on this task.
+⁸ **Devstral-24B** (exp-23), smaller but agent-tuned, served via **llama.cpp** (oMLX can't parse its Mistral tool format). Lowest local result (0.17), 7/12 non-terminating — but tuned for OpenHands, not Hermes, so it's on the wrong harness. Neither bigger nor agent-tuned beat the general 35B.
 
 - **Newer *is* more reliable — markedly so on hard tasks.** Opus-4.8 produces a completely-correct result **100% of the time on both tasks**; 4.7 is 85% / 100%. The cheaper models (4.6, Sonnet) get the *hard* task completely right only **~half the time** — they're a coin-flip.
 - **You pay steeply for that reliability.** On the hard task Opus-4.8 is **~3× slower and ~4× pricier** than 4.6 / Sonnet.
@@ -273,6 +275,7 @@ Newest first — the recent work is the **local-model arc** (exp 16–21) plus *
 
 | # | Task | Models | Covered | Results table | Headline (clean data) |
 |---|---|---|---:|---|---|
+| 23 | REST-API (**local**) | **Devstral-24B** (agent-tuned) via llama.cpp | 12 | **[results →](experiment-23-devstral/RESULTS.md)** | Different bet, not bigger: 0.17, 7/12 non-terminating — but wrong harness (OpenHands-tuned). 35B still best |
 | 22 | REST-API (**local**) | **Qwen3-Coder-Next-80B-A3B** vs the 35B | 12 | **[results →](experiment-22-qwennext80b/RESULTS.md)** | Bigger ≠ better: 80B first-try **0.33 < 35B's 0.50**; slower, more non-terminating |
 | 21 | REST-API (**local**) | Self-repair: 2nd try + feedback on Qwen3.6-35B | 27 | **[results →](experiment-21-repair-lcm/RESULTS.md)** | Repair doubles pass **0.11→0.22**, but only mainstream; niche wall is a true capability ceiling |
 | 20 | REST-API (**local**) | Qwen3.6-35B × **all 9 languages** | 27 | **[results →](experiment-20-hermes35b-alllang/RESULTS.md)** | Mainstream/niche split: 0.11; Clojure/Java/C#/Elixir/Erlang all fail (all genuine) |
