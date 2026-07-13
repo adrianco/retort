@@ -131,6 +131,35 @@ def _gitignore_for(visibility: str) -> str:
     return _GITIGNORE_COMMON + extra
 
 
+def _ordered_runs(run_configs, reps, reload_key_fn=None):
+    """Yield ``(rep, run_idx, run_config)`` in execution order.
+
+    ``run_idx`` is always the cell's index in the design (stable labels/sharding).
+
+    - **No reload key** (default): plain replicate-major — one full pass over
+      every cell per replicate. Interrupted/sharded runs get complete factor
+      coverage first at lower replication.
+    - **Reload key set**: group all runs sharing a key (the reload-triggering
+      ``stack`` factor) contiguously so the serving stack is (re)loaded once per
+      group, keeping replicate-major *within* each group. Group order follows
+      each key's first appearance in the design (so a stack-sorted design is
+      honoured). Turns N_stacks × reps reloads into N_stacks.
+    """
+    indexed = list(enumerate(run_configs))
+    if reload_key_fn is None:
+        for rep in range(1, reps + 1):
+            for run_idx, run_config in indexed:
+                yield rep, run_idx, run_config
+        return
+    groups: dict = {}
+    for run_idx, run_config in indexed:
+        groups.setdefault(reload_key_fn(run_config), []).append((run_idx, run_config))
+    for members in groups.values():
+        for rep in range(1, reps + 1):
+            for run_idx, run_config in members:
+                yield rep, run_idx, run_config
+
+
 @main.command()
 @click.argument("name")
 @click.option("--force", is_flag=True, help="Overwrite existing directory")
@@ -729,6 +758,16 @@ def run_experiments(
     cost_limit = workspace_config.playpen.cost_limit_usd
     token_limit = workspace_config.playpen.token_limit
 
+    # Reload-minimising order. When a cell change forces an expensive serving-
+    # stack reload (a `stack` factor driving stack_presets — sampling params or,
+    # later, different model weights), group all runs sharing a stack contiguously
+    # so each stack loads exactly ONCE, and keep replicate-major *within* the
+    # group. Without a reload cost, fall back to plain replicate-major (full
+    # coverage first at lower replication). See _ordered_runs.
+    _reload_key_fn = None
+    if runner_type == "local" and workspace_config.playpen.stack_presets:
+        _reload_key_fn = lambda rc: rc.get("stack")  # noqa: E731
+
     session = get_session(engine)
     try:
         # Replicate-major order: complete one full pass over every design cell
@@ -736,8 +775,10 @@ def run_experiments(
         # interrupted, resumed, or incrementally-sharded run yields complete
         # coverage at lower replication rather than full replication of a few
         # cells. Replicate is the outer loop; the design cells are the inner.
-        for rep in range(1, reps + 1):
-            for run_idx, run_config in enumerate(design.run_configs()):
+        # (When a reload key is set, runs are grouped by stack first — see above.)
+        for rep, run_idx, run_config in _ordered_runs(
+            design.run_configs(), reps, _reload_key_fn
+        ):
                 stack = StackConfig.from_run_config(run_config)
                 config_key = json.dumps(run_config, sort_keys=True)
                 label = f"[{run_idx+1}/{design.num_runs} rep {rep}/{reps}]"
