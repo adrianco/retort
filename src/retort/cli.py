@@ -678,14 +678,21 @@ def run_experiments(
     runner_type = workspace_config.playpen.runner
     if runner_type == "local":
         prompts_dir = config_dir / "prompts"
+        stack_manager = None
+        if workspace_config.playpen.stack_presets:
+            from retort.playpen.stack_reload import OmlxStackManager
+            registry_path = config_dir / workspace_config.playpen.stack_presets
+            stack_manager = OmlxStackManager(registry_path)
         runner = LocalRunner(
             timeout_minutes=workspace_config.playpen.timeout_minutes,
+            stall_minutes=workspace_config.playpen.stall_minutes,
             max_turns=workspace_config.playpen.max_turns,
             default_model=workspace_config.playpen.model,
             default_thinking=workspace_config.playpen.thinking,
             local_agents=workspace_config.playpen.local_agents,
             local_inference_cost=workspace_config.playpen.local_inference_cost,
             prompts_dir=prompts_dir if prompts_dir.is_dir() else None,
+            stack_manager=stack_manager,
         )
     elif runner_type == "metaharness":
         from retort.playpen.metaharness_runner import MetaHarnessRunner

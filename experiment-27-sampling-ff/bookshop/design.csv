@@ -1,0 +1,17 @@
+run,language,agent,prompt,stack
+0,python,hermes-local,none,s1
+1,go,hermes-local,none,s1
+2,python,hermes-local,none,s2
+3,go,hermes-local,none,s2
+4,python,hermes-local,none,s3
+5,go,hermes-local,none,s3
+6,python,hermes-local,none,s4
+7,go,hermes-local,none,s4
+8,python,hermes-local,none,s5
+9,go,hermes-local,none,s5
+10,python,hermes-local,none,s6
+11,go,hermes-local,none,s6
+12,python,hermes-local,none,s7
+13,go,hermes-local,none,s7
+14,python,hermes-local,none,s8
+15,go,hermes-local,none,s8

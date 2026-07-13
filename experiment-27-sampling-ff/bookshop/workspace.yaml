@@ -1,0 +1,71 @@
+# Experiment 27 — inference-lever sweep #1: sampling parameters.
+# A FRACTIONAL FACTORIAL (Resolution IV 2^(4-1), 8 presets) over four
+# request-time sampling levers from issue #40 — temperature, top_p, top_k,
+# repetition_penalty (min_p dropped: oMLX ignores it in settings) — on the best local stack (Qwen3.6-35B-A3B via oMLX + Hermes),
+# bookshop (easy) task, python+go. Screens which sampling knobs actually move
+# RELIABILITY (pass-proportion), the question the issue asks. All local runs so
+# far used oMLX defaults (temp=1.0, rep_penalty=1.0) — above Qwen's own rec.
+#
+# The `stack` factor is the model-selection point: its 8 levels (s1..s8) are the
+# fractional-design presets in stacks.yaml. When a cell's `stack` changes, the
+# runner reloads oMLX with that preset's sampling params (stack_presets hook).
+# Design is sorted by stack so each preset is loaded once.
+#
+# Timeout policy (unattended): a HIGH hard wall (timeout_minutes) lets slow-but-
+# productive work finish; the stall guard (stall_minutes) kills only unproductive
+# loops/hangs — runs making no output and writing no files.
+#
+# Run:
+#   export PATH="$HOME/hermes-venv/bin:/opt/homebrew/bin:$HOME/go/bin:$PATH"
+#   PYTHONPATH=src .venv/bin/python -c 'from retort.cli import main; main()' run \
+#     --phase screening --config experiment-27-sampling-ff/bookshop/workspace.yaml \
+#     --design experiment-27-sampling-ff/bookshop/design.csv --replicates 3 --resume
+
+experiment:
+  name: experiment-27-sampling-ff-bookshop
+  visibility: public
+
+factors:
+  language:
+    levels: [python, go]
+  agent:
+    levels: [hermes-local, claude-code]
+  prompt:
+    levels: [none, neutral]
+  stack:
+    levels: [s1, s2, s3, s4, s5, s6, s7, s8]
+
+responses:
+  - code_quality
+  - token_efficiency
+  - test_coverage
+  - defect_rate
+  - maintainability
+  - idiomatic
+
+tasks:
+  - source: bundled://rest-api-crud
+
+playpen:
+  runner: local
+  replicates: 3
+  timeout_minutes: 45        # high hard-wall backstop: don't kill slow-but-good work
+  stall_minutes: 15          # kill unproductive loops/hangs: no output + no file writes for 15m
+  max_turns: 200
+  stack_presets: stacks.yaml
+  local_agents:
+    hermes-local:
+      harness: hermes
+      model: mlxlocal/Qwen3.6-35B-A3B
+
+design:
+  screening_resolution: 3
+  significance_threshold: 0.10
+
+promotion:
+  screening_to_trial: { p_value: 0.10 }
+  trial_to_production: { posterior_confidence: 0.80 }
+
+evaluation:
+  enabled: true
+  model: opus-4.8

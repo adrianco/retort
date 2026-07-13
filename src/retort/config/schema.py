@@ -203,6 +203,34 @@ class PlaypenConfig(BaseModel):
     runner: Annotated[RunnerType, Field(default=RunnerType.docker)]
     replicates: Annotated[int, Field(default=3, ge=1, description="Runs per design point")]
     timeout_minutes: Annotated[int, Field(default=30, ge=1)]
+    stall_minutes: Annotated[
+        int,
+        Field(
+            default=0,
+            ge=0,
+            description=(
+                "Kill a run that makes NO progress (no new agent output, no "
+                "workspace file writes) for this many minutes — the unproductive-"
+                "loop / hang guard. 0 disables it. Pair a high timeout_minutes "
+                "(a backstop that lets slow-but-productive work finish) with a "
+                "modest stall_minutes so stuck loops die fast; important for "
+                "unattended local runs where a slow model needs hours."
+            ),
+        ),
+    ]
+    stack_presets: Annotated[
+        str | None,
+        Field(
+            default=None,
+            description=(
+                "Path (relative to the workspace config) to a stack-preset "
+                "registry YAML. When set, the local runner reloads the serving "
+                "stack (oMLX model + sampling params) whenever a cell's model "
+                "factor names a different preset — the model-selection point of "
+                "a within-experiment inference-lever sweep."
+            ),
+        ),
+    ]
     model: Annotated[
         str | None,
         Field(

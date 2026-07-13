@@ -1,0 +1,73 @@
+serving:
+  omlx_bin: /Applications/oMLX.app/Contents/MacOS/omlx-cli
+  model_dir: /Users/adriancockcroft/models
+  host: 127.0.0.1
+  port: 8080
+  settings_path: /Users/adriancockcroft/.omlx/settings.json
+  hermes_config: /Users/adriancockcroft/.hermes/config.yaml
+  serve_flags:
+  - --memory-guard
+  - balanced
+  - --paged-ssd-cache-dir
+  - /Users/adriancockcroft/.cache/omlx-ssd
+  - --paged-ssd-cache-max-size
+  - 120GB
+  log: /private/tmp/claude-501/-Users-adriancockcroft-code/0a3cb2a8-9090-436b-afac-2b927960725a/scratchpad/omlx-sweep.log
+  warm_timeout_s: 300
+presets:
+  s1:
+    model: Qwen3.6-35B-A3B
+    sampling:
+      temperature: 0.2
+      top_p: 0.85
+      top_k: 20
+      repetition_penalty: 1.0
+  s2:
+    model: Qwen3.6-35B-A3B
+    sampling:
+      temperature: 0.2
+      top_p: 0.85
+      top_k: 0
+      repetition_penalty: 1.1
+  s3:
+    model: Qwen3.6-35B-A3B
+    sampling:
+      temperature: 0.2
+      top_p: 0.95
+      top_k: 20
+      repetition_penalty: 1.1
+  s4:
+    model: Qwen3.6-35B-A3B
+    sampling:
+      temperature: 0.2
+      top_p: 0.95
+      top_k: 0
+      repetition_penalty: 1.0
+  s5:
+    model: Qwen3.6-35B-A3B
+    sampling:
+      temperature: 0.7
+      top_p: 0.85
+      top_k: 20
+      repetition_penalty: 1.1
+  s6:
+    model: Qwen3.6-35B-A3B
+    sampling:
+      temperature: 0.7
+      top_p: 0.85
+      top_k: 0
+      repetition_penalty: 1.0
+  s7:
+    model: Qwen3.6-35B-A3B
+    sampling:
+      temperature: 0.7
+      top_p: 0.95
+      top_k: 20
+      repetition_penalty: 1.0
+  s8:
+    model: Qwen3.6-35B-A3B
+    sampling:
+      temperature: 0.7
+      top_p: 0.95
+      top_k: 0
+      repetition_penalty: 1.1

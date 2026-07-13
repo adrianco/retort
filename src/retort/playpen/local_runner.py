@@ -9,8 +9,10 @@ from __future__ import annotations
 
 import json
 import logging
+import os
 import re
 import shutil
+import signal
 import subprocess
 import tempfile
 import time
@@ -21,6 +23,126 @@ from retort.config.schema import LocalAgentConfig, LocalInferenceCost
 from retort.playpen.runner import PlaypenRunner, RunArtifacts, StackConfig, TaskSpec
 
 logger = logging.getLogger(__name__)
+
+# Files/dirs that are seeded into the workspace (task spec, support data, the
+# agent's own telemetry) rather than produced by the agent. Excluded from the
+# progress fingerprint so the stall detector keys on the agent *writing code*.
+_PROGRESS_SKIP_DIRS = {".git", "data", "__pycache__", "node_modules", "target", ".venv"}
+_PROGRESS_SKIP_FILES = {
+    "_agent_stdout.log", "_agent_stderr.log", ".hermes_usage.json",
+    "TASK.md", "stack.json", "README.md", "prompts.txt",
+}
+
+
+def _progress_fingerprint(workspace: Path) -> tuple[int, int, int]:
+    """(file_count, total_size, max_mtime_ns) over agent-produced files.
+
+    A change in this fingerprint between polls means the agent wrote or grew a
+    file — i.e. it is making productive progress. Seeded/support files and the
+    agent's own logs are excluded so provisioning doesn't read as progress.
+    """
+    count = 0
+    size = 0
+    mtime_ns = 0
+    for root, dirs, files in os.walk(workspace):
+        dirs[:] = [d for d in dirs if d not in _PROGRESS_SKIP_DIRS]
+        for name in files:
+            if name in _PROGRESS_SKIP_FILES or name.endswith((".stdout", ".stderr")):
+                continue
+            try:
+                st = (Path(root) / name).stat()
+            except OSError:
+                continue
+            count += 1
+            size += st.st_size
+            if st.st_mtime_ns > mtime_ns:
+                mtime_ns = st.st_mtime_ns
+    return count, size, mtime_ns
+
+
+def _kill_proc_tree(proc: subprocess.Popen) -> None:
+    """SIGTERM then SIGKILL the process's whole session (agent + children)."""
+    for sig in (signal.SIGTERM, signal.SIGKILL):
+        try:
+            os.killpg(os.getpgid(proc.pid), sig)
+        except (ProcessLookupError, PermissionError):
+            return
+        try:
+            proc.wait(timeout=5)
+            return
+        except subprocess.TimeoutExpired:
+            continue
+
+
+def _run_with_progress_guard(
+    cmd: list[str],
+    *,
+    cwd: Path,
+    env: dict[str, str],
+    hard_wall_secs: int,
+    stall_secs: int,
+    poll_secs: int = 15,
+) -> tuple[int, str, str, float, str | None]:
+    """Run ``cmd`` under two independent limits, returning
+    ``(returncode, stdout, stderr, elapsed, kill_reason)``.
+
+    - **hard wall** (``hard_wall_secs``): an absolute backstop set high, so
+      genuinely slow-but-productive work is allowed to finish. ``kill_reason`` →
+      ``"hard_wall"``.
+    - **stall** (``stall_secs``, 0 disables): kill early when the run makes NO
+      progress for this long — neither new agent output nor any workspace file
+      change. This is the *unproductive loop / hang* guard, so a stuck run dies
+      in minutes instead of burning the whole wall. ``kill_reason`` → ``"stall"``.
+
+    A run that streams output or keeps writing files resets the stall clock every
+    poll, so long single-turn generation is never mistaken for a stall.
+    """
+    out_path = cwd / "_agent_stdout.log"
+    err_path = cwd / "_agent_stderr.log"
+    reason: str | None = None
+    with open(out_path, "wb") as out_f, open(err_path, "wb") as err_f:
+        proc = subprocess.Popen(
+            cmd, cwd=cwd, env=env, stdout=out_f, stderr=err_f,
+            start_new_session=True,
+        )
+        start = time.monotonic()
+        last_progress = start
+        last_signal: tuple[int, int, int, int] = (0, 0, 0, 0)
+        while True:
+            try:
+                proc.wait(timeout=poll_secs)
+                break  # exited on its own
+            except subprocess.TimeoutExpired:
+                pass
+            now = time.monotonic()
+            try:
+                out_sz = out_path.stat().st_size + err_path.stat().st_size
+            except OSError:
+                out_sz = 0
+            fp = _progress_fingerprint(cwd)
+            cur = (out_sz, *fp)
+            if cur != last_signal:
+                last_progress = now
+                last_signal = cur
+            if now - start > hard_wall_secs:
+                reason = "hard_wall"
+                break
+            if stall_secs and (now - last_progress) > stall_secs:
+                reason = "stall"
+                break
+        if reason:
+            _kill_proc_tree(proc)
+    elapsed = time.monotonic() - start
+    try:
+        stdout_text = out_path.read_text(errors="replace")
+    except OSError:
+        stdout_text = ""
+    try:
+        stderr_text = err_path.read_text(errors="replace")
+    except OSError:
+        stderr_text = ""
+    rc = proc.returncode if proc.returncode is not None else 124
+    return rc, stdout_text, stderr_text, elapsed, reason
 
 # Agent CLI commands — maps agent name to command builder
 AGENT_COMMANDS: dict[str, list[str]] = {
@@ -95,6 +217,7 @@ class LocalRunner:
         self,
         *,
         timeout_minutes: int = 30,
+        stall_minutes: int = 0,
         max_turns: int = 30,
         default_model: str | None = None,
         default_thinking: str | None = None,
@@ -103,8 +226,17 @@ class LocalRunner:
         eval_model: str | None = None,
         local_inference_cost: LocalInferenceCost | None = None,
         prompts_dir: Path | None = None,
+        stack_manager: "OmlxStackManager | None" = None,
     ) -> None:
         self.timeout_minutes = timeout_minutes
+        # Stall guard: kill a run that makes no progress for this many minutes
+        # (0 disables). Lets a high timeout_minutes be a backstop for slow-but-
+        # productive work while unproductive loops still die fast.
+        self.stall_minutes = stall_minutes
+        # Reloads the local serving stack (oMLX model + sampling params) when a
+        # cell's model factor names a different stack preset — the model-
+        # selection point of a within-experiment sampling/quant sweep.
+        self.stack_manager = stack_manager
         self.max_turns = max_turns
         self.default_model = default_model
         self.default_thinking = default_thinking
@@ -179,6 +311,23 @@ class LocalRunner:
                 exit_code=1,
             )
 
+        # Model-selection point: if this cell names a different serving-stack
+        # preset (model weights / sampling params) than is currently loaded,
+        # reload it before running. No-op when the preset is unchanged, so a
+        # design sorted by preset reloads only at each boundary. The preset is a
+        # dedicated ``stack`` factor — NOT ``model``, which the CLI passes to the
+        # agent as the served model id.
+        if self.stack_manager is not None:
+            preset = stack.extra.get("stack")
+            try:
+                self.stack_manager.ensure(preset)
+            except Exception as exc:  # never let a reload error abort the run silently
+                return RunArtifacts(
+                    output_dir=info.workspace,
+                    stderr=f"Stack reload failed for preset {preset!r}: {exc}",
+                    exit_code=1,
+                )
+
         try:
             cmd = self._build_agent_command(stack, task, info.workspace)
         except ValueError as exc:
@@ -193,33 +342,51 @@ class LocalRunner:
             self._write_opencode_config(info.workspace, stack)
             env["OPENCODE_DB"] = str(self._opencode_db_path(info.workspace))
 
-        timeout_secs = self.timeout_minutes * 60
-        start = time.monotonic()
+        hard_wall_secs = self.timeout_minutes * 60
+        stall_secs = self.stall_minutes * 60  # 0 ⇒ stall guard disabled
 
         logger.info("Executing %s in %s", stack.agent, info.workspace)
 
         try:
-            result = subprocess.run(
-                cmd,
-                cwd=info.workspace,
-                capture_output=True,
-                text=True,
-                timeout=timeout_secs,
-                env=env,
+            # Run under the progress guard: a high hard wall lets slow-but-
+            # productive work finish, while the stall guard kills a run that
+            # makes no progress (no new output, no file writes) — an
+            # unproductive loop or hang — in minutes instead of the whole wall.
+            returncode, stdout_text, stderr_text, elapsed, kill_reason = (
+                _run_with_progress_guard(
+                    cmd,
+                    cwd=info.workspace,
+                    env=env,
+                    hard_wall_secs=hard_wall_secs,
+                    stall_secs=stall_secs,
+                )
             )
-            elapsed = time.monotonic() - start
 
-            stdout_text = result.stdout or ""
-            # Persist the agent's FULL stdout/stderr into the run dir so a failed
-            # run is diagnosable after the fact. RunArtifacts keeps only a truncated
-            # copy, and the workspace IS the archive — without this, the raw output
-            # (the only record of WHY an agent aborted, e.g. a denied tool
-            # permission) is lost when the workspace is cleaned. See the
-            # diagnose-failed-run skill.
-            _persist_agent_output(info.workspace, stdout_text, result.stderr or "")
+            if kill_reason is not None:
+                # Killed by a guard. The workspace still holds whatever code the
+                # agent wrote, so it is scored downstream; the run is recorded
+                # as crashed (exit 124) with a reason for post-hoc diagnosis.
+                if kill_reason == "stall":
+                    msg = (
+                        f"Killed after {elapsed:.0f}s — stalled "
+                        f"(no progress for {self.stall_minutes}m, unproductive loop)"
+                    )
+                else:
+                    msg = f"Timeout after {elapsed:.0f}s (hard wall)"
+                return RunArtifacts(
+                    output_dir=info.workspace,
+                    stderr=(stderr_text[-5000:] + "\n" + msg) if stderr_text else msg,
+                    exit_code=124,
+                    duration_seconds=elapsed,
+                    metadata={"kill_reason": kill_reason},
+                )
+
+            # stdout/stderr already streamed to _agent_stdout.log/_agent_stderr.log
+            # by the guard (same files _persist_agent_output would write), so a
+            # failed run stays diagnosable after the workspace is archived.
             # The usage parser must key on the SAME harness the command builder
-            # ran (claude-code / omp / gemini), else total_cost_usd/tokens are
-            # silently dropped while runner-measured _duration_seconds survives
+            # ran (claude-code / omp / gemini / hermes), else total_cost_usd/tokens
+            # are silently dropped while runner-measured _duration_seconds survives
             # (the exp-7/8 bug). _resolve_harness derives it from the model, so
             # there is one source of truth for both.
             token_count, metadata = _parse_agent_usage(
@@ -245,16 +412,16 @@ class LocalRunner:
             # A usage/rate-limit cutoff is not a model failure — flag it so the
             # caller leaves the cell unrecorded (re-run on resume) instead of
             # scoring an incomplete workspace as a failure.
-            if result.returncode != 0 and _USAGE_LIMIT_RE.search(
-                (result.stderr or "") + "\n" + stdout_text
+            if returncode != 0 and _USAGE_LIMIT_RE.search(
+                stderr_text + "\n" + stdout_text
             ):
                 metadata["usage_limited"] = "true"
 
             artifacts = RunArtifacts(
                 output_dir=info.workspace,
                 stdout=stdout_text[-10000:],
-                stderr=result.stderr[-5000:] if result.stderr else "",
-                exit_code=result.returncode,
+                stderr=stderr_text[-5000:] if stderr_text else "",
+                exit_code=returncode,
                 duration_seconds=elapsed,
                 token_count=token_count,
                 metadata=metadata,
@@ -262,14 +429,6 @@ class LocalRunner:
             if self.eval_model is not None and artifacts.succeeded:
                 self._post_run_evaluate(info.workspace)
             return artifacts
-        except subprocess.TimeoutExpired:
-            elapsed = time.monotonic() - start
-            return RunArtifacts(
-                output_dir=info.workspace,
-                stderr=f"Timeout after {elapsed:.0f}s",
-                exit_code=124,
-                duration_seconds=elapsed,
-            )
         except FileNotFoundError as exc:
             return RunArtifacts(
                 output_dir=info.workspace,
