@@ -275,6 +275,7 @@ Newest first — the recent work is the **local-model arc** (exp 16–21) plus *
 
 | # | Task | Models | Covered | Results table | Headline (clean data) |
 |---|---|---|---:|---|---|
+| 26 | **brazil-bench** (**local**, HARD) | exp-25 with the timeout **doubled** (30→60 min) | 6 | **[results →](experiment-26-brazil-35b-60m/RESULTS.md)** | More clock ≈ doubles it: pass **0.17→0.33**, crashes **3→1**; Go goes from all-zeros to **0.92 req_cov**. Wall was masking capability; residual gap is now capability, not budget |
 | 25 | **brazil-bench** (**local**, HARD) | Best stack (35B) on the hard task, Python+Go | 6 | **[results →](experiment-25-brazil-35b/RESULTS.md)** | Copes in Python (1/3 clean MCP server, req_cov 1.0), Go 0/3; half wall out. 256K context used (108K prompts). Python-first, sharpened |
 | 24 | REST-API (**local**) | KV **prefix-cache** ON vs OFF on the 80B (ablation) | 12 | **[results →](experiment-24-qwennext80b-cached/RESULTS.md)** | Cache hits (88K prefix in ~2.5 s) but **0.33→0.33**: runs are generation-bound, not prefill-bound. Bigger≠better survives |
 | 23 | REST-API (**local**) | **Devstral-24B** (agent-tuned) via llama.cpp | 12 | **[results →](experiment-23-devstral/RESULTS.md)** | Different bet, not bigger: 0.17, 7/12 non-terminating — but wrong harness (OpenHands-tuned). 35B still best |

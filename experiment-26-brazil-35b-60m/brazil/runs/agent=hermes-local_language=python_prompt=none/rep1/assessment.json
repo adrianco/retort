@@ -1,0 +1,31 @@
+{
+  "severity_counts": {
+    "critical": 0,
+    "high": 2,
+    "medium": 0,
+    "low": 0,
+    "info": 0
+  },
+  "penalty_score": 0.8,
+  "top_findings": [
+    {
+      "id": "R1",
+      "kind": "requirement_partial",
+      "severity": "high",
+      "title": "MCP server cannot start \u2014 server.run_stdio() is not a real SDK method",
+      "evidence": "server.py:451 calls asyncio.run(server.run_stdio()); the mcp SDK Server class has no run_stdio(). stdio_server is imported at server.py:8 but never used. Correct pattern is `async with stdio_server() as (r,w): await server.run(r,w,server.create_initialization_options())`. main() raises AttributeError immediately.",
+      "suggestion": "Wire main() through the imported stdio_server() context manager and call server.run(read, write, init_options)."
+    },
+    {
+      "id": "R6",
+      "kind": "requirement_partial",
+      "severity": "high",
+      "title": "get_team_stats W/L/D counts are wrong (double-counted from both perspectives)",
+      "evidence": "repository.py:195-197 sets wins = home_wins + away_wins, draws = home_draws + away_draws, losses = home_losses + away_losses. For any match set, home_wins counts home_goal>away_goal and away_wins counts away_goal>home_goal, so wins sums decisive results from BOTH sides \u2014 inflating wins/losses and reporting every decisive match as both a win and a loss; draws are also doubled. goals_for/goals_against (repository.py:182-183) always sum home_goal/away_goal regardless of whether the team played away, so away-match goals are attributed to the wrong side.",
+      "suggestion": "Split each match by whether the team was home or away and tally results/goals from that team's perspective; do not add the two opposite-perspective tallies together."
+    }
+  ],
+  "requirement_coverage": 0.8333,
+  "model": "hermes-local",
+  "evaluated_at": "2026-07-13T03:59:52Z"
+}

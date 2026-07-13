@@ -1,0 +1,40 @@
+{
+  "severity_counts": {
+    "critical": 1,
+    "high": 2,
+    "medium": 0,
+    "low": 0,
+    "info": 0
+  },
+  "penalty_score": 0.55,
+  "top_findings": [
+    {
+      "id": "R12",
+      "kind": "build_failure",
+      "severity": "critical",
+      "title": "Test binary fails to compile \u2014 no tests execute",
+      "evidence": "go test ./... => FAIL [build failed]; analyzer_test.go:454,518,547,574,600,... call MCP handlers with the pre-migration signature (handler(nil) / handler(map[string]interface{}{...}) and type-assert *mcp.CallToolResult as an interface). 10 handler call-sites are broken; the whole package's tests are unbuildable.",
+      "suggestion": "Rewrite the 10 MCP-handler tests to call handler(context.Background(), mcp.CallToolRequest{Arguments: map[string]any{...}}) and read *mcp.CallToolResult (result.Content[0].(mcp.TextContent).Text), matching server.go's ToolHandlerFunc."
+    },
+    {
+      "id": "score-discrepancy",
+      "kind": "test_failure",
+      "severity": "high",
+      "title": "Stored test_coverage=0.815 contradicts a build-failed test suite",
+      "evidence": "scores.json reports {\"test_coverage\": 0.815}, but `go test ./...` returns 'FAIL [build failed]' \u2014 the test binary does not compile, so 0 tests run. The stored mechanical score overstates verification; the true test gate value is 0.",
+      "suggestion": "Treat this run as failing the test gate. Investigate why retort's Go test_coverage scorer produced 0.815 for a package whose test binary fails to build (it should return 0)."
+    },
+    {
+      "id": "R11",
+      "kind": "requirement_partial",
+      "severity": "high",
+      "title": "Head-to-head W/L/D record is never computed (dead code)",
+      "evidence": "analyzer.go:272 collectH2H returns the match list but the win/loss/draw counting is dead: h2hDummy := &HeadToHead{...} is assigned then discarded (analyzer.go:295) and branches only do `_ = homeScore` (analyzer.go:297-306). HeadToHead.Team1Wins/Team2Wins/Draws/TotalMatches stay 0. The get_head_to_head tool therefore returns matches with an all-zero W/L/D summary.",
+      "suggestion": "Increment h2h.Team1Wins/Team2Wins/Draws and TotalMatches inside collectH2H based on the score comparison, and return them on the HeadToHead struct."
+    }
+  ],
+  "requirement_coverage": 0.75,
+  "model": "hermes-local",
+  "evaluated_at": "2026-07-13T06:09:14Z",
+  "min_severity": "high"
+}

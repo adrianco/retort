@@ -1,0 +1,31 @@
+{
+  "severity_counts": {
+    "critical": 0,
+    "high": 2,
+    "medium": 0,
+    "low": 0,
+    "info": 0
+  },
+  "penalty_score": 0.8,
+  "top_findings": [
+    {
+      "id": "R3",
+      "kind": "requirement_partial",
+      "severity": "high",
+      "title": "Brasileir\u00e3o loader reads away team from the away_team_state column",
+      "evidence": "loader.go:48 sets AwayTeam from row[4]; header is datetime,home_team,home_team_state,away_team(3),away_team_state(4),... so row[4] is the 2-letter state. Sample: 'Palmeiras-SP,SP,Portuguesa-SP,SP,1,1' -> AwayTeam becomes 'SP'. All 4,180 Brasileir\u00e3o away teams are corrupted to state codes, breaking away-team search, head-to-head, standings and team stats for the flagship dataset.",
+      "suggestion": "Read AwayTeam from row[3] (away_team), not row[4]."
+    },
+    {
+      "id": "R6",
+      "kind": "requirement_partial",
+      "severity": "high",
+      "title": "TeamStats win/draw/loss classification is case-sensitive but lookup is case-insensitive",
+      "evidence": "store.go:84 finds matches via lowercase index key, but store.go:101-107 compares m.HomeTeam == team / m.AwayTeam == team case-sensitively. A caller passing 'flamengo' (any non-exact case) still gets Matches>0 from the index, yet every match falls through to the else branch (store.go:110) and is counted as a Loss, so Wins=Draws=0 and WinRate=0. Only exact-case inputs (as in the tests) are correct.",
+      "suggestion": "Use strings.EqualFold(m.HomeTeam, team) / EqualFold(m.AwayTeam, team) for the W/D/L branches, consistent with the case-insensitive index."
+    }
+  ],
+  "requirement_coverage": 0.8333,
+  "model": "hermes-local",
+  "evaluated_at": "2026-07-13T07:33:30Z"
+}

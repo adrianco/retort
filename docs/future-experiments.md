@@ -128,10 +128,17 @@ so it's a clean test of self-repair.
   don't inject a contradicting neutral wrapper); Hermes `context_length: 262144` (default
   fallback is only 64K). Confirms the Python-first story and sharpens it: the harder
   the task, the wider the Python-Go gap.
-- **Follow-ups worth running:** (a) raise the timeout / lower max_turns on brazil to
-  convert wall-crashes into real data points (Python near-misses suggest a few more
-  minutes would close them); (b) the MTP/speculative-decoding speed lever matters
-  *most* here — more finished turns before the wall is exactly what brazil needs.
+- **Timeout follow-up — DONE (exp-26).** Doubled the brazil timeout to 60 min
+  ([RESULTS](../experiment-26-brazil-35b-60m/RESULTS.md)): first-try pass 0.17 → 0.33,
+  crashes 3 → 1, and Go went from *all zeros* (non-terminating) to code_quality 1.0 +
+  test_coverage 0.6–0.81 + req_cov up to **0.92**. The 30-min wall was masking real
+  capability, Go especially — highest-leverage single knob so far. It also *unlocked*
+  self-repair for Go (runs now complete-and-fail instead of crashing, so they qualify),
+  though the hard-last-mile repairs didn't convert (one regressed). Residual failures
+  are now *capability* (Go's last mile, one genuinely non-terminating run at the full
+  hour), not budget. **Next lever is throughput (MTP), not more wall-clock.**
+- **MTP/speculative-decoding** remains the top open speed lever — more finished turns
+  per minute is exactly what the remaining wall-bound / near-miss runs need.
 
 ## Cheap opportunistic checks
 
@@ -155,3 +162,11 @@ so it's a clean test of self-repair.
 - Spec-gate always ON. Clean archive bloat (truncate `_agent_stdout.log`, strip
   node_modules/target) before committing.
 - After each experiment: update `model-blog.md` + push to GitHub.
+- **Self-repair second-chance is the universal default** (every task, every run) —
+  don't opt out with `--no-second-chance` unless explicitly asked. It repairs
+  *completed-but-failed* runs; *crashes* (wall-timeouts) don't get it, so raise the
+  timeout to convert them into repairable/passing runs.
+- **Timeout is per-experiment and LOCAL runs need more time** (local models are slow).
+  Set `playpen.timeout_minutes` generously in the workspace.yaml for any local stack
+  (e.g. 60 min, vs ~30 for cloud). It's a property of the stack, not the task — don't
+  bake it into the task definition.
