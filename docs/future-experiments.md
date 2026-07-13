@@ -116,6 +116,23 @@ so it's a clean test of self-repair.
   isn't better" stands; the mechanism is throughput, not caching.** Leave the cache
   on (free prefill latency) but don't expect pass-proportion from it.
 
+## Resolved — the hard task on the local stack (exp-25)
+
+- **The best local stack (35B) copes with brazil-bench in Python, not Go.**
+  [RESULTS](../experiment-25-brazil-35b/RESULTS.md). Python 1/3 (one *clean* MCP
+  server: req_cov 1.0, test_cov 0.90, 23 min), Go 0/3; overall 1/6 = 0.17. Half the
+  runs (3/6) hit the 30-min wall — generation-bound again (54 tok/s × a 12-capability
+  task = 2–3.2M tokens without finishing). The 256K context was necessary and used
+  (108K-token prompts, no OOM), so context was NOT the limit — throughput + the wall
+  were. Setup notes: prompt=`none` (the brazil-bench guide already prescribes BDD, so
+  don't inject a contradicting neutral wrapper); Hermes `context_length: 262144` (default
+  fallback is only 64K). Confirms the Python-first story and sharpens it: the harder
+  the task, the wider the Python-Go gap.
+- **Follow-ups worth running:** (a) raise the timeout / lower max_turns on brazil to
+  convert wall-crashes into real data points (Python near-misses suggest a few more
+  minutes would close them); (b) the MTP/speculative-decoding speed lever matters
+  *most* here — more finished turns before the wall is exactly what brazil needs.
+
 ## Cheap opportunistic checks
 
 - **oMLX 0.5.0 MTP (multi-token prediction) — now the top speed lever.** exp-24

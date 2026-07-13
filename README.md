@@ -275,6 +275,7 @@ Newest first — the recent work is the **local-model arc** (exp 16–21) plus *
 
 | # | Task | Models | Covered | Results table | Headline (clean data) |
 |---|---|---|---:|---|---|
+| 25 | **brazil-bench** (**local**, HARD) | Best stack (35B) on the hard task, Python+Go | 6 | **[results →](experiment-25-brazil-35b/RESULTS.md)** | Copes in Python (1/3 clean MCP server, req_cov 1.0), Go 0/3; half wall out. 256K context used (108K prompts). Python-first, sharpened |
 | 24 | REST-API (**local**) | KV **prefix-cache** ON vs OFF on the 80B (ablation) | 12 | **[results →](experiment-24-qwennext80b-cached/RESULTS.md)** | Cache hits (88K prefix in ~2.5 s) but **0.33→0.33**: runs are generation-bound, not prefill-bound. Bigger≠better survives |
 | 23 | REST-API (**local**) | **Devstral-24B** (agent-tuned) via llama.cpp | 12 | **[results →](experiment-23-devstral/RESULTS.md)** | Different bet, not bigger: 0.17, 7/12 non-terminating — but wrong harness (OpenHands-tuned). 35B still best |
 | 22 | REST-API (**local**) | **Qwen3-Coder-Next-80B-A3B** vs the 35B | 12 | **[results →](experiment-22-qwennext80b/RESULTS.md)** | Bigger ≠ better: 80B first-try **0.33 < 35B's 0.50**; slower, more non-terminating |

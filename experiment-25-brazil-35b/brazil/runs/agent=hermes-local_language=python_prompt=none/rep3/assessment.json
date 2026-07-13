@@ -1,0 +1,47 @@
+{
+  "severity_counts": {
+    "critical": 1,
+    "high": 3,
+    "medium": 0,
+    "low": 0,
+    "info": 0
+  },
+  "penalty_score": 0.45,
+  "top_findings": [
+    {
+      "id": "R1",
+      "kind": "build_failure",
+      "severity": "critical",
+      "title": "MCP server fails to import \u2014 @app.tool() on low-level Server",
+      "evidence": "server.py:133 `@app.tool()` \u2014 `import server` raises `AttributeError: 'Server' object has no attribute 'tool'`. All 13 tool handlers use FastMCP-style @app.tool() on a low-level mcp.server.Server, which has no such decorator; the module is unimportable and the server entrypoint (main()) cannot start.",
+      "suggestion": "Use FastMCP (`from mcp.server.fastmcp import FastMCP; app = FastMCP(...)`) or register handlers via the low-level API (@app.list_tools()/@app.call_tool())."
+    },
+    {
+      "id": "R7",
+      "kind": "requirement_missing",
+      "severity": "high",
+      "title": "No player search by name",
+      "evidence": "data_loader.py:433 get_players_by_filter accepts nationality/club/position/min_overall but no name param; server.py:208 search_players exposes the same params. No code path searches FIFA data by player Name, so 'Who is Gabriel Barbosa?' cannot be answered by name.",
+      "suggestion": "Add a `name` filter (substring/case-insensitive match on p['name']) to get_players_by_filter and expose it via the search_players tool."
+    },
+    {
+      "id": "R9",
+      "kind": "requirement_partial",
+      "severity": "high",
+      "title": "Season standings are computed incorrectly (only away side credited + double-counted)",
+      "evidence": "data_loader.py:522 the `if h == tk / else` block is dedented out of the `for tk in [h,a]` loop, so tk is always the away team and only the away side of each fixture is credited; combined with counting both Brasileirao_Matches.csv and novo_campeonato_brasileiro.csv for the same season, get_standings_by_season(2019) returns top team 'atletico' 41 pts (9W-14D-15L) \u2014 the real 2019 champion Flamengo had 90 pts.",
+      "suggestion": "Indent the win/draw/loss/points block inside the per-team loop so both home and away perspectives are credited, and dedupe overlapping datasets (Brasileirao vs Brasileirao Historic) before aggregating."
+    },
+    {
+      "id": "test-uncollected-1",
+      "kind": "disabled_test",
+      "severity": "high",
+      "title": "Entire query test suite (29 tests) is silently uncollected",
+      "evidence": "tests/test_queries.py defines classes named FeatureMatchQueries/FeatureTeamQueries/etc.; pytest's default python_classes is `Test*` and there is no pytest.ini/pyproject config overriding it, so `pytest --collect-only` collects only test_data_loader.py (49) + test_knowledge_graph.py (15) = 64. All 29 test_queries.py methods (match/team/player/competition/statistical query scenarios) never run \u2014 the agent's reported '64/64 passing' excludes them.",
+      "suggestion": "Rename the Feature* classes to Test* (or set python_classes) so the 29 query tests are collected and executed."
+    }
+  ],
+  "requirement_coverage": 0.75,
+  "model": "hermes-local",
+  "evaluated_at": "2026-07-12T23:39:52Z"
+}

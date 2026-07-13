@@ -1,0 +1,64 @@
+# Experiment 25 — the HARD task on the best local stack.
+# brazil-bench (Brazilian-soccer MCP server built from a multi-file guide +
+# kaggle datasets — the task cloud frontier models find non-trivial) on the best
+# local stack (Hermes + hermes-lcm -> oMLX -> Qwen3.6-35B-A3B MLX). Every prior
+# local run used the EASY bookshop CRUD task; this asks whether the 35B that tops
+# the local leaderboard can cope with a genuinely hard, multi-capability build.
+#
+# language[python, go] × prompt[neutral] × 3 replicates = 6 runs. Python and Go
+# are the two languages the local stack is most reliable on (exp-20/24), so this
+# is the stack's best shot at the hard task — a ceiling probe, not a reach probe.
+#
+# Data: the brazil-bench source repo ships data/kaggle/*.csv (6 files, ~13 MB);
+# retort provisions them into each workspace (R2 needs them).
+#
+# Run:
+#   export PATH="$HOME/hermes-venv/bin:/opt/homebrew/bin:$HOME/go/bin:$PATH"
+#   PYTHONPATH=src .venv/bin/python -c 'from retort.cli import main; main()' run \
+#     --phase screening --config experiment-25-brazil-35b/brazil/workspace.yaml \
+#     --design experiment-25-brazil-35b/brazil/design.csv --replicates 3 --resume
+
+experiment:
+  name: experiment-25-brazil-35b-brazil
+  visibility: public
+
+factors:
+  language:
+    levels: [python, go]
+  agent:
+    levels: [hermes-local, claude-code]
+  prompt:
+    levels: [none, neutral]  # 'none' = inject nothing; brazil-bench's guide already prescribes BDD
+
+responses:
+  - code_quality
+  - token_efficiency
+  - test_coverage
+  - defect_rate
+  - maintainability
+  - idiomatic
+
+tasks:
+  - source: github://brazil-bench/benchmark-template/brazilian-soccer-mcp-guide.md
+
+playpen:
+  runner: local
+  replicates: 3
+  timeout_minutes: 30
+  max_turns: 200
+  local_agents:
+    hermes-local:
+      harness: hermes
+      model: mlxlocal/Qwen3.6-35B-A3B
+
+design:
+  screening_resolution: 3
+  significance_threshold: 0.10
+
+promotion:
+  screening_to_trial: { p_value: 0.10 }
+  trial_to_production: { posterior_confidence: 0.80 }
+
+evaluation:
+  enabled: true
+  model: opus-4.8

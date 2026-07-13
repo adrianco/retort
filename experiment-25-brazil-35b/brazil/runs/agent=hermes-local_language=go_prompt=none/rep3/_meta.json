@@ -1,0 +1,10 @@
+{
+  "replicate": 3,
+  "run_config": {
+    "agent": "hermes-local",
+    "language": "go",
+    "prompt": "none"
+  },
+  "succeeded": true,
+  "visibility": "public"
+}
