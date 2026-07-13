@@ -140,6 +140,43 @@ so it's a clean test of self-repair.
 - **MTP/speculative-decoding** remains the top open speed lever — more finished turns
   per minute is exactly what the remaining wall-bound / near-miss runs need.
 
+## Inference-lever sweep (issue #40) — in progress
+
+Prompted by [issue #40](https://github.com/adrianco/retort/issues/40) (jschoch): a
+long list of local-inference levers (K/V quant, context quant, sampling params,
+speculative decoding, MTP, quant scheme/level, SWA, MoE-vs-dense…) and the question
+of whether they "resolve into reliability." Our harness is uniquely able to answer
+that — pass-proportion **is** a reliability metric, unlike perplexity/KLD. Filtered
+by our findings (generation-bound + wall-limited):
+
+- **Tier 1 — sampling (exp-27, RUNNING).** Fractional factorial (Resolution IV
+  2^(4-1), 8 presets) over **temperature, top_p, top_k, repetition_penalty** on the
+  35B stack, bookshop, python+go, 3 reps. All prior local runs used oMLX defaults
+  **temp=1.0 / rep_penalty=1.0** — above Qwen's own ~0.6–0.7 rec — so this
+  re-baselines and screens which sampling knobs move reliability (and whether lower
+  temp / a repetition penalty cut the runaway non-termination). `min_p` dropped:
+  oMLX strips it from settings (per-request only, and Hermes doesn't send it).
+- **Tier 1 — speculative decoding / MTP.** The throughput lever exp-24/26 point to
+  (generation-bound → faster tok/s converts wall-crashes into passes). oMLX ships a
+  Qwen3.5/3.6 MTP patch but the unsloth 4-bit build has no MTP weights → needs a
+  small draft model for speculative decode. Highest payoff, more setup.
+- **Tier 2 — quant level (4-bit → 6/8-bit) and scheme (unsloth/bartowski/stock).**
+  Tests the brazil *capability* ceiling (Go reaches 0.92 req_cov but not 1.0): is the
+  last mile lost to 4-bit quant error? 6-bit 35B (~26 GB) fits 64 GB.
+- **Tier 2 — MoE vs dense** (issue #40 ask). Half-done (Devstral dense, wrong harness);
+  a fair matched-size dense-vs-MoE on Hermes would isolate the architecture effect.
+- **Deprioritised, with reasons.** K/V quant + context quant = *memory* levers, but
+  context isn't our bottleneck and lossy KV risks reliability. convRot/turboquant, SWA
+  = research-y, weak serving support. jinja/template = already solved for our Qwen path.
+- **The meta-prize.** Log each config's pass-proportion alongside its published
+  perplexity across the sweeps → *which inference levers move real coding reliability,
+  and how badly perplexity mispredicts it.* No public benchmark answers this.
+
+Harness support built for this (committed): a **stall-guard timeout** (high wall +
+kill unproductive loops) and a **stack-reload hook** (`playpen.stack_presets` — a
+`stack` factor whose presets reload the oMLX model + sampling at the model-selection
+point, within one experiment). Run order groups by `stack` so each preset loads once.
+
 ## Cheap opportunistic checks
 
 - **oMLX 0.5.0 MTP (multi-token prediction) — now the top speed lever.** exp-24
