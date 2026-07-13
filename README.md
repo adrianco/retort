@@ -123,7 +123,7 @@ The whole landscape, cloud frontier down to a local laptop stack (**pass-proport
 | opus-4.8-fast² | cloud | **1.00** | **1.00** | $8.72 |
 | sonnet 4.6 | cloud | 0.50 | 0.63 | $1.10 |
 | opus-4.6 | cloud | 0.47 | 0.59 | $1.30 |
-| **Qwen3.6-35B-A3B** ⁵ *(best local)* | **local · $0** | — | **0.38** | **$0** |
+| **Qwen3.6-35B-A3B** ⁵ *(best local)* | **local · $0** | **0.33** ⁹ | **0.38** | **$0** |
 | **Qwen3-Coder-Next-80B-A3B** ⁷ *(bigger ≠ better)* | **local · $0** | — | 0.33 | **$0** |
 | **Qwen3-Coder-30B-A3B** ⁶ | **local · $0** | — | **0.33** | **$0** |
 | **Devstral-24B** ⁸ *(agent-tuned, wrong harness)* | **local · $0** | — | 0.17 | **$0** |
@@ -136,6 +136,7 @@ The whole landscape, cloud frontier down to a local laptop stack (**pass-proport
 ⁶ **Qwen3-Coder-30B-A3B** via llama.cpp — **0.08** at a 32 K context, **0.33** at 128 K: context is the first-order lever for a local model.
 ⁷ **Qwen3-Coder-Next-80B-A3B** (exp-22, same stack as the 35B). Doubling the model *lowered* first-try reliability (0.33 vs the 35B's 0.50) — slower and more prone to never terminating. Bigger ≠ better on this task.
 ⁸ **Devstral-24B** (exp-23), smaller but agent-tuned, served via **llama.cpp** (oMLX can't parse its Mistral tool format). Lowest local result (0.17), 7/12 non-terminating — but tuned for OpenHands, not Hermes, so it's on the wrong harness. Neither bigger nor agent-tuned beat the general 35B.
+⁹ **The hard task, local (exp-25/26) — newest.** The 35B on Brazil MCP (**Python + Go only**): **0.17** first-try at a 30-min timeout, **0.33** at 60 min. Local runs are generation-bound, so they need a bigger per-experiment time budget; Go alone goes from 0/3 (non-terminating) to a 0.92-req-coverage near-miss on the extra clock, and one Python run built a complete, tested MCP server (req_cov 1.0). Not the all-nine-language or all-model board — a Python/Go probe of whether a laptop model can do the hard task at all.
 
 - **Newer *is* more reliable — markedly so on hard tasks.** Opus-4.8 produces a completely-correct result **100% of the time on both tasks**; 4.7 is 85% / 100%. The cheaper models (4.6, Sonnet) get the *hard* task completely right only **~half the time** — they're a coin-flip.
 - **You pay steeply for that reliability.** On the hard task Opus-4.8 is **~3× slower and ~4× pricier** than 4.6 / Sonnet.
