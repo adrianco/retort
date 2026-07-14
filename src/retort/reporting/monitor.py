@@ -120,6 +120,76 @@ class CellProgress:
         """Stable ``value/value/...`` label, ordered by factor name."""
         return "/".join(v for _, v in sorted(self.factors.items()))
 
+    def display_label(self, keys: list[str]) -> str:
+        """Label built from ``keys`` only, with separator-safe values.
+
+        A factor value can itself contain ``/`` (e.g. a model id like
+        ``mlxlocal/Qwen3.6-35B-A3B``), which would masquerade as extra factors in
+        the joined label — so slashes inside a value become ``-``.
+        """
+        return "/".join(
+            str(self.factors.get(k, "")).replace("/", "-") for k in keys
+        ) or "(single cell)"
+
+
+def informative_factors(cells: list[CellProgress]) -> list[str]:
+    """The factors worth putting in a cell label.
+
+    Drops the two kinds of noise that make the table unreadable:
+
+    * **constant** factors — every cell shares the value (e.g. ``agent`` and
+      ``prompt`` in a single-agent sweep), so they distinguish nothing;
+    * **redundant** factors — a factor that partitions the cells exactly like an
+      earlier one (e.g. ``model`` and ``stack``, which are 1:1 by construction in
+      a stack-preset sweep). Of a redundant pair we keep whichever has the
+      shorter values, so ``m35`` wins over ``mlxlocal/Qwen3.6-35B-A3B``.
+
+    Falls back to every factor if that would leave nothing to show.
+    """
+    if not cells:
+        return []
+    keys = sorted({k for c in cells for k in c.factors})
+    varying = [k for k in keys if len({c.factors.get(k) for c in cells}) > 1]
+
+    kept: list[str] = []
+    seen_partitions: list[tuple[tuple[str, ...], str]] = []
+    for k in varying:
+        # A factor's "partition" is how it groups the cells; identical partitions
+        # carry identical information.
+        partition = tuple(str(c.factors.get(k)) for c in cells)
+        groups = tuple(sorted({p for p in partition}))
+        width = max((len(v) for v in groups), default=0)
+        dup = next(
+            (i for i, (g, _) in enumerate(seen_partitions)
+             if _same_partition(partition, cells, seen_partitions[i][1])),
+            None,
+        )
+        if dup is not None:
+            prev_key = seen_partitions[dup][1]
+            prev_width = max(
+                (len(str(c.factors.get(prev_key))) for c in cells), default=0
+            )
+            if width < prev_width:  # keep the more readable of the two
+                kept[kept.index(prev_key)] = k
+                seen_partitions[dup] = (groups, k)
+            continue
+        seen_partitions.append((groups, k))
+        kept.append(k)
+    return kept or varying or keys
+
+
+def _same_partition(
+    partition: tuple[str, ...], cells: list[CellProgress], other_key: str
+) -> bool:
+    """True when ``partition`` groups the cells exactly as ``other_key`` does."""
+    other = tuple(str(c.factors.get(other_key)) for c in cells)
+    mapping: dict[str, str] = {}
+    reverse: dict[str, str] = {}
+    for a, b in zip(partition, other):
+        if mapping.setdefault(a, b) != b or reverse.setdefault(b, a) != a:
+            return False
+    return True
+
 
 @dataclass
 class MonitorSnapshot:
@@ -270,6 +340,7 @@ def build_snapshot(
             failures.append(
                 {
                     "label": label,
+                    "factors": str_factors,
                     "replicate": run.replicate,
                     "error": (run.error_message or "") + "  [crashed — will retry]",
                     "duration_s": res.get(DURATION_METRIC),
@@ -282,6 +353,7 @@ def build_snapshot(
             failures.append(
                 {
                     "label": label,
+                    "factors": str_factors,
                     "replicate": run.replicate,
                     "error": run.error_message or "",
                     "duration_s": res.get(DURATION_METRIC),
@@ -371,6 +443,7 @@ def build_snapshot(
         recent.append(
             {
                 "label": _label(factors, run.id),
+                "factors": {k: str(v) for k, v in factors.items()},
                 "replicate": run.replicate,
                 "finished_at": fin_dt,
                 "code_quality": res.get("code_quality"),
@@ -423,6 +496,15 @@ def _fmt_tokens(tokens: float) -> str:
     if tokens >= 1e3:
         return f"{tokens / 1e3:.0f}K"
     return f"{tokens:.0f}"
+
+
+
+def _short(entry: dict, keys: list[str]) -> str:
+    """Cell label for a recent/failure entry, using only informative factors."""
+    f = entry.get("factors")
+    if not f or not keys:
+        return str(entry.get("label", "?"))
+    return "/".join(str(f.get(k, "")).replace("/", "-") for k in keys)
 
 
 def render_active(active: list[dict]) -> list[str]:
@@ -505,26 +587,48 @@ def render_text(
         lines.extend(active_lines)
         lines.append("")
 
-    # Per-cell table
+    # Per-cell table. Label shows only the factors that actually distinguish
+    # cells (constants and redundant duplicates are elided into a legend), and
+    # the column is sized to the content so nothing overflows the header.
     reps = snap.replicates
     lines.append("Cells:")
+    keys = informative_factors(snap.cells)
+    labels = {id(c): c.display_label(keys) for c in snap.cells}
+    width = min(max((len(v) for v in labels.values()), default=4), 44)
+
+    # Legend: the factors held constant across every cell (dropped from labels).
+    all_keys = sorted({k for c in snap.cells for k in c.factors})
+    const = {
+        k: str(snap.cells[0].factors.get(k))
+        for k in all_keys
+        if k not in keys and len({c.factors.get(k) for c in snap.cells}) == 1
+    }
+    if const:
+        lines.append(
+            "  (all cells: " + ", ".join(f"{k}={v}" for k, v in const.items()) + ")"
+        )
+    if keys:
+        lines.append("  cell = " + "/".join(keys))
+
     lines.append(
-        f"  {'cell':<34} {'done':>5}  {'cq':>4}  {'cov':>4}  {'~dur':>6}  {'$tot':>6}"
+        f"  {'cell':<{width}}  {'done':>5}  {'fail':>4}  {'crash':>5}  "
+        f"{'cq':>4}  {'cov':>4}  {'~dur':>6}  {'$tot':>6}"
     )
     for c in snap.cells:
+        lab = labels[id(c)]
+        if len(lab) > width:
+            lab = lab[: width - 1] + "…"
         done = f"{c.completed}/{reps}" if reps else str(c.completed)
-        if c.failed:
-            done += f" ✗{c.failed}"
-        if c.crashed:
-            done += f" ⚠{c.crashed}"
+        fail_s = f"✗{c.failed}" if c.failed else "·"
+        crash_s = f"⚠{c.crashed}" if c.crashed else "·"
         cq = c.metric_means.get("code_quality")
         cov = c.metric_means.get("test_coverage")
         cq_s = f"{cq:.2f}" if cq is not None else "—"
         cov_s = f"{cov:.2f}" if cov is not None else "—"
         dur_s = _fmt_duration(c.mean_duration_s)  # mean wall-clock per run
         lines.append(
-            f"  {c.label:<34} {done:>5}  {cq_s:>4}  {cov_s:>4}  {dur_s:>6}  "
-            f"${c.cost_usd:>5.1f}"
+            f"  {lab:<{width}}  {done:>5}  {fail_s:>4}  {crash_s:>5}  "
+            f"{cq_s:>4}  {cov_s:>4}  {dur_s:>6}  ${c.cost_usd:>5.1f}"
         )
     lines.append("")
 
@@ -541,7 +645,7 @@ def render_text(
             fin = r["finished_at"]
             ts = fin.astimezone().strftime("%m-%d %H:%M %Z") if fin else "   —   "
             lines.append(
-                f"  ✓ {ts}  {r['label']} rep{r['replicate']}  {cq} {cov}  {cost}  {dur}"
+                f"  ✓ {ts}  {_short(r, keys)} rep{r['replicate']}  {cq} {cov}  {cost}  {dur}"
             )
         lines.append("")
 
@@ -554,7 +658,7 @@ def render_text(
         for f in shown:
             err = (f["error"] or "").splitlines()[0][:80] if f["error"] else ""
             dur = f" ({_fmt_duration(f.get('duration_s'))})" if f.get("duration_s") else ""
-            lines.append(f"  ✗ {f['label']} rep{f['replicate']}{dur}  {err}")
+            lines.append(f"  ✗ {_short(f, keys)} rep{f['replicate']}{dur}  {err}")
     else:
         lines.append("Failures   : none")
 

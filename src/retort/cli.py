@@ -4171,9 +4171,17 @@ def _discover_active_runs(db_path: Path) -> list[dict]:
             label = "?"
             try:
                 sj = _json.loads((Path(cwd) / "stack.json").read_text())
+                # Prefer the short stack-preset id over the full model id: a cell
+                # carrying both (a stack-preset sweep) would otherwise render as
+                # `rust/mlxlocal/Qwen3.6-35B-A3B/...`, where the model id's own
+                # slashes masquerade as extra factors. Fall back to the model's
+                # last path segment when there is no preset.
+                fields = ("language", "stack", "agent", "tooling", "prompt")
+                if "stack" not in sj:
+                    fields = ("language", "model", "agent", "tooling", "prompt")
                 label = "/".join(
-                    str(sj[k])
-                    for k in ("language", "model", "agent", "tooling", "prompt")
+                    str(sj[k]).rsplit("/", 1)[-1]
+                    for k in fields
                     if k in sj and str(sj[k]) not in ("", "unknown")
                 )
             except Exception:  # noqa: BLE001
