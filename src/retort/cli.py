@@ -131,6 +131,57 @@ def _gitignore_for(visibility: str) -> str:
     return _GITIGNORE_COMMON + extra
 
 
+def _harness_failure(rep_dir: Path) -> str | None:
+    """Was the agent PREVENTED from working in this archived run?
+
+    Returns a description when the run shows a harness failure rather than a model
+    failure, else None.
+
+    The disqualifying signature is **the agent produced no source files** — a model
+    that merely *can't* do the task still writes something, so writing nothing points
+    at the harness (a blocked/mis-pathed file tool, or a serving layer that never
+    returns tool calls). That scores a zero indistinguishable from incapability,
+    which is how a harness bug once masqueraded as a language "capability wall".
+
+    A tool **refusal** in the log is corroborating evidence, not sufficient on its
+    own: a resilient model routes around a blocked ``write_file`` via the shell and
+    still ships working code. Refusals are therefore only reported alongside a run
+    that produced nothing.
+    """
+    from retort.playpen.local_runner import _TOOL_REFUSAL_RE
+
+    _SKIP = {
+        "TASK.md", "stack.json", "REQUIREMENTS.json", "_meta.json", "scores.json",
+        "evaluation.md", "assessment.json", "findings.jsonl", "FEEDBACK.md",
+        "_agent_stdout.log", "_agent_stderr.log", "README.md", "prompts.txt",
+    }
+    produced = [
+        p for p in rep_dir.rglob("*")
+        if p.is_file() and p.name not in _SKIP
+        and not p.name.startswith(".")
+        and "summary" not in p.parts and "data" not in p.parts
+    ]
+    if produced:
+        return None  # it wrote code — judge it on the code, not the harness
+
+    why = (
+        "agent wrote NO source files — a model that cannot do the task still writes "
+        "something. Suspect the harness before the model."
+    )
+    log = rep_dir / "_agent_stdout.log"
+    if log.is_file():
+        try:
+            m = _TOOL_REFUSAL_RE.search(log.read_text(errors="replace"))
+        except OSError:
+            m = None
+        if m:
+            why += (
+                f" Its file tool was REFUSED: {m.group(0).strip()[:80]!r} — check "
+                "playpen_root (must not sit under the system temp dir)."
+            )
+    return why
+
+
 def _ordered_runs(run_configs, reps, reload_key_fn=None):
     """Yield ``(rep, run_idx, run_config)`` in execution order.
 
@@ -3939,6 +3990,15 @@ def diagnose(experiment_dir, as_json):
             continue
         if not rep_dir.is_dir():
             findings.append((label, "UNKNOWN", "no archived run dir to inspect"))
+            continue
+        # HARNESS — the agent was PREVENTED from working, so this is not a model
+        # result at all. It outranks TOOLING/GENUINE because the run never really
+        # happened: a blocked file tool (or an agent that wrote nothing) scores a
+        # zero indistinguishable from an incapable model, which is how a harness
+        # bug once masqueraded as a language "capability wall".
+        _harness = _harness_failure(rep_dir)
+        if _harness:
+            findings.append((label, "HARNESS", _harness))
             continue
         stack = StackConfig(
             language=rc.get("language", ""), agent=rc.get("agent", "unknown"),

@@ -24,18 +24,37 @@ let a stack work unattended.
 
 ## Lifecycle: how a stack gets here, and how it leaves
 
-1. **Qualify.** A new model or configuration is measured on the standard tasks, at its
-   own recommended settings, on a stack whose every variable is recorded.
-2. **Promote.** It enters this document only if it wins on some axis a developer
-   actually chooses along — a language, a task size, a cost or latency budget. Being
-   new is not a qualification.
-3. **Retire.** When a stack is beaten on *every* axis it used to lead, it is removed —
-   not demoted, removed. The list stays short on purpose.
-4. **Eliminate.** Configurations that reliably degrade a stack are recorded as
-   **forbidden settings** (below) and never used again.
+This document is the human-readable view of a lifecycle the tool already runs. Each
+stage is a retort command, so entries here are *derived*, not curated by taste:
 
-New model releases — frontier and local — trigger a re-qualification pass. The
-document is expected to churn.
+```
+CANDIDATE ──► SCREENING ──► TRIAL ──► PRODUCTION ──► RETIRED
+```
+
+| Stage | What it means | How it's decided |
+|---|---|---|
+| **Candidate** | a new model, agent or configuration appears | `retort intake --factor model --level <new>` augments the existing design rather than restarting it |
+| **Screening** | Resolution III — do its main effects matter at all? | `retort run --phase screening` → `retort analyze` |
+| **Trial** | Resolution IV/V — interactions estimated | `retort promote --from screening --to trial` (gate: p-value) |
+| **Production** | **listed in this document** — the recommended stack for its niche | `retort promote --to production` (gate: posterior confidence); `retort maturity` scores readiness |
+| **Retired** | dominated on *every* metric by a newer stack — removed, not demoted | `retort report pareto` identifies who is still non-dominated |
+
+The gates are configuration, not opinion — they live in each `workspace.yaml`:
+
+```yaml
+promotion:
+  screening_to_trial:   { p_value: 0.10 }
+  trial_to_production:  { posterior_confidence: 0.80 }
+```
+
+**A stack earns a place here only by leading on an axis a developer actually chooses
+along** — a language, a task size, a cost or latency budget. Being new is not a
+qualification. When it leads on none, `retort report pareto` shows it dominated and it
+comes out. The list stays short on purpose.
+
+Configurations that reliably degrade a stack are eliminated outright and recorded as
+**forbidden settings** (below). New model releases — frontier and local — trigger a
+re-qualification pass, so this document is expected to churn.
 
 ---
 
