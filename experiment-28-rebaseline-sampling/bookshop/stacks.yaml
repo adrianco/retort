@@ -22,6 +22,7 @@ presets:
       top_p: 0.8
       top_k: 20
       repetition_penalty: 1.0
+    context_length: 262144
   m35:
     model: Qwen3.6-35B-A3B
     sampling:
@@ -29,6 +30,7 @@ presets:
       top_p: 0.95
       top_k: 20
       repetition_penalty: 1.0
+    context_length: 262144
   m80:
     model: mlx-community--Qwen3-Coder-Next-4bit
     sampling:
@@ -36,3 +38,4 @@ presets:
       top_p: 0.95
       top_k: 40
       repetition_penalty: 1.0
+    context_length: 262144

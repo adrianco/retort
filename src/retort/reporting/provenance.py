@@ -87,10 +87,19 @@ def _hermes_config() -> dict[str, Any] | None:
     except Exception:  # noqa: BLE001
         return None
     prov = (cfg.get("providers") or {}).get("mlxlocal") or {}
+    model = cfg.get("model")
+    # The PER-MODEL context_length is the one Hermes actually honours. A top-level
+    # `context_length:` can read 262144 while the model entry is empty, in which case
+    # Hermes silently probes down to its 128K fallback tier — and lcm then compacts at
+    # ~85% of 128K (~109K), thrashing at half the context you think you configured.
+    # Report both, and flag the disagreement, so provenance can never lie about it.
+    per_model = (prov.get("models") or {}).get(model, {}).get("context_length")
+    top_level = cfg.get("context_length")
     return {
-        "model": cfg.get("model"),
-        "context_length": cfg.get("context_length")
-        or (prov.get("models") or {}).get(cfg.get("model"), {}).get("context_length"),
+        "model": model,
+        "context_length": per_model,          # effective
+        "context_length_top_level": top_level,
+        "context_length_unset_per_model": per_model is None,
         "max_turns": cfg.get("max_turns"),
         "plugins": (cfg.get("plugins") or {}).get("enabled"),
         "context_engine": (cfg.get("context") or {}).get("engine"),

@@ -53,9 +53,13 @@ _PROMPT_RE = re.compile(r"prompt:\s*(\d+)")
 
 
 def _sig(preset: dict[str, Any]) -> tuple:
-    """A hashable signature: reload iff the (model, sampling) tuple changes."""
+    """A hashable signature: reload iff (model, context_length, sampling) changes."""
     s = preset.get("sampling", {}) or {}
-    return (preset.get("model"), tuple((k, s.get(k)) for k in _SAMPLING_KEYS))
+    return (
+        preset.get("model"),
+        preset.get("context_length"),
+        tuple((k, s.get(k)) for k in _SAMPLING_KEYS),
+    )
 
 
 class OmlxStackManager:
@@ -120,7 +124,10 @@ class OmlxStackManager:
 
     def _apply(self, preset: dict) -> None:
         self._write_sampling(preset.get("sampling", {}) or {})
-        self._ensure_hermes_model(preset["model"])
+        # context_length is part of the STACK, not an afterthought: it decides where
+        # the agent's context engine compacts, and compaction mid-task is what makes
+        # a run thrash instead of converge.
+        self._ensure_hermes_model(preset["model"], preset.get("context_length"))
         self._restart_server()
         self._wait_ready(preset["model"])
         self._warm(preset["model"])
@@ -136,21 +143,50 @@ class OmlxStackManager:
                 s[k] = sampling[k]
         path.write_text(json.dumps(settings, indent=2))
 
-    def _ensure_hermes_model(self, model: str) -> None:
-        """Point Hermes' default model at this preset's served model id."""
+    def _ensure_hermes_model(self, model: str, context_length: int | None) -> None:
+        """Point Hermes at this preset's model, WITHOUT losing its context length.
+
+        The per-model ``context_length`` is load-bearing: without it Hermes probes
+        its fallback tiers (256K → **128K** → 64K…) and lands on 128K, and lcm then
+        compacts at ~85% of *that* — around 109K. A run therefore thrashes
+        (grow → compact → regrow) at half the context you thought you configured,
+        while the top-level ``context_length:`` in the file still reads 262144 and
+        lies to you.
+
+        So: never rebuild the ``models`` map (that silently dropped the setting when
+        switching models), and always write the context length back explicitly.
+        """
         cfg_path = self.serving.get("hermes_config")
         if not cfg_path:
             return
         cfg_path = Path(cfg_path)
         cfg = yaml.safe_load(cfg_path.read_text()) or {}
-        if cfg.get("model") == model:
-            return
-        cfg["model"] = model
         prov = (cfg.get("providers") or {}).get("mlxlocal")
+
+        changed = False
+        if cfg.get("model") != model:
+            cfg["model"] = model
+            changed = True
+        if context_length:
+            if cfg.get("context_length") != context_length:
+                cfg["context_length"] = context_length
+                changed = True
         if prov is not None:
-            prov["default_model"] = model
-            prov["models"] = {model: prov.get("models", {}).get(model, {}) or {}}
-        cfg_path.write_text(yaml.safe_dump(cfg, sort_keys=False))
+            if prov.get("default_model") != model:
+                prov["default_model"] = model
+                changed = True
+            # PRESERVE other models' entries; only upsert this one.
+            models = prov.setdefault("models", {}) or {}
+            entry = dict(models.get(model) or {})
+            if context_length and entry.get("context_length") != context_length:
+                entry["context_length"] = context_length
+                changed = True
+            if models.get(model) != entry:
+                models[model] = entry
+                changed = True
+            prov["models"] = models
+        if changed:
+            cfg_path.write_text(yaml.safe_dump(cfg, sort_keys=False))
 
     def _restart_server(self) -> None:
         host = self.serving.get("host", "127.0.0.1")
