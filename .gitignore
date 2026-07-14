@@ -236,70 +236,70 @@ state.json
 *.db-wal
 
 # Execution logs (shard-*.log, run.log)
-experiment-*/*.log
+experiments/*/experiment-*/*.log
 
 # Per-run archives: ignore everything, then re-include structure + curated files
-experiment-*/**/runs/**/*
-!experiment-*/**/runs/**/
+experiments/*/experiment-*/**/runs/**/*
+!experiments/*/experiment-*/**/runs/**/
 # Source the agent produced
-!experiment-*/**/runs/**/*.py
-!experiment-*/**/runs/**/*.go
-!experiment-*/**/runs/**/*.rs
-!experiment-*/**/runs/**/*.ts
-!experiment-*/**/runs/**/*.tsx
-!experiment-*/**/runs/**/*.js
-!experiment-*/**/runs/**/*.jsx
-!experiment-*/**/runs/**/*.java
-!experiment-*/**/runs/**/*.clj
-!experiment-*/**/runs/**/*.cljs
-!experiment-*/**/runs/**/*.cljc
-!experiment-*/**/runs/**/*.edn
-!experiment-*/**/runs/**/*.erl
-!experiment-*/**/runs/**/*.hrl
-!experiment-*/**/runs/**/*.ex
-!experiment-*/**/runs/**/*.exs
+!experiments/*/experiment-*/**/runs/**/*.py
+!experiments/*/experiment-*/**/runs/**/*.go
+!experiments/*/experiment-*/**/runs/**/*.rs
+!experiments/*/experiment-*/**/runs/**/*.ts
+!experiments/*/experiment-*/**/runs/**/*.tsx
+!experiments/*/experiment-*/**/runs/**/*.js
+!experiments/*/experiment-*/**/runs/**/*.jsx
+!experiments/*/experiment-*/**/runs/**/*.java
+!experiments/*/experiment-*/**/runs/**/*.clj
+!experiments/*/experiment-*/**/runs/**/*.cljs
+!experiments/*/experiment-*/**/runs/**/*.cljc
+!experiments/*/experiment-*/**/runs/**/*.edn
+!experiments/*/experiment-*/**/runs/**/*.erl
+!experiments/*/experiment-*/**/runs/**/*.hrl
+!experiments/*/experiment-*/**/runs/**/*.ex
+!experiments/*/experiment-*/**/runs/**/*.exs
 # Build manifests (source of truth; lockfiles are deliberately NOT allowlisted)
-!experiment-*/**/runs/**/go.mod
-!experiment-*/**/runs/**/Cargo.toml
-!experiment-*/**/runs/**/pom.xml
-!experiment-*/**/runs/**/build.gradle
-!experiment-*/**/runs/**/deps.edn
-!experiment-*/**/runs/**/project.clj
-!experiment-*/**/runs/**/pyproject.toml
-!experiment-*/**/runs/**/requirements.txt
-!experiment-*/**/runs/**/package.json
-!experiment-*/**/runs/**/tsconfig.json
-!experiment-*/**/runs/**/Makefile
-!experiment-*/**/runs/**/rebar.config
-!experiment-*/**/runs/**/mix.exs
+!experiments/*/experiment-*/**/runs/**/go.mod
+!experiments/*/experiment-*/**/runs/**/Cargo.toml
+!experiments/*/experiment-*/**/runs/**/pom.xml
+!experiments/*/experiment-*/**/runs/**/build.gradle
+!experiments/*/experiment-*/**/runs/**/deps.edn
+!experiments/*/experiment-*/**/runs/**/project.clj
+!experiments/*/experiment-*/**/runs/**/pyproject.toml
+!experiments/*/experiment-*/**/runs/**/requirements.txt
+!experiments/*/experiment-*/**/runs/**/package.json
+!experiments/*/experiment-*/**/runs/**/tsconfig.json
+!experiments/*/experiment-*/**/runs/**/Makefile
+!experiments/*/experiment-*/**/runs/**/rebar.config
+!experiments/*/experiment-*/**/runs/**/mix.exs
 # Docs + retort run metadata
-!experiment-*/**/runs/**/*.md
-!experiment-*/**/runs/**/*.txt
-!experiment-*/**/runs/**/_meta.json
-!experiment-*/**/runs/**/stack.json
-!experiment-*/**/runs/**/assessment.json
-!experiment-*/**/runs/**/findings.jsonl
-!experiment-*/**/runs/**/scores.json
+!experiments/*/experiment-*/**/runs/**/*.md
+!experiments/*/experiment-*/**/runs/**/*.txt
+!experiments/*/experiment-*/**/runs/**/_meta.json
+!experiments/*/experiment-*/**/runs/**/stack.json
+!experiments/*/experiment-*/**/runs/**/assessment.json
+!experiments/*/experiment-*/**/runs/**/findings.jsonl
+!experiments/*/experiment-*/**/runs/**/scores.json
 # Hard-exclude heavy/regenerable trees LAST so they win over the re-includes
 # above and no allowlisted file can leak out of a dependency/build dir.
-experiment-*/**/runs/**/target/
-experiment-*/**/runs/**/node_modules/
-experiment-*/**/runs/**/build/
-experiment-*/**/runs/**/dist/
-experiment-*/**/runs/**/vendor/
-experiment-*/**/runs/**/.gradle/
-experiment-*/**/runs/**/__pycache__/
-experiment-*/**/runs/**/.pytest_cache/
-experiment-*/**/runs/**/.ruff_cache/
-experiment-*/**/runs/**/.coverage
-experiment-*/**/runs/**/.beads/
-experiment-*/**/runs/**/.cpcache/
-experiment-*/**/runs/**/.clj-kondo/
-experiment-*/**/runs/**/.git/
-experiment-*/**/runs/**/.venv/
-experiment-*/**/runs/**/data/
-experiment-*/**/runs/**/.idiomatic_cache.json
-experiment-*/**/runs/**/.maintainability_cache.json
+experiments/*/experiment-*/**/runs/**/target/
+experiments/*/experiment-*/**/runs/**/node_modules/
+experiments/*/experiment-*/**/runs/**/build/
+experiments/*/experiment-*/**/runs/**/dist/
+experiments/*/experiment-*/**/runs/**/vendor/
+experiments/*/experiment-*/**/runs/**/.gradle/
+experiments/*/experiment-*/**/runs/**/__pycache__/
+experiments/*/experiment-*/**/runs/**/.pytest_cache/
+experiments/*/experiment-*/**/runs/**/.ruff_cache/
+experiments/*/experiment-*/**/runs/**/.coverage
+experiments/*/experiment-*/**/runs/**/.beads/
+experiments/*/experiment-*/**/runs/**/.cpcache/
+experiments/*/experiment-*/**/runs/**/.clj-kondo/
+experiments/*/experiment-*/**/runs/**/.git/
+experiments/*/experiment-*/**/runs/**/.venv/
+experiments/*/experiment-*/**/runs/**/data/
+experiments/*/experiment-*/**/runs/**/.idiomatic_cache.json
+experiments/*/experiment-*/**/runs/**/.maintainability_cache.json
 
 # Gas Town (added by gt)
 CLAUDE.md
@@ -327,8 +327,8 @@ reeval-78.sh
 # *.erl/*.ex/*.exs anywhere, but _build/ and deps/ hold fetched-dependency
 # source + compiled artifacts (cowboy, plug, …), NOT the agent's code (which is
 # in lib/ src/ test/). These rules come last, so they win for those paths.
-experiment-*/**/runs/**/_build/**
-experiment-*/**/runs/**/deps/**
+experiments/*/experiment-*/**/runs/**/_build/**
+experiments/*/experiment-*/**/runs/**/deps/**
 .venv/
 phase1-metaharness/
 phase1-baseline/

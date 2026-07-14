@@ -45,6 +45,9 @@ done
 #    (Sibling links ../experiment-NN/ still resolve and are left alone.)
 find "experiments/$OWNER" -name "*.md" -print0 | xargs -0 perl -pi -e \
   's{\]\(\.\./(tasks|docs|src|scripts)/}{](../../../$1/}g'
+#    ...and root-level docs (README.md, model-blog.md, ...) linked as ../README.md
+find "experiments/$OWNER" -name "*.md" -print0 | xargs -0 perl -pi -e \
+  's{\]\(\.\./([A-Za-z0-9._-]+\.md)}{](../../../$1}g'
 
 # --- .gitignore ---------------------------------------------------------------
 perl -pi -e 's{^(!?)experiment-\*/}{$1experiments/*/experiment-*/}' .gitignore

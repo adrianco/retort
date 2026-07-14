@@ -91,7 +91,7 @@ Cleaner code and a perfect defect rate — but 3.6–6× the tokens, and on the 
 
 **TDD is the cheap lever.** Across both tasks a test-first prompt gave Sonnet 5 its best maintainability (easy 0.84, hard 0.87) and best coverage (easy 0.94), while neutral and BDD trailed — prompt methodology is a real, nearly-free knob. (The wrinkle: Rust + TDD is also where it failed — the strictest prompt on the fiddliest language.)
 
-**By language**, the older patterns sharpen: Go and C# reach perfect build-quality but are the most token-hungry (token_efficiency ≈ 0); TypeScript is the most token-efficient; Python is cheapest and fastest; Rust is priciest and the sole failure site. Full per-cell tables: [`experiment-15-sonnet5/RESULTS.md`](experiment-15-sonnet5/RESULTS.md).
+**By language**, the older patterns sharpen: Go and C# reach perfect build-quality but are the most token-hungry (token_efficiency ≈ 0); TypeScript is the most token-efficient; Python is cheapest and fastest; Rust is priciest and the sole failure site. Full per-cell tables: [`experiment-15-sonnet5/RESULTS.md`](experiments/adrianco/experiment-15-sonnet5/RESULTS.md).
 
 **How to read it.** Sonnet 5 drags the Sonnet line up to the reliability frontier — but pays for it, landing *above* Opus 4.8 on cost while a notch below on the hardest task. Buy it where its quality edge earns the token bill; for routine work that 4.6/4.7 already pass, it's overhead. *Caveats: single replicate (cells are noisy — one coverage score swung 1.0↔0.22 on a re-run); the `sonnet 4.6` baseline is the historical `sonnet` alias; the hard-task runs use the methodology-neutral Brazil fork vs the master's BDD-baked variant, so hard-task cross-model deltas are indicative, not exact.*
 

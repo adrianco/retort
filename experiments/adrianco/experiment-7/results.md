@@ -24,4 +24,4 @@
 | python | opus-4.8-fast | 3 | 3/3 = 1.00 | 0.97 | 90 | 0.74 | 0.89 |
 | rust | opus-4.8-fast | 3 | 3/3 = 1.00 | 1.00 | 135 | 1.06 | 0.83 |
 
-Every cell holds pass-proportion **1.00** — fast mode matched regular-4.8's reliability. But at the 2× price premium it is **more expensive than regular 4.8** on nearly every cell (and on the hard task it isn't even reliably faster). See the [README](../README.md#fast-mode-speed-for-a-2x-price-premium) for the full comparison.
+Every cell holds pass-proportion **1.00** — fast mode matched regular-4.8's reliability. But at the 2× price premium it is **more expensive than regular 4.8** on nearly every cell (and on the hard task it isn't even reliably faster). See the [README](../../../README.md#fast-mode-speed-for-a-2x-price-premium) for the full comparison.

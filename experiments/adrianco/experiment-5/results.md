@@ -19,4 +19,4 @@ Task: **brazil-soccer-mcp**  ·  36 scored runs  ·  generated from `master.db` 
 | typescript | opus-4.7 | none | 3 | 3/3 = 1.00 | 0.98 | 638 | 4.14 | 0.73 |
 | typescript | opus-4.8 | none | 3 | 3/3 = 1.00 | 1.00 | 1227 | 6.86 | 0.73 |
 
-Back to the [README](../README.md).
+Back to the [README](../../../README.md).

@@ -10,4 +10,4 @@ Task: **brazil-soccer-mcp**  ·  6 scored runs  ·  generated from `master.db` (
 | go | opus-4.8 | none | 2 | 2/2 = 1.00 | 0.44 | 1054 | 5.85 | 1.00 |
 | python | opus-4.8 | beads | 2 | 2/2 = 1.00 | 0.86 | 959 | 5.19 | 0.83 |
 
-Back to the [README](../README.md).
+Back to the [README](../../../README.md).

@@ -11,7 +11,7 @@ whose experience motivated the model choice.
 
 **Model.** Qwen3-Coder-30B-A3B (MoE, 3B active), **Q4_K_M** GGUF from
 `unsloth/Qwen3-Coder-30B-A3B-Instruct-GGUF` — Böckeler's daily-driver pick and
-our [`docs/local-models.md`](../docs/local-models.md) top recommendation.
+our [`docs/local-models.md`](../../../docs/local-models.md) top recommendation.
 
 **Serving.** llama.cpp `llama-server --jinja -fa on -ngl 99 -c 65536` on
 `127.0.0.1:8080` (jschoch's llama.cpp path, the setup that *completed* tasks in
@@ -174,7 +174,7 @@ run through the full pipeline:
 1. **Context window.** `omp`'s ~23 K-token system-prompt/tool preamble triggered
    an auto-compaction loop against a 32 K server context. Raised `llama-server`
    to **64 K** (`-c 65536`) and matched `omp`'s `contextWindow` — loop gone.
-2. **Output-discarding hard timeout** *(fix in [`local_runner.py`](../src/retort/playpen/local_runner.py))*.
+2. **Output-discarding hard timeout** *(fix in [`local_runner.py`](../../../src/retort/playpen/local_runner.py))*.
    The `omp` command had **no effort bound** (the `claude-code` path caps at
    `--max-turns 50`). A slow, over-iterating local model therefore ran into
    retort's hard `subprocess` timeout, which **kills omp and discards its

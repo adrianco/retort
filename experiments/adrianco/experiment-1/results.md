@@ -31,4 +31,4 @@ Task: **rest-api-crud**  ·  56 scored runs  ·  generated from `master.db` (cle
 | typescript | sonnet | beads | 3 | 3/3 = 1.00 | 0.91 | 168 | 0.38 | 0.73 |
 | typescript | sonnet | none | 1 | 1/1 = 1.00 | 0.89 | 281 | 0.53 | 0.73 |
 
-Back to the [README](../README.md).
+Back to the [README](../../../README.md).

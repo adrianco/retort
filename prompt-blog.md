@@ -77,7 +77,7 @@ reliability-vs-cost frontier from the model blog.
 A subtlety the model blog never had to worry about: prescribing a methodology and
 the agent *following* it are two different things. So for the ATDD arm there's a
 second, separate measurement — an **ATDD conformance** score (from
-[`experiment-13/ATDD-eval-criteria.md`](experiment-13/ATDD-eval-criteria.md),
+[`experiment-13/ATDD-eval-criteria.md`](experiments/adrianco/experiment-13/ATDD-eval-criteria.md),
 derived from Farley's guide): are there executable acceptance tests, written
 test-first, from the external-user perspective, through the public interface,
 asserting what-not-how, atomic and independent? This separates two questions a
@@ -150,12 +150,12 @@ in-repo rather than via this prompt factor — re-graded on the same judge as th
 others. It ran on the original template, not the methodology-neutral fork, and
 its Sonnet arm is n=1, so treat its numbers as a consistent reference point
 rather than a perfectly matched fourth arm. The full per-model tables, including
-Opus, are in [experiment-13/results.md](experiment-13/results.md).)*
+Opus, are in [experiment-13/results.md](experiments/adrianco/experiment-13/results.md).)*
 
 ### Does it hold across more languages?
 
 Go and Python are forgiving. To check the finding isn't a two-language fluke,
-[experiment-14](experiment-14/results.md) reran the same prompts on the other
+[experiment-14](experiments/adrianco/experiment-14/results.md) reran the same prompts on the other
 six — **clojure, rust, java, typescript, erlang, elixir** — with both models (one
 replicate each, so single-run signal rather than pass-proportions). The pattern
 is the same, only wider:

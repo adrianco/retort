@@ -3,7 +3,7 @@
 Every prior local run used the **easy** bookshop CRUD task. This asks the real
 question: does the best local stack — **Hermes + `hermes-lcm` → oMLX →
 Qwen3.6-35B-A3B**, the model that tops our local leaderboard — cope with a
-genuinely **hard** build? The task is [brazil-bench](../tasks/brazil-bench/):
+genuinely **hard** build? The task is [brazil-bench](../../../tasks/brazil-bench/):
 a **Brazilian-soccer MCP server** built from a multi-file guide over **6 kaggle
 datasets** (~13 MB), with **12 required capabilities** (match/team/player/
 competition queries, standings computed from results, head-to-head, aggregate

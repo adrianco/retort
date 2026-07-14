@@ -7,7 +7,7 @@ small local model that fits a 24 GB Mac cleared both bars (tool-call format *and
 agentic capability). It is doable with a capable ~30B model on enough VRAM —
 which is how the harness's author originally validated it.**
 
-See [experiment-12](../experiment-12/README.md) for the recorded runs.
+See [experiment-12](../experiments/adrianco/experiment-12/README.md) for the recorded runs.
 
 ## What the omp PR/issue told us (PR #6, issues #1–2)
 

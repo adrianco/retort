@@ -29,4 +29,4 @@ Task: **brazil-soccer-mcp**  ·  22 scored runs  ·  generated from `master.db` 
 | typescript | sonnet | beads | 1 | 1/1 = 1.00 | 1.00 | 362 | 0.92 | 0.73 |
 | typescript | sonnet | none | 1 | 1/1 = 1.00 | 0.96 | 274 | 0.71 | 0.73 |
 
-Back to the [README](../README.md).
+Back to the [README](../../../README.md).

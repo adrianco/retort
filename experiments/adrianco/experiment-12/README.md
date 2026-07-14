@@ -45,11 +45,11 @@ Devstral) on enough VRAM.
 
 For the full setup (Ollama cask vs llama.cpp `--jinja`), the per-model tool-call
 findings, the 24 GB-Mac GPU-memory (Metal) constraint, and the researched model
-shortlist, see [`docs/local-models.md`](../docs/local-models.md).
+shortlist, see [`docs/local-models.md`](../../../docs/local-models.md).
 
 ## Reproduce
 
-See the [Local / self-hosted models](../README.md#local--self-hosted-models-via-the-omp-harness-oh-my-pi)
+See the [Local / self-hosted models](../../../README.md#local--self-hosted-models-via-the-omp-harness-oh-my-pi)
 section for the verified Ollama (cask, not formula) + `omp` `openai-completions`
 provider setup. Then:
 

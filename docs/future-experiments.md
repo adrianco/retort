@@ -136,7 +136,7 @@ so it's a clean test of self-repair.
 - **SSD prefix cache does NOT rescue the 80B.** oMLX's on-disk prefix cache is off
   by default (`--paged-ssd-cache-dir` enables it), so exp-22 ran without it. exp-24
   turned it on and re-ran the identical 80B grid:
-  [RESULTS](../experiment-24-qwennext80b-cached/RESULTS.md). First-try pass-
+  [RESULTS](../experiments/adrianco/experiment-24-qwennext80b-cached/RESULTS.md). First-try pass-
   proportion **0.33 → 0.33**, crashes **2 → 3**, completed-run duration unchanged.
   The cache demonstrably *hits* (an 88K-token prefix restored in ~2.5 s vs ~150 s
   cold, hybrid DeltaNet layers snapshotted to disk correctly) — but our runs are
@@ -150,7 +150,7 @@ so it's a clean test of self-repair.
 ## Resolved — the hard task on the local stack (exp-25)
 
 - **The best local stack (35B) copes with brazil-bench in Python, not Go.**
-  [RESULTS](../experiment-25-brazil-35b/RESULTS.md). Python 1/3 (one *clean* MCP
+  [RESULTS](../experiments/adrianco/experiment-25-brazil-35b/RESULTS.md). Python 1/3 (one *clean* MCP
   server: req_cov 1.0, test_cov 0.90, 23 min), Go 0/3; overall 1/6 = 0.17. Half the
   runs (3/6) hit the 30-min wall — generation-bound again (54 tok/s × a 12-capability
   task = 2–3.2M tokens without finishing). The 256K context was necessary and used
@@ -160,7 +160,7 @@ so it's a clean test of self-repair.
   fallback is only 64K). Confirms the Python-first story and sharpens it: the harder
   the task, the wider the Python-Go gap.
 - **Timeout follow-up — DONE (exp-26).** Doubled the brazil timeout to 60 min
-  ([RESULTS](../experiment-26-brazil-35b-60m/RESULTS.md)): first-try pass 0.17 → 0.33,
+  ([RESULTS](../experiments/adrianco/experiment-26-brazil-35b-60m/RESULTS.md)): first-try pass 0.17 → 0.33,
   crashes 3 → 1, and Go went from *all zeros* (non-terminating) to code_quality 1.0 +
   test_coverage 0.6–0.81 + req_cov up to **0.92**. The 30-min wall was masking real
   capability, Go especially — highest-leverage single knob so far. It also *unlocked*
@@ -209,7 +209,7 @@ by our findings (generation-bound + wall-limited):
 
 - **Tier 1 — sampling (exp-27, DONE).** Fractional factorial (Res IV 2^(4-1), 8
   presets) over temperature/top_p/top_k/repetition_penalty, 35B, bookshop, python+go.
-  [RESULTS](../experiment-27-sampling-ff/RESULTS.md). Overall **0.83** pass-proportion
+  [RESULTS](../experiments/adrianco/experiment-27-sampling-ff/RESULTS.md). Overall **0.83** pass-proportion
   vs ~0.45 at the old temp=1.0 default. Main effects: **repetition_penalty 1.1 is
   harmful (−0.25 pass, owns all 4 stall-crashes)**; top_p 0.95 > 0.85 (+0.17); top_k
   20 slightly > off; **temperature 0.2 vs 0.7 = zero effect** (the win is getting OFF
