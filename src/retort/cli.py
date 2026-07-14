@@ -747,6 +747,36 @@ def run_experiments(
                     f"Remove or replace unsupported agent levels in your workspace config."
                 )
 
+    # Capture the FULL stack this experiment runs on — versions, model revisions,
+    # sampling params, agent config, harness settings — and write it beside the
+    # data. A pass-proportion is meaningless without the stack it was measured on:
+    # every wrong conclusion so far (temp=1.0 sampling, the /var playpen the agent
+    # couldn't write to, the omp-vs-hermes agent swap) came from a stack variable
+    # nobody recorded. The manifest is a reported result, not a debug aid.
+    try:
+        from retort.reporting import provenance as _prov
+        _presets = None
+        if workspace_config.playpen.stack_presets:
+            import yaml as _yaml
+            _presets = (_yaml.safe_load(
+                (config_dir / workspace_config.playpen.stack_presets).read_text()
+            ) or {}).get("presets")
+        _manifest = _prov.capture(
+            repo=Path(__file__).resolve().parents[2],
+            config_dir=config_dir,
+            playpen_config=workspace_config.playpen,
+            stack_presets=_presets,
+            model_ids=[
+                str(rc.get("model")) for rc in design.run_configs() if rc.get("model")
+            ],
+        )
+        _path = _prov.write(_manifest, config_dir)
+        click.echo("\nStack provenance (recorded to %s):" % _path.name)
+        for _line in _prov.summarize(_manifest):
+            click.echo(_line)
+    except Exception as _exc:  # noqa: BLE001 — provenance must never block a run
+        click.echo(f"  (provenance capture failed: {_exc})", err=True)
+
     click.echo(f"\nStarting experiment runs...")
 
     completed = 0

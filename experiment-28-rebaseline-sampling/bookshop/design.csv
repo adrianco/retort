@@ -1,0 +1,9 @@
+run,language,agent,prompt,stack,model
+0,python,hermes-local,neutral,m35,mlxlocal/Qwen3.6-35B-A3B
+1,go,hermes-local,neutral,m35,mlxlocal/Qwen3.6-35B-A3B
+2,typescript,hermes-local,neutral,m35,mlxlocal/Qwen3.6-35B-A3B
+3,rust,hermes-local,neutral,m35,mlxlocal/Qwen3.6-35B-A3B
+4,python,hermes-local,neutral,m80,mlxlocal/mlx-community--Qwen3-Coder-Next-4bit
+5,go,hermes-local,neutral,m80,mlxlocal/mlx-community--Qwen3-Coder-Next-4bit
+6,typescript,hermes-local,neutral,m80,mlxlocal/mlx-community--Qwen3-Coder-Next-4bit
+7,rust,hermes-local,neutral,m80,mlxlocal/mlx-community--Qwen3-Coder-Next-4bit

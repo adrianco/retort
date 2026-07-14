@@ -1,0 +1,18 @@
+[package]
+name = "book-api"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+actix-web = "4"
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+rusqlite = { version = "0", features = ["bundled"] }
+tokio = { version = "1", features = ["full"] }
+uuid = { version = "1", features = ["v4", "serde"] }
+chrono = { version = "0", features = ["serde"] }
+
+[dev-dependencies]
+actix-http = "3"
+actix-test = "0"
+serial_test = "3"

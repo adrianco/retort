@@ -1,0 +1,12 @@
+{
+  "replicate": 1,
+  "run_config": {
+    "agent": "hermes-local",
+    "language": "go",
+    "model": "mlxlocal/Qwen3.6-35B-A3B",
+    "prompt": "neutral",
+    "stack": "m35"
+  },
+  "succeeded": true,
+  "visibility": "public"
+}
