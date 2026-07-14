@@ -131,7 +131,9 @@ def _gitignore_for(visibility: str) -> str:
     return _GITIGNORE_COMMON + extra
 
 
-def _live_context_tokens(workspace: Path, serving_log: Path | None) -> int | None:
+def _live_context_tokens(
+    workspace: Path, serving_log: Path | None
+) -> tuple[int | None, int | None]:
     """Context the in-flight run is CURRENTLY carrying, for the live monitor.
 
     Two sources, because agents differ in what they expose while running:
@@ -154,7 +156,8 @@ def _live_context_tokens(workspace: Path, serving_log: Path | None) -> int | Non
             tail = log.read_bytes()[-400_000:].decode("utf-8", "replace")
         except OSError:
             tail = ""
-        latest = None
+        latest: int | None = None
+        peak = 0
         for line in tail.splitlines():
             line = line.strip()
             if not line.startswith("{"):
@@ -163,33 +166,35 @@ def _live_context_tokens(workspace: Path, serving_log: Path | None) -> int | Non
                 ev = _json.loads(line)
             except ValueError:
                 continue
+            u = (ev.get("message") or {}).get("usage") or {}
+            if not u:
+                continue
             if ev.get("type") == "assistant":  # claude stream-json
-                u = (ev.get("message") or {}).get("usage") or {}
-                if u:
-                    latest = _turn_context(u)
+                latest = _turn_context(u)
             elif ev.get("type") == "message_end":  # omp
-                u = (ev.get("message") or {}).get("usage") or {}
-                if u:
-                    latest = (
-                        int(u.get("input", 0) or 0)
-                        + int(u.get("cacheRead", 0) or 0)
-                        + int(u.get("cacheWrite", 0) or 0)
-                    )
+                latest = (
+                    int(u.get("input", 0) or 0)
+                    + int(u.get("cacheRead", 0) or 0)
+                    + int(u.get("cacheWrite", 0) or 0)
+                )
+            else:
+                continue
+            peak = max(peak, latest)
         if latest:
-            return latest
+            return latest, peak
 
     if serving_log and serving_log.is_file():
         try:
             with open(serving_log, "rb") as f:
                 f.seek(0, 2)
-                f.seek(max(0, f.tell() - 200_000))
+                f.seek(max(0, f.tell() - 400_000))
                 tail = f.read().decode("utf-8", "replace")
         except OSError:
-            return None
-        hits = re.findall(r"prompt:\s*(\d+)", tail)
+            return None, None
+        hits = [int(h) for h in re.findall(r"prompt:\s*(\d+)", tail)]
         if hits:
-            return int(hits[-1])
-    return None
+            return hits[-1], max(hits)
+    return None, None
 
 
 def _harness_failure(rep_dir: Path) -> str | None:
@@ -4365,13 +4370,15 @@ def _discover_active_runs(db_path: Path) -> list[dict]:
                         _serving_log = Path(_lg)
             except Exception:  # noqa: BLE001 — the monitor must never break a run
                 _serving_log = None
+            _ctx_now, _ctx_peak = _live_context_tokens(Path(cwd), _serving_log)
             active.append(
                 {
                     "label": label,
                     "replicate": None,
                     "elapsed_s": elapsed,
                     "evaluating": evaluating,
-                    "context_tokens": _live_context_tokens(Path(cwd), _serving_log),
+                    "context_tokens": _ctx_now,
+                    "context_peak": _ctx_peak,
                 }
             )
     return active

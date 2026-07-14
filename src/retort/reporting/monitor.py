@@ -531,7 +531,16 @@ def render_active(active: list[dict]) -> list[str]:
         elapsed = _fmt_duration(a.get("elapsed_s")) if a.get("elapsed_s") else "—"
         state = "evaluating" if a.get("evaluating") else "running"
         ctx = a.get("context_tokens")
-        ctx_s = f"  ctx {ctx/1000:.0f}K" if ctx else ""
+        pk = a.get("context_peak")
+        # Show the peak too: a context-managing agent (hermes-lcm) COMPACTS when it
+        # crosses its budget, so a run that just churned 113K reads as a placid 6K.
+        # "ctx 6K (pk 114K)" exposes the grow/compact cycle that current alone hides.
+        if ctx and pk and pk > ctx * 1.2:
+            ctx_s = f"  ctx {ctx/1000:.0f}K (pk {pk/1000:.0f}K)"
+        elif ctx:
+            ctx_s = f"  ctx {ctx/1000:.0f}K"
+        else:
+            ctx_s = ""
         lines.append(f"  ▶ {a.get('label', '?')}{rep}  {state} {elapsed}{ctx_s}")
     return lines
 
