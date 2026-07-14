@@ -131,6 +131,67 @@ def _gitignore_for(visibility: str) -> str:
     return _GITIGNORE_COMMON + extra
 
 
+def _live_context_tokens(workspace: Path, serving_log: Path | None) -> int | None:
+    """Context the in-flight run is CURRENTLY carrying, for the live monitor.
+
+    Two sources, because agents differ in what they expose while running:
+
+    * the agent's own stream (``_agent_stdout.log``) — Claude's ``stream-json``
+      and omp's ``message_end`` both report each turn's usage as it happens;
+    * the **serving log**, for agents that stream nothing to stdout while working
+      (Hermes emits essentially no stdout until it exits, so its context would be
+      invisible otherwise).
+
+    Takes the LAST reading, not the max — this is "what is it carrying right now",
+    which is what tells you a run is ballooning toward non-termination while you
+    can still act on it.
+    """
+    import json as _json
+
+    log = workspace / "_agent_stdout.log"
+    if log.is_file():
+        try:
+            tail = log.read_bytes()[-400_000:].decode("utf-8", "replace")
+        except OSError:
+            tail = ""
+        latest = None
+        for line in tail.splitlines():
+            line = line.strip()
+            if not line.startswith("{"):
+                continue
+            try:
+                ev = _json.loads(line)
+            except ValueError:
+                continue
+            if ev.get("type") == "assistant":  # claude stream-json
+                u = (ev.get("message") or {}).get("usage") or {}
+                if u:
+                    latest = _turn_context(u)
+            elif ev.get("type") == "message_end":  # omp
+                u = (ev.get("message") or {}).get("usage") or {}
+                if u:
+                    latest = (
+                        int(u.get("input", 0) or 0)
+                        + int(u.get("cacheRead", 0) or 0)
+                        + int(u.get("cacheWrite", 0) or 0)
+                    )
+        if latest:
+            return latest
+
+    if serving_log and serving_log.is_file():
+        try:
+            with open(serving_log, "rb") as f:
+                f.seek(0, 2)
+                f.seek(max(0, f.tell() - 200_000))
+                tail = f.read().decode("utf-8", "replace")
+        except OSError:
+            return None
+        hits = re.findall(r"prompt:\s*(\d+)", tail)
+        if hits:
+            return int(hits[-1])
+    return None
+
+
 def _harness_failure(rep_dir: Path) -> str | None:
     """Was the agent PREVENTED from working in this archived run?
 
@@ -4291,12 +4352,26 @@ def _discover_active_runs(db_path: Path) -> list[dict]:
                 pass
             et = _run(["ps", "-o", "etime=", "-p", cpid])
             elapsed = _etime_to_seconds(et.stdout) if et else None
+            # Serving log (if this experiment drives a local server via stack
+            # presets) — the only place a non-streaming agent's context is visible.
+            _serving_log = None
+            try:
+                import yaml as _yaml
+                _sp = db_path.parent / "stacks.yaml"
+                if _sp.is_file():
+                    _lg = ((_yaml.safe_load(_sp.read_text()) or {})
+                           .get("serving", {}) or {}).get("log")
+                    if _lg:
+                        _serving_log = Path(_lg)
+            except Exception:  # noqa: BLE001 — the monitor must never break a run
+                _serving_log = None
             active.append(
                 {
                     "label": label,
                     "replicate": None,
                     "elapsed_s": elapsed,
                     "evaluating": evaluating,
+                    "context_tokens": _live_context_tokens(Path(cwd), _serving_log),
                 }
             )
     return active

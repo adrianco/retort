@@ -517,7 +517,11 @@ def render_active(active: list[dict]) -> list[str]:
     """Render the 'Active now' block from live in-flight run descriptors.
 
     Each descriptor: ``{"label": str, "replicate": int|None, "elapsed_s":
-    float|None, "evaluating": bool}``. Returns [] when there are no active runs.
+    float|None, "evaluating": bool, "context_tokens": int|None}``. Returns [] when
+    there are no active runs.
+
+    ``ctx`` is the context the run is carrying *right now* — watching it climb is
+    how you catch a run ballooning toward non-termination while you can still act.
     """
     if not active:
         return []
@@ -526,7 +530,9 @@ def render_active(active: list[dict]) -> list[str]:
         rep = f" rep{a['replicate']}" if a.get("replicate") is not None else ""
         elapsed = _fmt_duration(a.get("elapsed_s")) if a.get("elapsed_s") else "—"
         state = "evaluating" if a.get("evaluating") else "running"
-        lines.append(f"  ▶ {a.get('label', '?')}{rep}  {state} {elapsed}")
+        ctx = a.get("context_tokens")
+        ctx_s = f"  ctx {ctx/1000:.0f}K" if ctx else ""
+        lines.append(f"  ▶ {a.get('label', '?')}{rep}  {state} {elapsed}{ctx_s}")
     return lines
 
 
