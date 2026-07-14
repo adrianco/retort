@@ -4486,6 +4486,10 @@ def monitor_cmd(
     experiment-5` resolves to experiment-5/retort.db and its workspace.yaml.
     --db / --config override the inferred paths.
 
+    With NO argument it watches the experiment in flight: the most recently
+    written experiment database is picked automatically, so plain `retort monitor`
+    (optionally `--watch`) is all you need while a run is going.
+
     Summarizes completed/remaining runs, per-cell coverage, cost and token
     totals, throughput, and an ETA. Safe to point at a database that one or
     more ``retort run`` shards are actively writing. Failed runs are reported

@@ -62,6 +62,33 @@ def _label(factors: dict, run_id: int) -> str:
     return "/".join(str(factors[k]) for k in sorted(factors)) or f"run-{run_id}"
 
 
+def find_latest_db(root: Path | None = None) -> Path | None:
+    """The most recently written ``retort.db`` — i.e. the experiment in flight.
+
+    Bare ``retort monitor`` should just work: the thing you almost always want is
+    the run you are watching right now, and typing
+    ``experiments/adrianco/experiment-28-rebaseline-sampling/bookshop`` to see it is
+    silly. Newest-mtime wins, because the live run is the one being written to.
+
+    Searches both layouts (``experiments/<owner>/experiment-*/`` and the legacy flat
+    ``experiment-*/``), each with the DB at the experiment root or one task
+    sub-workspace down.
+    """
+    root = root or Path(".")
+    patterns = (
+        "experiments/*/experiment-*/retort.db",
+        "experiments/*/experiment-*/*/retort.db",
+        "experiment-*/retort.db",
+        "experiment-*/*/retort.db",
+    )
+    dbs: set[Path] = set()
+    for pat in patterns:
+        dbs |= set(root.glob(pat))
+    if not dbs:
+        return None
+    return max(dbs, key=lambda p: p.stat().st_mtime)
+
+
 def resolve_target(
     target: str | None,
     db: str | None = None,
@@ -71,15 +98,24 @@ def resolve_target(
 
     Convention: ``retort monitor experiment-5`` finds ``experiment-5/retort.db``
     and ``experiment-5/workspace.yaml``. ``target`` may be an experiment
-    directory, a path to a ``.db`` file, or omitted (falling back to the
-    explicit ``--db`` / ``--config`` options). Explicit ``db`` / ``config``
-    always win over inferred paths.
+    directory, a path to a ``.db`` file, or **omitted entirely** — in which case
+    the most recently written experiment DB is used (see :func:`find_latest_db`),
+    so ``retort monitor`` with no arguments watches the run in flight. Explicit
+    ``db`` / ``config`` always win over inferred paths.
 
     Raises:
         ValueError: if no database path can be determined.
     """
     db_path: Path | None = Path(db) if db else None
     config_path: Path | None = Path(config) if config else None
+
+    if target is None and db_path is None:
+        target_path = find_latest_db()
+        if target_path is not None:
+            db_path = target_path
+            base = target_path.parent
+            if config_path is None and (base / "workspace.yaml").is_file():
+                config_path = base / "workspace.yaml"
 
     if target is not None:
         p = Path(target)
@@ -95,8 +131,10 @@ def resolve_target(
 
     if db_path is None:
         raise ValueError(
-            "No database to monitor. Pass an experiment directory "
-            "(e.g. `retort monitor experiment-5`) or `--db <path>`."
+            "No experiment database found. `retort monitor` with no arguments picks "
+            "the most recently written experiments/<owner>/experiment-*/**/retort.db "
+            "— run it from the repo root, or name one explicitly "
+            "(`retort monitor experiments/me/experiment-5` or `--db <path>`)."
         )
     return db_path, config_path
 
