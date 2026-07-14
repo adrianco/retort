@@ -283,6 +283,11 @@ class TestCoverageScorer:
         except OSError:
             return None
 
+        # Bun's built-in runner (`bun test`, often with bun:sqlite) is matched by
+        # neither jest nor vitest detection — handle it first, with Bun's tooling.
+        if (output_dir / "bun.lock").exists() or "bun test" in text:
+            return self._bun_coverage(output_dir)
+
         if not (output_dir / "node_modules").exists():
             try:
                 subprocess.run(
@@ -395,6 +400,33 @@ class TestCoverageScorer:
         rate = _parse_test_pass_rate(combined, "csharp")
         return rate * 100.0 if rate is not None else None
 
+    def _bun_coverage(self, output_dir: Path) -> float | None:
+        """Bun coverage path — `bun test --coverage`, parse % Lines, then pass-rate."""
+        try:
+            subprocess.run(
+                ["bun", "install"], cwd=output_dir,
+                capture_output=True, timeout=120,
+            )
+        except (subprocess.TimeoutExpired, FileNotFoundError):
+            pass
+        for args in (["--coverage"], []):
+            try:
+                r = subprocess.run(
+                    ["bun", "test", *args], cwd=output_dir,
+                    capture_output=True, text=True, timeout=180,
+                    stdin=subprocess.DEVNULL,
+                )
+            except (subprocess.TimeoutExpired, FileNotFoundError):
+                return None
+            combined = _strip_ansi(r.stdout + "\n" + r.stderr)
+            pct = _parse_bun_coverage(combined)
+            if pct is not None:
+                return pct
+            rate = _parse_bun_pass_rate(combined)
+            if rate is not None:
+                return rate * 100.0
+        return None
+
 
 def _parse_cobertura(path: Path) -> float | None:
     """Read line coverage % from a Cobertura XML report (coverlet output).
@@ -424,6 +456,34 @@ def _parse_cobertura(path: Path) -> float | None:
         return float(rate) * 100.0
     except ValueError:
         return None
+
+
+def _parse_bun_coverage(output: str) -> float | None:
+    """Extract % Lines from Bun's coverage table 'All files' row."""
+    for line in output.splitlines():
+        if line.strip().startswith("All files"):
+            # columns: File | % Funcs | % Lines | Uncovered Line #s
+            parts = [p.strip() for p in line.split("|")]
+            if len(parts) >= 3:
+                try:
+                    return float(parts[2])
+                except ValueError:
+                    return None
+    return None
+
+
+def _parse_bun_pass_rate(output: str) -> float | None:
+    """Bun summary: ' 35 pass' / ' 0 fail' (on separate lines)."""
+    m_pass = re.search(r"^\s*(\d+)\s+pass\b", output, re.MULTILINE)
+    if m_pass is None:
+        return None
+    m_fail = re.search(r"^\s*(\d+)\s+fail\b", output, re.MULTILINE)
+    passed = int(m_pass.group(1))
+    failed = int(m_fail.group(1)) if m_fail else 0
+    total = passed + failed
+    if total == 0:
+        return None
+    return passed / total
 
 
 def _parse_coverage(output: str, language: str) -> float | None:
