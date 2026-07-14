@@ -213,12 +213,83 @@ kill unproductive loops) and a **stack-reload hook** (`playpen.stack_presets` �
 `stack` factor whose presets reload the oMLX model + sampling at the model-selection
 point, within one experiment). Run order groups by `stack` so each preset loads once.
 
-## exp-28 — re-baseline the LOCAL LEADERBOARD at each model's OWN recommended sampling (PLANNED)
+## exp-28 — re-baseline the LOCAL LEADERBOARD (RUNNING; restarted after a harness bug)
 
 exp-27 showed the 35B was crippled by oMLX's default sampling (temp=1.0). But **every
 model has different author-recommended settings**, and we ran them all at the same
 oMLX default (temp 1.0, top_p 0.95, top_k 0, rep 1.0). So the whole local leaderboard
 may be invalid — and could reorder.
+
+### The rerun: a second, worse confound found mid-flight (the write-refusal bug)
+
+The first exp-28 launch had to be **killed and wiped**. Its Qwen3-Coder-30B arm went
+**0/8** — fast no-op failures (10–25 s) and stall-kills — which looked like a terrible
+model but was a **harness bug**:
+
+> `[write_file] Refusing to write to sensitive system path: app.py`
+
+retort put each playpen in the macOS temp dir (`mkdtemp` → `/var/folders/...`), and
+**Hermes' safety guard classifies anything under `/var` as a sensitive system path**, so
+it refused *every* `write_file` into the agent's own workspace. Fixed by moving playpens
+to `~/.retort/work` (`_playpen_root`, commit `55dd192`); verified Hermes now writes with
+zero refusals, and the 30B immediately started producing files.
+
+**Why it hid for so long — and why that matters.** A *resilient* model routes around the
+refusal via the shell and still produces code (so the run "works", just burning turns and
+tokens); a *less resilient* one writes nothing and scores a **false zero**. The 35B —
+our champion, and the model most of our conclusions rest on — was resilient, which
+masked the bug. Measured incidence:
+
+| experiment | runs hitting the write-refusal |
+|---|---|
+| exp-25 (brazil) | **3 / 3** |
+| exp-26 (brazil, 60 min) | **6 / 6** |
+| exp-27 (sampling FF) | **41 / 48** |
+
+i.e. **essentially every local Hermes run since exp-17 has been fighting the harness.**
+
+### Consequence: prior local results are floors, not measurements
+
+Local numbers are now understated for **two independent reasons** — (1) sampling at
+temp=1.0 (exp-27) and (2) the write-refusal. Everything Hermes-based (**exp-17 → exp-27**)
+needs re-baselining on the fixed stack. `omp`-based runs (exp-16) are unaffected — the
+guard is Hermes'.
+
+**Conclusions now genuinely at risk** (ranked by how load-bearing they are):
+
+1. **"Niche languages are a hard capability wall"** (exp-20: Clojure/Java/C#/Elixir/Erlang
+   0/15, `requirement_coverage` flat zero, "never produced buildable code"). *Never
+   produced buildable code* is exactly the write-refusal signature. This is the most
+   suspect conclusion we have and the highest-value re-run.
+2. **"Devstral is hopeless / agent-tuned doesn't transfer"** (exp-23: 0.17, 7/12
+   non-terminating). Devstral ran at temp **1.0** vs its recommended **0.15** *and*
+   through the write bug. Both the score and the "wrong harness" story are unsafe.
+3. **"Bigger isn't better"** (exp-22/24, 80B ≤ 35B). Partially protected — the 80B was
+   already near its recommended sampling — but it still ran through the write bug, and if
+   the 35B gains more from the fix than the 80B, the gap *widens* rather than closes.
+4. **Brazil hard-task numbers** (exp-25/26: 0.17 → 0.33, the Python-only story, Go's
+   0.92 near-miss). All six runs hit the refusal; these are floors.
+5. **Self-repair's value** (exp-21, 0.11 → 0.22). Some "failures" it repaired may have
+   been write-refusals, not model errors.
+
+**Probably safe:** exp-27's *main effects* (rep-penalty 1.1 harmful, top_p 0.95 > 0.85,
+temp 0.2 ≈ 0.7). The write bug was **common-mode** across all 8 presets, so the
+*differential* effects survive even though the absolute 0.83 is a floor. Worth a
+confirmation pass, not a redo.
+
+### Re-baseline queue (in priority order)
+
+- **exp-28 (running):** the 3 Qwen models × own recommended sampling, bookshop mainstream
+  4 languages — the leaderboard, on the fixed stack.
+- **exp-29:** all 9 languages on the fixed stack — does the *niche-language wall* survive?
+- **exp-30:** Devstral at temp 0.15 (needs llama.cpp; oMLX can't parse Mistral tool calls).
+- **exp-31:** brazil-bench re-baseline (hard task, fixed stack + right sampling).
+- **Then:** [Agents-A1](#agents-a1--queued-next-new-model-to-add) head-to-head vs the
+  re-baselined 35B.
+
+**Method note earned the hard way:** when a model produces *no code at all*, suspect the
+harness before the model. A "capability wall" and a blocked file-write tool look
+identical in the scores.
 
 | model | recommended (source) | what we actually ran | mismatch |
 |---|---|---|---|
