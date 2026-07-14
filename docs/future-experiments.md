@@ -22,7 +22,8 @@ MoE, ~3B active, ~18–20 GB Q4).
 
 | Model | Size (total/active) | Fit on 64 GB (MLX) | Claim vs ours | Tool format |
 |---|---|---|---|---|
-| **Qwen3-Coder-Next (80B-A3B)** ⭐ primary | 80B / 3B MoE | 4-bit ≈ **44.8 GB** (tight; reduce ctx) or 3-bit ≈ **34 GB** (comfortable) | "~96% of the 480B flagship"; "comparable to 10–20× more active params" | **Same Qwen `<tool_call>` format oMLX already parses** — zero new integration risk |
+| **[Agents-A1](https://huggingface.co/InternScience/Agents-A1) (35B MoE)** ⭐ **QUEUED — next new model** | 35B MoE (active n/s) | 4-bit ≈ **~20 GB** — fits easily | InternScience; **agent-tuned** (native function calling, 262K ctx, long-horizon/engineering/science). SciCode 44.3 | **`qwen3_coder` tool parser → Qwen-style, so oMLX should parse it natively.** MLX quants exist. Zero serving risk (unlike Devstral) |
+| **Qwen3-Coder-Next (80B-A3B)** | 80B / 3B MoE | 4-bit ≈ **44.8 GB** (tight; reduce ctx) or 3-bit ≈ **34 GB** (comfortable) | "~96% of the 480B flagship"; "comparable to 10–20× more active params" | **Same Qwen `<tool_call>` format oMLX already parses** — zero new integration risk |
 | ~~**Devstral Small 2 (24B)**~~ **BLOCKED** | 24B dense | ~14 GB Q4 — fits fine | 68% SWE-bench; agent-tuned | **oMLX does NOT parse Devstral's Mistral `[TOOL_CALLS]` format** (it emits the call as text; Hermes executes nothing — gate-probe on `mlx-community/Devstral-Small-2507-4bit` confirmed). Same wall as exp-12. Would need a different serving layer (vLLM with the mistral tool parser, or llama.cpp with the right template). |
 | gpt-oss-120b | 117B / 5.1B MoE | **~64–65 GB — likely won't fit** at 56 GB wired | best raw coder (83% Multi-LCB; Codeforces 2622) | Harmony format; only if we push memory limits (OOM risk) |
 | GLM-4.5-Air / 4.7-Flash | ~100B+ MoE | borderline → probably too tight | SWE-bench ~57.6% (Air) | MLX-tested; confirm exact size before trying |
@@ -36,6 +37,36 @@ of what we've run, same architecture/tool-format, strongest fitting quality
 claim. Direct "80B vs 35B, same stack" comparison: does doubling the model crack
 Rust / raise the 0.38 ceiling? Optionally add **Devstral Small 2** as a cheap
 second arm (different bet: agent-tuned, not just bigger).
+
+### Agents-A1 — queued (next NEW model to add)
+
+Flagged via LinkedIn; verified on the [HF card](https://huggingface.co/InternScience/Agents-A1).
+The most promising new candidate we've queued, because it's a **like-for-like size
+match for our champion** (35B MoE, same class as Qwen3.6-35B-A3B) that makes the
+**agent-tuned** bet — and, critically, it uses the **`qwen3_coder` tool parser**, so it
+should drop into the existing oMLX + Hermes stack with **no serving work**. That is the
+exact wall Devstral hit (Mistral `[TOOL_CALLS]` → forced llama.cpp), so this is a much
+cleaner test of the same hypothesis.
+
+- **Why it's interesting:** "agent-tuned beats general-purpose" is a hypothesis we
+  *thought* we'd killed with Devstral (exp-23, 0.17) — but that verdict is now in
+  serious doubt: Devstral ran at temp 1.0 (its rec is **0.15**) *and* through the
+  write-refusal bug. Agents-A1 re-tests the agent-tuned axis on a fair stack.
+- **Recommended sampling (from the card):** temp **0.85**, top_p 0.95, top_k 20,
+  min_p 0.0, **presence_penalty 1.1**, repetition_penalty 1.0. Two flags: (a) oMLX
+  **strips `min_p`** and may not honour `presence_penalty` either (it silently dropped
+  min_p) — verify before trusting the config, else the model runs off-spec exactly like
+  everything pre-exp-28; (b) exp-27 found *repetition* penalty 1.1 caused unproductive
+  loops on a reasoning model — a presence penalty is a different mechanism, but watch
+  for the same stall signature.
+- **Honest caveat:** it is **science-leaning, not a dedicated coder** (targets
+  FrontierScience/Olympiad; SciCode 44.3). Our tasks are CRUD + an MCP server, so a
+  strong general/science agent may still lose to a coding-specialised model. Treat the
+  LinkedIn buzz as a prompt to measure, not a claim to trust.
+- **Plan:** once exp-28 (the sampling/write-fix re-baseline) lands, add Agents-A1 as a
+  new `stack` preset (its own recommended sampling) on the **fixed** stack, bookshop
+  mainstream 4 languages, 3 reps — a direct head-to-head with the re-baselined
+  Qwen3.6-35B. If it holds up, promote it to brazil-bench.
 
 > **Status — the fitting + tool-calling search is largely exhausted; Qwen3.6-35B
 > remains the best local stack.**
