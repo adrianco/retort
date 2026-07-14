@@ -31,7 +31,12 @@ TELEMETRY = {
     "_second_try": "second_try",
 }
 FACTORS = ["language", "model", "tooling", "prompt"]
-TEXT_COLS = ["experiment", "task", "status", "started_at", "finished_at"] + FACTORS
+# `owner` = the experiments/<owner>/ segment: who ran the experiment. Carried into
+# the master table so contributed studies are attributable and can be filtered
+# (e.g. compare only your own runs, or audit a contributor's before merging).
+TEXT_COLS = [
+    "experiment", "owner", "task", "status", "started_at", "finished_at",
+] + FACTORS
 
 
 def task_for(exp_dir: Path) -> str:
@@ -49,20 +54,49 @@ def task_for(exp_dir: Path) -> str:
     return "unknown"
 
 
+def _owner_of(db: Path, root: Path) -> str:
+    """Who ran this experiment — the ``experiments/<owner>/`` path segment.
+
+    Experiments live under ``experiments/<owner>/experiment-*/`` so contributors
+    can land their own studies by pull request without colliding, and so every run
+    carries an attribution. Returns "" for the legacy flat layout
+    (``experiment-*/`` at the repo root).
+    """
+    try:
+        parts = db.relative_to(root).parts
+    except ValueError:
+        parts = db.parts
+    if "experiments" in parts:
+        i = parts.index("experiments")
+        if i + 1 < len(parts) and not parts[i + 1].startswith("experiment-"):
+            return parts[i + 1]
+    return ""
+
+
 def collect_runs(experiments_dir: Path) -> list[dict]:
     """One dict per run across all experiment DBs, wide (a column per metric)."""
     rows: list[dict] = []
-    # Match both top-level (experiment-8/retort.db) and one level of nesting
-    # (experiment-7/brazil/retort.db) — some experiments split one study across
-    # task sub-workspaces. Dedupe in case the patterns overlap.
-    db_paths = sorted(set(experiments_dir.glob("experiment-*/retort.db"))
-                      | set(experiments_dir.glob("experiment-*/*/retort.db")))
-    for db in db_paths:
+    # Find experiment DBs in BOTH layouts, so a repo mid-migration still aggregates:
+    #   experiments/<owner>/experiment-*/           (current — per-contributor)
+    #   experiment-*/                               (legacy flat)
+    # and in each, the DB may sit at the experiment root or one task sub-workspace
+    # down (experiment-7/brazil/retort.db).
+    patterns = (
+        "experiment-*/retort.db", "experiment-*/*/retort.db",
+        "*/*/experiment-*/retort.db", "*/*/experiment-*/*/retort.db",
+    )
+    db_paths: set[Path] = set()
+    for pat in patterns:
+        db_paths |= set(experiments_dir.glob(pat))
+    for db in sorted(db_paths):
         parent = db.parent
         # Nested DBs (parent is the task sub-dir) get a compound label so each
-        # row's `experiment` is unique, e.g. experiment-7-brazil.
+        # row's `experiment` is unique, e.g. experiment-7-brazil. The label is
+        # derived from the experiment dir name only, so it is stable across the
+        # move to experiments/<owner>/.
         exp = parent.name if parent.name.startswith("experiment-") \
             else f"{parent.parent.name}-{parent.name}"
+        owner = _owner_of(db, experiments_dir)
         task = task_for(parent)
         con = sqlite3.connect(f"file:{db}?mode=ro", uri=True)
         con.row_factory = sqlite3.Row
@@ -77,7 +111,7 @@ def collect_runs(experiments_dir: Path) -> list[dict]:
         for r in runs:
             cfg = json.loads(r["run_config_json"] or "{}")
             row: dict = {
-                "experiment": exp, "task": task, "status": r["status"],
+                "experiment": exp, "owner": owner, "task": task, "status": r["status"],
                 "replicate": r["replicate"], "started_at": r["started_at"],
                 "finished_at": r["finished_at"],
             }
