@@ -755,6 +755,11 @@ def run_experiments(
     skipped = 0
     accumulated_cost = 0.0
     accumulated_tokens = 0
+    # Harness self-check: consecutive runs where the agent wrote no files at all.
+    # A blocked file tool scores false zeros that mimic a model incapability, so a
+    # streak of them stops the experiment instead of poisoning the data.
+    no_write_streak = 0
+    no_write_abort_after = workspace_config.playpen.no_write_abort_after
     cost_limit = workspace_config.playpen.cost_limit_usd
     token_limit = workspace_config.playpen.token_limit
 
@@ -823,6 +828,49 @@ def run_experiments(
                         # against the same exhausted limit. (teardown via finally)
                         click.echo(" — usage limit (not recorded)", err=True)
                         raise _UsageLimitStop()
+
+                    # Harness self-check — STOP rather than record false zeros.
+                    # A blocked file-write tool and a model that simply can't do
+                    # the task are indistinguishable in the metrics (both produce
+                    # no code, requirement_coverage 0). Recording those as model
+                    # results is how a harness bug masquerades as a "capability
+                    # wall" — it cost us ~10 experiments before it was caught.
+                    _refusal = artifacts.metadata.get("tool_refusal")
+                    if _refusal:
+                        raise click.ClickException(
+                            f"HARNESS BROKEN — the agent's file tool was refused:\n"
+                            f"    {_refusal}\n\n"
+                            f"  Workspace: {artifacts.output_dir}\n"
+                            f"  The agent could not write into its own playpen, so this "
+                            f"run (and any like it) would score a FALSE ZERO that looks "
+                            f"identical to a model that can't do the task.\n"
+                            f"  Stopping so the harness can be fixed rather than "
+                            f"recording garbage. Nothing was written for this cell; "
+                            f"--resume will re-run it once fixed.\n"
+                            f"  Known cause: playpens under a path the agent considers "
+                            f"system-owned (e.g. macOS /var/folders). Playpens now live "
+                            f"under ~/.retort/work."
+                        )
+                    if artifacts.metadata.get("wrote_nothing") == "true":
+                        no_write_streak += 1
+                        if (no_write_abort_after
+                                and no_write_streak >= no_write_abort_after):
+                            raise click.ClickException(
+                                f"HARNESS SUSPECTED — {no_write_streak} consecutive runs "
+                                f"wrote NO files at all.\n\n"
+                                f"  Workspace: {artifacts.output_dir}\n"
+                                f"  A model that can't do the task still *writes something*. "
+                                f"Writing nothing, repeatedly, points at the harness (a "
+                                f"blocked/mis-pathed file tool, a bad workspace, a serving "
+                                f"layer that never returns tool calls) — not the model.\n"
+                                f"  Stopping so it can be diagnosed rather than recording "
+                                f"false zeros. Check the agent's stdout in the workspace "
+                                f"(_agent_stdout.log). Set playpen.no_write_abort_after: 0 "
+                                f"to disable this check."
+                            )
+                    else:
+                        no_write_streak = 0
+
                     scores = collector.collect(artifacts, stack)
 
                     # Conformance gate: an agent-succeeded run whose tests never

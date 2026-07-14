@@ -231,6 +231,21 @@ class PlaypenConfig(BaseModel):
             ),
         ),
     ]
+    no_write_abort_after: Annotated[
+        int,
+        Field(
+            default=3,
+            ge=0,
+            description=(
+                "Stop the experiment after this many CONSECUTIVE runs in which the "
+                "agent wrote no files at all (0 disables). An agent whose file tool "
+                "is blocked scores a false zero that looks exactly like a model that "
+                "cannot do the task — so a run of them means the HARNESS is broken, "
+                "not the model. An explicit tool refusal (e.g. 'Refusing to write to "
+                "sensitive system path') aborts immediately, regardless of this count."
+            ),
+        ),
+    ]
     model: Annotated[
         str | None,
         Field(

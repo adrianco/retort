@@ -198,6 +198,19 @@ _USAGE_LIMIT_RE = re.compile(
     re.IGNORECASE,
 )
 
+# An agent whose file-writing tool is BLOCKED produces no code and scores a false
+# zero — indistinguishable, in the metrics, from a model that simply can't do the
+# task. That cost us ~10 experiments: playpens lived under macOS /var/folders, and
+# Hermes refuses to write to anything under /var ("Refusing to write to sensitive
+# system path"), so 41/48 runs in exp-27 were quietly fighting the harness.
+# Detect it and stop the experiment rather than record garbage.
+_TOOL_REFUSAL_RE = re.compile(
+    r"Refusing to (?:write|create|modify)[^\n]{0,160}"
+    r"|File-mutation verifier:[^\n]{0,160}NOT modified[^\n]{0,80}"
+    r"|(?:permission denied|read-only file system)[^\n]{0,80}",
+    re.IGNORECASE,
+)
+
 
 def _model_cli_args(model_level: str) -> list[str]:
     """``claude`` CLI args selecting a model factor/level.
@@ -320,6 +333,9 @@ class LocalRunner:
             workspace=env_dir,
             stack=stack,
             task=task,
+            # Snapshot the seeded workspace so execute() can tell whether the
+            # agent wrote ANYTHING (see the no-write harness check).
+            seed_fp=_progress_fingerprint(env_dir),
         )
 
         logger.info("Provisioned local env %s at %s", env_id, env_dir)
@@ -439,6 +455,20 @@ class LocalRunner:
                 stderr_text + "\n" + stdout_text
             ):
                 metadata["usage_limited"] = "true"
+
+            # Harness self-check. Neither of these is a *model* result:
+            #   tool_refusal  — the agent's file tool was actively blocked.
+            #   wrote_nothing — the workspace is byte-for-byte as seeded.
+            # Both score a false zero that is indistinguishable from "the model
+            # can't do it", so the caller stops the experiment instead of
+            # recording garbage (see the no-write check in the run loop).
+            refusal = _TOOL_REFUSAL_RE.search(stdout_text + "\n" + stderr_text)
+            if refusal:
+                metadata["tool_refusal"] = refusal.group(0).strip()[:200]
+            final_fp = _progress_fingerprint(info.workspace)
+            metadata["files_written"] = str(max(0, final_fp[0] - info.seed_fp[0]))
+            if final_fp == info.seed_fp:
+                metadata["wrote_nothing"] = "true"
 
             artifacts = RunArtifacts(
                 output_dir=info.workspace,
@@ -1225,7 +1255,7 @@ def _copy_support_files(src: Path, dst: Path) -> None:
 class _EnvInfo:
     """Internal tracking for a provisioned environment."""
 
-    __slots__ = ("env_id", "workspace", "stack", "task")
+    __slots__ = ("env_id", "workspace", "stack", "task", "seed_fp")
 
     def __init__(
         self,
@@ -1233,8 +1263,14 @@ class _EnvInfo:
         workspace: Path,
         stack: StackConfig,
         task: TaskSpec,
+        seed_fp: tuple[int, int, int] = (0, 0, 0),
     ) -> None:
         self.env_id = env_id
         self.workspace = workspace
         self.stack = stack
         self.task = task
+        # Fingerprint of the workspace as SEEDED (task spec + support files), taken
+        # before the agent runs. If it is unchanged afterwards, the agent wrote
+        # nothing at all — which usually means its file tool was blocked, not that
+        # the model was useless. See _TOOL_REFUSAL_RE.
+        self.seed_fp = seed_fp
