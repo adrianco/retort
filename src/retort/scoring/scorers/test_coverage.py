@@ -8,6 +8,8 @@ the test pass rate — better signal than 0 when tests clearly do run.
 
 from __future__ import annotations
 
+import json
+import os
 import re
 import shutil
 import subprocess
@@ -288,6 +290,8 @@ class TestCoverageScorer:
         if (output_dir / "bun.lock").exists() or "bun test" in text:
             return self._bun_coverage(output_dir)
 
+        env: dict[str, str] | None = None
+
         if not (output_dir / "node_modules").exists():
             try:
                 subprocess.run(
@@ -331,6 +335,14 @@ class TestCoverageScorer:
                 ["npx", "jest", "--coverage", "--coverageReporters=text-summary"],
                 ["npx", "jest"],
             ]
+            # ESM Jest ("type": "module", or a test script that already sets
+            # the flag) must run under --experimental-vm-modules; without it
+            # every suite fails to load and a green project scores 0.
+            if _jest_needs_vm_modules(text):
+                node_opts = os.environ.get("NODE_OPTIONS", "")
+                env = os.environ | {
+                    "NODE_OPTIONS": f"{node_opts} --experimental-vm-modules".strip()
+                }
         elif "node --test" in text or "node:test" in text:
             # Node's built-in test runner (node:test) — no jest/vitest dependency.
             # Such projects define a `test` script like
@@ -351,6 +363,7 @@ class TestCoverageScorer:
             try:
                 result = subprocess.run(
                     cmd, cwd=output_dir, capture_output=True, text=True, timeout=180,
+                    env=env,
                 )
             except (subprocess.TimeoutExpired, FileNotFoundError):
                 continue
@@ -456,6 +469,22 @@ def _parse_cobertura(path: Path) -> float | None:
         return float(rate) * 100.0
     except ValueError:
         return None
+
+
+def _jest_needs_vm_modules(pkg_text: str) -> bool:
+    """True when this package.json implies ESM Jest.
+
+    Either the package declares `"type": "module"`, or its test script
+    already sets --experimental-vm-modules (the agent knew, but the scorer
+    invokes `npx jest` directly and would drop the env var).
+    """
+    if "experimental-vm-modules" in pkg_text:
+        return True
+    try:
+        pkg = json.loads(pkg_text)
+    except json.JSONDecodeError:
+        return False
+    return isinstance(pkg, dict) and pkg.get("type") == "module"
 
 
 def _parse_bun_coverage(output: str) -> float | None:
