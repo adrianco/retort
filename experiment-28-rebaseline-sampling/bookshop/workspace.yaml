@@ -1,0 +1,83 @@
+# Experiment 28 — RE-BASELINE the local leaderboard at each model's OWN recommended sampling.
+#
+# exp-27 showed the 35B was crippled by oMLX's default sampling (temp=1.0). But every
+# model ships DIFFERENT author-recommended settings, and we ran them all at that same
+# oMLX default — so the whole local leaderboard (35B 0.38 > 80B 0.33 ~ 30B 0.33) may be
+# invalid. Here each model runs at ITS OWN recommendation; sampling is the ONLY change
+# vs the original runs (same task, same 4 mainstream languages, same neutral prompt,
+# same 3 replicates).
+#
+#   m30  Qwen3-Coder-30B      temp 0.7, top_p 0.80, top_k 20, rep 1.05  (generation_config.json)
+#   m35  Qwen3.6-35B          temp 0.6, top_p 0.95, top_k 20, rep 1.00  (exp-27 empirical)
+#   m80  Qwen3-Coder-Next-80B temp 1.0, top_p 0.95, top_k 40, rep 1.00  (generation_config.json)
+#
+# Predictions: 35B and 30B jump; the 80B barely moves (it was ALREADY near its rec, so
+# "bigger isn't better" should strengthen). Devstral (temp 0.15 vs the 1.0 we ran) is a
+# separate arm — it needs llama.cpp for its Mistral tool format.
+#
+# The `stack` factor is the model-selection point: its levels are the presets in
+# stacks.yaml (served model + sampling). Run order groups by stack so each model loads
+# once. `model` carries the served id through to Hermes' -m.
+#
+# Timeout policy: high hard wall (slow-but-productive work finishes) + stall guard
+# (unproductive loops die fast).
+#
+# Run:
+#   export PATH="$HOME/hermes-venv/bin:/opt/homebrew/bin:$HOME/go/bin:$PATH"
+#   PYTHONPATH=src .venv/bin/python -c 'from retort.cli import main; main()' run \
+#     --phase screening --config experiment-28-rebaseline-sampling/bookshop/workspace.yaml \
+#     --design experiment-28-rebaseline-sampling/bookshop/design.csv --replicates 3 --resume
+
+experiment:
+  name: experiment-28-rebaseline-sampling-bookshop
+  visibility: public
+
+factors:
+  language:
+    levels: [python, go, typescript, rust]
+  agent:
+    levels: [hermes-local, claude-code]
+  prompt:
+    levels: [neutral, none]
+  stack:
+    levels: [m30, m35, m80]
+  model:
+    levels:
+      - mlxlocal/mlx-community--Qwen3-Coder-30B-A3B-Instruct-4bit
+      - mlxlocal/Qwen3.6-35B-A3B
+      - mlxlocal/mlx-community--Qwen3-Coder-Next-4bit
+
+responses:
+  - code_quality
+  - token_efficiency
+  - test_coverage
+  - defect_rate
+  - maintainability
+  - idiomatic
+
+tasks:
+  - source: bundled://rest-api-crud
+
+playpen:
+  runner: local
+  replicates: 3
+  timeout_minutes: 60        # high wall: local models are slow; don't kill good-but-slow work
+  stall_minutes: 25          # Hermes streams no stdout, so file-writes are the ONLY progress signal — be generous
+  max_turns: 200
+  stack_presets: stacks.yaml
+  local_agents:
+    hermes-local:
+      harness: hermes
+      model: mlxlocal/Qwen3.6-35B-A3B   # default; the design's `model` column overrides per cell
+
+design:
+  screening_resolution: 3
+  significance_threshold: 0.10
+
+promotion:
+  screening_to_trial: { p_value: 0.10 }
+  trial_to_production: { posterior_confidence: 0.80 }
+
+evaluation:
+  enabled: true
+  model: opus-4.8

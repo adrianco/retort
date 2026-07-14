@@ -1,0 +1,38 @@
+serving:
+  omlx_bin: /Applications/oMLX.app/Contents/MacOS/omlx-cli
+  model_dir: /Users/adriancockcroft/models
+  host: 127.0.0.1
+  port: 8080
+  settings_path: /Users/adriancockcroft/.omlx/settings.json
+  hermes_config: /Users/adriancockcroft/.hermes/config.yaml
+  serve_flags:
+  - --memory-guard
+  - balanced
+  - --paged-ssd-cache-dir
+  - /Users/adriancockcroft/.cache/omlx-ssd
+  - --paged-ssd-cache-max-size
+  - 120GB
+  log: /private/tmp/claude-501/-Users-adriancockcroft-code/0a3cb2a8-9090-436b-afac-2b927960725a/scratchpad/omlx-exp28.log
+  warm_timeout_s: 600
+presets:
+  m30:
+    model: mlx-community--Qwen3-Coder-30B-A3B-Instruct-4bit
+    sampling:
+      temperature: 0.7
+      top_p: 0.8
+      top_k: 20
+      repetition_penalty: 1.0
+  m35:
+    model: Qwen3.6-35B-A3B
+    sampling:
+      temperature: 0.6
+      top_p: 0.95
+      top_k: 20
+      repetition_penalty: 1.0
+  m80:
+    model: mlx-community--Qwen3-Coder-Next-4bit
+    sampling:
+      temperature: 1.0
+      top_p: 0.95
+      top_k: 40
+      repetition_penalty: 1.0
