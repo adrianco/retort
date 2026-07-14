@@ -182,6 +182,39 @@ kill unproductive loops) and a **stack-reload hook** (`playpen.stack_presets` �
 `stack` factor whose presets reload the oMLX model + sampling at the model-selection
 point, within one experiment). Run order groups by `stack` so each preset loads once.
 
+## exp-28 — re-baseline the LOCAL LEADERBOARD at each model's OWN recommended sampling (PLANNED)
+
+exp-27 showed the 35B was crippled by oMLX's default sampling (temp=1.0). But **every
+model has different author-recommended settings**, and we ran them all at the same
+oMLX default (temp 1.0, top_p 0.95, top_k 0, rep 1.0). So the whole local leaderboard
+may be invalid — and could reorder.
+
+| model | recommended (source) | what we actually ran | mismatch |
+|---|---|---|---|
+| Qwen3.6-35B-A3B | temp 0.6, top_p 0.95, top_k 20, rep 1.0 (exp-27 empirical; = Qwen3 rec) | temp 1.0, top_k 0 | **wrong** — cost ~half its reliability |
+| Qwen3-Coder-30B-A3B | temp 0.7, top_p **0.8**, top_k 20, rep **1.05** (`generation_config.json`) | all four off | **wrong on every knob** |
+| Qwen3-Coder-Next-80B | temp **1.0**, top_p 0.95, top_k 40 (`generation_config.json`) | temp/top_p already right | **~already correct** |
+| Devstral-Small-2507 | temp **0.15** (Mistral docs) | temp 1.0 | **catastrophically wrong** |
+
+Note the Coder line *recommends* a repetition penalty (1.05) even though exp-27 found
+1.1 harmful on the general 35B — so "rep penalty is bad" may be model-family-specific.
+
+**Predictions (falsifiable):** the 35B and 30B jump; the **80B barely moves** (it was
+already near its rec — which would *strengthen* "bigger isn't better", since the 35B
+improves and the 80B can't); **Devstral could be transformed** (its 0.17 + 7/12
+non-termination may be almost entirely a temp=1.0 artifact, not the "wrong harness"
+story exp-23 told).
+
+**Design:** bookshop (easy), mainstream 4 languages (python/go/typescript/rust),
+prompt=neutral, 3 reps — matching the ORIGINAL leaderboard config so *sampling is the
+only change*. Each model = a `stack` preset (served model + its own recommended
+sampling); the reload hook swaps model+sampling at the model-selection point, run order
+grouped so each model loads once.
+- **exp-28 (oMLX):** the 3 Qwen models — 3 × 4 langs × 3 reps = **36 runs**.
+- **exp-29 (llama.cpp):** Devstral at temp 0.15 — needs the llama.cpp serving path
+  (oMLX can't parse its Mistral tool format; the exp-23 blocker), so it's a separate
+  arm until the stack manager grows a backend field.
+
 ## Cheap opportunistic checks
 
 - **oMLX 0.5.0 MTP (multi-token prediction) — now the top speed lever.** exp-24
