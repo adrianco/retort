@@ -614,10 +614,14 @@ class LocalRunner:
 
             # Per-task max_turns wins over workspace-wide setting if set.
             effective_max_turns = task.max_turns if task.max_turns is not None else self.max_turns
+            # stream-json (not plain json) so each turn reports its OWN usage —
+            # the only way to recover peak context, the model's high-water prompt.
+            # Aggregate totals still come from the trailing `result` event, so
+            # cost/token accounting is unchanged. `-p` requires --verbose to stream.
             cmd = [
                 "claude",
                 "-p", prompt,
-                "--output-format", "json",
+                "--output-format", "stream-json", "--verbose",
                 "--max-turns", str(effective_max_turns),
                 "--dangerously-skip-permissions",
             ]
@@ -945,18 +949,31 @@ def _harness_for_model(model: str) -> str:
     return "claude-code"
 
 
+def _turn_context(usage: dict) -> int:
+    """Prompt tokens fed to the model on one turn — i.e. its CONTEXT.
+
+    Every prompt token counts, whether fresh, read from cache, or written to
+    cache; ``output_tokens`` is generation, not context, so it is excluded.
+    """
+    return (
+        (usage.get("input_tokens") or 0)
+        + (usage.get("cache_read_input_tokens") or 0)
+        + (usage.get("cache_creation_input_tokens") or 0)
+    )
+
+
 def _parse_claude_usage(stdout_text: str) -> tuple[int, dict[str, str]]:
-    """Parse Claude Code's single JSON object output."""
-    try:
-        data = json.loads(stdout_text)
-        usage = data.get("usage", {})
-        token_count = (
-            usage.get("input_tokens", 0)
-            + usage.get("output_tokens", 0)
-            + usage.get("cache_read_input_tokens", 0)
-            + usage.get("cache_creation_input_tokens", 0)
-        )
-        cost_usd = data.get("total_cost_usd", 0.0)
+    """Parse Claude Code's usage — either a single JSON result or a JSON stream.
+
+    ``--output-format stream-json`` emits one event per turn, each carrying *that
+    turn's* usage, which is the only way to recover **peak context** (the model's
+    high-water prompt). ``--output-format json`` emits a single aggregate result
+    with no per-turn breakdown. Both are accepted: archived runs (single JSON)
+    keep parsing, and new runs additionally report ``max_context_tokens``.
+    """
+    def _totals(data: dict, peak: int = 0) -> tuple[int, dict[str, str]]:
+        usage = data.get("usage", {}) or {}
+        token_count = _turn_context(usage) + (usage.get("output_tokens") or 0)
         metadata = {
             "input_tokens": str(usage.get("input_tokens", 0)),
             "output_tokens": str(usage.get("output_tokens", 0)),
@@ -964,14 +981,40 @@ def _parse_claude_usage(stdout_text: str) -> tuple[int, dict[str, str]]:
             "cache_creation_input_tokens": str(
                 usage.get("cache_creation_input_tokens", 0)
             ),
-            "total_cost_usd": str(cost_usd),
+            "total_cost_usd": str(data.get("total_cost_usd", 0.0)),
             "num_turns": str(data.get("num_turns", 0)),
             "duration_api_ms": str(data.get("duration_api_ms", 0)),
             "stop_reason": data.get("stop_reason", ""),
         }
+        if peak:
+            metadata["max_context_tokens"] = str(peak)
         return token_count, metadata
+
+    # Single aggregate JSON result (the legacy/`--output-format json` shape).
+    try:
+        return _totals(json.loads(stdout_text))
     except (ValueError, KeyError):
+        pass
+
+    # JSON stream: peak context = the largest per-turn prompt.
+    peak = 0
+    result: dict = {}
+    for line in stdout_text.splitlines():
+        line = line.strip()
+        if not line or not line.startswith("{"):
+            continue
+        try:
+            ev = json.loads(line)
+        except ValueError:
+            continue
+        etype = ev.get("type")
+        if etype == "assistant":
+            peak = max(peak, _turn_context((ev.get("message") or {}).get("usage") or {}))
+        elif etype == "result":
+            result = ev
+    if not result and not peak:
         return 0, {}
+    return _totals(result, peak)
 
 
 def _parse_omp_usage(stdout_text: str) -> tuple[int, dict[str, str]]:
@@ -999,6 +1042,7 @@ def _parse_omp_usage(stdout_text: str) -> tuple[int, dict[str, str]]:
     total_tokens_sum = 0
     cost_sum = 0.0
     assistant_turns = 0
+    peak_context = 0  # high-water prompt across turns — see _turn_context
 
     for line in stdout_text.splitlines():
         try:
@@ -1034,6 +1078,9 @@ def _parse_omp_usage(stdout_text: str) -> tuple[int, dict[str, str]]:
             output_sum += t_out
             cache_read_sum += t_cr
             cache_write_sum += t_cw
+            # Peak CONTEXT = the largest prompt any single turn was fed
+            # (prompt tokens only — output is generation, not context).
+            peak_context = max(peak_context, t_in + t_cr + t_cw)
             total_tokens_sum += int(usage.get("totalTokens", t_in + t_out + t_cr + t_cw) or 0)
             turn_cost = usage.get("cost")
             if isinstance(turn_cost, dict):
@@ -1052,6 +1099,8 @@ def _parse_omp_usage(stdout_text: str) -> tuple[int, dict[str, str]]:
         "model": model,
         "stop_reason": stop_reason,
     }
+    if peak_context:
+        metadata["max_context_tokens"] = str(peak_context)
     # OpenRouter reconciliation hooks — present only on OpenRouter-routed runs.
     if response_ids:
         metadata["openrouter_generation_ids"] = ",".join(response_ids)
