@@ -4418,12 +4418,20 @@ def _discover_active_runs(db_path: Path) -> list[dict]:
                 (None, None) if evaluating
                 else _live_context_tokens(Path(cwd), _serving_log, elapsed)
             )
+            # Is this the self-repair SECOND CHANCE? A repair playpen is seeded with
+            # FEEDBACK.md (the requirement checklist + the prior evaluation verdict);
+            # a first attempt never has one. Without this the monitor shows the same
+            # cell "evaluating" with a reset clock and it reads as a stuck loop.
+            _second = (cell_dir / "FEEDBACK.md").is_file() or (
+                Path(cwd) / "FEEDBACK.md"
+            ).is_file()
             active.append(
                 {
                     "label": label,
                     "replicate": None,
                     "elapsed_s": elapsed,
                     "evaluating": evaluating,
+                    "second_try": _second,
                     "context_tokens": _ctx_now,
                     "context_peak": _ctx_peak,
                 }

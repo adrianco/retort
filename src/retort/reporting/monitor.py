@@ -34,8 +34,13 @@ TOKENS_METRIC = "_tokens"
 DURATION_METRIC = "_duration_seconds"
 # Peak CONTEXT (largest prompt fed to the model), distinct from total token spend.
 CONTEXT_METRIC = "_max_context_tokens"
+# Set when a run only reached its outcome on the self-repair SECOND attempt (the
+# agent was re-seeded with its own code + FEEDBACK.md). A second-try PASS counts at
+# HALF credit toward pass-proportion, so it must be visible, not inferred.
+SECOND_TRY_METRIC = "_second_try"
 _RESOURCE_METRICS = frozenset(
-    {COST_METRIC, TOKENS_METRIC, DURATION_METRIC, CONTEXT_METRIC, "_turns"}
+    {COST_METRIC, TOKENS_METRIC, DURATION_METRIC, CONTEXT_METRIC,
+     SECOND_TRY_METRIC, "_turns"}
 )
 
 # An idle gap longer than this between consecutive run starts marks a new run
@@ -151,6 +156,7 @@ class CellProgress:
     tokens: float = 0.0
     duration_total_s: float = 0.0
     max_context: float = 0.0   # high-water context across this cell's runs
+    second_try: int = 0        # runs that needed the self-repair 2nd chance
     metric_means: dict[str, float] = field(default_factory=dict)
 
     @property
@@ -399,6 +405,7 @@ def build_snapshot(
                     "error": (run.error_message or "") + "  [crashed — will retry]",
                     "duration_s": res.get(DURATION_METRIC),
                     "context_tokens": res.get(CONTEXT_METRIC),
+                    "second_try": bool(res.get(SECOND_TRY_METRIC)),
                 }
             )
             continue
@@ -413,6 +420,7 @@ def build_snapshot(
                     "error": run.error_message or "",
                     "duration_s": res.get(DURATION_METRIC),
                     "context_tokens": res.get(CONTEXT_METRIC),
+                    "second_try": bool(res.get(SECOND_TRY_METRIC)),
                 }
             )
             # A failed run IS a data point that took wall-clock time — count its
@@ -434,6 +442,8 @@ def build_snapshot(
         cell.cost_usd += cost
         cell.tokens += toks
         cell.max_context = max(cell.max_context, res.get(CONTEXT_METRIC) or 0)
+        if res.get(SECOND_TRY_METRIC):
+            cell.second_try += 1
         if DURATION_METRIC in res and res[DURATION_METRIC] is not None:
             durations.append(res[DURATION_METRIC])
             cell.duration_total_s += res[DURATION_METRIC]
@@ -508,6 +518,7 @@ def build_snapshot(
                 "cost_usd": res.get(COST_METRIC),
                 "duration_s": res.get(DURATION_METRIC),
                 "context_tokens": res.get(CONTEXT_METRIC),
+                "second_try": bool(res.get(SECOND_TRY_METRIC)),
             }
         )
 
@@ -586,7 +597,12 @@ def render_active(active: list[dict]) -> list[str]:
     for a in sorted(active, key=lambda x: x.get("label", "")):
         rep = f" rep{a['replicate']}" if a.get("replicate") is not None else ""
         elapsed = _fmt_duration(a.get("elapsed_s")) if a.get("elapsed_s") else "—"
+        # Without this, a cell that fails the gate and enters its self-repair second
+        # chance looks like it is looping: the "evaluating" clock simply resets and
+        # the same cell reappears. Name the phase instead.
         state = "evaluating" if a.get("evaluating") else "running"
+        if a.get("second_try"):
+            state = f"{state} ↻2nd-chance"
         ctx = a.get("context_tokens")
         pk = a.get("context_peak")
         # Show the peak too: a context-managing agent (hermes-lcm) COMPACTS when it
@@ -689,7 +705,7 @@ def render_text(
         lines.append("  cell = " + "/".join(keys))
 
     lines.append(
-        f"  {'cell':<{width}}  {'done':>5}  {'fail':>4}  {'crash':>5}  "
+        f"  {'cell':<{width}}  {'done':>5}  {'fail':>4}  {'crash':>5}  {'2nd':>4}  "
         f"{'cq':>4}  {'cov':>4}  {'~dur':>6}  {'pk ctx':>7}  {'$tot':>6}"
     )
     for c in snap.cells:
@@ -705,8 +721,12 @@ def render_text(
         cov_s = f"{cov:.2f}" if cov is not None else "—"
         dur_s = _fmt_duration(c.mean_duration_s)  # mean wall-clock per run
         ctx_s = f"{c.max_context/1000:.0f}K" if c.max_context else "—"
+        # A second-try PASS counts at HALF credit, so the count belongs on the face
+        # of the table — a cell at 3/3 that needed two repairs is not the same result
+        # as a cell at 3/3 first time.
+        snd_s = f"↻{c.second_try}" if c.second_try else "·"
         lines.append(
-            f"  {lab:<{width}}  {done:>5}  {fail_s:>4}  {crash_s:>5}  "
+            f"  {lab:<{width}}  {done:>5}  {fail_s:>4}  {crash_s:>5}  {snd_s:>4}  "
             f"{cq_s:>4}  {cov_s:>4}  {dur_s:>6}  {ctx_s:>7}  ${c.cost_usd:>5.1f}"
         )
     lines.append("")
@@ -724,7 +744,8 @@ def render_text(
             fin = r["finished_at"]
             ts = fin.astimezone().strftime("%m-%d %H:%M %Z") if fin else "   —   "
             lines.append(
-                f"  ✓ {ts}  {_short(r, keys)} rep{r['replicate']}  {cq} {cov}  "
+                f"  ✓ {ts}  {_short(r, keys)} rep{r['replicate']}"
+                f"{' ↻2nd' if r.get('second_try') else ''}  {cq} {cov}  "
                 f"ctx={_fmt_ctx(r.get('context_tokens'))}  {cost}  {dur}"
             )
         lines.append("")
@@ -739,8 +760,9 @@ def render_text(
             err = (f["error"] or "").splitlines()[0][:80] if f["error"] else ""
             dur = f" ({_fmt_duration(f.get('duration_s'))})" if f.get("duration_s") else ""
             fctx = f"  ctx={_fmt_ctx(f.get('context_tokens'))}"
+            snd = " ↻2nd" if f.get("second_try") else ""
             lines.append(
-                f"  ✗ {_short(f, keys)} rep{f['replicate']}{dur}{fctx}  {err}"
+                f"  ✗ {_short(f, keys)} rep{f['replicate']}{snd}{dur}{fctx}  {err}"
             )
     else:
         lines.append("Failures   : none")
