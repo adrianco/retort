@@ -1768,6 +1768,7 @@ def _run_auto_evaluation(
     visibility: str,
     *,
     force: bool = False,
+    extra_prompt: str = "",
 ) -> None:
     """Invoke evaluate-run + file-run-issues in a single claude call per run.
 
@@ -1806,8 +1807,13 @@ def _run_auto_evaluation(
             f"Then follow skill at {file_skill} for "
             f"run_dir={run_dir} tracker={tracker} "
             f"min_severity={eval_config.min_severity_to_file}."
-        )
+        ) + (extra_prompt or "")
         rc, output = _invoke_claude_skill_prompt(prompt, eval_config.model)
+    elif extra_prompt:
+        rc, output = _invoke_claude_skill_prompt(
+            f"Follow skill at {eval_skill} for run_dir={run_dir}.{extra_prompt}",
+            eval_config.model,
+        )
     else:
         rc, output = _invoke_claude_skill(
             eval_skill, {"run_dir": str(run_dir)}, eval_config.model
@@ -1830,22 +1836,107 @@ def _read_requirement_coverage(run_dir: Path) -> float | None:
         return None
 
 
+def _shortfalls_claimed(run_dir: Path) -> list[dict]:
+    """The requirements the FIRST opinion claimed were unmet, with its evidence.
+
+    Read from ``assessment.json``'s ``top_findings`` — each carries the requirement
+    id, what the evaluator thought was missing, and the evidence it cited.
+    """
+    p = run_dir / "assessment.json"
+    try:
+        data = json.loads(p.read_text())
+    except (ValueError, OSError):
+        return []
+    out = []
+    for f in data.get("top_findings") or []:
+        if not isinstance(f, dict):
+            continue
+        if f.get("kind") and "requirement" not in str(f.get("kind")):
+            continue  # a code-quality finding, not a claimed spec gap
+        out.append({
+            "id": str(f.get("id") or "?"),
+            "title": str(f.get("title") or ""),
+            "evidence": str(f.get("evidence") or ""),
+        })
+    return out
+
+
+def _build_challenge(shortfalls: list[dict], coverage: float | None) -> str:
+    """An 'are you sure?' prompt for the SECOND opinion.
+
+    The second opinion exists to catch **false failures** — a complete implementation
+    that the first evaluator marked short because it didn't find the code. A blind
+    re-roll is a poor way to do that: it just draws another sample from a noisy judge
+    (measured: mean requirement_coverage swing 0.18 between two reads of *identical*
+    code, max 0.92). Re-checking the *specific* claims is both more reliable and
+    cheaper — the evaluator re-examines a handful of requirements instead of
+    re-grading the whole spec.
+
+    The prompt deliberately asks it to go **looking for the implementation**, because
+    that is the failure mode being guarded against. It must still be able to confirm a
+    genuine gap — the gate fails on two short opinions — so it is asked for
+    file:line evidence either way, not for a verdict it can hand back on vibes.
+    """
+    claims = "\n".join(
+        f"  - {s['id']}: {s['title']}\n      first evaluator's evidence: {s['evidence']}"
+        for s in shortfalls
+    ) or "  (the first pass recorded no specific requirement findings)"
+    return (
+        "\n\nSECOND OPINION — you are RE-CHECKING a prior evaluation, not starting fresh.\n"
+        f"A first evaluation scored requirement_coverage={coverage} and claimed these "
+        "requirements were NOT met:\n"
+        f"{claims}\n\n"
+        "For EACH claim above: are you sure? Go and look for the implementation in the "
+        "code before accepting that it is missing.\n"
+        "  - If you FIND it, the first evaluator was wrong — say so and cite file:line.\n"
+        "  - If it is genuinely absent or incomplete, confirm it and cite what you "
+        "checked.\n"
+        "First evaluations miss existing implementations more often than they invent "
+        "them, so the burden of proof is on the claim that something is MISSING.\n"
+        "Then re-score requirement_coverage over the FULL checklist and write "
+        "assessment.json as usual."
+    )
+
+
 def _spec_conformance_passes(run_dir, eval_config, visibility) -> tuple[bool | None, float | None]:
     """Second-opinion spec gate. Returns ``(verdict, coverage)``:
 
     * ``True``  — a real eval found requirement_coverage == 1.0 (pass).
-    * ``False`` — two independent real evals both fell short (genuine spec gap).
+    * ``False`` — two real evals both fell short (genuine spec gap).
     * ``None``  — inconclusive: the eval could not run (usage limit / timeout),
       so there aren't two real opinions. The caller should retry later rather
       than record a failure — this keeps an infra hiccup from masquerading as a
       spec failure.
 
-    A run fails only on two real short opinions, so borderline judge noise on a
-    single requirement can't sink a complete run while a real omission still does.
+    A run fails only on two short opinions, so borderline judge noise on a single
+    requirement can't sink a complete run while a real omission still does.
+
+    **The second opinion is a CHALLENGE, not an independent re-roll.** It used to be
+    the latter: the first eval's output was deleted and the judge graded the whole
+    spec again from scratch. That is a weak way to catch a false failure, because it
+    just draws another sample from a noisy judge — measured across 22 paired reads of
+    *identical* code, requirement_coverage moved by a mean of 0.18 and as much as
+    0.92. The second pass now receives the specific requirements the first pass
+    claimed were missing, plus its evidence, and is asked to go and look for the
+    implementation ("are you sure?"). Focused, so it is also cheaper.
+
+    The trade is deliberate: independence is exchanged for a targeted verification.
+    Anchoring is the risk, so the prompt puts the burden of proof on the claim that
+    something is MISSING (the failure mode being guarded against) and demands
+    file:line evidence either way — it can still confirm a genuine gap, which is what
+    keeps a real omission failing.
     """
     reals: list[float] = []
+    challenge = ""
     for attempt in (1, 2):
-        # Clear prior eval output FIRST, so a failed/partial eval leaves no file
+        # Before wiping the first opinion's output, capture WHAT it claimed was
+        # missing — the second opinion re-checks those specific claims rather than
+        # blindly re-rolling a noisy judge. See _build_challenge.
+        if attempt == 2:
+            challenge = _build_challenge(
+                _shortfalls_claimed(run_dir), reals[-1] if reals else None
+            )
+        # Clear prior eval output, so a failed/partial eval leaves no file
         # and _read_requirement_coverage returns None (inconclusive) — never a
         # stale value from an earlier eval misread as this run's fresh result.
         for fname in ("assessment.json", "evaluation.md", "findings.jsonl"):
@@ -1859,7 +1950,9 @@ def _spec_conformance_passes(run_dir, eval_config, visibility) -> tuple[bool | N
             # attempts then grade byte-identical material, which is the whole
             # point of a second opinion.
             _declutter_for_eval(run_dir)
-        _run_auto_evaluation(run_dir, eval_config, visibility, force=True)
+        _run_auto_evaluation(
+            run_dir, eval_config, visibility, force=True, extra_prompt=challenge
+        )
         cov = _read_requirement_coverage(run_dir)
         if cov is None:
             click.echo(f"    spec gate attempt {attempt}/2: eval did not run (inconclusive)")
