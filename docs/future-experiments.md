@@ -171,6 +171,33 @@ so it's a clean test of self-repair.
 - **MTP/speculative-decoding** remains the top open speed lever — more finished turns
   per minute is exactly what the remaining wall-bound / near-miss runs need.
 
+## Harness bugs that invalidated results — a running list
+
+Three separate bugs have now each moved a result more than the model choice did. All
+three were **unrecorded stack variables**. They are listed here because the pattern —
+not the individual bugs — is the finding: *suspect the harness before the model.*
+
+| Bug | What it did | Fixed |
+|---|---|---|
+| **Playpen under `/var`** | Hermes refuses to write to a "sensitive system path", so the agent could not create files **in its own workspace**. A resilient model routed around it via the shell (burning turns); a weaker one wrote nothing and scored a **false zero**. Hit 41/48 runs in exp-27, 6/6 in exp-26. | playpens → `~/.retort/work`; `retort diagnose` now returns a **HARNESS** verdict; a no-write streak aborts the run. |
+| **Sampling at `temperature: 1.0`** | oMLX's default, never recorded. Cost roughly **half** the reliability of every local result. Also: any `repetition_penalty > 1.0` derails an agentic tool loop into stalls — *even at the value the model's own card recommends.* | exp-27 measured it; correct sampling is now the default and lives in [optimal-blog](../optimal-blog.md) forbidden settings. |
+| **Context silently 128K, not 256K** | The stack-reload hook **rebuilt** Hermes' per-model config map on a model switch, destroying `context_length: 262144`. Hermes then probes its fallback tiers and lands on **128K**, and `hermes-lcm` compacts at ~85% of that (~109K) — while the top-level `context_length:` in the file still read 262144 and **provenance dutifully reported it**. | Never rebuild the map; `context_length` is part of the preset *and* the reload signature; **provenance now reports the EFFECTIVE (per-model) value** and flags disagreement. |
+
+**The Rust "context thrash loop" is now in doubt.** With the 128K bug, Rust ran a
+grow→compact→regrow cycle (three full cycles in 33 min on an *easy* task, peaking at
+114K). At a true 256K the compaction threshold moves to ~217K — well above that peak.
+**Rust may simply terminate.** If it does, "Rust is a capability wall" goes the same
+way the "niche-language wall" did, and every Rust non-termination result since exp-18
+needs re-reading. exp-28 is re-running at a true 256K to find out.
+
+New instrumentation to catch this class of bug earlier:
+- **peak context** (`_max_context_tokens`) recorded per run, for local *and* Claude
+  (per-turn usage from `stream-json`) — so context can be compared across the
+  cloud/local boundary. The monitor shows current **and** peak live, because a
+  compacting agent makes the current value alone actively misleading.
+- **provenance.json** per run: versions, model revision hashes, sampling, agent config,
+  and the harness settings that each turned out to matter.
+
 ## Inference-lever sweep (issue #40) — in progress
 
 Prompted by [issue #40](https://github.com/adrianco/retort/issues/40) (jschoch): a
