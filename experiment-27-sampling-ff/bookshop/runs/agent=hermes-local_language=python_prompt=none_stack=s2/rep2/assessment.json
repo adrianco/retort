@@ -1,0 +1,23 @@
+{
+  "severity_counts": {
+    "critical": 1,
+    "high": 0,
+    "medium": 0,
+    "low": 0,
+    "info": 0
+  },
+  "penalty_score": 0.75,
+  "top_findings": [
+    {
+      "id": "archive-empty",
+      "kind": "build_failure",
+      "severity": "critical",
+      "title": "Deliverable source, tests, and README absent from archived run",
+      "evidence": "find in run_dir returns only 8 metadata files (TASK.md, stack.json, scores.json, _meta.json, logs, empty .coverage) \u2014 no app.py, test_app.py, README.md, or requirements.txt; sibling rep1 archives all of these. .coverage exists but its file/line_bits/arc tables have 0 rows. Yet scores.json reports test_coverage=0.99, defect_rate=1.0 and _agent_stdout.log claims '16/16 passed', so the code existed and was scored but was not archived.",
+      "suggestion": "Fix the runner so the workspace is archived before any post-run cleanup (likely the stack-reload hook, commit 131fbb8) wipes it; the run is unverifiable and non-reproducible as archived."
+    }
+  ],
+  "requirement_coverage": null,
+  "model": "hermes-local",
+  "evaluated_at": "2026-07-13T23:00:54Z"
+}

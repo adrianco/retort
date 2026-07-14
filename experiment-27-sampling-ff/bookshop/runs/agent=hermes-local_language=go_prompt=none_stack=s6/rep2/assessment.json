@@ -1,0 +1,55 @@
+{
+  "severity_counts": {
+    "critical": 1,
+    "high": 11,
+    "medium": 0,
+    "low": 0,
+    "info": 0
+  },
+  "penalty_score": 0.0,
+  "top_findings": [
+    {
+      "id": "build-fail",
+      "kind": "build_failure",
+      "severity": "critical",
+      "title": "Package does not build \u2014 main package has no func main",
+      "evidence": "go build ./... => 'runtime.main_main\u00b7f: function main is undeclared in the main package'; workspace contains only models.go (types) \u2014 no main.go, handlers.go, database.go",
+      "suggestion": "Deliver the full service (main, router, handlers, persistence); the agent stopped after writing models.go (see _agent_stdout.log: write_file guard, planned heredoc fallback never landed)"
+    },
+    {
+      "id": "R1",
+      "kind": "requirement_missing",
+      "severity": "high",
+      "title": "POST /books create endpoint missing",
+      "evidence": "No HTTP handler or route in workspace; only DTO type CreateBookRequest exists in models.go:22",
+      "suggestion": "Implement a POST /books handler that validates and persists a book"
+    },
+    {
+      "id": "R2",
+      "kind": "requirement_missing",
+      "severity": "high",
+      "title": "GET /books list endpoint missing",
+      "evidence": "No router/handler code exists; models.go declares types only",
+      "suggestion": "Implement GET /books returning the collection as JSON"
+    },
+    {
+      "id": "R3",
+      "kind": "requirement_missing",
+      "severity": "high",
+      "title": "GET /books ?author= filter missing",
+      "evidence": "No list handler exists, so no query-param filtering",
+      "suggestion": "Add ?author= filtering to the list handler"
+    },
+    {
+      "id": "R4",
+      "kind": "requirement_missing",
+      "severity": "high",
+      "title": "GET /books/{id} get-by-id endpoint missing",
+      "evidence": "No route/handler in workspace",
+      "suggestion": "Implement GET /books/{id} returning one book or 404"
+    }
+  ],
+  "requirement_coverage": 0.0,
+  "model": "hermes-local",
+  "evaluated_at": "2026-07-13T00:00:00Z"
+}

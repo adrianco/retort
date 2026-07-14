@@ -149,13 +149,18 @@ of whether they "resolve into reliability." Our harness is uniquely able to answ
 that — pass-proportion **is** a reliability metric, unlike perplexity/KLD. Filtered
 by our findings (generation-bound + wall-limited):
 
-- **Tier 1 — sampling (exp-27, RUNNING).** Fractional factorial (Resolution IV
-  2^(4-1), 8 presets) over **temperature, top_p, top_k, repetition_penalty** on the
-  35B stack, bookshop, python+go, 3 reps. All prior local runs used oMLX defaults
-  **temp=1.0 / rep_penalty=1.0** — above Qwen's own ~0.6–0.7 rec — so this
-  re-baselines and screens which sampling knobs move reliability (and whether lower
-  temp / a repetition penalty cut the runaway non-termination). `min_p` dropped:
-  oMLX strips it from settings (per-request only, and Hermes doesn't send it).
+- **Tier 1 — sampling (exp-27, DONE).** Fractional factorial (Res IV 2^(4-1), 8
+  presets) over temperature/top_p/top_k/repetition_penalty, 35B, bookshop, python+go.
+  [RESULTS](../experiment-27-sampling-ff/RESULTS.md). Overall **0.83** pass-proportion
+  vs ~0.45 at the old temp=1.0 default. Main effects: **repetition_penalty 1.1 is
+  harmful (−0.25 pass, owns all 4 stall-crashes)**; top_p 0.95 > 0.85 (+0.17); top_k
+  20 slightly > off; **temperature 0.2 vs 0.7 = zero effect** (the win is getting OFF
+  1.0, not the precise value). Best config ≈ **Qwen's own rec** (temp ~0.6, top_p
+  0.95, top_k 20, NO rep penalty) — s7 went 6/6. **Re-baseline TODO:** every prior
+  local experiment (exp-16→26) ran at temp=1.0, so their 0.38–0.50 numbers are
+  *understated*; the recommended sampling is now the oMLX default for future local
+  runs. `min_p` dropped (oMLX strips it from settings). The stall guard fired
+  correctly (4 loops killed at ~16m, not the 45m wall).
 - **Tier 1 — speculative decoding / MTP.** The throughput lever exp-24/26 point to
   (generation-bound → faster tok/s converts wall-crashes into passes). oMLX ships a
   Qwen3.5/3.6 MTP patch but the unsloth 4-bit build has no MTP weights → needs a

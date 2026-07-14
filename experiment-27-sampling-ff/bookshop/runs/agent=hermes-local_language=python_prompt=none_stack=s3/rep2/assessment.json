@@ -1,0 +1,23 @@
+{
+  "severity_counts": {
+    "critical": 1,
+    "high": 0,
+    "medium": 0,
+    "low": 0,
+    "info": 0
+  },
+  "penalty_score": 0.75,
+  "top_findings": [
+    {
+      "id": "DELIV1",
+      "kind": "requirement_missing",
+      "severity": "critical",
+      "title": "Archived workspace contains no source, tests, or README \u2014 deliverables absent",
+      "evidence": "find rep2/ -type f returns only TASK.md, stack.json, scores.json, _meta.json, _agent_stdout.log, _agent_stderr.log, .coverage, .hermes_usage.json \u2014 no app.py/test_app.py/README.md, though _agent_stdout.log claims all three were created. Sibling rep1 (same cell) archived all source. TASK.md deliverable 'Working source code in the workspace directory' is not present in the archive.",
+      "suggestion": "Fix the runner's archive step so generated source is copied into run_dir; re-run or re-archive this cell. Conformance (R1\u2013R11) cannot be verified until source is restored."
+    }
+  ],
+  "requirement_coverage": null,
+  "model": "hermes-local",
+  "evaluated_at": "2026-07-14T00:17:50Z"
+}
