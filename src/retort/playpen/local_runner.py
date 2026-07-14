@@ -34,6 +34,19 @@ _PROGRESS_SKIP_FILES = {
 }
 
 
+def _playpen_root() -> Path:
+    """Root for playpen workspaces — under $HOME, never the system temp dir.
+
+    Agents refuse to write into paths they consider system-owned (macOS
+    ``mkdtemp`` returns ``/var/folders/...``, and ``/var`` trips Hermes'
+    sensitive-path guard). Keeping playpens under ``~/.retort/work`` lets the
+    agent's normal file tools work.
+    """
+    root = Path.home() / ".retort" / "work"
+    root.mkdir(parents=True, exist_ok=True)
+    return root
+
+
 def _progress_fingerprint(workspace: Path) -> tuple[int, int, int]:
     """(file_count, total_size, max_mtime_ns) over agent-produced files.
 
@@ -241,7 +254,17 @@ class LocalRunner:
         self.default_model = default_model
         self.default_thinking = default_thinking
         self.local_agents = local_agents or {}
-        self.work_dir = work_dir or Path(tempfile.mkdtemp(prefix="retort-local-"))
+        # Playpens live under $HOME, NOT the system temp dir. On macOS mkdtemp()
+        # lands in /var/folders/..., and agents' safety guards classify anything
+        # under /var as a "sensitive system path" — Hermes then REFUSES every
+        # write_file into the workspace ("Refusing to write to sensitive system
+        # path: app.py"). A resilient model routes around it via the shell (burning
+        # turns); a less resilient one writes nothing at all and scores a false
+        # zero. This silently depressed every local Hermes run (41/48 in exp-27,
+        # 6/6 in exp-26) until it was caught in exp-28.
+        self.work_dir = work_dir or Path(tempfile.mkdtemp(
+            prefix="retort-local-", dir=_playpen_root()
+        ))
         self._envs: dict[str, _EnvInfo] = {}
         # When set, invoke evaluate-run skill after each successful run.
         self.eval_model = eval_model
