@@ -4337,9 +4337,23 @@ def _discover_active_runs(db_path: Path) -> list[dict]:
             if not cwd or cwd in seen:
                 continue
             seen.add(cwd)
+            # Which CELL is this process working on? The agent runs *in* the playpen,
+            # so its cwd holds stack.json. The spec-gate EVALUATOR does not — it is a
+            # claude process launched elsewhere, carrying the cell only as
+            # `run_dir=<archived run dir>` in its prompt. Without this it rendered as
+            # a bare "?", which is useless precisely when a long eval is the thing
+            # holding the experiment up.
+            cell_dir = Path(cwd)
+            if not (cell_dir / "stack.json").is_file():
+                m = re.search(r"run_dir=(\S+)", cmd)
+                if m:
+                    # The path is embedded in prose, so it picks up trailing
+                    # sentence punctuation — strip it, or stack.json is never found
+                    # and the label degrades to the raw archive dir name.
+                    cell_dir = Path(m.group(1).rstrip('"\'.,;:)'))
             label = "?"
             try:
-                sj = _json.loads((Path(cwd) / "stack.json").read_text())
+                sj = _json.loads((cell_dir / "stack.json").read_text())
                 # Prefer the short stack-preset id over the full model id: a cell
                 # carrying both (a stack-preset sweep) would otherwise render as
                 # `rust/mlxlocal/Qwen3.6-35B-A3B/...`, where the model id's own
@@ -4355,6 +4369,10 @@ def _discover_active_runs(db_path: Path) -> list[dict]:
                 )
             except Exception:  # noqa: BLE001
                 pass
+            if label == "?" and cell_dir != Path(cwd):
+                # No stack.json (an archive predating it) — the path still names the
+                # cell: .../runs/<cell>/rep2 → "<cell> rep2".
+                label = f"{cell_dir.parent.name} {cell_dir.name}"
             et = _run(["ps", "-o", "etime=", "-p", cpid])
             elapsed = _etime_to_seconds(et.stdout) if et else None
             # Serving log (if this experiment drives a local server via stack
@@ -4370,7 +4388,14 @@ def _discover_active_runs(db_path: Path) -> list[dict]:
                         _serving_log = Path(_lg)
             except Exception:  # noqa: BLE001 — the monitor must never break a run
                 _serving_log = None
-            _ctx_now, _ctx_peak = _live_context_tokens(Path(cwd), _serving_log)
+            # Do NOT attribute the served model's context to the EVALUATOR. The
+            # judge is a separate cloud model; reading the serving log for it just
+            # reports the last local run's context (we were showing a stale
+            # "ctx 37K (pk 114K)" against an opus judge that never touched it).
+            _ctx_now, _ctx_peak = (
+                (None, None) if evaluating
+                else _live_context_tokens(Path(cwd), _serving_log)
+            )
             active.append(
                 {
                     "label": label,
