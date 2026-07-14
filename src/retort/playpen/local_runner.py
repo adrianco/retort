@@ -384,6 +384,11 @@ class LocalRunner:
         hard_wall_secs = self.timeout_minutes * 60
         stall_secs = self.stall_minutes * 60  # 0 ⇒ stall guard disabled
 
+        # Cursor into the serving log, so we can measure THIS run's peak context.
+        log_mark = (
+            self.stack_manager.log_offset() if self.stack_manager is not None else None
+        )
+
         logger.info("Executing %s in %s", stack.agent, info.workspace)
 
         try:
@@ -469,6 +474,14 @@ class LocalRunner:
             metadata["files_written"] = str(max(0, final_fp[0] - info.seed_fp[0]))
             if final_fp == info.seed_fp:
                 metadata["wrote_nothing"] = "true"
+
+            # Peak context this run actually needed — the largest prompt the model
+            # was fed. Says whether a big context window is earning its keep, and
+            # a ballooning context is a leading indicator of a non-terminating run.
+            if log_mark is not None and self.stack_manager is not None:
+                peak = self.stack_manager.peak_prompt_tokens(log_mark)
+                if peak:
+                    metadata["max_context_tokens"] = str(peak)
 
             artifacts = RunArtifacts(
                 output_dir=info.workspace,

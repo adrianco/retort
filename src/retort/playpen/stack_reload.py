@@ -33,6 +33,7 @@ from __future__ import annotations
 
 import json
 import logging
+import re
 import subprocess
 import time
 import urllib.request
@@ -44,6 +45,11 @@ import yaml
 logger = logging.getLogger(__name__)
 
 _SAMPLING_KEYS = ("temperature", "top_p", "top_k", "min_p", "repetition_penalty")
+
+# oMLX logs the prompt length of every completion:
+#   "Chat completion: 88 tokens in 2.58s (52.0 tok/s), prompt: 21806, finish_reason=..."
+# The max over a run is that run's PEAK CONTEXT.
+_PROMPT_RE = re.compile(r"prompt:\s*(\d+)")
 
 
 def _sig(preset: dict[str, Any]) -> tuple:
@@ -79,6 +85,36 @@ class OmlxStackManager:
         logger.info("reloading serving stack -> preset %s (%s)", preset_name, sig)
         self._apply(preset)
         self._loaded_sig = sig
+
+    # -- peak context -------------------------------------------------------
+
+    def log_offset(self) -> int:
+        """Current size of the serving log — a cursor to measure one run from."""
+        try:
+            return Path(self.serving.get("log", "/tmp/omlx-sweep.log")).stat().st_size
+        except OSError:
+            return 0
+
+    def peak_prompt_tokens(self, since_offset: int) -> int | None:
+        """Largest prompt (context) the model was fed since ``since_offset``.
+
+        The serving layer reports the prompt length of every completion; the max
+        over a run is the **peak context** that run actually needed. Byte-offset
+        cursors rather than timestamps, so it is exact and cheap.
+
+        Worth recording per run: it says whether a big context window is earning
+        its keep (or whether the model is simply hoarding context), and context
+        that balloons is a leading indicator of a run that will not terminate.
+        """
+        path = Path(self.serving.get("log", "/tmp/omlx-sweep.log"))
+        try:
+            with open(path, "rb") as f:
+                f.seek(since_offset)
+                chunk = f.read()
+        except OSError:
+            return None
+        peaks = _PROMPT_RE.findall(chunk.decode("utf-8", "replace"))
+        return max((int(p) for p in peaks), default=None)
 
     # -- internals ----------------------------------------------------------
 

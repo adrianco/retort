@@ -26,6 +26,10 @@ TELEMETRY = {
     "_tokens": "tokens",
     "_cost_usd": "cost_usd",
     "_turns": "turns",
+    # Peak CONTEXT (largest prompt fed to the model in the run) — distinct from
+    # `tokens`, which is the run's total spend. Answers "is the context window
+    # sized right?", and a ballooning context predicts a non-terminating run.
+    "_max_context_tokens": "max_context_tokens",
     # 1.0 when the run only reached its outcome on the self-repair SECOND attempt.
     # A `second_try` pass counts at HALF credit toward pass-proportion.
     "_second_try": "second_try",

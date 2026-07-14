@@ -2244,6 +2244,19 @@ def _store_run_result(
             metric_name="_tokens",
             value=float(artifacts.token_count),
         ))
+    # Peak context: the largest prompt the model was fed during this run. `_tokens`
+    # is the run's TOTAL spend; this is its high-water CONTEXT mark — a different
+    # question, and the one that says whether the context window is sized right.
+    _peak = (artifacts.metadata or {}).get("max_context_tokens")
+    if _peak:
+        try:
+            session.add(RunResult(
+                run_id=run.id,
+                metric_name="_max_context_tokens",
+                value=float(_peak),
+            ))
+        except (TypeError, ValueError):
+            pass
     # Flag a run that only reached its outcome on the self-repair SECOND attempt.
     # A second-try PASS counts at HALF credit toward pass-proportion in analysis;
     # the raw scores stay at their true final values.

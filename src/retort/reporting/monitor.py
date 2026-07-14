@@ -32,7 +32,11 @@ from retort.storage.models import (
 COST_METRIC = "_cost_usd"
 TOKENS_METRIC = "_tokens"
 DURATION_METRIC = "_duration_seconds"
-_RESOURCE_METRICS = frozenset({COST_METRIC, TOKENS_METRIC, DURATION_METRIC, "_turns"})
+# Peak CONTEXT (largest prompt fed to the model), distinct from total token spend.
+CONTEXT_METRIC = "_max_context_tokens"
+_RESOURCE_METRICS = frozenset(
+    {COST_METRIC, TOKENS_METRIC, DURATION_METRIC, CONTEXT_METRIC, "_turns"}
+)
 
 # An idle gap longer than this between consecutive run starts marks a new run
 # session (e.g. a --resume after a usage-limit pause), so throughput/ETA are
@@ -108,6 +112,7 @@ class CellProgress:
     cost_usd: float = 0.0
     tokens: float = 0.0
     duration_total_s: float = 0.0
+    max_context: float = 0.0   # high-water context across this cell's runs
     metric_means: dict[str, float] = field(default_factory=dict)
 
     @property
@@ -377,6 +382,7 @@ def build_snapshot(
         total_tokens += toks
         cell.cost_usd += cost
         cell.tokens += toks
+        cell.max_context = max(cell.max_context, res.get(CONTEXT_METRIC) or 0)
         if DURATION_METRIC in res and res[DURATION_METRIC] is not None:
             durations.append(res[DURATION_METRIC])
             cell.duration_total_s += res[DURATION_METRIC]
@@ -612,7 +618,7 @@ def render_text(
 
     lines.append(
         f"  {'cell':<{width}}  {'done':>5}  {'fail':>4}  {'crash':>5}  "
-        f"{'cq':>4}  {'cov':>4}  {'~dur':>6}  {'$tot':>6}"
+        f"{'cq':>4}  {'cov':>4}  {'~dur':>6}  {'pk ctx':>7}  {'$tot':>6}"
     )
     for c in snap.cells:
         lab = labels[id(c)]
@@ -626,9 +632,10 @@ def render_text(
         cq_s = f"{cq:.2f}" if cq is not None else "—"
         cov_s = f"{cov:.2f}" if cov is not None else "—"
         dur_s = _fmt_duration(c.mean_duration_s)  # mean wall-clock per run
+        ctx_s = f"{c.max_context/1000:.0f}K" if c.max_context else "—"
         lines.append(
             f"  {lab:<{width}}  {done:>5}  {fail_s:>4}  {crash_s:>5}  "
-            f"{cq_s:>4}  {cov_s:>4}  {dur_s:>6}  ${c.cost_usd:>5.1f}"
+            f"{cq_s:>4}  {cov_s:>4}  {dur_s:>6}  {ctx_s:>7}  ${c.cost_usd:>5.1f}"
         )
     lines.append("")
 
