@@ -398,6 +398,7 @@ def build_snapshot(
                     "replicate": run.replicate,
                     "error": (run.error_message or "") + "  [crashed — will retry]",
                     "duration_s": res.get(DURATION_METRIC),
+                    "context_tokens": res.get(CONTEXT_METRIC),
                 }
             )
             continue
@@ -411,6 +412,7 @@ def build_snapshot(
                     "replicate": run.replicate,
                     "error": run.error_message or "",
                     "duration_s": res.get(DURATION_METRIC),
+                    "context_tokens": res.get(CONTEXT_METRIC),
                 }
             )
             # A failed run IS a data point that took wall-clock time — count its
@@ -505,6 +507,7 @@ def build_snapshot(
                 "test_coverage": res.get("test_coverage"),
                 "cost_usd": res.get(COST_METRIC),
                 "duration_s": res.get(DURATION_METRIC),
+                "context_tokens": res.get(CONTEXT_METRIC),
             }
         )
 
@@ -560,6 +563,11 @@ def _short(entry: dict, keys: list[str]) -> str:
     if not f or not keys:
         return str(entry.get("label", "?"))
     return "/".join(str(f.get(k, "")).replace("/", "-") for k in keys)
+
+
+def _fmt_ctx(tokens: float | None) -> str:
+    """Peak context as a compact 'K' figure, or an em-dash when unrecorded."""
+    return f"{tokens/1000:.0f}K" if tokens else "—"
 
 
 def render_active(active: list[dict]) -> list[str]:
@@ -716,7 +724,8 @@ def render_text(
             fin = r["finished_at"]
             ts = fin.astimezone().strftime("%m-%d %H:%M %Z") if fin else "   —   "
             lines.append(
-                f"  ✓ {ts}  {_short(r, keys)} rep{r['replicate']}  {cq} {cov}  {cost}  {dur}"
+                f"  ✓ {ts}  {_short(r, keys)} rep{r['replicate']}  {cq} {cov}  "
+                f"ctx={_fmt_ctx(r.get('context_tokens'))}  {cost}  {dur}"
             )
         lines.append("")
 
@@ -729,7 +738,10 @@ def render_text(
         for f in shown:
             err = (f["error"] or "").splitlines()[0][:80] if f["error"] else ""
             dur = f" ({_fmt_duration(f.get('duration_s'))})" if f.get("duration_s") else ""
-            lines.append(f"  ✗ {_short(f, keys)} rep{f['replicate']}{dur}  {err}")
+            fctx = f"  ctx={_fmt_ctx(f.get('context_tokens'))}"
+            lines.append(
+                f"  ✗ {_short(f, keys)} rep{f['replicate']}{dur}{fctx}  {err}"
+            )
     else:
         lines.append("Failures   : none")
 
