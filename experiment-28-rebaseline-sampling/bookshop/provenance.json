@@ -4,6 +4,8 @@
       "_config_version": 33,
       "context_engine": "lcm",
       "context_length": 262144,
+      "context_length_top_level": 262144,
+      "context_length_unset_per_model": false,
       "max_turns": 30,
       "model": "Qwen3.6-35B-A3B",
       "plugins": [
@@ -78,7 +80,7 @@
   },
   "retort": {
     "branch": "main",
-    "commit": "edf1b032d79d0e02aaebfeb46d8785d4207537f1",
+    "commit": "6d7d81a4640ccc49e3b1227e4adbefed093d78db",
     "dirty": true
   },
   "serving": {
@@ -107,6 +109,7 @@
   },
   "stack_presets": {
     "m30": {
+      "context_length": 262144,
       "model": "mlx-community--Qwen3-Coder-30B-A3B-Instruct-4bit",
       "sampling": {
         "repetition_penalty": 1.0,
@@ -116,6 +119,7 @@
       }
     },
     "m35": {
+      "context_length": 262144,
       "model": "Qwen3.6-35B-A3B",
       "sampling": {
         "repetition_penalty": 1.0,
@@ -125,6 +129,7 @@
       }
     },
     "m80": {
+      "context_length": 262144,
       "model": "mlx-community--Qwen3-Coder-Next-4bit",
       "sampling": {
         "repetition_penalty": 1.0,
@@ -138,7 +143,7 @@
     "cargo": "cargo 1.96.0 (30a34c682 2026-05-25) (Homebrew)",
     "claude": "2.1.197 (Claude Code)",
     "go": "go version go1.26.4 darwin/arm64",
-    "hermes": null,
+    "hermes": "Hermes Agent v0.18.2 (2026.7.7.2)",
     "llama_server": "version: 9910 (f5525f7e7)",
     "node": "v26.4.0",
     "omlx": "0.5.0rc1",
