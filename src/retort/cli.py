@@ -1715,6 +1715,53 @@ def _invoke_claude_skill(
         return 1, f"skill invocation failed: {exc}"
 
 
+def _declutter_for_eval(run_dir: Path) -> int:
+    """Strip build output from an archived run before the judge reads it.
+
+    The judge is handed the run directory to grade the *source* against a
+    requirement checklist — but a scored run also contains whatever the build
+    left behind. A Go cell archives a **15.7 MB compiled binary** next to 20 KB of
+    source, plus SQLite WAL/SHM files, `__pycache__`, `node_modules`, `target/`.
+    The judge then explores 16 MB to grade 20 KB.
+
+    Removing it is safe (the scorer has already built and tested; these are
+    outputs, not inputs) and pays twice: the eval is faster, and the judge has
+    less irrelevant material to misread — this judge disagrees with itself on
+    identical code (mean 0.18, max 0.92 requirement-coverage swing), and clutter
+    is one plausible contributor.
+
+    Returns the number of entries removed.
+    """
+    removed = 0
+    _DIRS = {"__pycache__", "node_modules", "target", ".pytest_cache", ".venv",
+             "build", "dist", ".gradle", ".mypy_cache", ".ruff_cache"}
+    _SUFFIXES = (".db", ".db-wal", ".db-shm", ".sqlite", ".sqlite3", ".pyc",
+                 ".class", ".o", ".so", ".dylib", ".beam")
+    for p in sorted(run_dir.rglob("*"), key=lambda x: -len(x.parts)):
+        try:
+            if p.is_dir():
+                if p.name in _DIRS:
+                    shutil.rmtree(p, ignore_errors=True)
+                    removed += 1
+                continue
+            if p.name.endswith(_SUFFIXES):
+                p.unlink()
+                removed += 1
+                continue
+            # A compiled executable: no suffix, executable bit, and big. Source
+            # files and scripts never look like this.
+            if (
+                "." not in p.name
+                and p.stat().st_size > 512_000
+                and os.access(p, os.X_OK)
+            ):
+                p.unlink()
+                removed += 1
+        except OSError:
+            continue
+    return removed
+
+
 def _run_auto_evaluation(
     run_dir: Path,
     eval_config,
@@ -1806,6 +1853,12 @@ def _spec_conformance_passes(run_dir, eval_config, visibility) -> tuple[bool | N
                 (run_dir / fname).unlink()
             except (FileNotFoundError, IsADirectoryError, TypeError):
                 pass
+        if attempt == 1:
+            # Give the judge the source, not the build output (see
+            # _declutter_for_eval). Done once, before the first opinion — both
+            # attempts then grade byte-identical material, which is the whole
+            # point of a second opinion.
+            _declutter_for_eval(run_dir)
         _run_auto_evaluation(run_dir, eval_config, visibility, force=True)
         cov = _read_requirement_coverage(run_dir)
         if cov is None:
