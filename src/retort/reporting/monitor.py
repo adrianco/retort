@@ -180,7 +180,18 @@ def informative_factors(cells: list[CellProgress]) -> list[str]:
             continue
         seen_partitions.append((groups, k))
         kept.append(k)
-    return kept or varying or keys
+    if kept:
+        return kept
+    # Nothing varies yet — early in a run only one cell is recorded, so every
+    # factor looks constant. Falling back to ALL factors regurgitated the very
+    # label this function exists to avoid
+    # ("hermes-local/python/mlxlocal-Qwen3.6-35B-A3…"). Show only the factors that
+    # will identify a cell once the others arrive; the rest are in the legend.
+    for preferred in (["language", "stack"], ["language", "model"], ["language"]):
+        chosen = [k for k in preferred if k in keys]
+        if chosen:
+            return chosen
+    return keys[:1] or keys
 
 
 def _same_partition(

@@ -132,7 +132,7 @@ def _gitignore_for(visibility: str) -> str:
 
 
 def _live_context_tokens(
-    workspace: Path, serving_log: Path | None
+    workspace: Path, serving_log: Path | None, elapsed_s: float | None = None
 ) -> tuple[int | None, int | None]:
     """Context the in-flight run is CURRENTLY carrying, for the live monitor.
 
@@ -148,6 +148,7 @@ def _live_context_tokens(
     which is what tells you a run is ballooning toward non-termination while you
     can still act on it.
     """
+    import datetime as _dt
     import json as _json
 
     log = workspace / "_agent_stdout.log"
@@ -191,7 +192,28 @@ def _live_context_tokens(
                 tail = f.read().decode("utf-8", "replace")
         except OSError:
             return None, None
-        hits = [int(h) for h in re.findall(r"prompt:\s*(\d+)", tail)]
+        # The serving log is SHARED by every run, so a naive max over the tail
+        # reports the PREVIOUS cell's peak — a run 1 minute old was showing
+        # "pk 114K" inherited from the rust cell before it. Restrict to lines
+        # timestamped within this run's own window.
+        since = None
+        if elapsed_s:
+            since = _dt.datetime.now() - _dt.timedelta(seconds=elapsed_s + 30)
+        hits: list[int] = []
+        for line in tail.splitlines():
+            m = re.search(r"prompt:\s*(\d+)", line)
+            if not m:
+                continue
+            if since is not None:
+                ts = re.match(r"(\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2})", line)
+                if ts:
+                    try:
+                        when = _dt.datetime.strptime(ts.group(1), "%Y-%m-%d %H:%M:%S")
+                    except ValueError:
+                        when = None
+                    if when is not None and when < since:
+                        continue  # belongs to an earlier run
+            hits.append(int(m.group(1)))
         if hits:
             return hits[-1], max(hits)
     return None, None
@@ -4394,7 +4416,7 @@ def _discover_active_runs(db_path: Path) -> list[dict]:
             # "ctx 37K (pk 114K)" against an opus judge that never touched it).
             _ctx_now, _ctx_peak = (
                 (None, None) if evaluating
-                else _live_context_tokens(Path(cwd), _serving_log)
+                else _live_context_tokens(Path(cwd), _serving_log, elapsed)
             )
             active.append(
                 {
