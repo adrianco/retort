@@ -7,7 +7,7 @@
       "context_length_top_level": 262144,
       "context_length_unset_per_model": false,
       "max_turns": 30,
-      "model": "Qwen3.6-35B-A3B",
+      "model": "mlx-community--Qwen3-Coder-Next-4bit",
       "plugins": [
         "hermes-lcm"
       ],
@@ -18,7 +18,7 @@
     "local_agents": {
       "hermes-local": {
         "harness": "hermes",
-        "model": "mlxlocal/Qwen3.6-35B-A3B"
+        "model": "mlxlocal/mlx-community--Qwen3-Coder-Next-4bit"
       }
     },
     "max_turns": 200,
@@ -39,30 +39,6 @@
     "ram_bytes": "68719476736"
   },
   "models": {
-    "Qwen3.6-35B-A3B": {
-      "max_position_embeddings": 262144,
-      "quant": 4,
-      "repo": "unsloth/Qwen3.6-35B-A3B-UD-MLX-4bit",
-      "revision": "6700c3e5bdeb050a379c8d2a4133f43f3647f20f",
-      "served_as": "Qwen3.6-35B-A3B",
-      "size": "20G",
-      "snapshot_path": "/Users/adriancockcroft/.cache/huggingface/hub/models--unsloth--Qwen3.6-35B-A3B-UD-MLX-4bit/snapshots/6700c3e5bdeb050a379c8d2a4133f43f3647f20f"
-    },
-    "mlx-community--Qwen3-Coder-30B-A3B-Instruct-4bit": {
-      "max_position_embeddings": 262144,
-      "quant": 4,
-      "recommended_sampling": {
-        "repetition_penalty": 1.05,
-        "temperature": 0.7,
-        "top_k": 20,
-        "top_p": 0.8
-      },
-      "repo": "mlx-community/Qwen3-Coder-30B-A3B-Instruct-4bit",
-      "revision": "6e302ea604ad9ab206367e2c501d1571023e7b6d",
-      "served_as": "mlx-community--Qwen3-Coder-30B-A3B-Instruct-4bit",
-      "size": "16G",
-      "snapshot_path": "/Users/adriancockcroft/.cache/huggingface/hub/models--mlx-community--Qwen3-Coder-30B-A3B-Instruct-4bit/snapshots/6e302ea604ad9ab206367e2c501d1571023e7b6d"
-    },
     "mlx-community--Qwen3-Coder-Next-4bit": {
       "max_position_embeddings": 262144,
       "quant": 4,
@@ -80,8 +56,8 @@
   },
   "retort": {
     "branch": "main",
-    "commit": "2d7ee32af5069fe5d435f03f095236a65a3874e6",
-    "dirty": false
+    "commit": "b6fdf7c4c5b3470a53e61dbdd3b0412da4945bac",
+    "dirty": true
   },
   "serving": {
     "omlx": {
@@ -101,39 +77,19 @@
         "max_context_window_policy": null,
         "max_tokens": 32768,
         "repetition_penalty": 1.0,
-        "temperature": 0.6,
-        "top_k": 20,
+        "temperature": 0.7,
+        "top_k": 40,
         "top_p": 0.95
       }
     }
   },
   "stack_presets": {
-    "m30": {
-      "context_length": 262144,
-      "model": "mlx-community--Qwen3-Coder-30B-A3B-Instruct-4bit",
-      "sampling": {
-        "repetition_penalty": 1.0,
-        "temperature": 0.7,
-        "top_k": 20,
-        "top_p": 0.8
-      }
-    },
-    "m35": {
-      "context_length": 262144,
-      "model": "Qwen3.6-35B-A3B",
-      "sampling": {
-        "repetition_penalty": 1.0,
-        "temperature": 0.6,
-        "top_k": 20,
-        "top_p": 0.95
-      }
-    },
     "m80": {
       "context_length": 262144,
       "model": "mlx-community--Qwen3-Coder-Next-4bit",
       "sampling": {
         "repetition_penalty": 1.0,
-        "temperature": 1.0,
+        "temperature": 0.7,
         "top_k": 40,
         "top_p": 0.95
       }

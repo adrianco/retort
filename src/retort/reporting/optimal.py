@@ -86,17 +86,34 @@ FEATURED_STACKS = [
         # the tuned-sampling experiments (27 sampling-ff, 28 rebaseline); hard numbers
         # from the brazil-35b experiments (25/26). Early local experiments (16-20 etc.)
         # ran at bad configs (temp=1.0, 64/128K, wrong playpen) and are excluded on
-        # purpose -- including them would report 0.28, not the tuned 0.83.
+        # purpose -- including them would report 0.28, not the tuned 0.83. The
+        # NOT LIKE '%Next%' guard keeps the 80B Qwen3-Coder-Next rows (also served under
+        # an mlxlocal/ id) out of the 35B stack -- they are their own stack below.
         "name": "Qwen3.6-35B-A3B (local, $0)",
         "short": "Qwen 35B local",
         "where": (
             "( experiment LIKE '%sampling%' "
-            "OR model LIKE 'mlxlocal%' "
+            "OR (model LIKE 'mlxlocal%' AND model NOT LIKE '%Next%') "
             "OR experiment LIKE '%brazil-35b%' )"
         ),
         "kind": "local",
         "pass_bar": 0.50,
         "cost_override": 0.0,  # local marginal cost is $0 regardless of logged value
+    },
+    {
+        # CANDIDATE (exp-29): Qwen3-Coder-Next 80B at the correct sampling, mainstream
+        # languages only (python/go/typescript). Featured so its per-language profile is
+        # visible in the matrix -- NOT yet a production recommendation: it's one
+        # experiment (n=3/lang) with a Go stall and weak TypeScript. See
+        # docs/future-experiments.md exp-29.
+        "name": "Qwen3-Coder-Next 80B (local, $0)",
+        "short": "Qwen 80B local",
+        "where": (
+            "( experiment LIKE '%experiment-29%' OR model LIKE '%Qwen3-Coder-Next%' )"
+        ),
+        "kind": "local",
+        "pass_bar": 0.50,
+        "cost_override": 0.0,
     },
 ]
 
@@ -110,7 +127,8 @@ KNOWN_NONFEATURED = {
     "claude-opus-4-6": "superseded by Opus 4.7/4.8",
     "opus-4.8-fast": "Opus 4.8 fast serving variant (not featured)",
     "claude-opus-4-8-fast": "Opus 4.8 fast serving variant (not featured)",
-    "mlxlocal/Qwen3.6-35B-A3B": "counted under the local stack via slug/mlxlocal match",
+    "mlxlocal/Qwen3.6-35B-A3B": "counted under the Qwen 35B local stack (slug/mlxlocal match)",
+    "mlxlocal/mlx-community--Qwen3-Coder-Next-4bit": "counted under the Qwen 80B local stack (exp-29)",
 }
 
 

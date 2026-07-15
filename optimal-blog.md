@@ -75,7 +75,8 @@ number to actually decide on. (Hard reliability is single-task, measured on Pyth
 | **Claude Sonnet 5** | 1.00 · 0.93 | $1.10 · $7.64 | 237 s · 1252 s |
 | **Claude Opus 4.8** | 0.98 · 0.59 | $0.96 · $3.27 | 294 s · 608 s |
 | **Claude Opus 4.7** | 1.00 · 0.40 | $0.97 · $2.95 | 190 s · 500 s |
-| **Qwen3.6-35B-A3B (local, $0)** | 0.84 · n/q | $0.00 · — | 382 s · — |
+| **Qwen3.6-35B-A3B (local, $0)** | 0.78 · n/q | $0.00 · — | 440 s · — |
+| **Qwen3-Coder-Next 80B (local, $0)** | 0.67 · n/q | $0.00 · — | 809 s · — |
 <!-- GEN:leading-stacks END -->
 
 *(Table generated from `master.db` by `retort report optimal`
@@ -94,8 +95,16 @@ qualified languages (Python / Go, below); it is not qualified for hard tasks or 
   and cheap; that's its real niche.
 * **Opus 4.7** is a fine, cheap **routine** stack (1.00, ~$0.97) but **weak on hard (0.40)**
   — don't send hard work to it.
-* **Qwen local** does **routine** Python / Go for **$0**, right ~5 times in 6 at the tuned
-  config. Not qualified for hard tasks, for Rust, or (yet) for TypeScript.
+* **Qwen 35B local** does **routine** Python / Go for **$0** at **0.85 each** — its real
+  niche. Its leading number (0.78) is *lower* than either language because the blend now
+  includes its Rust and TypeScript runs, which score **0.00** — the clearest example in this
+  doc of why you must read the per-language matrix, not the average. Not qualified for hard
+  tasks, Rust, or TypeScript.
+* **Qwen 80B local (`Qwen3-Coder-Next`) — a candidate, not yet a recommendation.** In its
+  first run (exp-29, n=3/language) it **beats the 35B on Python (1.00)** but is **weaker on
+  Go (0.67**, one run stalled to the wall**)** and still poor on TypeScript (0.33). Promising
+  for local Python, but one small experiment with a stall and a TS gap keeps it out of the
+  recommendations until it has more reps. It is also ~2× slower than the 35B.
 
 > **On the Opus 4.8 hard number.** 0.59 is an honest blend: a small clean run scored 1.00
 > (n=6) while a larger one scored 0.50 (n=36). The optimistic single-run figure is not
@@ -115,31 +124,32 @@ qualified languages (Python / Go, below); it is not qualified for hard tasks or 
 **Start from the per-language success rate, not a single headline number.** This is the
 matrix that matters — routine pass-proportion for each language × stack, `pass (n)`,
 generated from `master.db`. A blank cell means we have no qualified runs there. Read *down*
-a column to see where a model is weak (Opus 4.8 on Java, local Qwen everywhere but
-Python/Go), and *across* a row to pick the cheapest stack that actually passes *that*
-language:
+a column to see where a model is weak (Opus 4.8 on Java; the 35B local passes Python/Go but
+scores 0.00 on Rust/TypeScript; the 80B local is strong on Python but drops on Go/TS), and
+*across* a row to pick the cheapest stack that actually passes *that* language:
 
 <!-- GEN:per-language-matrix START -->
-| Language | Fable 5 | Sonnet 5 | Opus 4.8 | Opus 4.7 | Qwen 35B local |
-|---|---:|---:|---:|---:|---:|
-| **clojure** | 1.00 (3) | — | 1.00 (6) | 1.00 (6) | — |
-| **csharp** | — | 1.00 (3) | 1.00 (1) | — | — |
-| **elixir** | — | — | 1.00 (3) | 1.00 (3) | — |
-| **erlang** | — | — | 1.00 (3) | 1.00 (3) | — |
-| **go** | 1.00 (3) | 1.00 (3) | 1.00 (7) | 1.00 (6) | 0.83 (24) |
-| **java** | — | — | 0.83 (6) | 1.00 (6) | — |
-| **python** | 1.00 (3) | 1.00 (3) | 1.00 (7) | 1.00 (6) | 0.84 (25) |
-| **rust** | 1.00 (3) | 1.00 (3) | 1.00 (6) | 1.00 (6) | — |
-| **typescript** | — | 1.00 (3) | 1.00 (7) | 1.00 (6) | — |
+| Language | Fable 5 | Sonnet 5 | Opus 4.8 | Opus 4.7 | Qwen 35B local | Qwen 80B local |
+|---|---:|---:|---:|---:|---:|---:|
+| **clojure** | 1.00 (3) | — | 1.00 (6) | 1.00 (6) | — | — |
+| **csharp** | — | 1.00 (3) | 1.00 (1) | — | — | — |
+| **elixir** | — | — | 1.00 (3) | 1.00 (3) | — | — |
+| **erlang** | — | — | 1.00 (3) | 1.00 (3) | — | — |
+| **go** | 1.00 (3) | 1.00 (3) | 1.00 (7) | 1.00 (6) | 0.85 (27) | 0.67 (3) |
+| **java** | — | — | 0.83 (6) | 1.00 (6) | — | — |
+| **python** | 1.00 (3) | 1.00 (3) | 1.00 (7) | 1.00 (6) | 0.85 (27) | 1.00 (3) |
+| **rust** | 1.00 (3) | 1.00 (3) | 1.00 (6) | 1.00 (6) | 0.00 (2) | — |
+| **typescript** | — | 1.00 (3) | 1.00 (7) | 1.00 (6) | 0.00 (3) | 0.33 (3) |
 <!-- GEN:per-language-matrix END -->
 
 **The language split is simple: Python and Go run locally for free; every other language
 means Claude.** Local is qualified (at the tuned config) only on those two — TypeScript
-has no tuned-config local runs yet, so it goes to cloud like the rest. Rust never had a
-usable local number: the early local runs at bad configs failed it outright, so an
-all-experiment "local" average that *included* those bad Rust runs (0.28) understated the
-tuned Python/Go reality (~0.83) — which is exactly why this document leads with the matrix,
-not an average.
+has no tuned-config local runs yet, so it goes to cloud like the rest. Rust and TypeScript
+score **0.00** on the 35B even at the tuned config, so a cross-language "local" average
+(0.78) understates the Python/Go reality (**0.85 each**) — which is exactly why this
+document leads with the matrix, not an average. The 80B candidate (`Qwen3-Coder-Next`)
+adds a data point but does not change the split: strong Python, still no usable Rust, weak
+TypeScript.
 
 The recommendation table distills the matrix into, per language, the **cheapest model that
 clears routine work**, the **hard-task** pick, and the **prompt / testing method** (the
@@ -147,8 +157,8 @@ last is qualitative, from the prompt experiments):
 
 | Language | Routine → cheapest qualifying | Hard task | Prompt / testing method |
 |---|---|---|---|
-| **Python** | **Qwen local ($0)**, 0.84 | **Fable 5** (1.00); Opus 4.8 cheaper but ~0.59 | **Local:** *neutral* (cheapest) or BDD — **never ATDD**. Cloud: *neutral* |
-| **Go** | **Qwen local ($0)**, 0.83 | **Fable 5**; Opus 4.8 cheaper / riskier | **Local:** *neutral* or BDD, **not ATDD**. Cloud: *neutral* |
+| **Python** | **Qwen 35B local ($0)**, 0.85 (80B candidate hit 1.00, n=3) | **Fable 5** (1.00); Opus 4.8 cheaper but ~0.59 | **Local:** *neutral* (cheapest) or BDD — **never ATDD**. Cloud: *neutral* |
+| **Go** | **Qwen 35B local ($0)**, 0.85 | **Fable 5**; Opus 4.8 cheaper / riskier | **Local:** *neutral* or BDD, **not ATDD**. Cloud: *neutral* |
 | **TypeScript** | **Opus 4.8 (~$0.65)** — local n/q | **Fable 5** | Cloud: *neutral* — methodology optional |
 | **Rust** | **Opus 4.8 (~$0.71)** — local n/q | **Fable 5** | Cloud: *neutral* |
 | **Clojure** | **Opus 4.7 (~$1.06)** | **Fable 5** | Cloud: *neutral* |
@@ -256,9 +266,9 @@ stacks table above is generated the same way.
 | **csharp** | Claude Opus 4.8 ($0.65) | 1.00 | 1 |
 | **elixir** | Claude Opus 4.8 ($0.85) | 1.00 | 3 |
 | **erlang** | Claude Opus 4.8 ($1.35) | 1.00 | 3 |
-| **go** | Qwen3.6-35B-A3B (local, $0) ($0) | 0.83 | 24 |
+| **go** | Qwen3.6-35B-A3B (local, $0) ($0) | 0.85 | 27 |
 | **java** | Claude Opus 4.7 ($0.92) | 1.00 | 6 |
-| **python** | Qwen3.6-35B-A3B (local, $0) ($0) | 0.84 | 25 |
+| **python** | Qwen3.6-35B-A3B (local, $0) ($0) | 0.85 | 27 |
 | **rust** | Claude Opus 4.8 ($0.71) | 1.00 | 6 |
 | **typescript** | Claude Opus 4.8 ($0.65) | 1.00 | 7 |
 <!-- GEN:per-language END -->
@@ -288,16 +298,18 @@ refresh.
 **Known data-pipeline gaps** the generator has to work around (it curates the qualified
 config in `FEATURED_STACKS` because master.db can't express it):
 
-* **Local runs carry a blank `model`** — the harness records `agent: hermes-local` but no
-  model, so ~250 rows are attributed to a stack only via their experiment slug.
+* **Historical local runs carry a blank `model`** — older runs recorded `agent:
+  hermes-local` but no model, so ~250 rows are attributed to a stack only via their
+  experiment slug. *Fixed going forward*: the harness now always records the resolved
+  model (`stack_metadata()`), so exp-29 and later land with a real model id.
 * **No sampling / context columns** — temperature, top_p, top_k, repetition_penalty are
-  absent and `max_context_tokens` is null on all but one row, so "the qualified config"
-  can't be filtered from the data; the tuned experiments are named in the script instead.
-* **experiment-11 and experiment-29 aren't ingested** — result dirs exist on disk but no
-  rows in master.db.
+  absent and `max_context_tokens` is populated only on the newest runs, so "the qualified
+  config" can't be filtered from the data; the tuned experiments are named in the script
+  instead.
+* **experiment-11 isn't ingested** — it has no `retort.db` (an empty/aborted experiment).
 
-Fixing these upstream (write model + sampling + context into every `provenance.json` and
-re-ingest) would let the generator drop its curation and become a plain group-by.
+Backfilling the historical blank-model rows and re-ingesting would let the generator drop
+its slug curation and become a plain group-by.
 
 *Next review: on the next frontier release, or the next local model that fits 64 GB and
 tool-calls cleanly.*

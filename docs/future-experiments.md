@@ -198,22 +198,37 @@ New instrumentation to catch this class of bug earlier:
 - **provenance.json** per run: versions, model revision hashes, sampling, agent config,
   and the harness settings that each turned out to matter.
 
-## exp-28 DONE (m35 arm) + exp-29 — the 80B re-baseline (PLANNED)
+## exp-29 DONE — the 80B re-baseline (Qwen3-Coder-Next)
+
+**Result (n=3/language, aggregated into master.db, run `retort report optimal`):**
+
+| lang | 80B pass | 35B (exp-28) | verdict |
+|---|---|---|---|
+| python | **1.00 (3/3)** | 0.85 | 80B **beats** the 35B |
+| go | 0.67 (2/3) | 0.85 | 80B **worse** — rep2 stalled to the wall (25m no-progress) |
+| typescript | 0.33 (1/3) | 0.00 | both weak; 2× "tests did not run" |
+
+`retort diagnose` classified all 3 non-completions as **GENUINE** (not harness/TOOLING):
+the Go stall and the TS failures are real model behaviour, not a blocked tool. So doubling
+the model to 80B **helps Python but not Go/TS**, and it is ~2× slower (809 s vs 440 s mean).
+
+**Decision:** the 80B is a **candidate, featured in the per-language matrix but NOT
+recommended** — one experiment, n=3, a Go stall, and a TS gap. It does not displace the
+35B (Python/Go) or the cloud stacks. Next: more 80B reps on Python/Go to see if the Go
+stall was a one-off, and whether Python 1.00 holds. Also note the 80B ran with the model
+correctly recorded in `stack.json` (the `stack_metadata()` fix), so it ingested with a real
+model id — no slug guessing.
+
+## exp-28 DONE (m35 arm) — the 35B re-baseline
 
 **exp-28 m35 re-baseline is complete and is the headline local result.** At correct
 sampling (temp 0.6, top_p 0.95, top_k 20, no rep penalty) and a TRUE 256K context, the
 35B on bookshop mainstream: **python 3/3, go 3/3** (both were ~0.5–0.67 at the broken
 temp=1.0 stack — the old numbers were badly understated); typescript 0/3 ("tests did
-not run"); rust 0/2 (thrash / near-miss). The rust cells were cut — the row-position
-matrix lock means the m80 arm can't resume without also grinding rust, so:
+not run"); rust 0/2 (thrash / near-miss). exp-29 (the 80B, above) was the follow-up.
 
-**exp-29 — 80B at correct sampling, mainstream only (python/go/typescript), fresh
-experiment.** The 35B-vs-80B question ("does doubling the model help, once BOTH are at
-correct sampling?") on a clean matrix. Rust excluded (its own controlled investigation
-below). Preset: Qwen3-Coder-Next-80B, **temp 0.7** (card says 1.0, but exp-27 showed
-1.0 halves agentic-coding reliability and 0.2–0.7 are equivalent — documented deviation,
-same reasoning as forcing rep_penalty=1.0), top_p 0.95, top_k 40 (card), rep 1.0,
-context_length 262144. Smoke-test the preset takes effect before the grid (per CLAUDE.md).
+The 35B remains the **headline local result** and the production local stack for
+Python/Go; the 80B (exp-29) is a candidate that beat it only on Python.
 
 ## Rust non-termination — is it the compaction threshold? (investigating)
 
