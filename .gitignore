@@ -302,7 +302,8 @@ experiments/*/experiment-*/**/runs/**/.idiomatic_cache.json
 experiments/*/experiment-*/**/runs/**/.maintainability_cache.json
 
 # Gas Town (added by gt)
-CLAUDE.md
+# CLAUDE.md is TRACKED — it carries the repo's experiment principles for every
+# contributor's Claude session. CLAUDE.local.md stays personal/untracked.
 CLAUDE.local.md
 exp78-*.sh
 experiment-runs-resume.log
