@@ -101,11 +101,11 @@ FEATURED_STACKS = [
         "cost_override": 0.0,  # local marginal cost is $0 regardless of logged value
     },
     {
-        # CANDIDATE (exp-29): Qwen3-Coder-Next 80B at the correct sampling, mainstream
-        # languages only (python/go/typescript). Featured so its per-language profile is
-        # visible in the matrix -- NOT yet a production recommendation: it's one
-        # experiment (n=3/lang) with a Go stall and weak TypeScript. See
-        # docs/future-experiments.md exp-29.
+        # Qwen3-Coder-Next 80B at the correct sampling (exp-29 + exp-30, n=9 on py/go).
+        # Verdict: the BEST local Python stack (9/9 = 1.00, beats the 35B) but UNRELIABLE
+        # on Go (6/9 = 0.67 -- two runs stalled to the 25-min wall, a real intermittent
+        # non-termination bug). Featured so the per-language split is visible in the matrix.
+        # See docs/future-experiments.md exp-30.
         "name": "Qwen3-Coder-Next 80B (local, $0)",
         "short": "Qwen 80B local",
         "where": (

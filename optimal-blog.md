@@ -76,7 +76,7 @@ number to actually decide on. (Hard reliability is single-task, measured on Pyth
 | **Claude Opus 4.8** | 0.98 · 0.59 | $0.96 · $3.27 | 294 s · 608 s |
 | **Claude Opus 4.7** | 1.00 · 0.40 | $0.97 · $2.95 | 190 s · 500 s |
 | **Qwen3.6-35B-A3B (local, $0)** | 0.78 · n/q | $0.00 · — | 440 s · — |
-| **Qwen3-Coder-Next 80B (local, $0)** | 0.67 · n/q | $0.00 · — | 809 s · — |
+| **Qwen3-Coder-Next 80B (local, $0)** | 0.76 · n/q | $0.00 · — | 582 s · — |
 <!-- GEN:leading-stacks END -->
 
 *(Table generated from `master.db` by `retort report optimal`
@@ -100,11 +100,13 @@ qualified languages (Python / Go, below); it is not qualified for hard tasks or 
   includes its Rust and TypeScript runs, which score **0.00** — the clearest example in this
   doc of why you must read the per-language matrix, not the average. Not qualified for hard
   tasks, Rust, or TypeScript.
-* **Qwen 80B local (`Qwen3-Coder-Next`) — a candidate, not yet a recommendation.** In its
-  first run (exp-29, n=3/language) it **beats the 35B on Python (1.00)** but is **weaker on
-  Go (0.67**, one run stalled to the wall**)** and still poor on TypeScript (0.33). Promising
-  for local Python, but one small experiment with a stall and a TS gap keeps it out of the
-  recommendations until it has more reps. It is also ~2× slower than the 35B.
+* **Qwen 80B local (`Qwen3-Coder-Next`) — the new best local *Python* stack; avoid it for
+  Go.** Over **9 reps** (exp-29 + exp-30) it is **perfect on Python (9/9 = 1.00)** — better
+  than the 35B's 0.85 — so for local Python where reliability matters more than speed, this
+  is now the pick (it is ~1.3× slower than the 35B). On **Go it is only 0.67 (6/9)**: not a
+  one-off — **two separate runs stalled to the 25-min wall** (a real, intermittent
+  non-termination bug), plus one near-miss. So Go stays with the 35B (0.85, no stalls). Still
+  weak on TypeScript (0.33) and unqualified for Rust/hard tasks.
 
 > **On the Opus 4.8 hard number.** 0.59 is an honest blend: a small clean run scored 1.00
 > (n=6) while a larger one scored 0.50 (n=36). The optimistic single-run figure is not
@@ -135,9 +137,9 @@ scores 0.00 on Rust/TypeScript; the 80B local is strong on Python but drops on G
 | **csharp** | — | 1.00 (3) | 1.00 (1) | — | — | — |
 | **elixir** | — | — | 1.00 (3) | 1.00 (3) | — | — |
 | **erlang** | — | — | 1.00 (3) | 1.00 (3) | — | — |
-| **go** | 1.00 (3) | 1.00 (3) | 1.00 (7) | 1.00 (6) | 0.85 (27) | 0.67 (3) |
+| **go** | 1.00 (3) | 1.00 (3) | 1.00 (7) | 1.00 (6) | 0.85 (27) | 0.67 (9) |
 | **java** | — | — | 0.83 (6) | 1.00 (6) | — | — |
-| **python** | 1.00 (3) | 1.00 (3) | 1.00 (7) | 1.00 (6) | 0.85 (27) | 1.00 (3) |
+| **python** | 1.00 (3) | 1.00 (3) | 1.00 (7) | 1.00 (6) | 0.85 (27) | 1.00 (9) |
 | **rust** | 1.00 (3) | 1.00 (3) | 1.00 (6) | 1.00 (6) | 0.00 (2) | — |
 | **typescript** | — | 1.00 (3) | 1.00 (7) | 1.00 (6) | 0.00 (3) | 0.33 (3) |
 <!-- GEN:per-language-matrix END -->
@@ -147,9 +149,10 @@ means Claude.** Local is qualified (at the tuned config) only on those two — T
 has no tuned-config local runs yet, so it goes to cloud like the rest. Rust and TypeScript
 score **0.00** on the 35B even at the tuned config, so a cross-language "local" average
 (0.78) understates the Python/Go reality (**0.85 each**) — which is exactly why this
-document leads with the matrix, not an average. The 80B candidate (`Qwen3-Coder-Next`)
-adds a data point but does not change the split: strong Python, still no usable Rust, weak
-TypeScript.
+document leads with the matrix, not an average. The 80B (`Qwen3-Coder-Next`) splits the two
+local languages apart: it is the **best local Python** stack (1.00 over 9 reps) but is
+**unreliable on Go** (0.67 — two runs stalled to the wall), so "local" is no longer one
+recommendation but two — 80B for Python, 35B for Go.
 
 The recommendation table distills the matrix into, per language, the **cheapest model that
 clears routine work**, the **hard-task** pick, and the **prompt / testing method** (the
@@ -157,8 +160,8 @@ last is qualitative, from the prompt experiments):
 
 | Language | Routine → cheapest qualifying | Hard task | Prompt / testing method |
 |---|---|---|---|
-| **Python** | **Qwen 35B local ($0)**, 0.85 (80B candidate hit 1.00, n=3) | **Fable 5** (1.00); Opus 4.8 cheaper but ~0.59 | **Local:** *neutral* (cheapest) or BDD — **never ATDD**. Cloud: *neutral* |
-| **Go** | **Qwen 35B local ($0)**, 0.85 | **Fable 5**; Opus 4.8 cheaper / riskier | **Local:** *neutral* or BDD, **not ATDD**. Cloud: *neutral* |
+| **Python** | **Qwen 80B local ($0)** 1.00 (n=9) for reliability, or **35B** 0.85 for ~1.3× speed | **Fable 5** (1.00); Opus 4.8 cheaper but ~0.59 | **Local:** *neutral* (cheapest) or BDD — **never ATDD**. Cloud: *neutral* |
+| **Go** | **Qwen 35B local ($0)**, 0.85 (the 80B stalls — 0.67) | **Fable 5**; Opus 4.8 cheaper / riskier | **Local:** *neutral* or BDD, **not ATDD**. Cloud: *neutral* |
 | **TypeScript** | **Opus 4.8 (~$0.65)** — local n/q | **Fable 5** | Cloud: *neutral* — methodology optional |
 | **Rust** | **Opus 4.8 (~$0.71)** — local n/q | **Fable 5** | Cloud: *neutral* |
 | **Clojure** | **Opus 4.7 (~$1.06)** | **Fable 5** | Cloud: *neutral* |
@@ -186,8 +189,10 @@ burns tokens. TDD is middling — no reason to prefer it.
 2. **Hard task, but cost matters and ~1-in-14 misses is tolerable?** → **Sonnet 5** (0.93),
    ~15% under Fable. Opus 4.8 is cheaper again but only ~0.59 — budget a review-and-retry
    loop if you use it.
-3. **Routine, in Python / Go?** → **Qwen local ($0)**. Free, private, right ~5 times in 6
-   at the tuned config — review the output; you'll still see a miss every few runs.
+3. **Routine, local & free?** → **Python: Qwen 80B (1.00 over 9 reps)** for reliability, or
+   the 35B (0.85) if you want ~1.3× the speed. **Go: Qwen 35B (0.85)** — the 80B stalls on Go
+   (0.67). Review the output either way; you'll still see a miss every few runs. (TypeScript,
+   Rust, everything else → cloud.)
 4. **Routine, any other language?** → cheapest current cloud (Opus 4.7 / 4.8, ~$1); they all
    reach ~1.00, so paying more buys nothing. Use the **neutral** prompt.
 

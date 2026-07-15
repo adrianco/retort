@@ -185,9 +185,9 @@ number to actually decide on. (Hard reliability is single-task, measured on Pyth
 </tr>
 <tr>
 <td><strong>Qwen3-Coder-Next 80B (local, $0)</strong></td>
-<td style="text-align: right;">0.67 · n/q</td>
+<td style="text-align: right;">0.76 · n/q</td>
 <td style="text-align: right;">$0.00 · —</td>
-<td style="text-align: right;">809 s · —</td>
+<td style="text-align: right;">582 s · —</td>
 </tr>
 </tbody>
 </table></div>
@@ -211,11 +211,13 @@ qualified languages (Python / Go, below); it is not qualified for hard tasks or 
   includes its Rust and TypeScript runs, which score <strong>0.00</strong> — the clearest example in this
   doc of why you must read the per-language matrix, not the average. Not qualified for hard
   tasks, Rust, or TypeScript.</li>
-<li><strong>Qwen 80B local (<code>Qwen3-Coder-Next</code>) — a candidate, not yet a recommendation.</strong> In its
-  first run (exp-29, n=3/language) it <strong>beats the 35B on Python (1.00)</strong> but is <strong>weaker on
-  Go (0.67</strong>, one run stalled to the wall<strong>)</strong> and still poor on TypeScript (0.33). Promising
-  for local Python, but one small experiment with a stall and a TS gap keeps it out of the
-  recommendations until it has more reps. It is also ~2× slower than the 35B.</li>
+<li><strong>Qwen 80B local (<code>Qwen3-Coder-Next</code>) — the new best local <em>Python</em> stack; avoid it for
+  Go.</strong> Over <strong>9 reps</strong> (exp-29 + exp-30) it is <strong>perfect on Python (9/9 = 1.00)</strong> — better
+  than the 35B's 0.85 — so for local Python where reliability matters more than speed, this
+  is now the pick (it is ~1.3× slower than the 35B). On <strong>Go it is only 0.67 (6/9)</strong>: not a
+  one-off — <strong>two separate runs stalled to the 25-min wall</strong> (a real, intermittent
+  non-termination bug), plus one near-miss. So Go stays with the 35B (0.85, no stalls). Still
+  weak on TypeScript (0.33) and unqualified for Rust/hard tasks.</li>
 </ul>
 <blockquote>
 <p><strong>On the Opus 4.8 hard number.</strong> 0.59 is an honest blend: a small clean run scored 1.00
@@ -293,7 +295,7 @@ scores 0.00 on Rust/TypeScript; the 80B local is strong on Python but drops on G
 <td style="text-align: right;">1.00 (7)</td>
 <td style="text-align: right;">1.00 (6)</td>
 <td style="text-align: right;">0.85 (27)</td>
-<td style="text-align: right;">0.67 (3)</td>
+<td style="text-align: right;">0.67 (9)</td>
 </tr>
 <tr>
 <td><strong>java</strong></td>
@@ -311,7 +313,7 @@ scores 0.00 on Rust/TypeScript; the 80B local is strong on Python but drops on G
 <td style="text-align: right;">1.00 (7)</td>
 <td style="text-align: right;">1.00 (6)</td>
 <td style="text-align: right;">0.85 (27)</td>
-<td style="text-align: right;">1.00 (3)</td>
+<td style="text-align: right;">1.00 (9)</td>
 </tr>
 <tr>
 <td><strong>rust</strong></td>
@@ -338,9 +340,10 @@ means Claude.</strong> Local is qualified (at the tuned config) only on those tw
 has no tuned-config local runs yet, so it goes to cloud like the rest. Rust and TypeScript
 score <strong>0.00</strong> on the 35B even at the tuned config, so a cross-language "local" average
 (0.78) understates the Python/Go reality (<strong>0.85 each</strong>) — which is exactly why this
-document leads with the matrix, not an average. The 80B candidate (<code>Qwen3-Coder-Next</code>)
-adds a data point but does not change the split: strong Python, still no usable Rust, weak
-TypeScript.</p>
+document leads with the matrix, not an average. The 80B (<code>Qwen3-Coder-Next</code>) splits the two
+local languages apart: it is the <strong>best local Python</strong> stack (1.00 over 9 reps) but is
+<strong>unreliable on Go</strong> (0.67 — two runs stalled to the wall), so "local" is no longer one
+recommendation but two — 80B for Python, 35B for Go.</p>
 <p>The recommendation table distills the matrix into, per language, the <strong>cheapest model that
 clears routine work</strong>, the <strong>hard-task</strong> pick, and the <strong>prompt / testing method</strong> (the
 last is qualitative, from the prompt experiments):</p>
@@ -356,13 +359,13 @@ last is qualitative, from the prompt experiments):</p>
 <tbody>
 <tr>
 <td><strong>Python</strong></td>
-<td><strong>Qwen 35B local ($0)</strong>, 0.85 (80B candidate hit 1.00, n=3)</td>
+<td><strong>Qwen 80B local ($0)</strong> 1.00 (n=9) for reliability, or <strong>35B</strong> 0.85 for ~1.3× speed</td>
 <td><strong>Fable 5</strong> (1.00); Opus 4.8 cheaper but ~0.59</td>
 <td><strong>Local:</strong> <em>neutral</em> (cheapest) or BDD — <strong>never ATDD</strong>. Cloud: <em>neutral</em></td>
 </tr>
 <tr>
 <td><strong>Go</strong></td>
-<td><strong>Qwen 35B local ($0)</strong>, 0.85</td>
+<td><strong>Qwen 35B local ($0)</strong>, 0.85 (the 80B stalls — 0.67)</td>
 <td><strong>Fable 5</strong>; Opus 4.8 cheaper / riskier</td>
 <td><strong>Local:</strong> <em>neutral</em> or BDD, <strong>not ATDD</strong>. Cloud: <em>neutral</em></td>
 </tr>
@@ -427,8 +430,10 @@ burns tokens. TDD is middling — no reason to prefer it.</p>
 <li><strong>Hard task, but cost matters and ~1-in-14 misses is tolerable?</strong> → <strong>Sonnet 5</strong> (0.93),
    ~15% under Fable. Opus 4.8 is cheaper again but only ~0.59 — budget a review-and-retry
    loop if you use it.</li>
-<li><strong>Routine, in Python / Go?</strong> → <strong>Qwen local ($0)</strong>. Free, private, right ~5 times in 6
-   at the tuned config — review the output; you'll still see a miss every few runs.</li>
+<li><strong>Routine, local &amp; free?</strong> → <strong>Python: Qwen 80B (1.00 over 9 reps)</strong> for reliability, or
+   the 35B (0.85) if you want ~1.3× the speed. <strong>Go: Qwen 35B (0.85)</strong> — the 80B stalls on Go
+   (0.67). Review the output either way; you'll still see a miss every few runs. (TypeScript,
+   Rust, everything else → cloud.)</li>
 <li><strong>Routine, any other language?</strong> → cheapest current cloud (Opus 4.7 / 4.8, ~$1); they all
    reach ~1.00, so paying more buys nothing. Use the <strong>neutral</strong> prompt.</li>
 </ol>

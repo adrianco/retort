@@ -219,22 +219,35 @@ stall was a one-off, and whether Python 1.00 holds. Also note the 80B ran with t
 correctly recorded in `stack.json` (the `stack_metadata()` fix), so it ingested with a real
 model id — no slug guessing.
 
-## exp-30 — more 80B reps on Python/Go (RUNNING)
+## exp-30 DONE — more 80B reps on Python/Go
 
-**Intent:** exp-29 left the 80B a candidate (python 1.00, go 0.67 with one 25m stall,
-n=3). This adds reps to answer: was the Go stall a one-off, and does Python 1.00 hold?
+**Result (exp-29 + exp-30 combined, n=9/language, in master.db):**
 
-**Design:** fresh experiment, `design.csv` pinned to {python, go} × hermes-local × neutral
-× **m80** (Qwen3-Coder-Next 80B) × 6 replicates = 12 runs. Same tuned m80 preset as exp-29
-(temp 0.7, top_p 0.95, top_k 40, rep 1.0, 256K context). Combined with exp-29's 3 reps
-that's **9 reps/language** — enough to call the Go-stall rate and the Python result.
+| lang | 80B (n=9) | 35B | verdict |
+|---|---|---|---|
+| python | **9/9 = 1.00** | 0.85 | 80B is the **best local Python** stack |
+| go | **6/9 = 0.67** | 0.85 | 80B **unreliable** — **2 runs stalled** to the 25-min wall + 1 near-miss |
 
-**Hypothesis:** Python holds ≥0.9; the Go stall was a one-off (most Go reps complete and
-pass), so combined Go lands well above the 0.67 exp-29 point. If Go stalls repeat, the 80B
-has a real Go non-termination problem and stays off the recommendation list.
+**The Go stall was NOT a one-off** — it recurred (exp-29 rep2, exp-30 rep4), `retort
+diagnose` classified both as GENUINE non-termination (unproductive loop, killed by the
+25-min stall guard). So the 80B has a real, intermittent Go hang. Python, by contrast, is
+perfect across 9 reps. **Recommendation split: 80B for local Python (reliability, ~1.3×
+slower than 35B), 35B for local Go.** The blog now says exactly this.
 
-**Method:** smoke-test the m80 preset takes effect (effective temp 0.7 + 256K in
-provenance, and the run writes code) before the full grid, per the CLAUDE.md principle.
+**Two harness bugs found and fixed while running this (both on main):**
+- `_discover_active_runs` didn't see an agent launched behind a `uv run` wrapper → the live
+  monitor showed nothing. Now descends through launcher wrappers.
+- The tool-refusal abort fired on Hermes's benign "N file(s) NOT modified this turn"
+  advisory even when the agent wrote a complete app → discarded a healthy 80B Go run. Now
+  gated on `wrote_nothing`.
+
+One recovered scorer artifact: go rep5 was a spec-gate near-miss (0.9167); `retort diagnose`
+flagged it TOOLING, but `reevaluate --force` re-confirmed 0.9167 twice — a **genuine**
+near-miss, not a false failure, so it stays a fail.
+
+**Next:** exp-31 (brazil hard task on the local stacks), or Devstral (exp-30-era plan), or
+re-test a factor on the cloud leaders. The 80B Go stall could get its own controlled dig
+(is it language-specific, or context/compaction-triggered?).
 
 ## exp-28 DONE (m35 arm) — the 35B re-baseline
 
