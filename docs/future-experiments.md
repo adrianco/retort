@@ -219,6 +219,23 @@ stall was a one-off, and whether Python 1.00 holds. Also note the 80B ran with t
 correctly recorded in `stack.json` (the `stack_metadata()` fix), so it ingested with a real
 model id — no slug guessing.
 
+## exp-30 — more 80B reps on Python/Go (RUNNING)
+
+**Intent:** exp-29 left the 80B a candidate (python 1.00, go 0.67 with one 25m stall,
+n=3). This adds reps to answer: was the Go stall a one-off, and does Python 1.00 hold?
+
+**Design:** fresh experiment, `design.csv` pinned to {python, go} × hermes-local × neutral
+× **m80** (Qwen3-Coder-Next 80B) × 6 replicates = 12 runs. Same tuned m80 preset as exp-29
+(temp 0.7, top_p 0.95, top_k 40, rep 1.0, 256K context). Combined with exp-29's 3 reps
+that's **9 reps/language** — enough to call the Go-stall rate and the Python result.
+
+**Hypothesis:** Python holds ≥0.9; the Go stall was a one-off (most Go reps complete and
+pass), so combined Go lands well above the 0.67 exp-29 point. If Go stalls repeat, the 80B
+has a real Go non-termination problem and stays off the recommendation list.
+
+**Method:** smoke-test the m80 preset takes effect (effective temp 0.7 + 256K in
+provenance, and the run writes code) before the full grid, per the CLAUDE.md principle.
+
 ## exp-28 DONE (m35 arm) — the 35B re-baseline
 
 **exp-28 m35 re-baseline is complete and is the headline local result.** At correct
