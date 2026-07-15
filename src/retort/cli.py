@@ -1004,8 +1004,16 @@ def run_experiments(
                     # no code, requirement_coverage 0). Recording those as model
                     # results is how a harness bug masquerades as a "capability
                     # wall" — it cost us ~10 experiments before it was caught.
+                    #
+                    # BUT only abort when the refusal actually blocked the work:
+                    # the workspace must be byte-for-byte as seeded (wrote_nothing).
+                    # Some agents (Hermes) emit a benign per-turn advisory —
+                    # "File-mutation verifier: N file(s) were NOT modified this turn"
+                    # — on any turn that happens not to write a file; that matches
+                    # the refusal regex yet the run still produces a complete, passing
+                    # implementation. Aborting on it discarded good 80B runs (exp-30).
                     _refusal = artifacts.metadata.get("tool_refusal")
-                    if _refusal:
+                    if _refusal and artifacts.metadata.get("wrote_nothing") == "true":
                         raise click.ClickException(
                             f"HARNESS BROKEN — the agent's file tool was refused:\n"
                             f"    {_refusal}\n\n"
