@@ -198,7 +198,36 @@ New instrumentation to catch this class of bug earlier:
 - **provenance.json** per run: versions, model revision hashes, sampling, agent config,
   and the harness settings that each turned out to matter.
 
+## exp-28 DONE (m35 arm) + exp-29 — the 80B re-baseline (PLANNED)
+
+**exp-28 m35 re-baseline is complete and is the headline local result.** At correct
+sampling (temp 0.6, top_p 0.95, top_k 20, no rep penalty) and a TRUE 256K context, the
+35B on bookshop mainstream: **python 3/3, go 3/3** (both were ~0.5–0.67 at the broken
+temp=1.0 stack — the old numbers were badly understated); typescript 0/3 ("tests did
+not run"); rust 0/2 (thrash / near-miss). The rust cells were cut — the row-position
+matrix lock means the m80 arm can't resume without also grinding rust, so:
+
+**exp-29 — 80B at correct sampling, mainstream only (python/go/typescript), fresh
+experiment.** The 35B-vs-80B question ("does doubling the model help, once BOTH are at
+correct sampling?") on a clean matrix. Rust excluded (its own controlled investigation
+below). Preset: Qwen3-Coder-Next-80B, **temp 0.7** (card says 1.0, but exp-27 showed
+1.0 halves agentic-coding reliability and 0.2–0.7 are equivalent — documented deviation,
+same reasoning as forcing rep_penalty=1.0), top_p 0.95, top_k 40 (card), rep 1.0,
+context_length 262144. Smoke-test the preset takes effect before the grid (per CLAUDE.md).
+
 ## Rust non-termination — is it the compaction threshold? (investigating)
+
+**Smoke test (2026-07-14): inconclusive on the threshold, but Rust is NOT a wall.** One
+clean isolated run terminated on its own at **25K context** (no thrash) and produced 332
+lines of structured Rust with **3 compile errors** — a near-miss, not non-termination.
+The threshold change (0.35→0.7) was **never exercised** (no run reached 92K). Two more
+samples were run concurrently and interrupted — muddied, not usable (a control-conditions
+mistake: single, isolated runs only). So Rust has (at least) two failure modes:
+**thrash-to-wall** (exp-28) and **terminate-with-compile-errors** (smoke). The latter is
+fixed by **self-repair on the build error**, likely a more relevant lever than the
+context threshold. Still to do PROPERLY: (a) an isolated context_threshold 0.35-vs-0.7
+run that actually reaches the threshold; (b) rust on a stronger model / more bits.
+
 
 The 35B's Rust failure is a context THRASH: grow context → lcm compacts → the agent
 loses the thread → regrow, forever (walls out). We suspected a residual 128K cap;
