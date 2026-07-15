@@ -12,8 +12,8 @@ factors:
   language: { levels: [python, go, typescript] }
   agent: { levels: [hermes-local, claude-code] }
   prompt: { levels: [neutral, none] }
-  stack: { levels: [m80] }
-  model: { levels: ["mlxlocal/mlx-community--Qwen3-Coder-Next-4bit"] }
+  stack: { levels: [m80, m35] }        # only m80 is in the design; registry needs >=2
+  model: { levels: ["mlxlocal/mlx-community--Qwen3-Coder-Next-4bit", "mlxlocal/Qwen3.6-35B-A3B"] }
 responses: [code_quality, token_efficiency, test_coverage, defect_rate, maintainability, idiomatic]
 tasks:
   - source: bundled://rest-api-crud
