@@ -4532,13 +4532,32 @@ def _discover_active_runs(db_path: Path) -> list[dict]:
     r = _run(["pgrep", "-f", f"run .*{exp}"])
     if r is None or r.returncode not in (0, 1):
         return []
+    # Launchers that sit BETWEEN `retort run` and the agent, so the agent is a
+    # grandchild rather than a direct child (e.g. `uv run … hermes`, an
+    # `env`-shebang shim, a direnv/nix wrapper). Descend through these when a
+    # direct child is one of them — otherwise a wrapped agent shows nothing in the
+    # live monitor even though it is working.
+    _WRAPPERS = {"uv", "uvx", "env", "poetry", "pdm", "direnv", "nix"}
+
+    def _agent_candidate_pids(parent: str, depth: int = 0) -> list[str]:
+        ch = _run(["pgrep", "-P", parent])
+        if ch is None or depth > 4:
+            return []
+        out: list[str] = []
+        for cpid in ch.stdout.split():
+            psc = _run(["ps", "-o", "command=", "-p", cpid])
+            cmd0 = psc.stdout.strip() if psc else ""
+            first = os.path.basename(cmd0.split()[0]) if cmd0 else ""
+            if first in _WRAPPERS:
+                out.extend(_agent_candidate_pids(cpid, depth + 1))
+            else:
+                out.append(cpid)
+        return out
+
     active: list[dict] = []
     seen: set[str] = set()
     for rpid in r.stdout.split():
-        ch = _run(["pgrep", "-P", rpid])
-        if ch is None:
-            continue
-        for cpid in ch.stdout.split():
+        for cpid in _agent_candidate_pids(rpid):
             psc = _run(["ps", "-o", "command=", "-p", cpid])
             cmd = psc.stdout.strip() if psc else ""
             if not cmd:
