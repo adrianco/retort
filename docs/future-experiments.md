@@ -198,6 +198,30 @@ New instrumentation to catch this class of bug earlier:
 - **provenance.json** per run: versions, model revision hashes, sampling, agent config,
   and the harness settings that each turned out to matter.
 
+## Rust non-termination — is it the compaction threshold? (investigating)
+
+The 35B's Rust failure is a context THRASH: grow context → lcm compacts → the agent
+loses the thread → regrow, forever (walls out). We suspected a residual 128K cap;
+there isn't one. Investigation of the config (2026-07-14):
+
+- context is correctly **262144** (Hermes top-level + per-model; model
+  `max_position_embeddings` 262144, no rope/YaRN needed).
+- The real ceiling is **lcm's `context_threshold: 0.35`** — lcm compacts when live
+  context reaches `context_threshold × context_length` (`engine.py:626`) =
+  0.35 × 262144 ≈ **92K**. The live Rust trace compacts at 92–117K, confirming it.
+  So Rust never uses more than ~92K before its working history is truncated. This is
+  a TUNABLE default, not a bug. (Separately, `l2_budget_ratio: 0.50` is unrelated —
+  it's the step-down for lcm's second-tier summariser, not the compaction trigger.)
+
+**Hypothesis:** the early compaction *causes* the thrash — the agent builds toward a
+Rust solution, lcm truncates at ~92K, it loses state and rebuilds. **Test:** raise
+`lcm.context_threshold` to **0.7** (compact at ~183K) and re-run the Rust bookshop
+cell. If it converges/terminates, "Rust is a capability wall" is (partly) a
+context-management artifact and comes off the board; if it still thrashes, the
+non-termination is intrinsic and the next lever is a stronger model / more bits
+(80B, a 6-bit 35B, or [[Agents-A1]]). Smoke-tested outside the experiment first
+(single Rust run, watched live) before committing a grid.
+
 ## Inference-lever sweep (issue #40) — in progress
 
 Prompted by [issue #40](https://github.com/adrianco/retort/issues/40) (jschoch): a
