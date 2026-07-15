@@ -1,0 +1,32 @@
+# Experiment 31 — the 80B (Qwen3-Coder-Next) on the HARD task (brazil-soccer-mcp).
+# Fills the guide's clearest gap: local models are n/q on hard tasks. The 35B scored
+# ~0.25 on brazil (exp-25/26); does the bigger 80B do better? Same tuned m80 stack as
+# exp-30 (temp 0.7, top_p 0.95, top_k 40, rep 1.0, 256K). Task = brazil-bench guide
+# (prescribes BDD, so prompt=none). 60-min timeout (hard task; local needs the wall).
+# Design pinned via design.csv to {python, go} × hermes-local × none × m80 × 80B.
+experiment:
+  name: experiment-31-brazil-80b-brazil
+  visibility: public
+factors:
+  language: { levels: [python, go] }
+  agent: { levels: [hermes-local, claude-code] }
+  prompt: { levels: [none, neutral] }   # design pins 'none'; registry needs >=2 levels
+  stack: { levels: [m80, m35] }
+  model: { levels: ["mlxlocal/mlx-community--Qwen3-Coder-Next-4bit", "mlxlocal/Qwen3.6-35B-A3B"] }
+responses: [code_quality, token_efficiency, test_coverage, defect_rate, maintainability, idiomatic]
+tasks:
+  - source: github://brazil-bench/benchmark-template/brazilian-soccer-mcp-guide.md
+playpen:
+  runner: local
+  replicates: 3
+  timeout_minutes: 60
+  stall_minutes: 25
+  max_turns: 200
+  stack_presets: stacks.yaml
+  local_agents:
+    hermes-local: { harness: hermes, model: mlxlocal/mlx-community--Qwen3-Coder-Next-4bit }
+design: { screening_resolution: 3, significance_threshold: 0.10 }
+promotion:
+  screening_to_trial: { p_value: 0.10 }
+  trial_to_production: { posterior_confidence: 0.80 }
+evaluation: { enabled: true, model: opus-4.8 }

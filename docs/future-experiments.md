@@ -219,6 +219,22 @@ stall was a one-off, and whether Python 1.00 holds. Also note the 80B ran with t
 correctly recorded in `stack.json` (the `stack_metadata()` fix), so it ingested with a real
 model id — no slug guessing.
 
+## exp-31 — the 80B on the HARD task (brazil), RUNNING
+
+**Intent:** fill the guide's clearest gap — local models are `n/q` on hard tasks. The 35B
+scored ~0.25 on brazil (exp-25/26). Does the bigger 80B, now the best local Python stack on
+routine work, do better on a hard task (a Brazilian-soccer MCP server, 12 capabilities)?
+
+**Design:** 80B (Qwen3-Coder-Next) at the tuned m80 sampling, brazil-bench guide task
+(prescribes BDD → prompt=none), `design.csv` pinned to {python, go} × hermes-local × m80 ×
+3 reps = 6 runs, **60-min** timeout (hard task; local needs the wall). Dry-run confirmed the
+github task + pinned checklist resolve. Stack already smoke-proven in exp-30, so no separate
+smoke — the new element is only the task.
+
+**Hypothesis:** the 80B lands ≤0.3 on brazil (hard tasks remain a cloud-frontier niche);
+if it surprises upward, that's a real story for the guide. Either way, local-on-hard stops
+being a blank cell.
+
 ## exp-30 DONE — more 80B reps on Python/Go
 
 **Result (exp-29 + exp-30 combined, n=9/language, in master.db):**
