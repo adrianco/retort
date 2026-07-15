@@ -1,0 +1,659 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>The Optimal Stack</title>
+<style>
+:root { color-scheme: light dark; }
+* { box-sizing: border-box; }
+body {
+  margin: 0; padding: 3rem 1.25rem 5rem;
+  font: 18px/1.7 -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+  color: #1a1a1a; background: #fff;
+  -webkit-font-smoothing: antialiased;
+}
+main { max-width: 760px; margin: 0 auto; }
+h1, h2, h3 { line-height: 1.25; font-weight: 700; margin: 2.4rem 0 1rem; }
+h1 { font-size: 2.3rem; margin-top: 0; letter-spacing: -0.02em; }
+h2 { font-size: 1.6rem; padding-top: 1rem; border-top: 1px solid #ececec; }
+h3 { font-size: 1.25rem; }
+p, li { font-size: 1.06rem; }
+a { color: #0b6efd; text-decoration: none; }
+a:hover { text-decoration: underline; }
+strong { font-weight: 700; }
+em { color: #333; }
+hr { border: 0; border-top: 1px solid #ececec; margin: 2.5rem 0; }
+blockquote {
+  margin: 1.5rem 0; padding: 0.6rem 1.2rem; border-left: 4px solid #0b6efd;
+  background: #f6f9ff; border-radius: 0 6px 6px 0; color: #24303f;
+}
+blockquote p { margin: 0.3rem 0; }
+code {
+  font: 0.86em "SF Mono", "JetBrains Mono", Menlo, Consolas, monospace;
+  background: #f2f3f5; padding: 0.12em 0.4em; border-radius: 4px;
+}
+pre {
+  background: #f7f8fa; border: 1px solid #ececec; border-radius: 8px;
+  padding: 1rem 1.2rem; overflow-x: auto; line-height: 1.5;
+}
+pre code { background: none; padding: 0; font-size: 0.9rem; }
+.table-wrap { overflow-x: auto; margin: 1.4rem 0; }
+table { border-collapse: collapse; width: 100%; font-size: 0.94rem; }
+th, td { padding: 0.55rem 0.8rem; border: 1px solid #e6e6e6; text-align: left; }
+th { background: #f4f6f8; font-weight: 600; }
+tbody tr:nth-child(even) { background: #fafbfc; }
+td[align="right"], th[align="right"] { text-align: right; }
+.byline { color: #6b7280; font-size: 0.95rem; margin: -0.5rem 0 2rem; }
+@media (prefers-color-scheme: dark) {
+  body { color: #e6e6e6; background: #0f1115; }
+  h2 { border-top-color: #262a31; }
+  em { color: #c9c9c9; }
+  hr { border-top-color: #262a31; }
+  a { color: #63a2ff; }
+  blockquote { background: #12203a; border-left-color: #63a2ff; color: #cfe0ff; }
+  code { background: #1c2027; }
+  pre { background: #14171d; border-color: #262a31; }
+  th { background: #1a1e25; }
+  th, td { border-color: #2a2f37; }
+  tbody tr:nth-child(even) { background: #12151b; }
+  .byline { color: #9aa4b2; }
+}
+</style>
+</head>
+<body>
+<main>
+<h1 id="the-optimal-stack">The Optimal Stack</h1>
+<p><em>Living document — last reviewed July 2026. This records </em><em>what to run today</em><em>: the
+leading stacks, and the exact configuration each one needs. It is not a history.
+Superseded stacks and rejected configurations are not discussed here; they are
+retired, and retirement is the point.</em></p>
+<hr>
+<h2 id="what-this-document-is">What this document is</h2>
+<p>A <strong>stack</strong> is the whole thing you actually deploy, not just a model:</p>
+<blockquote>
+<p><strong>language × model × quantization × serving layer × agent × context engine × sampling × prompt</strong></p>
+</blockquote>
+<p>Retort scores stacks on <strong>pass-proportion</strong> — run a stack N times on a real task and
+count the fraction whose output <em>fully implements the spec</em>: every requirement on a
+fixed checklist, tests that actually execute, verified by an independent evaluator. A
+run that misses one requirement is a failure, not a 0.9. Read it as <em>the probability
+that a single unattended run comes out completely correct.</em></p>
+<p>That harsh bar is deliberate, because it is the number that decides whether you can
+let a stack work unattended.</p>
+<h2 id="lifecycle-how-a-stack-gets-here-and-how-it-leaves">Lifecycle: how a stack gets here, and how it leaves</h2>
+<p>This document is the human-readable view of a lifecycle the tool already runs. Each
+stage is a retort command, so entries here are <em>derived</em>, not curated by taste:</p>
+<pre><code>CANDIDATE ──► SCREENING ──► TRIAL ──► PRODUCTION ──► RETIRED
+</code></pre>
+<div class="table-wrap"><table>
+<thead>
+<tr>
+<th>Stage</th>
+<th>What it means</th>
+<th>How it's decided</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Candidate</strong></td>
+<td>a new model, agent or configuration appears</td>
+<td><code>retort intake --factor model --level &lt;new&gt;</code> augments the existing design rather than restarting it</td>
+</tr>
+<tr>
+<td><strong>Screening</strong></td>
+<td>Resolution III — do its main effects matter at all?</td>
+<td><code>retort run --phase screening</code> → <code>retort analyze</code></td>
+</tr>
+<tr>
+<td><strong>Trial</strong></td>
+<td>Resolution IV/V — interactions estimated</td>
+<td><code>retort promote --from screening --to trial</code> (gate: p-value)</td>
+</tr>
+<tr>
+<td><strong>Production</strong></td>
+<td><strong>listed in this document</strong> — the recommended stack for its niche</td>
+<td><code>retort promote --to production</code> (gate: posterior confidence); <code>retort maturity</code> scores readiness</td>
+</tr>
+<tr>
+<td><strong>Retired</strong></td>
+<td>dominated on <em>every</em> metric by a newer stack — removed, not demoted</td>
+<td><code>retort report pareto</code> identifies who is still non-dominated</td>
+</tr>
+</tbody>
+</table></div>
+<p>The gates are configuration, not opinion — they live in each <code>workspace.yaml</code>:</p>
+<pre><code class="language-yaml">promotion:
+  screening_to_trial:   { p_value: 0.10 }
+  trial_to_production:  { posterior_confidence: 0.80 }
+</code></pre>
+<p><strong>A stack earns a place here only by leading on an axis a developer actually chooses
+along</strong> — a language, a task size, a cost or latency budget. Being new is not a
+qualification. When it leads on none, <code>retort report pareto</code> shows it dominated and it
+comes out. The list stays short on purpose.</p>
+<p>Configurations that reliably degrade a stack are eliminated outright and recorded as
+<strong>forbidden settings</strong> (below). New model releases — frontier and local — trigger a
+re-qualification pass, so this document is expected to churn.</p>
+<hr>
+<h2 id="the-leading-stacks">The leading stacks</h2>
+<p>Reliability, cost and time are all reported <strong>per task size</strong> — routine and hard are
+different jobs, and a stack that is cheap-and-certain on routine work can be neither on a
+hard one. The <strong>routine reliability here is a cross-language blend and is the least useful
+number in this document</strong> — it hides a stack's weak languages inside its strong ones (local
+Qwen passes Python/Go but not Rust; Opus 4.8 dips on Java). Use it only as a rough sort;
+the <a href="#what-to-run-by-language-and-task-size">per-language success-rate matrix</a> below is the
+number to actually decide on. (Hard reliability is single-task, measured on Python/Go.)</p>
+<div class="table-wrap"><table>
+<thead>
+<tr>
+<th>Stack</th>
+<th style="text-align: right;">Reliability (routine · hard)</th>
+<th style="text-align: right;">Cost (routine · hard)</th>
+<th style="text-align: right;">Time (routine · hard)</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Claude Fable 5</strong></td>
+<td style="text-align: right;">1.00 · 1.00</td>
+<td style="text-align: right;">$1.05 · $8.98</td>
+<td style="text-align: right;">143 s · 1039 s</td>
+</tr>
+<tr>
+<td><strong>Claude Sonnet 5</strong></td>
+<td style="text-align: right;">1.00 · 0.93</td>
+<td style="text-align: right;">$1.10 · $7.64</td>
+<td style="text-align: right;">237 s · 1252 s</td>
+</tr>
+<tr>
+<td><strong>Claude Opus 4.8</strong></td>
+<td style="text-align: right;">0.98 · 0.59</td>
+<td style="text-align: right;">$0.96 · $3.27</td>
+<td style="text-align: right;">294 s · 608 s</td>
+</tr>
+<tr>
+<td><strong>Claude Opus 4.7</strong></td>
+<td style="text-align: right;">1.00 · 0.40</td>
+<td style="text-align: right;">$0.97 · $2.95</td>
+<td style="text-align: right;">190 s · 500 s</td>
+</tr>
+<tr>
+<td><strong>Qwen3.6-35B-A3B (local, $0)</strong></td>
+<td style="text-align: right;">0.78 · n/q</td>
+<td style="text-align: right;">$0.00 · —</td>
+<td style="text-align: right;">440 s · —</td>
+</tr>
+<tr>
+<td><strong>Qwen3-Coder-Next 80B (local, $0)</strong></td>
+<td style="text-align: right;">0.67 · n/q</td>
+<td style="text-align: right;">$0.00 · —</td>
+<td style="text-align: right;">809 s · —</td>
+</tr>
+</tbody>
+</table></div>
+<p><em>(Table generated from <code>master.db</code> by <code>retort report optimal</code>
+— do not hand-edit between the markers.)</em> Local is measured on the routine task in its
+qualified languages (Python / Go, below); it is not qualified for hard tasks or for Rust.</p>
+<p><strong>Pick by task size — the two columns tell different stories:</strong></p>
+<ul>
+<li><strong>Fable 5</strong> is the <em>only</em> stack that clears the hard task <strong>every time (1.00)</strong>. When a
+  hard, multi-capability job has to be right unattended, this is the one — you pay for it
+  (~$9 and ~17 min a run), and the certainty is what you're buying.</li>
+<li><strong>Sonnet 5</strong> lands <strong>0.93 on hard</strong> at ~15% less than Fable and comparable time — the
+  cost-aware hard-task pick when roughly 1-in-14 misses is acceptable.</li>
+<li><strong>Opus 4.8</strong> is the cheapest <em>hard-capable</em> cloud stack, but hard reliability is only
+  <strong>~0.59 — a coin flip</strong>, so budget for review-and-retry. On <strong>routine</strong> work it is ~1.00
+  and cheap; that's its real niche.</li>
+<li><strong>Opus 4.7</strong> is a fine, cheap <strong>routine</strong> stack (1.00, ~$0.97) but <strong>weak on hard (0.40)</strong>
+  — don't send hard work to it.</li>
+<li><strong>Qwen 35B local</strong> does <strong>routine</strong> Python / Go for <strong>$0</strong> at <strong>0.85 each</strong> — its real
+  niche. Its leading number (0.78) is <em>lower</em> than either language because the blend now
+  includes its Rust and TypeScript runs, which score <strong>0.00</strong> — the clearest example in this
+  doc of why you must read the per-language matrix, not the average. Not qualified for hard
+  tasks, Rust, or TypeScript.</li>
+<li><strong>Qwen 80B local (<code>Qwen3-Coder-Next</code>) — a candidate, not yet a recommendation.</strong> In its
+  first run (exp-29, n=3/language) it <strong>beats the 35B on Python (1.00)</strong> but is <strong>weaker on
+  Go (0.67</strong>, one run stalled to the wall<strong>)</strong> and still poor on TypeScript (0.33). Promising
+  for local Python, but one small experiment with a stall and a TS gap keeps it out of the
+  recommendations until it has more reps. It is also ~2× slower than the 35B.</li>
+</ul>
+<blockquote>
+<p><strong>On the Opus 4.8 hard number.</strong> 0.59 is an honest blend: a small clean run scored 1.00
+(n=6) while a larger one scored 0.50 (n=36). The optimistic single-run figure is not
+representative — treat hard-task Opus 4.8 as a coin flip, not a sure thing.</p>
+</blockquote>
+<hr>
+<h2 id="what-to-run-by-language-and-task-size">What to run, by language and task size</h2>
+<p><strong>Task size</strong> is the axis that matters most, more than language:</p>
+<ul>
+<li><strong>Routine</strong> — CRUD, glue, well-trodden patterns, a few interacting requirements.</li>
+<li><strong>Hard</strong> — a novel domain, many interacting capabilities, real data, a protocol to
+  implement correctly (our reference: an MCP server over six datasets, twelve required
+  capabilities).</li>
+</ul>
+<p><strong>Start from the per-language success rate, not a single headline number.</strong> This is the
+matrix that matters — routine pass-proportion for each language × stack, <code>pass (n)</code>,
+generated from <code>master.db</code>. A blank cell means we have no qualified runs there. Read <em>down</em>
+a column to see where a model is weak (Opus 4.8 on Java; the 35B local passes Python/Go but
+scores 0.00 on Rust/TypeScript; the 80B local is strong on Python but drops on Go/TS), and
+<em>across</em> a row to pick the cheapest stack that actually passes <em>that</em> language:</p>
+<div class="table-wrap"><table>
+<thead>
+<tr>
+<th>Language</th>
+<th style="text-align: right;">Fable 5</th>
+<th style="text-align: right;">Sonnet 5</th>
+<th style="text-align: right;">Opus 4.8</th>
+<th style="text-align: right;">Opus 4.7</th>
+<th style="text-align: right;">Qwen 35B local</th>
+<th style="text-align: right;">Qwen 80B local</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>clojure</strong></td>
+<td style="text-align: right;">1.00 (3)</td>
+<td style="text-align: right;">—</td>
+<td style="text-align: right;">1.00 (6)</td>
+<td style="text-align: right;">1.00 (6)</td>
+<td style="text-align: right;">—</td>
+<td style="text-align: right;">—</td>
+</tr>
+<tr>
+<td><strong>csharp</strong></td>
+<td style="text-align: right;">—</td>
+<td style="text-align: right;">1.00 (3)</td>
+<td style="text-align: right;">1.00 (1)</td>
+<td style="text-align: right;">—</td>
+<td style="text-align: right;">—</td>
+<td style="text-align: right;">—</td>
+</tr>
+<tr>
+<td><strong>elixir</strong></td>
+<td style="text-align: right;">—</td>
+<td style="text-align: right;">—</td>
+<td style="text-align: right;">1.00 (3)</td>
+<td style="text-align: right;">1.00 (3)</td>
+<td style="text-align: right;">—</td>
+<td style="text-align: right;">—</td>
+</tr>
+<tr>
+<td><strong>erlang</strong></td>
+<td style="text-align: right;">—</td>
+<td style="text-align: right;">—</td>
+<td style="text-align: right;">1.00 (3)</td>
+<td style="text-align: right;">1.00 (3)</td>
+<td style="text-align: right;">—</td>
+<td style="text-align: right;">—</td>
+</tr>
+<tr>
+<td><strong>go</strong></td>
+<td style="text-align: right;">1.00 (3)</td>
+<td style="text-align: right;">1.00 (3)</td>
+<td style="text-align: right;">1.00 (7)</td>
+<td style="text-align: right;">1.00 (6)</td>
+<td style="text-align: right;">0.85 (27)</td>
+<td style="text-align: right;">0.67 (3)</td>
+</tr>
+<tr>
+<td><strong>java</strong></td>
+<td style="text-align: right;">—</td>
+<td style="text-align: right;">—</td>
+<td style="text-align: right;">0.83 (6)</td>
+<td style="text-align: right;">1.00 (6)</td>
+<td style="text-align: right;">—</td>
+<td style="text-align: right;">—</td>
+</tr>
+<tr>
+<td><strong>python</strong></td>
+<td style="text-align: right;">1.00 (3)</td>
+<td style="text-align: right;">1.00 (3)</td>
+<td style="text-align: right;">1.00 (7)</td>
+<td style="text-align: right;">1.00 (6)</td>
+<td style="text-align: right;">0.85 (27)</td>
+<td style="text-align: right;">1.00 (3)</td>
+</tr>
+<tr>
+<td><strong>rust</strong></td>
+<td style="text-align: right;">1.00 (3)</td>
+<td style="text-align: right;">1.00 (3)</td>
+<td style="text-align: right;">1.00 (6)</td>
+<td style="text-align: right;">1.00 (6)</td>
+<td style="text-align: right;">0.00 (2)</td>
+<td style="text-align: right;">—</td>
+</tr>
+<tr>
+<td><strong>typescript</strong></td>
+<td style="text-align: right;">—</td>
+<td style="text-align: right;">1.00 (3)</td>
+<td style="text-align: right;">1.00 (7)</td>
+<td style="text-align: right;">1.00 (6)</td>
+<td style="text-align: right;">0.00 (3)</td>
+<td style="text-align: right;">0.33 (3)</td>
+</tr>
+</tbody>
+</table></div>
+<p><strong>The language split is simple: Python and Go run locally for free; every other language
+means Claude.</strong> Local is qualified (at the tuned config) only on those two — TypeScript
+has no tuned-config local runs yet, so it goes to cloud like the rest. Rust and TypeScript
+score <strong>0.00</strong> on the 35B even at the tuned config, so a cross-language "local" average
+(0.78) understates the Python/Go reality (<strong>0.85 each</strong>) — which is exactly why this
+document leads with the matrix, not an average. The 80B candidate (<code>Qwen3-Coder-Next</code>)
+adds a data point but does not change the split: strong Python, still no usable Rust, weak
+TypeScript.</p>
+<p>The recommendation table distills the matrix into, per language, the <strong>cheapest model that
+clears routine work</strong>, the <strong>hard-task</strong> pick, and the <strong>prompt / testing method</strong> (the
+last is qualitative, from the prompt experiments):</p>
+<div class="table-wrap"><table>
+<thead>
+<tr>
+<th>Language</th>
+<th>Routine → cheapest qualifying</th>
+<th>Hard task</th>
+<th>Prompt / testing method</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Python</strong></td>
+<td><strong>Qwen 35B local ($0)</strong>, 0.85 (80B candidate hit 1.00, n=3)</td>
+<td><strong>Fable 5</strong> (1.00); Opus 4.8 cheaper but ~0.59</td>
+<td><strong>Local:</strong> <em>neutral</em> (cheapest) or BDD — <strong>never ATDD</strong>. Cloud: <em>neutral</em></td>
+</tr>
+<tr>
+<td><strong>Go</strong></td>
+<td><strong>Qwen 35B local ($0)</strong>, 0.85</td>
+<td><strong>Fable 5</strong>; Opus 4.8 cheaper / riskier</td>
+<td><strong>Local:</strong> <em>neutral</em> or BDD, <strong>not ATDD</strong>. Cloud: <em>neutral</em></td>
+</tr>
+<tr>
+<td><strong>TypeScript</strong></td>
+<td><strong>Opus 4.8 (~$0.65)</strong> — local n/q</td>
+<td><strong>Fable 5</strong></td>
+<td>Cloud: <em>neutral</em> — methodology optional</td>
+</tr>
+<tr>
+<td><strong>Rust</strong></td>
+<td><strong>Opus 4.8 (~$0.71)</strong> — local n/q</td>
+<td><strong>Fable 5</strong></td>
+<td>Cloud: <em>neutral</em></td>
+</tr>
+<tr>
+<td><strong>Clojure</strong></td>
+<td><strong>Opus 4.7 (~$1.06)</strong></td>
+<td><strong>Fable 5</strong></td>
+<td>Cloud: <em>neutral</em></td>
+</tr>
+<tr>
+<td><strong>Java</strong></td>
+<td><strong>Opus 4.7 (~$0.92)</strong>†</td>
+<td><strong>Fable 5</strong></td>
+<td>Cloud: <em>neutral</em></td>
+</tr>
+<tr>
+<td><strong>C#</strong></td>
+<td><strong>Opus 4.8 (~$0.65)</strong>‡</td>
+<td><strong>Fable 5</strong></td>
+<td>Cloud: <em>neutral</em></td>
+</tr>
+<tr>
+<td><strong>Elixir</strong></td>
+<td><strong>Opus 4.8 (~$0.85)</strong></td>
+<td><strong>Fable 5</strong></td>
+<td>Cloud: <em>neutral</em></td>
+</tr>
+<tr>
+<td><strong>Erlang</strong></td>
+<td><strong>Opus 4.8 (~$1.35)</strong></td>
+<td><strong>Fable 5</strong></td>
+<td>Cloud: <em>neutral</em></td>
+</tr>
+</tbody>
+</table></div>
+<p>† On our routine Java runs Opus 4.8 dipped to 0.83 while 4.7 held 1.00 — small n; review
+Java output whichever you use. ‡ C# Opus 4.8 is n=1; Sonnet 5 (~$1.57, n=3) is the
+better-sampled fallback.</p>
+<p><strong>Prompt / testing method — why it's mostly one word.</strong> On the strong cloud models the
+prompt is a <em>flat line</em>: they pass routine work whatever you ask, so pick <strong>neutral</strong> and
+spend nothing on methodology ceremony. It matters on the <strong>local</strong> model, where it is a
+real lever: <strong>neutral and BDD tie for best</strong>, and neutral gets there at ~2.5× fewer
+tokens, so it's the cheap winner. <strong>Avoid ATDD</strong> — it came last in every local experiment
+(0/3 in the Python sweep); a weak model can't carry its front-loaded discipline and just
+burns tokens. TDD is middling — no reason to prefer it.</p>
+<p><strong>The decision procedure:</strong></p>
+<ol>
+<li><strong>Hard task, must be right the first time, unattended?</strong> → <strong>Fable 5</strong> (1.00). Costliest
+   and slowest; certainty is what the premium buys.</li>
+<li><strong>Hard task, but cost matters and ~1-in-14 misses is tolerable?</strong> → <strong>Sonnet 5</strong> (0.93),
+   ~15% under Fable. Opus 4.8 is cheaper again but only ~0.59 — budget a review-and-retry
+   loop if you use it.</li>
+<li><strong>Routine, in Python / Go?</strong> → <strong>Qwen local ($0)</strong>. Free, private, right ~5 times in 6
+   at the tuned config — review the output; you'll still see a miss every few runs.</li>
+<li><strong>Routine, any other language?</strong> → cheapest current cloud (Opus 4.7 / 4.8, ~$1); they all
+   reach ~1.00, so paying more buys nothing. Use the <strong>neutral</strong> prompt.</li>
+</ol>
+<hr>
+<h2 id="configuration">Configuration</h2>
+<p>Reliability is a property of the <em>stack</em>, not the model. A leading model on a bad
+configuration is not a leading stack. These are the settings each one requires.</p>
+<h3 id="local-qwen36-35b-a3b">Local: Qwen3.6-35B-A3B</h3>
+<div class="table-wrap"><table>
+<thead>
+<tr>
+<th></th>
+<th></th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Model</strong></td>
+<td><code>unsloth/Qwen3.6-35B-A3B-UD-MLX-4bit</code> (4-bit MLX, ~20 GB)</td>
+</tr>
+<tr>
+<td><strong>Serving</strong></td>
+<td>oMLX 0.5.0 · served from <code>~/models/&lt;name&gt;</code></td>
+</tr>
+<tr>
+<td><strong>Agent</strong></td>
+<td>Hermes v0.18 with the <code>hermes-lcm</code> plugin (<code>context.engine: lcm</code>)</td>
+</tr>
+<tr>
+<td><strong>Context</strong></td>
+<td><code>context_length: 262144</code> — set it explicitly; the default fallback is far lower</td>
+</tr>
+<tr>
+<td><strong>Hardware</strong></td>
+<td>Apple Silicon, 64 GB. Raise the GPU wired limit: <code>sudo sysctl iogpu.wired_limit_mb=57344</code></td>
+</tr>
+</tbody>
+</table></div>
+<p><strong>Sampling — this is not optional:</strong></p>
+<pre><code class="language-yaml">temperature:        0.6     # anything in 0.2–0.7; the requirement is: NOT 1.0
+top_p:              0.95
+top_k:              20
+repetition_penalty: 1.0     # OFF. See forbidden settings.
+</code></pre>
+<p><strong>Harness settings that decide whether the model can work at all:</strong></p>
+<pre><code class="language-yaml">playpen_root:  ~/.retort/work   # NOT the system temp dir — see forbidden settings
+timeout_minutes: 60             # a high wall: local models are slow, let good work finish
+stall_minutes:   25             # kill unproductive loops, not slow-but-productive runs
+</code></pre>
+<h3 id="cloud-claude-fable-5-sonnet-5-opus-48-47">Cloud: Claude Fable 5, Sonnet 5, Opus 4.8 / 4.7</h3>
+<p>There is no single cloud winner — the pick is set by task size (see the tables above):
+<strong>Fable 5</strong> for hard work that must be right, <strong>Sonnet 5</strong> for hard work on a budget,
+<strong>Opus 4.8 / 4.7</strong> for cheap routine work.</p>
+<p>Run the model as shipped. The stack that matters is the agent around it; <strong>no sampling
+tuning is required or recommended, and on cloud the prompt is a flat line</strong> — use the
+plain <em>neutral</em> prompt and don't pay for methodology ceremony.</p>
+<hr>
+<h2 id="forbidden-settings">Forbidden settings</h2>
+<p>Configurations that measurably degrade a stack. These are eliminated, not tuned.</p>
+<div class="table-wrap"><table>
+<thead>
+<tr>
+<th>Setting</th>
+<th>Why it is forbidden</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong><code>repetition_penalty</code> &gt; 1.0</strong></td>
+<td>Any repetition penalty derails an agentic tool-calling loop — the model stops converging, stalls, and produces nothing. This holds even at 1.05, and even when the model's own card recommends it: model-card sampling is tuned for single-turn generation, not multi-turn agent loops. <strong>Set it to 1.0.</strong></td>
+</tr>
+<tr>
+<td><strong><code>temperature: 1.0</code></strong> (server default)</td>
+<td>Costs roughly half the reliability of a local coding stack. Any value in 0.2–0.7 is fine; the precise value does not matter.</td>
+</tr>
+<tr>
+<td><strong>Playpen under the system temp dir</strong> (<code>/var/folders/...</code> on macOS)</td>
+<td>Agents refuse to write to paths they consider system-owned, so the agent cannot create files <em>in its own workspace</em> — and a run that writes nothing scores a false zero indistinguishable from an incapable model. Keep playpens under <code>$HOME</code>.</td>
+</tr>
+<tr>
+<td><strong>An unrecorded stack</strong></td>
+<td>A pass-proportion without the stack it was measured on is not a result. Capture versions, model revision hashes, sampling, agent config, and harness settings — every run writes a <code>provenance.json</code>.</td>
+</tr>
+</tbody>
+</table></div>
+<hr>
+<h2 id="measured-data-auto-generated">Measured data (auto-generated)</h2>
+<p>These tables are regenerated from <code>master.db</code> by
+<code>retort report optimal</code> — run
+<code>retort report optimal --write optimal-blog.md</code> to refresh everything between the <code>GEN</code> markers. The leading
+stacks table above is generated the same way.</p>
+<p><strong>Per language — cheapest stack that clears its reliability bar (routine task):</strong></p>
+<div class="table-wrap"><table>
+<thead>
+<tr>
+<th>Language</th>
+<th>Routine → cheapest qualifying stack</th>
+<th style="text-align: right;">Reliability</th>
+<th style="text-align: right;">n</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>clojure</strong></td>
+<td>Claude Opus 4.7 ($1.06)</td>
+<td style="text-align: right;">1.00</td>
+<td style="text-align: right;">6</td>
+</tr>
+<tr>
+<td><strong>csharp</strong></td>
+<td>Claude Opus 4.8 ($0.65)</td>
+<td style="text-align: right;">1.00</td>
+<td style="text-align: right;">1</td>
+</tr>
+<tr>
+<td><strong>elixir</strong></td>
+<td>Claude Opus 4.8 ($0.85)</td>
+<td style="text-align: right;">1.00</td>
+<td style="text-align: right;">3</td>
+</tr>
+<tr>
+<td><strong>erlang</strong></td>
+<td>Claude Opus 4.8 ($1.35)</td>
+<td style="text-align: right;">1.00</td>
+<td style="text-align: right;">3</td>
+</tr>
+<tr>
+<td><strong>go</strong></td>
+<td>Qwen3.6-35B-A3B (local, $0) ($0)</td>
+<td style="text-align: right;">0.85</td>
+<td style="text-align: right;">27</td>
+</tr>
+<tr>
+<td><strong>java</strong></td>
+<td>Claude Opus 4.7 ($0.92)</td>
+<td style="text-align: right;">1.00</td>
+<td style="text-align: right;">6</td>
+</tr>
+<tr>
+<td><strong>python</strong></td>
+<td>Qwen3.6-35B-A3B (local, $0) ($0)</td>
+<td style="text-align: right;">0.85</td>
+<td style="text-align: right;">27</td>
+</tr>
+<tr>
+<td><strong>rust</strong></td>
+<td>Claude Opus 4.8 ($0.71)</td>
+<td style="text-align: right;">1.00</td>
+<td style="text-align: right;">6</td>
+</tr>
+<tr>
+<td><strong>typescript</strong></td>
+<td>Claude Opus 4.8 ($0.65)</td>
+<td style="text-align: right;">1.00</td>
+<td style="text-align: right;">7</td>
+</tr>
+</tbody>
+</table></div>
+<p><strong>Prompt / testing method — the local sweep (on cloud the prompt is a flat line):</strong></p>
+<div class="table-wrap"><table>
+<thead>
+<tr>
+<th>Prompt</th>
+<th style="text-align: right;">Reliability</th>
+<th style="text-align: right;">avg test-cov</th>
+<th style="text-align: right;">avg tokens</th>
+<th style="text-align: right;">n</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>neutral</strong></td>
+<td style="text-align: right;">0.67</td>
+<td style="text-align: right;">0.64</td>
+<td style="text-align: right;">0.40 M</td>
+<td style="text-align: right;">3</td>
+</tr>
+<tr>
+<td><strong>BDD</strong></td>
+<td style="text-align: right;">0.67</td>
+<td style="text-align: right;">0.65</td>
+<td style="text-align: right;">1.03 M</td>
+<td style="text-align: right;">3</td>
+</tr>
+<tr>
+<td><strong>TDD</strong></td>
+<td style="text-align: right;">0.33</td>
+<td style="text-align: right;">0.33</td>
+<td style="text-align: right;">0.54 M</td>
+<td style="text-align: right;">3</td>
+</tr>
+<tr>
+<td><strong>ATDD</strong></td>
+<td style="text-align: right;">0.00</td>
+<td style="text-align: right;">0.27</td>
+<td style="text-align: right;">0.73 M</td>
+<td style="text-align: right;">3</td>
+</tr>
+</tbody>
+</table></div>
+<hr>
+<h2 id="keeping-this-current">Keeping this current</h2>
+<p>Each new frontier or local model release triggers a qualification pass on the standard
+tasks. A stack is added only when it leads on an axis someone chooses along, and is
+removed when it no longer leads on any. The tables are regenerated from <code>master.db</code> by
+<code>retort report optimal</code>; run
+<code>retort report optimal --health</code> to check the data before trusting a
+refresh.</p>
+<p><strong>Known data-pipeline gaps</strong> the generator has to work around (it curates the qualified
+config in <code>FEATURED_STACKS</code> because master.db can't express it):</p>
+<ul>
+<li><strong>Historical local runs carry a blank <code>model</code></strong> — older runs recorded <code>agent:
+  hermes-local</code> but no model, so ~250 rows are attributed to a stack only via their
+  experiment slug. <em>Fixed going forward</em>: the harness now always records the resolved
+  model (<code>stack_metadata()</code>), so exp-29 and later land with a real model id.</li>
+<li><strong>No sampling / context columns</strong> — temperature, top_p, top_k, repetition_penalty are
+  absent and <code>max_context_tokens</code> is populated only on the newest runs, so "the qualified
+  config" can't be filtered from the data; the tuned experiments are named in the script
+  instead.</li>
+<li><strong>experiment-11 isn't ingested</strong> — it has no <code>retort.db</code> (an empty/aborted experiment).</li>
+</ul>
+<p>Backfilling the historical blank-model rows and re-ingesting would let the generator drop
+its slug curation and become a plain group-by.</p>
+<p><em>Next review: on the next frontier release, or the next local model that fits 64 GB and
+tool-calls cleanly.</em></p>
+</main>
+</body>
+</html>
