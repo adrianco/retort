@@ -12,6 +12,25 @@ from retort.playpen.runner import PlaypenRunner, RunArtifacts, StackConfig, Task
 from retort.playpen.docker_runner import DockerRunner
 
 
+def _fake_guard(stdout="", stderr="", returncode=0, elapsed=60.0, kill_reason=None):
+    """Stand-in for ``_run_with_progress_guard`` in ``LocalRunner.execute`` tests.
+
+    ``execute()`` drives the agent through ``_run_with_progress_guard`` (Popen +
+    stall guard), NOT ``subprocess.run`` — so these tests patch the guard directly
+    rather than a subprocess call it never makes. The real guard streams the
+    agent's stdout/stderr into the workspace log files, so this mirror writes them
+    too (one test asserts on them) and returns the guard's
+    ``(returncode, stdout, stderr, elapsed, kill_reason)`` tuple. ``elapsed``
+    defaults to 60s so the local-inference cost math is exercised.
+    """
+    def _run(cmd, cwd, env, hard_wall_secs, stall_secs, poll_secs=15):
+        Path(cwd).joinpath("_agent_stdout.log").write_text(stdout)
+        Path(cwd).joinpath("_agent_stderr.log").write_text(stderr)
+        return (returncode, stdout, stderr, elapsed, kill_reason)
+
+    return _run
+
+
 class TestStackConfig:
     def test_from_run_config_basic(self):
         config = {"language": "python", "agent": "claude-code", "framework": "fastapi"}
@@ -251,6 +270,30 @@ class TestLocalRunnerModelVersioning:
         assert data["tooling"] == "none"
         runner.teardown(env_id)
 
+    def test_stack_json_records_model_from_local_agent_profile(self, tmp_path):
+        """A local run identifies its model via the agent profile, not a model=
+        factor. stack.json must still record it, so master.db never ingests a
+        blank model (the bug that forced slug-based model guessing downstream)."""
+        from retort.config.schema import LocalAgentConfig
+        from retort.playpen.local_runner import LocalRunner
+        runner = LocalRunner(
+            work_dir=tmp_path,
+            local_agents={
+                "hermes-local": LocalAgentConfig(
+                    harness="omp", model="mlxlocal/Qwen3.6-35B-A3B"
+                )
+            },
+        )
+        stack = StackConfig(
+            language="python", agent="hermes-local", framework="none",
+            extra={"prompt": "neutral"},  # note: no model= factor
+        )
+        task = TaskSpec(name="t", description="d", prompt="hi")
+        env_id = runner.provision(stack, task)
+        data = json.loads((tmp_path / env_id / "stack.json").read_text())
+        assert data["model"] == "mlxlocal/Qwen3.6-35B-A3B"
+        runner.teardown(env_id)
+
     def test_eval_model_triggers_post_run_evaluate(self, tmp_path):
         """When eval_model is set, _post_run_evaluate is called on success."""
         from unittest.mock import patch, MagicMock
@@ -266,7 +309,8 @@ class TestLocalRunnerModelVersioning:
             fake_result.returncode = 0
             fake_result.stdout = ""
             fake_result.stderr = ""
-            with patch("retort.playpen.local_runner.subprocess.run", return_value=fake_result):
+            with patch("retort.playpen.local_runner._run_with_progress_guard",
+                       _fake_guard(fake_result.stdout, fake_result.stderr, fake_result.returncode)):
                 runner.execute(env_id, stack, task)
             mock_eval.assert_called_once()
 
@@ -577,7 +621,8 @@ class TestLocalRunnerGeminiHarness:
         fake_result.returncode = 0
         fake_result.stdout = "completed\n"
         fake_result.stderr = ""
-        with patch("retort.playpen.local_runner.subprocess.run", return_value=fake_result):
+        with patch("retort.playpen.local_runner._run_with_progress_guard",
+                   _fake_guard(fake_result.stdout, fake_result.stderr, fake_result.returncode)):
             artifacts = runner.execute(env_id, stack, task)
 
         assert artifacts.succeeded is True
@@ -604,7 +649,8 @@ class TestLocalRunnerGeminiHarness:
         fake_result.returncode = 1
         fake_result.stdout = '{"type":"step_finish"}\nlong full stream'
         fake_result.stderr = "permission requested: external_directory; auto-rejecting"
-        with patch("retort.playpen.local_runner.subprocess.run", return_value=fake_result):
+        with patch("retort.playpen.local_runner._run_with_progress_guard",
+                   _fake_guard(fake_result.stdout, fake_result.stderr, fake_result.returncode)):
             runner.execute(env_id, stack, task)
 
         assert (ws / "_agent_stdout.log").read_text() == fake_result.stdout
@@ -636,7 +682,8 @@ class TestLocalRunnerGeminiHarness:
             '"usage": {"input_tokens": 100, "output_tokens": 50}}'
         )
         fake_result.stderr = ""
-        with patch("retort.playpen.local_runner.subprocess.run", return_value=fake_result):
+        with patch("retort.playpen.local_runner._run_with_progress_guard",
+                   _fake_guard(fake_result.stdout, fake_result.stderr, fake_result.returncode)):
             artifacts = runner.execute(env_id, stack, task)
 
         assert artifacts.succeeded is True
@@ -666,7 +713,8 @@ class TestLocalRunnerGeminiHarness:
         fake_result.returncode = 0
         fake_result.stdout = '{"total_cost_usd": 0.50, "usage": {"output_tokens": 10}}'
         fake_result.stderr = ""
-        with patch("retort.playpen.local_runner.subprocess.run", return_value=fake_result):
+        with patch("retort.playpen.local_runner._run_with_progress_guard",
+                   _fake_guard(fake_result.stdout, fake_result.stderr, fake_result.returncode)):
             artifacts = runner.execute(env_id, stack, task)
 
         # 0.50 standard-rate -> 1.00 at the 2× fast premium.
@@ -688,7 +736,8 @@ class TestLocalRunnerGeminiHarness:
         fake_result.returncode = 0
         fake_result.stdout = '{"total_cost_usd": 0.50, "usage": {"output_tokens": 10}}'
         fake_result.stderr = ""
-        with patch("retort.playpen.local_runner.subprocess.run", return_value=fake_result):
+        with patch("retort.playpen.local_runner._run_with_progress_guard",
+                   _fake_guard(fake_result.stdout, fake_result.stderr, fake_result.returncode)):
             artifacts = runner.execute(env_id, stack, task)
 
         assert artifacts.metadata.get("total_cost_usd") == "0.5"
@@ -885,9 +934,9 @@ class TestLocalInferenceCost:
         fake_result.stdout = "{}"   # agent reports no cost
         fake_result.stderr = ""
 
-        with patch("retort.playpen.local_runner.subprocess.run", return_value=fake_result):
-            with patch("retort.playpen.local_runner.time.monotonic", side_effect=[0.0, 60.0]):
-                artifacts = runner.execute(env_id, stack, task)
+        with patch("retort.playpen.local_runner._run_with_progress_guard",
+                   _fake_guard(fake_result.stdout, fake_result.stderr, fake_result.returncode)):
+            artifacts = runner.execute(env_id, stack, task)
 
         assert "total_cost_usd" in artifacts.metadata
         assert float(artifacts.metadata["total_cost_usd"]) > 0
@@ -913,7 +962,8 @@ class TestLocalInferenceCost:
         fake_result.stdout = agent_payload
         fake_result.stderr = ""
 
-        with patch("retort.playpen.local_runner.subprocess.run", return_value=fake_result):
+        with patch("retort.playpen.local_runner._run_with_progress_guard",
+                   _fake_guard(fake_result.stdout, fake_result.stderr, fake_result.returncode)):
             artifacts = runner.execute(env_id, stack, task)
 
         assert abs(float(artifacts.metadata["total_cost_usd"]) - 0.042) < 1e-10
@@ -938,9 +988,9 @@ class TestLocalInferenceCost:
         fake_result.stdout = agent_payload
         fake_result.stderr = ""
 
-        with patch("retort.playpen.local_runner.subprocess.run", return_value=fake_result):
-            with patch("retort.playpen.local_runner.time.monotonic", side_effect=[0.0, 60.0]):
-                artifacts = runner.execute(env_id, stack, task)
+        with patch("retort.playpen.local_runner._run_with_progress_guard",
+                   _fake_guard(fake_result.stdout, fake_result.stderr, fake_result.returncode)):
+            artifacts = runner.execute(env_id, stack, task)
 
         assert "effective_cost_per_token" in artifacts.metadata
         ept = float(artifacts.metadata["effective_cost_per_token"])

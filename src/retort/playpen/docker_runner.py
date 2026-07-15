@@ -7,6 +7,7 @@ on the Docker SDK (which may not be available in all environments).
 
 from __future__ import annotations
 
+import json
 import logging
 import shutil
 import subprocess
@@ -15,7 +16,13 @@ import time
 import uuid
 from pathlib import Path
 
-from retort.playpen.runner import PlaypenRunner, RunArtifacts, StackConfig, TaskSpec
+from retort.playpen.runner import (
+    PlaypenRunner,
+    RunArtifacts,
+    StackConfig,
+    TaskSpec,
+    stack_metadata,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -62,13 +69,11 @@ class DockerRunner:
         prompt_file = env_dir / "TASK.md"
         prompt_file.write_text(task.prompt)
 
-        # Write stack metadata
+        # Write stack metadata — via the shared helper so the model (and every
+        # other factor level in stack.extra) is always recorded, consistently
+        # with the local/metaharness runners.
         meta_file = env_dir / "stack.json"
-        meta_file.write_text(
-            f'{{"language": "{stack.language}", '
-            f'"agent": "{stack.agent}", '
-            f'"framework": "{stack.framework}"}}'
-        )
+        meta_file.write_text(json.dumps(stack_metadata(stack, stack.extra.get("model"))))
 
         image = self.images.get(stack.language, DEFAULT_IMAGE)
         self._containers[env_id] = _ContainerInfo(

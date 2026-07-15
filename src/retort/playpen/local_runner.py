@@ -20,7 +20,13 @@ import uuid
 from pathlib import Path
 
 from retort.config.schema import LocalAgentConfig, LocalInferenceCost
-from retort.playpen.runner import PlaypenRunner, RunArtifacts, StackConfig, TaskSpec
+from retort.playpen.runner import (
+    PlaypenRunner,
+    RunArtifacts,
+    StackConfig,
+    TaskSpec,
+    stack_metadata,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -287,6 +293,22 @@ class LocalRunner:
         # None means prompt injection is disabled (factor absent or always "none").
         self.prompts_dir = prompts_dir
 
+    def _resolve_model(self, stack: StackConfig) -> str:
+        """Effective model id for this run, for recording in stack.json.
+
+        Precedence mirrors execution: an explicit ``model=`` factor wins; else the
+        local-agent profile's configured model (this is where ``hermes-local`` etc.
+        carry their model — the case that used to leave stack.json's model blank);
+        else the runner-wide default.
+        """
+        factor = stack.extra.get("model")
+        if factor:
+            return factor
+        agent_cfg = self.local_agents.get(stack.agent)
+        if agent_cfg is not None and agent_cfg.model:
+            return agent_cfg.model
+        return self.default_model or ""
+
     def provision(self, stack: StackConfig, task: TaskSpec) -> str:
         """Create a workspace directory with the task spec."""
         env_id = f"retort-{uuid.uuid4().hex[:12]}"
@@ -306,13 +328,9 @@ class LocalRunner:
         (env_dir / "TASK.md").write_text(task.prompt)
 
         # Write stack metadata — include all factor levels so evaluate-run
-        # has full context (model, tooling, etc. alongside language/agent).
-        stack_data: dict[str, str] = {
-            "language": stack.language,
-            "agent": stack.agent,
-            "framework": stack.framework,
-            **stack.extra,
-        }
+        # has full context (model, tooling, etc. alongside language/agent), and
+        # ALWAYS record the resolved model so master.db never sees a blank one.
+        stack_data = stack_metadata(stack, self._resolve_model(stack))
         (env_dir / "stack.json").write_text(json.dumps(stack_data))
 
         # Init git repo — many agents expect it. Skip if the support

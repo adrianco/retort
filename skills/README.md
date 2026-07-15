@@ -27,6 +27,7 @@ retort report web   ──►  reports/web/index.html  + per-run HTML drill-down
 | [run-summary](run-summary/SKILL.md) | Fast architecture summary of one generated project — modules, interfaces, flow | `evaluate-run` |
 | [compare-runs](compare-runs/SKILL.md) | Aggregate evaluated runs along factor dimensions, surface qualitative divergence | `retort report compare`; manual |
 | [file-run-issues](file-run-issues/SKILL.md) | Turn a run's findings.jsonl into tracked issues (beads by default, GitHub optional) | `evaluate-run` post-hook; manual |
+| [update-optimal-blog](update-optimal-blog/SKILL.md) | Health-check master.db, then regenerate optimal-blog.md's per-language tables and reconcile prose | manual, after new results land |
 
 ## Invocation
 

@@ -60,19 +60,46 @@ re-qualification pass, so this document is expected to churn.
 
 ## The leading stacks
 
-| Stack | Use it for | Reliability | Time / run | Cost / run |
-|---|---|---:|---:|---:|
-| **Claude Opus 4.8** (cloud) | anything you need *right*, especially hard tasks | **1.00** easy · **1.00** hard | ~150 s | ~$0.61 |
-| **Claude Opus 4.7** (cloud) | the value pick — near-4.8 reliability, less money | 1.00 easy · 0.85 hard | ~150 s | ~$0.77 |
-| **Claude Sonnet 5** (cloud) | when you want the Sonnet line current-gen | 1.00 easy · 0.93 hard | ~220 s | ~$0.98 |
-| **Qwen3.6-35B-A3B** (local, $0) | routine work in Python / Go / TypeScript, on a laptop, privately | 0.83 easy* | ~180 s | **$0** |
+Reliability, cost and time are all reported **per task size** — routine and hard are
+different jobs, and a stack that is cheap-and-certain on routine work can be neither on a
+hard one. The **routine reliability here is a cross-language blend and is the least useful
+number in this document** — it hides a stack's weak languages inside its strong ones (local
+Qwen passes Python/Go but not Rust; Opus 4.8 dips on Java). Use it only as a rough sort;
+the [per-language success-rate matrix](#what-to-run-by-language-and-task-size) below is the
+number to actually decide on. (Hard reliability is single-task, measured on Python/Go.)
 
-\* Local reliability is measured on the easy task in its qualified languages (below).
-It is not yet qualified for hard tasks or for Rust.
+<!-- GEN:leading-stacks START -->
+| Stack | Reliability (routine · hard) | Cost (routine · hard) | Time (routine · hard) |
+|---|---:|---:|---:|
+| **Claude Fable 5** | 1.00 · 1.00 | $1.05 · $8.98 | 143 s · 1039 s |
+| **Claude Sonnet 5** | 1.00 · 0.93 | $1.10 · $7.64 | 237 s · 1252 s |
+| **Claude Opus 4.8** | 0.98 · 0.59 | $0.96 · $3.27 | 294 s · 608 s |
+| **Claude Opus 4.7** | 1.00 · 0.40 | $0.97 · $2.95 | 190 s · 500 s |
+| **Qwen3.6-35B-A3B (local, $0)** | 0.84 · n/q | $0.00 · — | 382 s · — |
+<!-- GEN:leading-stacks END -->
 
-**The local stack is the newsworthy row.** At correct settings it gets an easy task
-completely right ~4 times in 5, at zero marginal cost, in wall-clock comparable to a
-cloud model. It is a real option for routine work now, not a toy.
+*(Table generated from `master.db` by `retort report optimal`
+— do not hand-edit between the markers.)* Local is measured on the routine task in its
+qualified languages (Python / Go, below); it is not qualified for hard tasks or for Rust.
+
+**Pick by task size — the two columns tell different stories:**
+
+* **Fable 5** is the *only* stack that clears the hard task **every time (1.00)**. When a
+  hard, multi-capability job has to be right unattended, this is the one — you pay for it
+  (~$9 and ~17 min a run), and the certainty is what you're buying.
+* **Sonnet 5** lands **0.93 on hard** at ~15% less than Fable and comparable time — the
+  cost-aware hard-task pick when roughly 1-in-14 misses is acceptable.
+* **Opus 4.8** is the cheapest *hard-capable* cloud stack, but hard reliability is only
+  **~0.59 — a coin flip**, so budget for review-and-retry. On **routine** work it is ~1.00
+  and cheap; that's its real niche.
+* **Opus 4.7** is a fine, cheap **routine** stack (1.00, ~$0.97) but **weak on hard (0.40)**
+  — don't send hard work to it.
+* **Qwen local** does **routine** Python / Go for **$0**, right ~5 times in 6 at the tuned
+  config. Not qualified for hard tasks, for Rust, or (yet) for TypeScript.
+
+> **On the Opus 4.8 hard number.** 0.59 is an honest blend: a small clean run scored 1.00
+> (n=6) while a larger one scored 0.50 (n=36). The optimistic single-run figure is not
+> representative — treat hard-task Opus 4.8 as a coin flip, not a sure thing.
 
 ---
 
@@ -85,24 +112,74 @@ cloud model. It is a real option for routine work now, not a toy.
   implement correctly (our reference: an MCP server over six datasets, twelve required
   capabilities).
 
-| Language | Routine task | Hard task |
-|---|---|---|
-| **Python** | **Qwen3.6-35B (local, $0)** — the strongest local language | **Opus 4.8**. Local is possible but only ~1-in-3 reliable |
-| **Go** | **Qwen3.6-35B (local, $0)** | **Opus 4.8** |
-| **TypeScript** | **Qwen3.6-35B (local, $0)** | **Opus 4.8** |
-| **Rust** | **Opus 4.8 / 4.7** — local not qualified | **Opus 4.8** |
-| Clojure, Java, C#, Elixir, Erlang | **Opus 4.8 / 4.7** — local not qualified | **Opus 4.8** |
+**Start from the per-language success rate, not a single headline number.** This is the
+matrix that matters — routine pass-proportion for each language × stack, `pass (n)`,
+generated from `master.db`. A blank cell means we have no qualified runs there. Read *down*
+a column to see where a model is weak (Opus 4.8 on Java, local Qwen everywhere but
+Python/Go), and *across* a row to pick the cheapest stack that actually passes *that*
+language:
+
+<!-- GEN:per-language-matrix START -->
+| Language | Fable 5 | Sonnet 5 | Opus 4.8 | Opus 4.7 | Qwen 35B local |
+|---|---:|---:|---:|---:|---:|
+| **clojure** | 1.00 (3) | — | 1.00 (6) | 1.00 (6) | — |
+| **csharp** | — | 1.00 (3) | 1.00 (1) | — | — |
+| **elixir** | — | — | 1.00 (3) | 1.00 (3) | — |
+| **erlang** | — | — | 1.00 (3) | 1.00 (3) | — |
+| **go** | 1.00 (3) | 1.00 (3) | 1.00 (7) | 1.00 (6) | 0.83 (24) |
+| **java** | — | — | 0.83 (6) | 1.00 (6) | — |
+| **python** | 1.00 (3) | 1.00 (3) | 1.00 (7) | 1.00 (6) | 0.84 (25) |
+| **rust** | 1.00 (3) | 1.00 (3) | 1.00 (6) | 1.00 (6) | — |
+| **typescript** | — | 1.00 (3) | 1.00 (7) | 1.00 (6) | — |
+<!-- GEN:per-language-matrix END -->
+
+**The language split is simple: Python and Go run locally for free; every other language
+means Claude.** Local is qualified (at the tuned config) only on those two — TypeScript
+has no tuned-config local runs yet, so it goes to cloud like the rest. Rust never had a
+usable local number: the early local runs at bad configs failed it outright, so an
+all-experiment "local" average that *included* those bad Rust runs (0.28) understated the
+tuned Python/Go reality (~0.83) — which is exactly why this document leads with the matrix,
+not an average.
+
+The recommendation table distills the matrix into, per language, the **cheapest model that
+clears routine work**, the **hard-task** pick, and the **prompt / testing method** (the
+last is qualitative, from the prompt experiments):
+
+| Language | Routine → cheapest qualifying | Hard task | Prompt / testing method |
+|---|---|---|---|
+| **Python** | **Qwen local ($0)**, 0.84 | **Fable 5** (1.00); Opus 4.8 cheaper but ~0.59 | **Local:** *neutral* (cheapest) or BDD — **never ATDD**. Cloud: *neutral* |
+| **Go** | **Qwen local ($0)**, 0.83 | **Fable 5**; Opus 4.8 cheaper / riskier | **Local:** *neutral* or BDD, **not ATDD**. Cloud: *neutral* |
+| **TypeScript** | **Opus 4.8 (~$0.65)** — local n/q | **Fable 5** | Cloud: *neutral* — methodology optional |
+| **Rust** | **Opus 4.8 (~$0.71)** — local n/q | **Fable 5** | Cloud: *neutral* |
+| **Clojure** | **Opus 4.7 (~$1.06)** | **Fable 5** | Cloud: *neutral* |
+| **Java** | **Opus 4.7 (~$0.92)**† | **Fable 5** | Cloud: *neutral* |
+| **C#** | **Opus 4.8 (~$0.65)**‡ | **Fable 5** | Cloud: *neutral* |
+| **Elixir** | **Opus 4.8 (~$0.85)** | **Fable 5** | Cloud: *neutral* |
+| **Erlang** | **Opus 4.8 (~$1.35)** | **Fable 5** | Cloud: *neutral* |
+
+† On our routine Java runs Opus 4.8 dipped to 0.83 while 4.7 held 1.00 — small n; review
+Java output whichever you use. ‡ C# Opus 4.8 is n=1; Sonnet 5 (~$1.57, n=3) is the
+better-sampled fallback.
+
+**Prompt / testing method — why it's mostly one word.** On the strong cloud models the
+prompt is a *flat line*: they pass routine work whatever you ask, so pick **neutral** and
+spend nothing on methodology ceremony. It matters on the **local** model, where it is a
+real lever: **neutral and BDD tie for best**, and neutral gets there at ~2.5× fewer
+tokens, so it's the cheap winner. **Avoid ATDD** — it came last in every local experiment
+(0/3 in the Python sweep); a weak model can't carry its front-loaded discipline and just
+burns tokens. TDD is middling — no reason to prefer it.
 
 **The decision procedure:**
 
-1. **Is the task hard?** → cloud frontier. Reliability is the whole product; the
-   premium is the cost of trust.
-2. **Is it routine, in Python / Go / TypeScript?** → run it locally. Free, private,
-   no slower, and right ~4 times in 5. Review the output — at 0.83 you will see a
-   failure in every handful of runs.
-3. **Routine, but any other language?** → cloud. Take the cheapest current model; on
-   routine work they all reach 1.00, so paying for the newest buys nothing.
-4. **Need it unattended and correct first time?** → Opus 4.8, regardless.
+1. **Hard task, must be right the first time, unattended?** → **Fable 5** (1.00). Costliest
+   and slowest; certainty is what the premium buys.
+2. **Hard task, but cost matters and ~1-in-14 misses is tolerable?** → **Sonnet 5** (0.93),
+   ~15% under Fable. Opus 4.8 is cheaper again but only ~0.59 — budget a review-and-retry
+   loop if you use it.
+3. **Routine, in Python / Go?** → **Qwen local ($0)**. Free, private, right ~5 times in 6
+   at the tuned config — review the output; you'll still see a miss every few runs.
+4. **Routine, any other language?** → cheapest current cloud (Opus 4.7 / 4.8, ~$1); they all
+   reach ~1.00, so paying more buys nothing. Use the **neutral** prompt.
 
 ---
 
@@ -138,10 +215,15 @@ timeout_minutes: 60             # a high wall: local models are slow, let good w
 stall_minutes:   25             # kill unproductive loops, not slow-but-productive runs
 ```
 
-### Cloud: Claude Opus 4.8 / 4.7, Sonnet 5
+### Cloud: Claude Fable 5, Sonnet 5, Opus 4.8 / 4.7
 
-Run the model as shipped. The stack that matters is the agent around it; no sampling
-tuning is required or recommended.
+There is no single cloud winner — the pick is set by task size (see the tables above):
+**Fable 5** for hard work that must be right, **Sonnet 5** for hard work on a budget,
+**Opus 4.8 / 4.7** for cheap routine work.
+
+Run the model as shipped. The stack that matters is the agent around it; **no sampling
+tuning is required or recommended, and on cloud the prompt is a flat line** — use the
+plain *neutral* prompt and don't pay for methodology ceremony.
 
 ---
 
@@ -158,12 +240,64 @@ Configurations that measurably degrade a stack. These are eliminated, not tuned.
 
 ---
 
+## Measured data (auto-generated)
+
+These tables are regenerated from `master.db` by
+`retort report optimal` — run
+`retort report optimal --write optimal-blog.md` to refresh everything between the `GEN` markers. The leading
+stacks table above is generated the same way.
+
+**Per language — cheapest stack that clears its reliability bar (routine task):**
+
+<!-- GEN:per-language START -->
+| Language | Routine → cheapest qualifying stack | Reliability | n |
+|---|---|---:|---:|
+| **clojure** | Claude Opus 4.7 ($1.06) | 1.00 | 6 |
+| **csharp** | Claude Opus 4.8 ($0.65) | 1.00 | 1 |
+| **elixir** | Claude Opus 4.8 ($0.85) | 1.00 | 3 |
+| **erlang** | Claude Opus 4.8 ($1.35) | 1.00 | 3 |
+| **go** | Qwen3.6-35B-A3B (local, $0) ($0) | 0.83 | 24 |
+| **java** | Claude Opus 4.7 ($0.92) | 1.00 | 6 |
+| **python** | Qwen3.6-35B-A3B (local, $0) ($0) | 0.84 | 25 |
+| **rust** | Claude Opus 4.8 ($0.71) | 1.00 | 6 |
+| **typescript** | Claude Opus 4.8 ($0.65) | 1.00 | 7 |
+<!-- GEN:per-language END -->
+
+**Prompt / testing method — the local sweep (on cloud the prompt is a flat line):**
+
+<!-- GEN:prompt-method START -->
+| Prompt | Reliability | avg test-cov | avg tokens | n |
+|---|---:|---:|---:|---:|
+| **neutral** | 0.67 | 0.64 | 0.40 M | 3 |
+| **BDD** | 0.67 | 0.65 | 1.03 M | 3 |
+| **TDD** | 0.33 | 0.33 | 0.54 M | 3 |
+| **ATDD** | 0.00 | 0.27 | 0.73 M | 3 |
+<!-- GEN:prompt-method END -->
+
+---
+
 ## Keeping this current
 
 Each new frontier or local model release triggers a qualification pass on the standard
 tasks. A stack is added only when it leads on an axis someone chooses along, and is
-removed when it no longer leads on any. The measured data behind every entry lives in
-the experiment records; this document holds only the conclusion.
+removed when it no longer leads on any. The tables are regenerated from `master.db` by
+`retort report optimal`; run
+`retort report optimal --health` to check the data before trusting a
+refresh.
+
+**Known data-pipeline gaps** the generator has to work around (it curates the qualified
+config in `FEATURED_STACKS` because master.db can't express it):
+
+* **Local runs carry a blank `model`** — the harness records `agent: hermes-local` but no
+  model, so ~250 rows are attributed to a stack only via their experiment slug.
+* **No sampling / context columns** — temperature, top_p, top_k, repetition_penalty are
+  absent and `max_context_tokens` is null on all but one row, so "the qualified config"
+  can't be filtered from the data; the tuned experiments are named in the script instead.
+* **experiment-11 and experiment-29 aren't ingested** — result dirs exist on disk but no
+  rows in master.db.
+
+Fixing these upstream (write model + sampling + context into every `provenance.json` and
+re-ingest) would let the generator drop its curation and become a plain group-by.
 
 *Next review: on the next frontier release, or the next local model that fits 64 GB and
 tool-calls cleanly.*

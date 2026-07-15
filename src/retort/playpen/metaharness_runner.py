@@ -38,7 +38,7 @@ from retort.playpen.local_runner import (
     _clone_org_repo,
     _copy_support_files,
 )
-from retort.playpen.runner import RunArtifacts, StackConfig, TaskSpec
+from retort.playpen.runner import RunArtifacts, StackConfig, TaskSpec, stack_metadata
 
 logger = logging.getLogger(__name__)
 
@@ -137,12 +137,9 @@ class MetaHarnessRunner:
 
         (env_dir / "TASK.md").write_text(task.prompt)
 
-        stack_data: dict[str, str] = {
-            "language": stack.language,
-            "agent": stack.agent,
-            "framework": stack.framework,
-            **stack.extra,
-        }
+        # Always record the resolved model (extra `model=` factor or the runner
+        # default) so master.db never ingests a blank model for local runs.
+        stack_data = stack_metadata(stack, stack.extra.get("model") or self.default_model)
         (env_dir / "stack.json").write_text(json.dumps(stack_data))
 
         if not (env_dir / ".git").exists():

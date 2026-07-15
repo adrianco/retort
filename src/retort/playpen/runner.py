@@ -37,6 +37,29 @@ class StackConfig:
         )
 
 
+def stack_metadata(stack: StackConfig, model: str | None = None) -> dict[str, str]:
+    """Canonical ``stack.json`` payload — always records ``model``.
+
+    Cloud runs carry the model as a ``model=`` design factor (landing in
+    ``stack.extra``), so their stack.json already had it. LOCAL runs instead
+    identify the model via the *agent* profile (e.g. ``agent=hermes-local``), so
+    the model never reached stack.json — which surfaced downstream as ~250 blank
+    ``model`` rows in master.db and forced slug-based guessing in the reporting
+    layer. Callers resolve the effective model (from the agent profile, the
+    ``model=`` factor, or a default) and pass it here so EVERY runner records it
+    identically. ``model`` is written last so it is always present even when
+    ``stack.extra`` lacks the key.
+    """
+    resolved = (model or stack.extra.get("model") or "").strip()
+    return {
+        "language": stack.language,
+        "agent": stack.agent,
+        "framework": stack.framework,
+        **stack.extra,
+        "model": resolved,
+    }
+
+
 @dataclass(frozen=True)
 class TaskSpec:
     """A task to execute inside the playpen.

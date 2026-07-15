@@ -2760,6 +2760,69 @@ def report_dashboard(db: str, fmt: str, output: str | None) -> None:
         click.echo(rendered)
 
 
+@report.command("optimal")
+@click.option(
+    "--db",
+    type=click.Path(exists=True),
+    default=None,
+    help="Aggregate master.db to read (default: the repo-root master.db).",
+)
+@click.option(
+    "--health",
+    "health_only",
+    is_flag=True,
+    help="Only print the data-health report — run this before trusting a refresh.",
+)
+@click.option(
+    "--write",
+    "write_blog",
+    type=click.Path(),
+    default=None,
+    metavar="BLOG_MD",
+    help="Splice the generated tables into a blog file's GEN markers, in place.",
+)
+def report_optimal(db: str | None, health_only: bool, write_blog: str | None) -> None:
+    """Select the optimal stack per language/task from master.db.
+
+    Aggregates the measured runs into the tables that drive optimal-blog.md:
+    a leading-stacks summary, the per-language success-rate matrix (the number
+    to decide on — a cross-language average hides a stack's weak languages), the
+    cheapest-qualifying-stack picks, and the local prompt sweep — plus a
+    data-health report.
+
+    \b
+    Print everything (tables + health) to stdout:
+        retort report optimal
+    Gate a refresh on data integrity first:
+        retort report optimal --health
+    Regenerate the blog's tables in place (idempotent):
+        retort report optimal --write optimal-blog.md
+
+    See the update-optimal-blog skill for the full refresh workflow.
+    """
+    from retort.reporting import optimal as opt
+
+    db_path = Path(db) if db else opt.DB
+    if not db_path.exists():
+        raise click.ClickException(
+            f"master.db not found at {db_path}. Pass --db <path>."
+        )
+    conn = opt.open_db(db_path)
+    try:
+        if health_only:
+            click.echo(opt.health_report(conn, opt.REPO))
+        elif write_blog:
+            path = Path(write_blog)
+            changed, skipped = opt.splice(path, conn)
+            for key in skipped:
+                click.echo(f"  (no GEN markers for '{key}', skipped)", err=True)
+            click.echo(f"Spliced {changed} table(s) into {path}")
+        else:
+            click.echo(opt.render_all(conn, opt.REPO))
+    finally:
+        conn.close()
+
+
 @report.command("wardley")
 @click.option(
     "--db",

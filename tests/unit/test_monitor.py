@@ -260,7 +260,12 @@ def test_render_text_contains_key_fields(db_session):
     assert "3 completed" in out and "1 failed" in out and "remaining=2" in out
     assert "$14.00" in out
     assert "Failures (1)" in out
-    assert "go/claude-opus-4-7/none" in out
+    # Cell labels render only the *informative* (varying) factors. Here all of
+    # language/model/tooling vary, but they partition the cells identically, so
+    # tooling alone is kept — the failing cell b renders as "beads". (The full
+    # label python/claude-opus-4-8/beads is still preserved in snap.failures /
+    # --json; see test_failures_captured.)
+    assert "✗ beads rep2" in out
 
 
 def test_render_text_caps_failures(db_session):
@@ -272,7 +277,9 @@ def test_render_text_caps_failures(db_session):
     snap = build_snapshot(db_session, replicates=3, now=NOW)
     out = render_text(snap)
     assert "Failures (8) — showing last 5 of 8" in out
-    assert out.count("✗ go/f") == 5         # only 5 failure lines rendered
+    # language is constant (go) so it's not informative; only the varying tooling
+    # factor is shown, e.g. "✗ f3". Only the last 5 failures render.
+    assert out.count("✗ f") == 5            # only 5 failure lines rendered
     assert len(_json.loads(render_json(snap))["failures"]) == 8  # JSON keeps all
 
 
@@ -392,6 +399,12 @@ def test_resolve_target_explicit_overrides(tmp_path):
 
 def test_resolve_target_requires_something():
     import pytest
+    from unittest.mock import patch
 
-    with pytest.raises(ValueError):
-        resolve_target(None, None, None)
+    # With no target and no --db, resolve_target falls back to the most recently
+    # written experiment DB. It only errors when *none* can be found — so pin
+    # find_latest_db to None to exercise that path deterministically (otherwise
+    # a real experiments/**/retort.db on disk makes the no-arg call succeed).
+    with patch("retort.reporting.monitor.find_latest_db", return_value=None):
+        with pytest.raises(ValueError):
+            resolve_target(None, None, None)
