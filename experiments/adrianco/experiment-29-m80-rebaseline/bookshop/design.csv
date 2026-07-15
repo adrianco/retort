@@ -1,0 +1,4 @@
+run,language,agent,prompt,stack,model
+0,python,hermes-local,neutral,m80,mlxlocal/mlx-community--Qwen3-Coder-Next-4bit
+1,go,hermes-local,neutral,m80,mlxlocal/mlx-community--Qwen3-Coder-Next-4bit
+2,typescript,hermes-local,neutral,m80,mlxlocal/mlx-community--Qwen3-Coder-Next-4bit

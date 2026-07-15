@@ -1,0 +1,33 @@
+# Experiment 29 — the 80B re-baseline: does doubling the model help once BOTH are at
+# correct sampling? Fresh clean matrix (exp-28's m35 arm is the 35B side: py/go 3/3).
+# Qwen3-Coder-Next-80B on bookshop mainstream (python/go/typescript — rust excluded, it
+# gets its own controlled investigation). Correct sampling + true 256K.
+#   m80: temp 0.7 (card=1.0, but exp-27: 1.0 halves agentic reliability), top_p 0.95,
+#        top_k 40 (card), rep 1.0, context_length 262144.
+# Smoke-test the preset takes effect before this grid (CLAUDE.md principle).
+experiment:
+  name: experiment-29-m80-rebaseline-bookshop
+  visibility: public
+factors:
+  language: { levels: [python, go, typescript] }
+  agent: { levels: [hermes-local, claude-code] }
+  prompt: { levels: [neutral, none] }
+  stack: { levels: [m80] }
+  model: { levels: ["mlxlocal/mlx-community--Qwen3-Coder-Next-4bit"] }
+responses: [code_quality, token_efficiency, test_coverage, defect_rate, maintainability, idiomatic]
+tasks:
+  - source: bundled://rest-api-crud
+playpen:
+  runner: local
+  replicates: 3
+  timeout_minutes: 60
+  stall_minutes: 25
+  max_turns: 200
+  stack_presets: stacks.yaml
+  local_agents:
+    hermes-local: { harness: hermes, model: mlxlocal/mlx-community--Qwen3-Coder-Next-4bit }
+design: { screening_resolution: 3, significance_threshold: 0.10 }
+promotion:
+  screening_to_trial: { p_value: 0.10 }
+  trial_to_production: { posterior_confidence: 0.80 }
+evaluation: { enabled: true, model: opus-4.8 }
