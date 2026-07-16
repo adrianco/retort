@@ -1,0 +1,32 @@
+# Experiment 32 — re-test the PROMPT factor on the 80B (the current leading local model).
+# The prompt-blog's findings (neutral/BDD best, ATDD worst 0/3, TDD middling) were
+# established on the 35B. Does the pattern hold on the stronger 80B, or does the prompt
+# flatten out (as it does on strong cloud models)? python routine (bookshop), tuned m80.
+# design.csv pins python × {neutral, BDD, TDD, ATDD} × m80 × 80B; 3 replicates = 12 runs.
+experiment:
+  name: experiment-32-prompts-80b-bookshop
+  visibility: public
+factors:
+  language: { levels: [python, go] }        # design pins python; registry needs >=2
+  agent: { levels: [hermes-local, claude-code] }
+  prompt: { levels: [neutral, BDD, TDD, ATDD] }
+  stack: { levels: [m80, m35] }
+  model: { levels: ["mlxlocal/mlx-community--Qwen3-Coder-Next-4bit", "mlxlocal/Qwen3.6-35B-A3B"] }
+responses: [code_quality, token_efficiency, test_coverage, defect_rate, maintainability, idiomatic]
+tasks:
+  - source: bundled://rest-api-crud
+playpen:
+  runner: local
+  replicates: 3
+  timeout_minutes: 60
+  stall_minutes: 25
+  max_turns: 200
+  stack_presets: stacks.yaml
+  prompts_dir: prompts
+  local_agents:
+    hermes-local: { harness: hermes, model: mlxlocal/mlx-community--Qwen3-Coder-Next-4bit }
+design: { screening_resolution: 3, significance_threshold: 0.10 }
+promotion:
+  screening_to_trial: { p_value: 0.10 }
+  trial_to_production: { posterior_confidence: 0.80 }
+evaluation: { enabled: true, model: opus-4.8 }

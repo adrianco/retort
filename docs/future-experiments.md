@@ -219,6 +219,22 @@ stall was a one-off, and whether Python 1.00 holds. Also note the 80B ran with t
 correctly recorded in `stack.json` (the `stack_metadata()` fix), so it ingested with a real
 model id — no slug guessing.
 
+## exp-32 — prompt-factor re-test on the 80B, RUNNING
+
+**Intent:** the prompt-blog's methodology findings (neutral/BDD best, ATDD worst 0/3, TDD
+middling) were established on the **35B**. Re-test on the **80B** (now the leading local
+model): does the pattern hold, or does the prompt flatten toward a no-op as it does on strong
+cloud models? Directly serves the standing goal ("re-test relevant factors on current
+leaders").
+
+**Design:** python routine (bookshop) × {neutral, BDD, TDD, ATDD} × m80 (80B) × 3 reps = 12
+runs. Tuned m80 stack (already proven), 60-min timeout. Dry-run confirmed the 4-prompt design.
+
+**Hypothesis:** on the stronger 80B the prompt is closer to a flat line than on the 35B —
+neutral ≈ BDD ≈ TDD all near 1.00 (80B python is 1.00 at neutral already), and ATDD is less
+catastrophic than the 35B's 0/3 (but still the weakest). If ATDD still tanks, that's a robust
+cross-model result worth stating firmly in the guide.
+
 ## exp-31 DONE — the 80B on the HARD task (brazil)
 
 **Result (n=6, in master.db):** the 80B scored **0.00 pass (0/6)** on brazil — but with a
