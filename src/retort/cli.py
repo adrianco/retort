@@ -4702,6 +4702,31 @@ def _discover_active_runs(db_path: Path) -> list[dict]:
     return active
 
 
+def _run_in_flight(db_path: Path) -> bool:
+    """True if a ``retort run`` process is still working on this experiment.
+
+    The `--watch` loop uses this rather than ``snapshot.is_done`` to decide when
+    to stop: a *failed* cell counts as a terminal data point, so `is_done` goes
+    True during a ``--resume --retry-failed`` pass (or any run whose DB looks
+    fully measured) even while `retort run` is actively re-running cells — which
+    made `--watch` exit mid-run. The run process, by contrast, is alive for the
+    whole experiment (between cells and during the spec-gate eval too), so it is
+    the correct "still going" signal. Best-effort: returns False if it can't tell.
+    """
+    import subprocess
+
+    parts = db_path.resolve().parts
+    # Match on the experiment slug (…/experiment-NN-slug/…) so we don't pick up a
+    # DIFFERENT experiment's run just because both share a task-dir name (bookshop).
+    slug = next((p for p in reversed(parts) if p.startswith("experiment-")), None)
+    pattern = f"run .*{re.escape(slug)}" if slug else f"run .*{re.escape(db_path.resolve().parent.name)}"
+    try:
+        r = subprocess.run(["pgrep", "-f", pattern], capture_output=True, text=True, timeout=5)
+    except Exception:  # noqa: BLE001 — best-effort; never break the monitor
+        return False
+    return r.returncode == 0 and bool(r.stdout.strip())
+
+
 @main.command("monitor")
 @click.argument("target", required=False)
 @click.option(
@@ -4819,7 +4844,15 @@ def monitor_cmd(
             else:
                 out = render_text(snap, db_path=str(db_path), active=active)
             click.echo(out)
-            if not watch or snap.is_done:
+            if not watch:
+                break
+            # Watch until the RUN PROCESS finishes, not until `snap.is_done`. is_done
+            # counts a failed cell as terminal, so it goes True mid-run during a
+            # --retry-failed pass (and any run whose DB already looks fully measured),
+            # which made --watch exit early. The `retort run` process is alive for the
+            # whole experiment, so its absence is the correct stop signal: a live run
+            # keeps the loop going; a finished/abandoned DB renders once and exits.
+            if not _run_in_flight(db_path):
                 break
             time.sleep(interval)
     except KeyboardInterrupt:
