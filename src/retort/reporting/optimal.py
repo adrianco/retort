@@ -89,12 +89,15 @@ FEATURED_STACKS = [
         # purpose -- including them would report 0.28, not the tuned 0.83. The
         # NOT LIKE '%Next%' guard keeps the 80B Qwen3-Coder-Next rows (also served under
         # an mlxlocal/ id) out of the 35B stack -- they are their own stack below.
+        # exp-35 (35B Rust at context_threshold 0.7) is a DIFFERENT stack (the featured 35B
+        # is at the 0.35 default) so it is excluded -- see docs/future-experiments.md exp-35.
         "name": "Qwen3.6-35B-A3B (local, $0)",
         "short": "Qwen 35B local",
         "where": (
             "( experiment LIKE '%sampling%' "
             "OR (model LIKE 'mlxlocal%' AND model NOT LIKE '%Next%') "
-            "OR experiment LIKE '%brazil-35b%' )"
+            "OR experiment LIKE '%brazil-35b%' ) "
+            "AND experiment NOT LIKE '%experiment-35%'"
         ),
         "kind": "local",
         "pass_bar": 0.50,

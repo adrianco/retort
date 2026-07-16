@@ -122,6 +122,14 @@ languages (below); **on the hard task local models are now measured and both do 
 > (0.83–0.92), not hangs. So the featured numbers above are at the old 0.35 default and
 > understate Go; a 0.7 re-baseline (more reps) is queued before promoting Go to a
 > recommendation. To run the 80B locally today, **set `lcm.context_threshold: 0.7`**.
+>
+> **The same lever partly explains the "Rust wall" — but only partly.** At 0.35 the 35B
+> thrashes to the wall on *every* Rust run (clean 0.00). At 0.7 it scored its **first-ever
+> Rust pass** (exp-35 rep1 = 1.00, at 113K context — exactly the regime 0.35 truncates), so
+> Rust is *not* a pure capability wall. But **2 of 3 still stalled** at 0.7 — unlike the 80B
+> (0/6), the 35B on Rust is only partially rescued. Net: raising `context_threshold` is a
+> real lever for local non-termination, but its strength is model- and language-dependent —
+> a clean fix for the 80B on Go/TS, a partial one for the 35B on Rust. Rust stays → cloud.
 
 > **On the Opus 4.8 hard number.** 0.59 is an honest blend: a small clean run scored 1.00
 > (n=6) while a larger one scored 0.50 (n=36). The optimistic single-run figure is not

@@ -347,7 +347,33 @@ not run"); rust 0/2 (thrash / near-miss). exp-29 (the 80B, above) was the follow
 The 35B remains the **headline local result** and the production local stack for
 Python/Go; the 80B (exp-29) is a candidate that beat it only on Python.
 
-## exp-35 — does context_threshold 0.7 fix the 35B's Rust wall? (RUNNING)
+## exp-35 DONE — context_threshold 0.7 PARTLY fixes the 35B's Rust wall
+
+**Result (35B Rust × 3 at `LCM_CONTEXT_THRESHOLD=0.7`): 1/3 — rep1 PASS (1.00), rep2 & rep3
+stalled** (both GENUINE per `retort diagnose`). rep1 reached **113K context** (past the
+0.35 compaction point at ~92K, under the 0.7 point at ~183K) and terminated cleanly — the
+35B's **first-ever Rust pass**. At 0.35 every Rust run thrashed to the wall (0.00).
+
+**Answer to the doc's central question:** Rust is **not a pure capability wall** — the 92K
+compaction was a real cause (one clean pass proves the 35B can write correct Rust when its
+working history survives). But the threshold is only a **partial** fix on the 35B (2/3 still
+stall), unlike the 80B on Go/TS where 0.7 gave 0/6. So the compaction lever's strength is
+model/language-dependent. Rust stays → cloud for now.
+
+**Caveats & follow-ups:**
+- **Provenance bug found:** the `sampling` block in provenance.json records a STALE
+  pre-reload value (showed m80's 0.7/40 while oMLX's settings.json — the effective config —
+  correctly had m35's 0.6/20). "Provenance is truth" is violated here; the smoke caught it
+  by checking settings.json. Worth fixing so provenance records the post-reload sampling.
+- Next levers for Rust (the 2/3 that still stall): **self-repair on the build errors** (the
+  exp-28 smoke saw terminate-with-3-compile-errors, a near-miss), a **stronger model / more
+  bits**, or an even higher threshold. Also: does 0.7 help the 80B on the hard task (which
+  also stalled)? And the queued 80B 0.7 re-baseline (Go/TS with more reps).
+
+exp-35 (0.7) is EXCLUDED from the featured 35B numbers (which stay at the 0.35 default,
+Rust 0.00). optimal-blog's stall-fix callout now carries the partial-fix nuance.
+
+## exp-35 (superseded plan) — does context_threshold 0.7 fix the 35B's Rust wall?
 
 exp-34 proved the 80B's stall is a compaction artifact (0.35 compacts at ~92K -> thrash).
 The 35B thrashes-to-wall on Rust at 0.35 (exp-28 rust 0/2, ~0.00) — the doc's central open
