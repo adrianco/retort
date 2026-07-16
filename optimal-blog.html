@@ -185,9 +185,9 @@ number to actually decide on. (Hard reliability is single-task, measured on Pyth
 </tr>
 <tr>
 <td><strong>Qwen3-Coder-Next 80B (local, $0)</strong></td>
-<td style="text-align: right;">0.85 · 0.00</td>
+<td style="text-align: right;">0.77 · 0.00</td>
 <td style="text-align: right;">$0.00 · $0.00</td>
-<td style="text-align: right;">488 s · 1647 s</td>
+<td style="text-align: right;">586 s · 1647 s</td>
 </tr>
 </tbody>
 </table></div>
@@ -214,14 +214,15 @@ languages (below); <strong>on the hard task local models are now measured and bo
   scores 0.25</strong> (3/12) — occasionally nails all 12 capabilities, but not reliably. Rust and
   TypeScript unqualified.</li>
 <li><strong>Qwen 80B local (<code>Qwen3-Coder-Next</code>) — the new best local <em>Python</em> stack; avoid it for
-  Go.</strong> Over <strong>9 reps</strong> (exp-29 + exp-30) it is <strong>perfect on Python (9/9 = 1.00)</strong> — better
+  Go and TypeScript.</strong> Over <strong>21 reps</strong> it is <strong>perfect on Python (21/21 = 1.00)</strong> — better
   than the 35B's 0.85 — so for local Python where reliability matters more than speed, this
-  is now the pick (it is ~1.3× slower than the 35B). On <strong>Go it is only 0.67 (6/9)</strong>: not a
-  one-off — <strong>two separate runs stalled to the 25-min wall</strong> (a real, intermittent
-  non-termination bug), plus one near-miss. So Go stays with the 35B (0.85, no stalls). On the
-  <strong>hard task (exp-31) it scores 0.00</strong> (0/6) — it consistently gets ~10/12 capabilities (mean
-  0.83, <em>higher</em> than the 35B's 0.79) but <strong>never clears all 12</strong>, so no unattended hard-task
-  run comes out fully correct. Still weak on TypeScript (0.33), unqualified for Rust.</li>
+  is now the pick (it is ~1.3× slower than the 35B). Everywhere else it is dragged down by an
+  <strong>intermittent non-termination bug</strong> — runs that hang until the 25-min stall guard kills
+  them — and it is <strong>not Go-specific</strong>: <strong>Go 0.67 (6/9, two stalls)</strong> and <strong>TypeScript 0.33
+  (3/9, two more stalls)</strong>. So Go and TS stay with the 35B / cloud. On the <strong>hard task (exp-31)
+  it scores 0.00</strong> (0/6) — consistently ~10/12 capabilities (mean 0.83, <em>higher</em> than the
+  35B's 0.79) but <strong>never all 12</strong>. Rust unqualified. The one-line rule: <strong>80B for local
+  Python, nothing else.</strong></li>
 </ul>
 <blockquote>
 <p><strong>On the Opus 4.8 hard number.</strong> 0.59 is an honest blend: a small clean run scored 1.00
@@ -335,7 +336,7 @@ scores 0.00 on Rust/TypeScript; the 80B local is strong on Python but drops on G
 <td style="text-align: right;">1.00 (7)</td>
 <td style="text-align: right;">1.00 (6)</td>
 <td style="text-align: right;">0.00 (3)</td>
-<td style="text-align: right;">0.33 (3)</td>
+<td style="text-align: right;">0.33 (9)</td>
 </tr>
 </tbody>
 </table></div>

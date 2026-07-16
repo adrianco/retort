@@ -219,7 +219,21 @@ stall was a one-off, and whether Python 1.00 holds. Also note the 80B ran with t
 correctly recorded in `stack.json` (the `stack_metadata()` fix), so it ingested with a real
 model id — no slug guessing.
 
-## exp-33 — TypeScript on the 80B, RUNNING
+## exp-33 DONE — TypeScript on the 80B
+
+**Result (n=6; combined with exp-29 → n=9): TS = 0.33 (3/9).** rep5/rep6 passed (1.00), rep1
+a near-miss (0.9167, re-confirmed genuine), rep2/rep4 genuine fails, **rep3 stalled to the
+wall**. So the earlier n=3 0.33 holds at n=9: TS local on the 80B is **unreliable**, and
+crucially the **intermittent stall is NOT Go-specific** — it also hangs on TypeScript. TS
+stays → cloud.
+
+**Cross-cutting finding:** the 80B's non-termination bug is a *general* failure mode (Go
+0.67 with 2 stalls, TS 0.33 with 2 stalls, hard task with stalls), not a Go quirk. Python is
+the only language where it never hangs (21/21). Worth its own controlled dig (is the stall
+context/compaction-triggered? Python runs stay shorter/smaller — maybe the hang correlates
+with context growth on the harder-for-it languages).
+
+## exp-33 (superseded plan) — TypeScript on the 80B
 
 **Intent:** TS local is a weak, thinly-sampled cell — 35B 0.00 (n=3), 80B 0.33 (n=3) — and
 the guide routes TS→cloud on that thin evidence. Re-test TS on the 80B (the leading local
