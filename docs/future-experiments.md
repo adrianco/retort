@@ -347,7 +347,32 @@ not run"); rust 0/2 (thrash / near-miss). exp-29 (the 80B, above) was the follow
 The 35B remains the **headline local result** and the production local stack for
 Python/Go; the 80B (exp-29) is a candidate that beat it only on Python.
 
-## exp-34 — does raising lcm context_threshold kill the 80B stalls? (RUNNING)
+## exp-34 DONE — raising lcm context_threshold 0.35→0.7 KILLS the 80B stalls
+
+**Result (80B, Go+TS × 3, `LCM_CONTEXT_THRESHOLD=0.7`): 0 stalls in 6 runs, and Go went
+3/3 = 1.00** (vs the 0.35 baseline's ~4 stalls in 15 Go+TS runs, Go 0.67). Hypothesis
+**confirmed**: the intermittent 25-min hang is a *compaction artifact* — at 0.35, lcm
+compacts live context at ~92K and truncates the agent's working history mid-build, so it
+loses the thread and thrashes to the wall. At 0.7 (compact ~183K) that doesn't happen. The
+env var was verified to take effect end-to-end before the grid (`LCMConfig.from_env()` →
+0.7; present in the live agent process env).
+
+Two distinct findings:
+- **Go was ALL stalls** — remove them and Go is clean (3/3). The 80B may be viable on Go
+  after all, at the 0.7 config.
+- **TS is still 0.33 but now via genuine near-misses (0.83–0.92), not hangs** — a real
+  capability gap, so TS stays → cloud.
+
+exp-34 is a *different stack* (0.7) than exp-29–33 (0.35), so it is EXCLUDED from the
+featured 80B leaderboard numbers (which stay at the 0.35 default). optimal-blog now
+recommends `lcm.context_threshold: 0.7` for the 80B and carries a stall-fix callout.
+
+**Next (queued): re-baseline the 80B at 0.7** — Go (and maybe TS/hard) with more reps
+(n≥6) to confirm the improvement and, if Go holds ≥~0.85, promote it in the featured
+numbers. Also worth: does 0.7 help the 35B on Rust (the original compaction-threshold
+question — the 80B result strongly suggests yes)?
+
+## exp-34 (superseded plan) — does raising lcm context_threshold kill the 80B stalls?
 
 **Motivation (from exp-30/33):** the 80B's intermittent 25-min stall is **not Go-specific** —
 it hangs on Go (2/9), TypeScript (2/9), and the hard task, but **never on Python** (21/21).

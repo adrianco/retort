@@ -101,16 +101,18 @@ FEATURED_STACKS = [
         "cost_override": 0.0,  # local marginal cost is $0 regardless of logged value
     },
     {
-        # Qwen3-Coder-Next 80B at the correct sampling (exp-29 + exp-30 on py/go, n=9;
-        # exp-31 on the brazil hard task, n=6). Verdict: the BEST local Python stack
-        # (9/9 = 1.00, beats the 35B) but UNRELIABLE on Go (6/9 = 0.67 -- two runs stalled
-        # to the 25-min wall) and 0.00 on the hard task (consistently ~10/12 capabilities,
-        # never all 12). Featured so the per-language + hard split is visible in the tables.
-        # See docs/future-experiments.md exp-30/31.
+        # Qwen3-Coder-Next 80B at the DEFAULT lcm context_threshold 0.35 (exp-29/30 py/go
+        # n=9; exp-31 brazil hard n=6; exp-32 prompt sweep; exp-33 TS). Verdict at 0.35:
+        # BEST local Python (1.00) but Go 0.67 / TS 0.33, dragged down by an intermittent
+        # 25-min stall, and 0.00 on hard. exp-34 (EXCLUDED here on purpose -- it is a
+        # different stack at context_threshold 0.7) showed the stall is a compaction
+        # artifact: at 0.7, 0 stalls and Go went 3/3. See docs/future-experiments.md
+        # exp-30/31/34; a 0.7 re-baseline is queued before changing the featured numbers.
         "name": "Qwen3-Coder-Next 80B (local, $0)",
         "short": "Qwen 80B local",
         "where": (
-            "( experiment LIKE '%experiment-29%' OR model LIKE '%Qwen3-Coder-Next%' )"
+            "( experiment LIKE '%experiment-29%' OR model LIKE '%Qwen3-Coder-Next%' ) "
+            "AND experiment NOT LIKE '%experiment-34%'"
         ),
         "kind": "local",
         "pass_bar": 0.50,

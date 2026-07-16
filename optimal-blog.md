@@ -111,7 +111,17 @@ languages (below); **on the hard task local models are now measured and both do 
   (3/9, two more stalls)**. So Go and TS stay with the 35B / cloud. On the **hard task (exp-31)
   it scores 0.00** (0/6) — consistently ~10/12 capabilities (mean 0.83, *higher* than the
   35B's 0.79) but **never all 12**. Rust unqualified. The one-line rule: **80B for local
-  Python, nothing else.**
+  Python, nothing else** — but see the stall-fix note (that rule may loosen).
+
+> **The 80B's stall is a fixable config artifact, not a capability wall.** The intermittent
+> hang is lcm compaction firing too early: at the default `context_threshold: 0.35` it
+> compacts live context at ~92K, truncating the agent's working history mid-build so it
+> loses the thread and thrashes to the wall. Raise it to **0.7** (compact at ~183K) and the
+> stalls vanish — **exp-34: 0 stalls in 6 Go+TS runs, and Go jumped to 3/3 = 1.00** (its
+> 0.67 above was those stalls). TS still lands 0.33 but now via *genuine near-misses*
+> (0.83–0.92), not hangs. So the featured numbers above are at the old 0.35 default and
+> understate Go; a 0.7 re-baseline (more reps) is queued before promoting Go to a
+> recommendation. To run the 80B locally today, **set `lcm.context_threshold: 0.7`**.
 
 > **On the Opus 4.8 hard number.** 0.59 is an honest blend: a small clean run scored 1.00
 > (n=6) while a larger one scored 0.50 (n=36). The optimistic single-run figure is not
@@ -222,6 +232,7 @@ configuration is not a leading stack. These are the settings each one requires.
 | **Serving** | oMLX 0.5.0 · served from `~/models/<name>` |
 | **Agent** | Hermes v0.18 with the `hermes-lcm` plugin (`context.engine: lcm`) |
 | **Context** | `context_length: 262144` — set it explicitly; the default fallback is far lower |
+| **Compaction** | `lcm.context_threshold: 0.7` **for the 80B** (default 0.35 compacts at ~92K and causes intermittent stalls — see exp-34; env override: `LCM_CONTEXT_THRESHOLD=0.7`). The 35B is fine at 0.35. |
 | **Hardware** | Apple Silicon, 64 GB. Raise the GPU wired limit: `sudo sysctl iogpu.wired_limit_mb=57344` |
 
 **Sampling — this is not optional:**

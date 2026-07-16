@@ -222,9 +222,18 @@ languages (below); <strong>on the hard task local models are now measured and bo
   (3/9, two more stalls)</strong>. So Go and TS stay with the 35B / cloud. On the <strong>hard task (exp-31)
   it scores 0.00</strong> (0/6) — consistently ~10/12 capabilities (mean 0.83, <em>higher</em> than the
   35B's 0.79) but <strong>never all 12</strong>. Rust unqualified. The one-line rule: <strong>80B for local
-  Python, nothing else.</strong></li>
+  Python, nothing else</strong> — but see the stall-fix note (that rule may loosen).</li>
 </ul>
 <blockquote>
+<p><strong>The 80B's stall is a fixable config artifact, not a capability wall.</strong> The intermittent
+hang is lcm compaction firing too early: at the default <code>context_threshold: 0.35</code> it
+compacts live context at ~92K, truncating the agent's working history mid-build so it
+loses the thread and thrashes to the wall. Raise it to <strong>0.7</strong> (compact at ~183K) and the
+stalls vanish — <strong>exp-34: 0 stalls in 6 Go+TS runs, and Go jumped to 3/3 = 1.00</strong> (its
+0.67 above was those stalls). TS still lands 0.33 but now via <em>genuine near-misses</em>
+(0.83–0.92), not hangs. So the featured numbers above are at the old 0.35 default and
+understate Go; a 0.7 re-baseline (more reps) is queued before promoting Go to a
+recommendation. To run the 80B locally today, <strong>set <code>lcm.context_threshold: 0.7</code></strong>.</p>
 <p><strong>On the Opus 4.8 hard number.</strong> 0.59 is an honest blend: a small clean run scored 1.00
 (n=6) while a larger one scored 0.50 (n=36). The optimistic single-run figure is not
 representative — treat hard-task Opus 4.8 as a coin flip, not a sure thing.</p>
@@ -476,6 +485,10 @@ configuration is not a leading stack. These are the settings each one requires.<
 <tr>
 <td><strong>Context</strong></td>
 <td><code>context_length: 262144</code> — set it explicitly; the default fallback is far lower</td>
+</tr>
+<tr>
+<td><strong>Compaction</strong></td>
+<td><code>lcm.context_threshold: 0.7</code> <strong>for the 80B</strong> (default 0.35 compacts at ~92K and causes intermittent stalls — see exp-34; env override: <code>LCM_CONTEXT_THRESHOLD=0.7</code>). The 35B is fine at 0.35.</td>
 </tr>
 <tr>
 <td><strong>Hardware</strong></td>
