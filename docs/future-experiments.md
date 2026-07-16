@@ -347,6 +347,12 @@ not run"); rust 0/2 (thrash / near-miss). exp-29 (the 80B, above) was the follow
 The 35B remains the **headline local result** and the production local stack for
 Python/Go; the 80B (exp-29) is a candidate that beat it only on Python.
 
+## exp-36 — 80B Go re-baseline at 0.7 (promote Go?) (RUNNING)
+
+exp-34 showed 80B Go = 3/3 at context_threshold 0.7 (no stalls). Confirm with 6 more Go
+reps (combined n=9 at 0.7); if Go holds >=~0.85, promote it in the featured numbers and
+loosen the '80B for local Python only' rule to include Go (at the 0.7 config). m80 + 0.7.
+
 ## exp-35 DONE — context_threshold 0.7 PARTLY fixes the 35B's Rust wall
 
 **Result (35B Rust × 3 at `LCM_CONTEXT_THRESHOLD=0.7`): 1/3 — rep1 PASS (1.00), rep2 & rep3
