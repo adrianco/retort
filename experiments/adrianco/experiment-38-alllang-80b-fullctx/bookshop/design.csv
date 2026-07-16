@@ -1,0 +1,10 @@
+run,language,agent,prompt,stack,model
+0,python,hermes-local,neutral,m80,mlxlocal/mlx-community--Qwen3-Coder-Next-4bit
+1,go,hermes-local,neutral,m80,mlxlocal/mlx-community--Qwen3-Coder-Next-4bit
+2,typescript,hermes-local,neutral,m80,mlxlocal/mlx-community--Qwen3-Coder-Next-4bit
+3,rust,hermes-local,neutral,m80,mlxlocal/mlx-community--Qwen3-Coder-Next-4bit
+4,clojure,hermes-local,neutral,m80,mlxlocal/mlx-community--Qwen3-Coder-Next-4bit
+5,java,hermes-local,neutral,m80,mlxlocal/mlx-community--Qwen3-Coder-Next-4bit
+6,csharp,hermes-local,neutral,m80,mlxlocal/mlx-community--Qwen3-Coder-Next-4bit
+7,elixir,hermes-local,neutral,m80,mlxlocal/mlx-community--Qwen3-Coder-Next-4bit
+8,erlang,hermes-local,neutral,m80,mlxlocal/mlx-community--Qwen3-Coder-Next-4bit

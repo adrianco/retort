@@ -347,6 +347,17 @@ not run"); rust 0/2 (thrash / near-miss). exp-29 (the 80B, above) was the follow
 The 35B remains the **headline local result** and the production local stack for
 Python/Go; the 80B (exp-29) is a candidate that beat it only on Python.
 
+## exp-38 — the FULL 9-language suite on the 80B at FULL CONTEXT (RUNNING)
+
+Extend the compaction-threshold win to EVERY language. The 80B is only characterized on
+python/go/ts at 0.7; Rust and the niche languages (clojure/java/csharp/elixir/erlang) are
+untested at any high-threshold config. Run all 9 bookshop languages on the 80B at **full
+context** — `LCM_CONTEXT_THRESHOLD=0.9` (compact at ~236K of 262144, vs the promoted 0.7's
+~183K) — 3 reps = 27 cells. Verified 0.9 resolves via `LCMConfig.from_env`; fresh oMLX +
+clean disk (after the exp-37 degradation). **Question:** does full context unlock Rust /
+the niche languages on the 80B, or are those genuine capability gaps? Excluded from the
+featured stack (a distinct 0.9 config) pending results.
+
 ## exp-37 DONE — 80B Python at 0.7 = 1.00 (the anomaly WAS serving degradation)
 
 **RESOLVED on a fresh oMLX (restart + disk cleanup):** the 2 failed cells re-ran (`--resume --retry-failed`) and both passed 1.00 -> Python-at-0.7 = **6/6 = 1.00**, confirming the fails were serving degradation, not a 0.7 effect. **The featured 80B stack is now promoted to the 0.7 config** (Python 1.00 n=6, Go 0.89 n=9, TS 0.33; hard 0.00 from exp-31, config-invariant). Also shipped: a disk preflight in `retort run`, oMLX operational notes in optimal-blog, and a `monitor --watch` fix.
