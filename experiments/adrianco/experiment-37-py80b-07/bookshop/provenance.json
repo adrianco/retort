@@ -56,7 +56,7 @@
   },
   "retort": {
     "branch": "main",
-    "commit": "ad117ea968e4db6913774a92235b11673aa1fc0e",
+    "commit": "8e29aee96247190eb8a9e8787d026c597958c931",
     "dirty": true
   },
   "serving": {
@@ -99,7 +99,7 @@
     "cargo": "cargo 1.96.0 (30a34c682 2026-05-25) (Homebrew)",
     "claude": "2.1.197 (Claude Code)",
     "go": "go version go1.26.4 darwin/arm64",
-    "hermes": "Hermes Agent v0.18.2 (2026.7.7.2) \u00b7 upstream bda8bd76 \u00b7 local 8e3f9537 (+1 carried commit)",
+    "hermes": "Hermes Agent v0.18.2 (2026.7.7.2) \u00b7 upstream 74fc222f \u00b7 local 8e3f9537 (+1 carried commit)",
     "llama_server": "version: 9910 (f5525f7e7)",
     "node": "v26.4.0",
     "omlx": "0.5.0rc1",

@@ -52,7 +52,7 @@ def test_leading_stacks_table_reports_per_task_reliability():
     ])
     out = opt.leading_stacks_table(conn)
     assert "Claude Fable 5" in out
-    assert "Qwen3-Coder-Next 80B (local, $0)" in out
+    assert "Qwen3-Coder-Next 80B (local" in out
     assert "1.00 · 1.00" in out
     # 80B has one hard run scoring < 1.0 -> hard column shows 0.00 (measured), not n/q.
     assert "0.00" in out

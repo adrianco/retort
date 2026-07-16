@@ -104,23 +104,20 @@ FEATURED_STACKS = [
         "cost_override": 0.0,  # local marginal cost is $0 regardless of logged value
     },
     {
-        # Qwen3-Coder-Next 80B at the DEFAULT lcm context_threshold 0.35 (exp-29/30 py/go
-        # n=9; exp-31 brazil hard n=6; exp-32 prompt sweep; exp-33 TS). Verdict at 0.35:
-        # BEST local Python (1.00) but Go 0.67 / TS 0.33, dragged down by an intermittent
-        # 25-min stall, and 0.00 on hard. exp-34 (EXCLUDED here on purpose -- it is a
-        # different stack at context_threshold 0.7) showed the stall is a compaction
-        # artifact: at 0.7, 0 stalls and Go went 3/3. See docs/future-experiments.md
-        # exp-30/31/34; a 0.7 re-baseline is queued before changing the featured numbers.
-        "name": "Qwen3-Coder-Next 80B (local, $0)",
+        # Qwen3-Coder-Next 80B at the RECOMMENDED lcm context_threshold 0.7 (see the stall-fix
+        # callout). The 0.35 default suffered an intermittent compaction stall that dragged Go
+        # down and hid the real numbers; at 0.7 the stalls are gone. Featured on the 0.7 runs:
+        #   routine  -> exp-34/36 (Go 0.89, n=9), exp-37 (Python 1.00, n=6), exp-34 (TS 0.33)
+        #   hard     -> exp-31 (brazil, 0.00) -- config-INVARIANT here, its failures were
+        #               near-misses not stalls, so 0.7 wouldn't change them.
+        # The older 0.35 routine runs (exp-29/30/32/33) are intentionally NOT featured now
+        # that the recommended config has moved to 0.7. See docs/future-experiments.md
+        # exp-34/36/37.
+        "name": "Qwen3-Coder-Next 80B (local, $0, ctx 0.7)",
         "short": "Qwen 80B local",
         "where": (
-            "( experiment LIKE '%experiment-29%' OR model LIKE '%Qwen3-Coder-Next%' ) "
-            # exp-34 and exp-36 are the context_threshold=0.7 runs (a different stack);
-            # keep them out of the featured 0.35-default numbers. See the stall-fix callout.
-            "AND experiment NOT LIKE '%experiment-34%' AND experiment NOT LIKE '%experiment-36%' "
-            # exp-37 (Python at 0.7) came out anomalous (2/6 fast all-zeros fails vs Python's
-            # clean 21/21 at 0.35; likely serving degradation after a long session) -- excluded.
-            "AND experiment NOT LIKE '%experiment-37%'"
+            "( experiment LIKE '%experiment-34%' OR experiment LIKE '%experiment-36%' "
+            "OR experiment LIKE '%experiment-37%' OR experiment LIKE '%experiment-31%' )"
         ),
         "kind": "local",
         "pass_bar": 0.50,

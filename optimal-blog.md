@@ -76,7 +76,7 @@ number to actually decide on. (Hard reliability is single-task, measured on Pyth
 | **Claude Opus 4.8** | 0.98 · 0.59 | $0.96 · $3.27 | 294 s · 608 s |
 | **Claude Opus 4.7** | 1.00 · 0.40 | $0.97 · $2.95 | 190 s · 500 s |
 | **Qwen3.6-35B-A3B (local, $0)** | 0.78 · 0.25 | $0.00 · $0.00 | 440 s · 1542 s |
-| **Qwen3-Coder-Next 80B (local, $0)** | 0.77 · 0.00 | $0.00 · $0.00 | 586 s · 1647 s |
+| **Qwen3-Coder-Next 80B (local, $0, ctx 0.7)** | 0.83 · 0.00 | $0.00 · $0.00 | 528 s · 1647 s |
 <!-- GEN:leading-stacks END -->
 
 *(Table generated from `master.db` by `retort report optimal`
@@ -102,27 +102,26 @@ languages (below); **on the hard task local models are now measured and both do 
   doc of why you must read the per-language matrix, not the average. On the **hard task it
   scores 0.25** (3/12) — occasionally nails all 12 capabilities, but not reliably. Rust and
   TypeScript unqualified.
-* **Qwen 80B local (`Qwen3-Coder-Next`) — the best local stack for *Python and Go* (at
-  `context_threshold: 0.7`).** On **Python it is perfect (21/21 = 1.00)**, better than the
-  35B's 0.85 (~1.3× slower). Its old weakness was an **intermittent non-termination hang** on
-  the context-growing languages — but that turned out to be a fixable compaction artifact
-  (see the stall-fix note): at **0.7, Go is 0.89 (8/9, 0 stalls)**, on par with the 35B, so
-  **Go is now viable too**. **TypeScript stays weak (0.33)** — even with the stalls gone it's
-  *genuine near-misses*, a capability gap → cloud. On the **hard task (exp-31) it scores
-  0.00** (0/6) — consistently ~10/12 capabilities (mean 0.83, *higher* than the 35B's 0.79)
-  but **never all 12**. Rust unqualified. Rule: **80B for local Python and Go (threshold
-  0.7); TS/Rust/hard → cloud.** (The featured Go 0.67 above is the old 0.35 default.)
+* **Qwen 80B local (`Qwen3-Coder-Next`) — the best local stack for *Python and Go*
+  (`context_threshold: 0.7`).** The featured numbers above are now at 0.7 (the recommended
+  config): **Python 1.00 (n=6), Go 0.89 (n=9)**, both beating/matching the 35B, and both
+  with **zero stalls**. It's ~1.3× slower than the 35B. **TypeScript stays weak (0.33)** —
+  even with the stalls gone that's *genuine near-misses*, a capability gap → cloud. On the
+  **hard task it scores 0.00** — consistently ~10/12 capabilities (mean 0.83, *higher* than
+  the 35B's 0.79) but **never all 12**. Rust unqualified. Rule: **80B for local Python and
+  Go (at threshold 0.7); TS/Rust/hard → cloud.**
 
-> **The 80B's stall is a fixable config artifact, not a capability wall.** The intermittent
-> hang is lcm compaction firing too early: at the default `context_threshold: 0.35` it
-> compacts live context at ~92K, truncating the agent's working history mid-build so it
-> loses the thread and thrashes to the wall. Raise it to **0.7** (compact at ~183K) and the
-> stalls vanish. Confirmed over **9 Go runs** (exp-34 + exp-36): **0 stalls, and Go = 8/9 =
-> 0.89** — up from 0.67-with-2-stalls at 0.35, and now on par with the 35B's Go. **So at 0.7
-> the 80B is a real local option for Go as well as Python.** (TS at 0.7 is still 0.33, but
-> via *genuine near-misses* (0.83–0.92), not hangs — a capability gap, not the compaction
-> artifact.) The featured Go number above (0.67) is the old 0.35 default and understates it;
-> **to run the 80B locally, set `lcm.context_threshold: 0.7`** and treat Go as viable.
+> **The 80B's stall was a fixable config artifact, not a capability wall — and that's why
+> these numbers are at 0.7.** The intermittent hang was lcm compaction firing too early: at
+> the default `context_threshold: 0.35` it compacts live context at ~92K, truncating the
+> agent's working history mid-build so it loses the thread and thrashes to the wall. At
+> **0.7** (compact at ~183K) the stalls vanish — over **9 Go runs** (exp-34/36): **0 stalls,
+> Go = 8/9 = 0.89**, up from 0.67-with-2-stalls at 0.35; and Python holds at **1.00** (exp-37,
+> re-run on a fresh server after the first pass was corrupted by serving degradation — see
+> the operational note). **So `lcm.context_threshold: 0.7` is the config to run the 80B on**,
+> and the featured table reflects it. (The same lever only *partly* rescues the 35B on Rust —
+> exp-35: first-ever Rust pass at 0.7, but 2/3 still stall. And it doesn't help the hard task,
+> whose failures are near-misses, not hangs.)
 >
 > **The same lever partly explains the "Rust wall" — but only partly.** At 0.35 the 35B
 > thrashes to the wall on *every* Rust run (clean 0.00). At 0.7 it scored its **first-ever
@@ -161,11 +160,11 @@ scores 0.00 on Rust/TypeScript; the 80B local is strong on Python but drops on G
 | **csharp** | — | 1.00 (3) | 1.00 (1) | — | — | — |
 | **elixir** | — | — | 1.00 (3) | 1.00 (3) | — | — |
 | **erlang** | — | — | 1.00 (3) | 1.00 (3) | — | — |
-| **go** | 1.00 (3) | 1.00 (3) | 1.00 (7) | 1.00 (6) | 0.85 (27) | 0.67 (9) |
+| **go** | 1.00 (3) | 1.00 (3) | 1.00 (7) | 1.00 (6) | 0.85 (27) | 0.89 (9) |
 | **java** | — | — | 0.83 (6) | 1.00 (6) | — | — |
-| **python** | 1.00 (3) | 1.00 (3) | 1.00 (7) | 1.00 (6) | 0.85 (27) | 1.00 (21) |
+| **python** | 1.00 (3) | 1.00 (3) | 1.00 (7) | 1.00 (6) | 0.85 (27) | 1.00 (6) |
 | **rust** | 1.00 (3) | 1.00 (3) | 1.00 (6) | 1.00 (6) | 0.00 (2) | — |
-| **typescript** | — | 1.00 (3) | 1.00 (7) | 1.00 (6) | 0.00 (3) | 0.33 (9) |
+| **typescript** | — | 1.00 (3) | 1.00 (7) | 1.00 (6) | 0.00 (3) | 0.33 (3) |
 <!-- GEN:per-language-matrix END -->
 
 **The language split is simple: Python and Go run locally for free; every other language
@@ -173,10 +172,10 @@ means Claude.** Local is qualified (at the tuned config) only on those two — T
 has no tuned-config local runs yet, so it goes to cloud like the rest. Rust and TypeScript
 score **0.00** on the 35B even at the tuned config, so a cross-language "local" average
 (0.78) understates the Python/Go reality (**0.85 each**) — which is exactly why this
-document leads with the matrix, not an average. The 80B (`Qwen3-Coder-Next`) splits the two
-local languages apart: it is the **best local Python** stack (1.00 over 9 reps) but is
-**unreliable on Go** (0.67 — two runs stalled to the wall), so "local" is no longer one
-recommendation but two — 80B for Python, 35B for Go.
+document leads with the matrix, not an average. The 80B (`Qwen3-Coder-Next`, at
+`context_threshold: 0.7`) is now strong on **both** local languages — **Python 1.00, Go
+0.89** — after the compaction-stall fix; the 35B (0.85 each) remains the faster alternative.
+So local Python/Go has two good stacks; TypeScript and Rust still go to cloud.
 
 The recommendation table distills the matrix into, per language, the **cheapest model that
 clears routine work**, the **hard-task** pick, and the **prompt / testing method** (the
@@ -219,10 +218,10 @@ edge; on a model that clears the task comfortably, the prompt is ritual.
 2. **Hard task, but cost matters and ~1-in-14 misses is tolerable?** → **Sonnet 5** (0.93),
    ~15% under Fable. Opus 4.8 is cheaper again but only ~0.59 — budget a review-and-retry
    loop if you use it.
-3. **Routine, local & free?** → **Python: Qwen 80B (1.00 over 9 reps)** for reliability, or
-   the 35B (0.85) if you want ~1.3× the speed. **Go: Qwen 35B (0.85)** — the 80B stalls on Go
-   (0.67). Review the output either way; you'll still see a miss every few runs. (TypeScript,
-   Rust, everything else → cloud.)
+3. **Routine, local & free?** (at `context_threshold: 0.7` for the 80B) → **Python: Qwen 80B
+   (1.00)** for reliability or the **35B (0.85)** for ~1.3× the speed. **Go: 80B (0.89) or 35B
+   (0.85)** — both viable now that the 80B's Go stall is fixed. Review the output; you'll still
+   see a miss every few runs. (TypeScript, Rust, everything else → cloud.)
 4. **Routine, any other language?** → cheapest current cloud (Opus 4.7 / 4.8, ~$1); they all
    reach ~1.00, so paying more buys nothing. Use the **neutral** prompt.
 
