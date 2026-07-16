@@ -347,6 +347,16 @@ not run"); rust 0/2 (thrash / near-miss). exp-29 (the 80B, above) was the follow
 The 35B remains the **headline local result** and the production local stack for
 Python/Go; the 80B (exp-29) is a candidate that beat it only on Python.
 
+## exp-35 — does context_threshold 0.7 fix the 35B's Rust wall? (RUNNING)
+
+exp-34 proved the 80B's stall is a compaction artifact (0.35 compacts at ~92K -> thrash).
+The 35B thrashes-to-wall on Rust at 0.35 (exp-28 rust 0/2, ~0.00) — the doc's central open
+question. **Test:** 35B on Rust with `LCM_CONTEXT_THRESHOLD=0.7`. If Rust terminates/passes,
+'Rust is a capability wall' is (partly) a context-management artifact. Smoke ONE isolated
+Rust cell first (watched), then rust x3. Hypothesis: 0.7 lets Rust terminate; whether it
+then PASSES is a separate capability question (exp-28 smoke saw a near-miss with 3 compile
+errors — self-repair may be the next lever).
+
 ## exp-34 DONE — raising lcm context_threshold 0.35→0.7 KILLS the 80B stalls
 
 **Result (80B, Go+TS × 3, `LCM_CONTEXT_THRESHOLD=0.7`): 0 stalls in 6 runs, and Go went

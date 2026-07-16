@@ -1,0 +1,32 @@
+# Experiment 35 — does lcm context_threshold 0.7 fix the 35B's Rust "capability wall"?
+# The 35B thrashes-to-wall on Rust at the default 0.35 (exp-28 rust 0/2, ~0.00) — the doc's
+# central open question is whether that is the same compaction artifact exp-34 proved on the
+# 80B (compaction at ~92K truncates working history -> thrash). Test: 35B on Rust with
+# LCM_CONTEXT_THRESHOLD=0.7 (compact ~183K). If Rust terminates/passes, "Rust is a wall" is
+# (partly) a context-management artifact and comes off the board. Smoke ONE isolated Rust cell
+# first (watched) before the grid, per the doc's single-isolated-runs caution.
+experiment:
+  name: experiment-35-rust-ctxthreshold-35b-bookshop
+  visibility: public
+factors:
+  language: { levels: [rust, python] }
+  agent: { levels: [hermes-local, claude-code] }
+  prompt: { levels: [neutral, none] }
+  stack: { levels: [m35, m80] }
+  model: { levels: ["mlxlocal/Qwen3.6-35B-A3B", "mlxlocal/mlx-community--Qwen3-Coder-Next-4bit"] }
+responses: [code_quality, token_efficiency, test_coverage, defect_rate, maintainability, idiomatic]
+tasks:
+  - source: bundled://rest-api-crud
+playpen:
+  runner: local
+  replicates: 3
+  timeout_minutes: 60
+  stall_minutes: 25
+  max_turns: 200
+  stack_presets: stacks.yaml
+  prompts_dir: prompts
+  local_agents:
+    hermes-local: { harness: hermes, model: mlxlocal/Qwen3.6-35B-A3B }
+design: { screening_resolution: 3, significance_threshold: 0.10 }
+promotion: { screening_to_trial: { p_value: 0.10 }, trial_to_production: { posterior_confidence: 0.80 } }
+evaluation: { enabled: true, model: opus-4.8 }

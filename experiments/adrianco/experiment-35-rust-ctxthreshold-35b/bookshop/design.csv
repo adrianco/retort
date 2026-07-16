@@ -1,0 +1,2 @@
+run,language,agent,prompt,stack,model
+0,rust,hermes-local,neutral,m35,mlxlocal/Qwen3.6-35B-A3B
