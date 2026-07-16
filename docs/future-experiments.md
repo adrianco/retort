@@ -347,6 +347,24 @@ not run"); rust 0/2 (thrash / near-miss). exp-29 (the 80B, above) was the follow
 The 35B remains the **headline local result** and the production local stack for
 Python/Go; the 80B (exp-29) is a candidate that beat it only on Python.
 
+## exp-34 — does raising lcm context_threshold kill the 80B stalls? (RUNNING)
+
+**Motivation (from exp-30/33):** the 80B's intermittent 25-min stall is **not Go-specific** —
+it hangs on Go (2/9), TypeScript (2/9), and the hard task, but **never on Python** (21/21).
+Python runs stay small; the stall languages grow context. This is exactly the
+compaction-threshold hypothesis below, now testable on the 80B.
+
+**Design:** 80B on **Go + TypeScript** (the stall-prone languages) × 3 reps, tuned m80, with
+**`LCM_CONTEXT_THRESHOLD=0.7`** exported on `retort run` (compact at ~183K instead of ~92K).
+Compare the stall rate to the 0.35 baseline (exp-30 Go, exp-33 TS, which had ~2 stalls each).
+The env var is verified to override config.yaml's 0.35 via `LCMConfig.from_env()` (0.35→0.7);
+smoke a single Go cell first and confirm the live agent used 0.7 before the grid.
+
+**Hypothesis:** at 0.7 the stalls largely disappear — the hang is a context-management
+artifact (lcm truncating working history mid-build), not intrinsic to the 80B. If so, the
+80B could become viable on Go/TS with this one config change, a big result for the guide. If
+stalls persist, the non-termination is intrinsic and the lever is a stronger model / more bits.
+
 ## Rust non-termination — is it the compaction threshold? (investigating)
 
 **Smoke test (2026-07-14): inconclusive on the threshold, but Rust is NOT a wall.** One
