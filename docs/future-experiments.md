@@ -219,7 +219,21 @@ stall was a one-off, and whether Python 1.00 holds. Also note the 80B ran with t
 correctly recorded in `stack.json` (the `stack_metadata()` fix), so it ingested with a real
 model id — no slug guessing.
 
-## exp-32 — prompt-factor re-test on the 80B, RUNNING
+## exp-32 DONE — prompt-factor re-test on the 80B
+
+**Result (python routine, n=3/prompt):** the prompt is a **flat line on the 80B** — every
+methodology passes **1.00** (neutral, BDD, TDD, **ATDD**). Contrast the 35B (exp-19):
+neutral/BDD 0.67, TDD 0.33, **ATDD 0.00**.
+
+**Finding:** the prompt/methodology lever bites in proportion to how *weak* the model is. On
+the 35B, ATDD's front-loaded discipline tanks the run (0/3); on the stronger 80B it's a no-op
+(3/3), the same flat line seen on strong cloud models. So the "never ATDD locally" advice was
+35B-specific — the guide now states the general rule: reach for a disciplined methodology
+only near a model's capability edge; on a model that clears the task comfortably, the prompt
+is ritual — pick neutral (cheapest). optimal-blog's prompt-method table now shows 35B vs 80B
+side by side.
+
+## exp-32 (superseded plan) — prompt-factor re-test on the 80B
 
 **Intent:** the prompt-blog's methodology findings (neutral/BDD best, ATDD worst 0/3, TDD
 middling) were established on the **35B**. Re-test on the **80B** (now the leading local

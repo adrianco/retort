@@ -271,35 +271,34 @@ def per_language_table(conn):
 
 
 # ---------------------------------------------------------------------------
-# Table 3: prompt / testing method — the empirical local prompt sweep
-# (on cloud the prompt is a flat line; the lever only bites on the local model)
+# Table 3: prompt / testing method — the prompt-factor sweep on the local models.
+# The lever bites on a WEAK model (35B: ATDD tanks) and flattens to a no-op on a
+# STRONG one (80B: every prompt passes) -- the same way it is a flat line on cloud.
 # ---------------------------------------------------------------------------
 def prompt_method_table(conn):
-    rows = q(
-        conn,
-        """
-        SELECT prompt,
-               COUNT(*) n,
-               AVG(CASE WHEN requirement_coverage >= 1.0 THEN 1.0 ELSE 0.0 END) pass,
-               AVG(test_coverage) tcov,
-               AVG(tokens)/1e6 mtok
-        FROM runs
-        WHERE experiment LIKE '%hermes35b-prompts%'
-        GROUP BY prompt
-        ORDER BY pass DESC, mtok ASC
-        """,
-    )
-    if not rows:
+    def sweep(where):
+        return {
+            p: (n, pa)
+            for p, n, pa in q(
+                conn,
+                f"SELECT prompt, COUNT(*), "
+                f"AVG(CASE WHEN requirement_coverage >= 1.0 THEN 1.0 ELSE 0.0 END) "
+                f"FROM runs WHERE {where} GROUP BY prompt",
+            )
+        }
+
+    m35 = sweep("experiment LIKE '%hermes35b-prompts%'")   # exp-19, weak local model
+    m80 = sweep("experiment LIKE '%prompts-80b%'")          # exp-32, strong local model
+    if not m35 and not m80:
         return "*(no local prompt-sweep experiment found)*"
     lines = [
-        "| Prompt | Reliability | avg test-cov | avg tokens | n |",
-        "|---|---:|---:|---:|---:|",
+        "| Prompt | 35B pass | 80B pass |",
+        "|---|---:|---:|",
     ]
-    for p, n, pass_, tcov, mtok in rows:
-        label = p or "(blank)"
-        lines.append(
-            f"| **{label}** | {pass_:.2f} | {tcov:.2f} | {mtok:.2f} M | {n} |"
-        )
+    for p in ("neutral", "BDD", "TDD", "ATDD"):
+        c35 = f"{m35[p][1]:.2f} (n={m35[p][0]})" if p in m35 else "—"
+        c80 = f"{m80[p][1]:.2f} (n={m80[p][0]})" if p in m80 else "—"
+        lines.append(f"| **{p}** | {c35} | {c80} |")
     return "\n".join(lines)
 
 

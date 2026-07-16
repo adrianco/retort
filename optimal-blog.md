@@ -76,7 +76,7 @@ number to actually decide on. (Hard reliability is single-task, measured on Pyth
 | **Claude Opus 4.8** | 0.98 · 0.59 | $0.96 · $3.27 | 294 s · 608 s |
 | **Claude Opus 4.7** | 1.00 · 0.40 | $0.97 · $2.95 | 190 s · 500 s |
 | **Qwen3.6-35B-A3B (local, $0)** | 0.78 · 0.25 | $0.00 · $0.00 | 440 s · 1542 s |
-| **Qwen3-Coder-Next 80B (local, $0)** | 0.76 · 0.00 | $0.00 · $0.00 | 582 s · 1647 s |
+| **Qwen3-Coder-Next 80B (local, $0)** | 0.85 · 0.00 | $0.00 · $0.00 | 488 s · 1647 s |
 <!-- GEN:leading-stacks END -->
 
 *(Table generated from `master.db` by `retort report optimal`
@@ -143,7 +143,7 @@ scores 0.00 on Rust/TypeScript; the 80B local is strong on Python but drops on G
 | **erlang** | — | — | 1.00 (3) | 1.00 (3) | — | — |
 | **go** | 1.00 (3) | 1.00 (3) | 1.00 (7) | 1.00 (6) | 0.85 (27) | 0.67 (9) |
 | **java** | — | — | 0.83 (6) | 1.00 (6) | — | — |
-| **python** | 1.00 (3) | 1.00 (3) | 1.00 (7) | 1.00 (6) | 0.85 (27) | 1.00 (9) |
+| **python** | 1.00 (3) | 1.00 (3) | 1.00 (7) | 1.00 (6) | 0.85 (27) | 1.00 (21) |
 | **rust** | 1.00 (3) | 1.00 (3) | 1.00 (6) | 1.00 (6) | 0.00 (2) | — |
 | **typescript** | — | 1.00 (3) | 1.00 (7) | 1.00 (6) | 0.00 (3) | 0.33 (3) |
 <!-- GEN:per-language-matrix END -->
@@ -164,8 +164,8 @@ last is qualitative, from the prompt experiments):
 
 | Language | Routine → cheapest qualifying | Hard task | Prompt / testing method |
 |---|---|---|---|
-| **Python** | **Qwen 80B local ($0)** 1.00 (n=9) for reliability, or **35B** 0.85 for ~1.3× speed | **Fable 5** (1.00); Opus 4.8 cheaper but ~0.59 | **Local:** *neutral* (cheapest) or BDD — **never ATDD**. Cloud: *neutral* |
-| **Go** | **Qwen 35B local ($0)**, 0.85 (the 80B stalls — 0.67) | **Fable 5**; Opus 4.8 cheaper / riskier | **Local:** *neutral* or BDD, **not ATDD**. Cloud: *neutral* |
+| **Python** | **Qwen 80B local ($0)** 1.00 (n=9) for reliability, or **35B** 0.85 for ~1.3× speed | **Fable 5** (1.00); Opus 4.8 cheaper but ~0.59 | **80B:** *neutral* (prompt is a no-op — all pass). **35B:** *neutral*/BDD, never ATDD. Cloud: *neutral* |
+| **Go** | **Qwen 35B local ($0)**, 0.85 (the 80B stalls — 0.67) | **Fable 5**; Opus 4.8 cheaper / riskier | **35B:** *neutral* or BDD, **never ATDD**. Cloud: *neutral* |
 | **TypeScript** | **Opus 4.8 (~$0.65)** — local n/q | **Fable 5** | Cloud: *neutral* — methodology optional |
 | **Rust** | **Opus 4.8 (~$0.71)** — local n/q | **Fable 5** | Cloud: *neutral* |
 | **Clojure** | **Opus 4.7 (~$1.06)** | **Fable 5** | Cloud: *neutral* |
@@ -178,13 +178,19 @@ last is qualitative, from the prompt experiments):
 Java output whichever you use. ‡ C# Opus 4.8 is n=1; Sonnet 5 (~$1.57, n=3) is the
 better-sampled fallback.
 
-**Prompt / testing method — why it's mostly one word.** On the strong cloud models the
-prompt is a *flat line*: they pass routine work whatever you ask, so pick **neutral** and
-spend nothing on methodology ceremony. It matters on the **local** model, where it is a
-real lever: **neutral and BDD tie for best**, and neutral gets there at ~2.5× fewer
-tokens, so it's the cheap winner. **Avoid ATDD** — it came last in every local experiment
-(0/3 in the Python sweep); a weak model can't carry its front-loaded discipline and just
-burns tokens. TDD is middling — no reason to prefer it.
+**Prompt / testing method — it matters only in proportion to how weak the model is.** The
+table above (Python routine) makes the rule concrete: **the prompt is a lever on a weak
+model and a no-op on a strong one.**
+
+* **Strong models (all cloud, and the local 80B): flat line.** Every methodology passes —
+  the 80B goes **1.00 on all four**, ATDD included. Pick **neutral** and spend nothing on
+  methodology ceremony; it's the cheapest and loses nothing.
+* **Weak models (the local 35B): the prompt bites.** neutral/BDD 0.67, TDD 0.33, and
+  **ATDD 0.00** — a weak model can't carry ATDD's front-loaded discipline and burns the run.
+  So on the 35B: neutral (cheapest) or BDD, and **never ATDD**.
+
+The takeaway: reach for a disciplined methodology only when you're near a model's capability
+edge; on a model that clears the task comfortably, the prompt is ritual.
 
 **The decision procedure:**
 
@@ -285,12 +291,12 @@ stacks table above is generated the same way.
 **Prompt / testing method — the local sweep (on cloud the prompt is a flat line):**
 
 <!-- GEN:prompt-method START -->
-| Prompt | Reliability | avg test-cov | avg tokens | n |
-|---|---:|---:|---:|---:|
-| **neutral** | 0.67 | 0.64 | 0.40 M | 3 |
-| **BDD** | 0.67 | 0.65 | 1.03 M | 3 |
-| **TDD** | 0.33 | 0.33 | 0.54 M | 3 |
-| **ATDD** | 0.00 | 0.27 | 0.73 M | 3 |
+| Prompt | 35B pass | 80B pass |
+|---|---:|---:|
+| **neutral** | 0.67 (n=3) | 1.00 (n=3) |
+| **BDD** | 0.67 (n=3) | 1.00 (n=3) |
+| **TDD** | 0.33 (n=3) | 1.00 (n=3) |
+| **ATDD** | 0.00 (n=3) | 1.00 (n=3) |
 <!-- GEN:prompt-method END -->
 
 ---
