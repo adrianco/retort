@@ -1,0 +1,108 @@
+{
+  "agent_config": {
+    "hermes": {
+      "_config_version": 33,
+      "context_engine": "lcm",
+      "context_length": 262144,
+      "context_length_top_level": 262144,
+      "context_length_unset_per_model": false,
+      "max_turns": 30,
+      "model": "Qwen3.6-35B-A3B",
+      "plugins": [
+        "hermes-lcm"
+      ],
+      "provider_api": "http://127.0.0.1:8080/v1"
+    }
+  },
+  "harness": {
+    "local_agents": {
+      "hermes-local": {
+        "harness": "hermes",
+        "model": "mlxlocal/mlx-community--Qwen3-Coder-Next-4bit"
+      }
+    },
+    "max_turns": 200,
+    "no_write_abort_after": 3,
+    "playpen_root": "/Users/adriancockcroft/.retort/work",
+    "replicates": 6,
+    "runner": "local",
+    "stack_presets": "stacks.yaml",
+    "stall_minutes": 25,
+    "timeout_minutes": 60
+  },
+  "host": {
+    "cpu": "Apple M5 Pro",
+    "iogpu_wired_limit_mb": "57344",
+    "machine": "Mac17,9",
+    "platform": "macOS-26.5.1-arm64-arm-64bit",
+    "python": "3.11.0",
+    "ram_bytes": "68719476736"
+  },
+  "models": {
+    "mlx-community--Qwen3-Coder-Next-4bit": {
+      "max_position_embeddings": 262144,
+      "quant": 4,
+      "recommended_sampling": {
+        "temperature": 1.0,
+        "top_k": 40,
+        "top_p": 0.95
+      },
+      "repo": "mlx-community/Qwen3-Coder-Next-4bit",
+      "revision": "7b9321eabb85ce79625cac3f61ea691e4ea984b5",
+      "served_as": "mlx-community--Qwen3-Coder-Next-4bit",
+      "size": "42G",
+      "snapshot_path": "/Users/adriancockcroft/.cache/huggingface/hub/models--mlx-community--Qwen3-Coder-Next-4bit/snapshots/7b9321eabb85ce79625cac3f61ea691e4ea984b5"
+    }
+  },
+  "retort": {
+    "branch": "main",
+    "commit": "8ec26374f80a85ba7f9229bbfb55e3730b243136",
+    "dirty": true
+  },
+  "serving": {
+    "omlx": {
+      "cache": {
+        "enabled": true,
+        "hot_cache_max_size": "0",
+        "hot_cache_only": false,
+        "initial_cache_blocks": 256,
+        "ssd_cache_dir": null,
+        "ssd_cache_max_size": "auto"
+      },
+      "model_dirs": [
+        "/Users/adriancockcroft/models"
+      ],
+      "sampling": {
+        "max_context_window": 32768,
+        "max_context_window_policy": null,
+        "max_tokens": 32768,
+        "repetition_penalty": 1.0,
+        "temperature": 0.6,
+        "top_k": 20,
+        "top_p": 0.95
+      }
+    }
+  },
+  "stack_presets": {
+    "m80": {
+      "context_length": 262144,
+      "model": "mlx-community--Qwen3-Coder-Next-4bit",
+      "sampling": {
+        "repetition_penalty": 1.0,
+        "temperature": 0.7,
+        "top_k": 40,
+        "top_p": 0.95
+      }
+    }
+  },
+  "tools": {
+    "cargo": "cargo 1.96.0 (30a34c682 2026-05-25) (Homebrew)",
+    "claude": "2.1.197 (Claude Code)",
+    "go": "go version go1.26.4 darwin/arm64",
+    "hermes": "Hermes Agent v0.18.2 (2026.7.7.2) \u00b7 upstream bda8bd76 \u00b7 local 8e3f9537 (+1 carried commit)",
+    "llama_server": "version: 9910 (f5525f7e7)",
+    "node": "v26.4.0",
+    "omlx": "0.5.0rc1",
+    "omp": "omp/16.3.12"
+  }
+}

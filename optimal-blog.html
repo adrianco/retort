@@ -213,27 +213,28 @@ languages (below); <strong>on the hard task local models are now measured and bo
   doc of why you must read the per-language matrix, not the average. On the <strong>hard task it
   scores 0.25</strong> (3/12) — occasionally nails all 12 capabilities, but not reliably. Rust and
   TypeScript unqualified.</li>
-<li><strong>Qwen 80B local (<code>Qwen3-Coder-Next</code>) — the new best local <em>Python</em> stack; avoid it for
-  Go and TypeScript.</strong> Over <strong>21 reps</strong> it is <strong>perfect on Python (21/21 = 1.00)</strong> — better
-  than the 35B's 0.85 — so for local Python where reliability matters more than speed, this
-  is now the pick (it is ~1.3× slower than the 35B). Everywhere else it is dragged down by an
-  <strong>intermittent non-termination bug</strong> — runs that hang until the 25-min stall guard kills
-  them — and it is <strong>not Go-specific</strong>: <strong>Go 0.67 (6/9, two stalls)</strong> and <strong>TypeScript 0.33
-  (3/9, two more stalls)</strong>. So Go and TS stay with the 35B / cloud. On the <strong>hard task (exp-31)
-  it scores 0.00</strong> (0/6) — consistently ~10/12 capabilities (mean 0.83, <em>higher</em> than the
-  35B's 0.79) but <strong>never all 12</strong>. Rust unqualified. The one-line rule: <strong>80B for local
-  Python, nothing else</strong> — but see the stall-fix note (that rule may loosen).</li>
+<li><strong>Qwen 80B local (<code>Qwen3-Coder-Next</code>) — the best local stack for <em>Python and Go</em> (at
+  <code>context_threshold: 0.7</code>).</strong> On <strong>Python it is perfect (21/21 = 1.00)</strong>, better than the
+  35B's 0.85 (~1.3× slower). Its old weakness was an <strong>intermittent non-termination hang</strong> on
+  the context-growing languages — but that turned out to be a fixable compaction artifact
+  (see the stall-fix note): at <strong>0.7, Go is 0.89 (8/9, 0 stalls)</strong>, on par with the 35B, so
+  <strong>Go is now viable too</strong>. <strong>TypeScript stays weak (0.33)</strong> — even with the stalls gone it's
+  <em>genuine near-misses</em>, a capability gap → cloud. On the <strong>hard task (exp-31) it scores
+  0.00</strong> (0/6) — consistently ~10/12 capabilities (mean 0.83, <em>higher</em> than the 35B's 0.79)
+  but <strong>never all 12</strong>. Rust unqualified. Rule: <strong>80B for local Python and Go (threshold
+  0.7); TS/Rust/hard → cloud.</strong> (The featured Go 0.67 above is the old 0.35 default.)</li>
 </ul>
 <blockquote>
 <p><strong>The 80B's stall is a fixable config artifact, not a capability wall.</strong> The intermittent
 hang is lcm compaction firing too early: at the default <code>context_threshold: 0.35</code> it
 compacts live context at ~92K, truncating the agent's working history mid-build so it
 loses the thread and thrashes to the wall. Raise it to <strong>0.7</strong> (compact at ~183K) and the
-stalls vanish — <strong>exp-34: 0 stalls in 6 Go+TS runs, and Go jumped to 3/3 = 1.00</strong> (its
-0.67 above was those stalls). TS still lands 0.33 but now via <em>genuine near-misses</em>
-(0.83–0.92), not hangs. So the featured numbers above are at the old 0.35 default and
-understate Go; a 0.7 re-baseline (more reps) is queued before promoting Go to a
-recommendation. To run the 80B locally today, <strong>set <code>lcm.context_threshold: 0.7</code></strong>.</p>
+stalls vanish. Confirmed over <strong>9 Go runs</strong> (exp-34 + exp-36): <strong>0 stalls, and Go = 8/9 =
+0.89</strong> — up from 0.67-with-2-stalls at 0.35, and now on par with the 35B's Go. <strong>So at 0.7
+the 80B is a real local option for Go as well as Python.</strong> (TS at 0.7 is still 0.33, but
+via <em>genuine near-misses</em> (0.83–0.92), not hangs — a capability gap, not the compaction
+artifact.) The featured Go number above (0.67) is the old 0.35 default and understates it;
+<strong>to run the 80B locally, set <code>lcm.context_threshold: 0.7</code></strong> and treat Go as viable.</p>
 <p><strong>The same lever partly explains the "Rust wall" — but only partly.</strong> At 0.35 the 35B
 thrashes to the wall on <em>every</em> Rust run (clean 0.00). At 0.7 it scored its <strong>first-ever
 Rust pass</strong> (exp-35 rep1 = 1.00, at 113K context — exactly the regime 0.35 truncates), so
@@ -386,9 +387,9 @@ last is qualitative, from the prompt experiments):</p>
 </tr>
 <tr>
 <td><strong>Go</strong></td>
-<td><strong>Qwen 35B local ($0)</strong>, 0.85 (the 80B stalls — 0.67)</td>
+<td><strong>Qwen 35B ($0)</strong> 0.85, or <strong>80B @ ctx 0.7 ($0)</strong> 0.89 (n=9) — both local-viable</td>
 <td><strong>Fable 5</strong>; Opus 4.8 cheaper / riskier</td>
-<td><strong>35B:</strong> <em>neutral</em> or BDD, <strong>never ATDD</strong>. Cloud: <em>neutral</em></td>
+<td><strong>35B:</strong> <em>neutral</em> or BDD, never ATDD. <strong>80B:</strong> <em>neutral</em>. Cloud: <em>neutral</em></td>
 </tr>
 <tr>
 <td><strong>TypeScript</strong></td>

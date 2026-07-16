@@ -347,7 +347,18 @@ not run"); rust 0/2 (thrash / near-miss). exp-29 (the 80B, above) was the follow
 The 35B remains the **headline local result** and the production local stack for
 Python/Go; the 80B (exp-29) is a candidate that beat it only on Python.
 
-## exp-36 — 80B Go re-baseline at 0.7 (promote Go?) (RUNNING)
+## exp-36 DONE — 80B Go promoted at context_threshold 0.7
+
+80B Go x6 at 0.7: 5/6 pass (rep5 a genuine near-miss 0.917), **0 stalls**. Combined with
+exp-34 (3/3) => **Go = 8/9 = 0.89 at 0.7, zero stalls** — up from 0.67-with-2-stalls at the
+0.35 default, and on par with the 35B's Go (0.85). So the stall fix holds at scale and **Go
+is now local-viable on the 80B** (Python 1.00 + Go 0.89, both at ctx 0.7). optimal-blog
+promotes Go; the featured table stays at 0.35 (exp-34/36 excluded) pending a full-language
+0.7 re-baseline (Python-at-0.7 still unmeasured — expected ~1.00). TS at 0.7 stays 0.33
+(capability gap, not stalls). Next: Python-at-0.7 to complete the 0.7 featured stack; 0.7
+on the 80B hard task.
+
+
 
 exp-34 showed 80B Go = 3/3 at context_threshold 0.7 (no stalls). Confirm with 6 more Go
 reps (combined n=9 at 0.7); if Go holds >=~0.85, promote it in the featured numbers and

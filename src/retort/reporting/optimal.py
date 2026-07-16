@@ -115,7 +115,9 @@ FEATURED_STACKS = [
         "short": "Qwen 80B local",
         "where": (
             "( experiment LIKE '%experiment-29%' OR model LIKE '%Qwen3-Coder-Next%' ) "
-            "AND experiment NOT LIKE '%experiment-34%'"
+            # exp-34 and exp-36 are the context_threshold=0.7 runs (a different stack);
+            # keep them out of the featured 0.35-default numbers. See the stall-fix callout.
+            "AND experiment NOT LIKE '%experiment-34%' AND experiment NOT LIKE '%experiment-36%'"
         ),
         "kind": "local",
         "pass_bar": 0.50,
