@@ -179,21 +179,22 @@ number to actually decide on. (Hard reliability is single-task, measured on Pyth
 </tr>
 <tr>
 <td><strong>Qwen3.6-35B-A3B (local, $0)</strong></td>
-<td style="text-align: right;">0.78 · n/q</td>
-<td style="text-align: right;">$0.00 · —</td>
-<td style="text-align: right;">440 s · —</td>
+<td style="text-align: right;">0.78 · 0.25</td>
+<td style="text-align: right;">$0.00 · $0.00</td>
+<td style="text-align: right;">440 s · 1542 s</td>
 </tr>
 <tr>
 <td><strong>Qwen3-Coder-Next 80B (local, $0)</strong></td>
-<td style="text-align: right;">0.76 · n/q</td>
-<td style="text-align: right;">$0.00 · —</td>
-<td style="text-align: right;">582 s · —</td>
+<td style="text-align: right;">0.76 · 0.00</td>
+<td style="text-align: right;">$0.00 · $0.00</td>
+<td style="text-align: right;">582 s · 1647 s</td>
 </tr>
 </tbody>
 </table></div>
 <p><em>(Table generated from <code>master.db</code> by <code>retort report optimal</code>
-— do not hand-edit between the markers.)</em> Local is measured on the routine task in its
-qualified languages (Python / Go, below); it is not qualified for hard tasks or for Rust.</p>
+— do not hand-edit between the markers.)</em> Local routine numbers are the Python/Go qualified
+languages (below); <strong>on the hard task local models are now measured and both do poorly</strong> —
+35B <strong>0.25</strong>, 80B <strong>0.00</strong> (see the per-stack bullets). Rust local is unqualified.</p>
 <p><strong>Pick by task size — the two columns tell different stories:</strong></p>
 <ul>
 <li><strong>Fable 5</strong> is the <em>only</em> stack that clears the hard task <strong>every time (1.00)</strong>. When a
@@ -209,15 +210,18 @@ qualified languages (Python / Go, below); it is not qualified for hard tasks or 
 <li><strong>Qwen 35B local</strong> does <strong>routine</strong> Python / Go for <strong>$0</strong> at <strong>0.85 each</strong> — its real
   niche. Its leading number (0.78) is <em>lower</em> than either language because the blend now
   includes its Rust and TypeScript runs, which score <strong>0.00</strong> — the clearest example in this
-  doc of why you must read the per-language matrix, not the average. Not qualified for hard
-  tasks, Rust, or TypeScript.</li>
+  doc of why you must read the per-language matrix, not the average. On the <strong>hard task it
+  scores 0.25</strong> (3/12) — occasionally nails all 12 capabilities, but not reliably. Rust and
+  TypeScript unqualified.</li>
 <li><strong>Qwen 80B local (<code>Qwen3-Coder-Next</code>) — the new best local <em>Python</em> stack; avoid it for
   Go.</strong> Over <strong>9 reps</strong> (exp-29 + exp-30) it is <strong>perfect on Python (9/9 = 1.00)</strong> — better
   than the 35B's 0.85 — so for local Python where reliability matters more than speed, this
   is now the pick (it is ~1.3× slower than the 35B). On <strong>Go it is only 0.67 (6/9)</strong>: not a
   one-off — <strong>two separate runs stalled to the 25-min wall</strong> (a real, intermittent
-  non-termination bug), plus one near-miss. So Go stays with the 35B (0.85, no stalls). Still
-  weak on TypeScript (0.33) and unqualified for Rust/hard tasks.</li>
+  non-termination bug), plus one near-miss. So Go stays with the 35B (0.85, no stalls). On the
+  <strong>hard task (exp-31) it scores 0.00</strong> (0/6) — it consistently gets ~10/12 capabilities (mean
+  0.83, <em>higher</em> than the 35B's 0.79) but <strong>never clears all 12</strong>, so no unattended hard-task
+  run comes out fully correct. Still weak on TypeScript (0.33), unqualified for Rust.</li>
 </ul>
 <blockquote>
 <p><strong>On the Opus 4.8 hard number.</strong> 0.59 is an honest blend: a small clean run scored 1.00

@@ -44,13 +44,20 @@ def test_leading_stacks_table_reports_per_task_reliability():
         ("experiment-10-brazil", "brazil-soccer-mcp", "python", "claude-fable-5",
          "BDD", 1.0, 9.0, 1000.0, None, 1.0, 1e6),
         _cloud_row("python", "claude-opus-4-8", 1.0, 0.9),
+        # A local (80B) hard-task run — the leading table shows the measured hard
+        # number (0.00 here), not a blanket "n/q".
+        ("experiment-31-brazil-80b", "brazil-soccer-mcp", "go",
+         "mlxlocal/mlx-community--Qwen3-Coder-Next-4bit", "none",
+         0.83, 0.0, 1600.0, None, 0.6, 5e6),
     ])
     out = opt.leading_stacks_table(conn)
     assert "Claude Fable 5" in out
-    assert "Qwen3.6-35B-A3B (local, $0)" in out
-    # Fable has a hard-task row -> both columns populated; a local row is n/q on hard.
+    assert "Qwen3-Coder-Next 80B (local, $0)" in out
     assert "1.00 · 1.00" in out
-    assert "n/q" in out
+    # 80B has one hard run scoring < 1.0 -> hard column shows 0.00 (measured), not n/q.
+    assert "0.00" in out
+    # The 35B has no hard run here -> its hard column is "—", never "n/q".
+    assert "n/q" not in out
 
 
 def test_per_language_matrix_shows_pass_and_n_per_cell():

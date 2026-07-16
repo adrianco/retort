@@ -75,13 +75,14 @@ number to actually decide on. (Hard reliability is single-task, measured on Pyth
 | **Claude Sonnet 5** | 1.00 · 0.93 | $1.10 · $7.64 | 237 s · 1252 s |
 | **Claude Opus 4.8** | 0.98 · 0.59 | $0.96 · $3.27 | 294 s · 608 s |
 | **Claude Opus 4.7** | 1.00 · 0.40 | $0.97 · $2.95 | 190 s · 500 s |
-| **Qwen3.6-35B-A3B (local, $0)** | 0.78 · n/q | $0.00 · — | 440 s · — |
-| **Qwen3-Coder-Next 80B (local, $0)** | 0.76 · n/q | $0.00 · — | 582 s · — |
+| **Qwen3.6-35B-A3B (local, $0)** | 0.78 · 0.25 | $0.00 · $0.00 | 440 s · 1542 s |
+| **Qwen3-Coder-Next 80B (local, $0)** | 0.76 · 0.00 | $0.00 · $0.00 | 582 s · 1647 s |
 <!-- GEN:leading-stacks END -->
 
 *(Table generated from `master.db` by `retort report optimal`
-— do not hand-edit between the markers.)* Local is measured on the routine task in its
-qualified languages (Python / Go, below); it is not qualified for hard tasks or for Rust.
+— do not hand-edit between the markers.)* Local routine numbers are the Python/Go qualified
+languages (below); **on the hard task local models are now measured and both do poorly** —
+35B **0.25**, 80B **0.00** (see the per-stack bullets). Rust local is unqualified.
 
 **Pick by task size — the two columns tell different stories:**
 
@@ -98,15 +99,18 @@ qualified languages (Python / Go, below); it is not qualified for hard tasks or 
 * **Qwen 35B local** does **routine** Python / Go for **$0** at **0.85 each** — its real
   niche. Its leading number (0.78) is *lower* than either language because the blend now
   includes its Rust and TypeScript runs, which score **0.00** — the clearest example in this
-  doc of why you must read the per-language matrix, not the average. Not qualified for hard
-  tasks, Rust, or TypeScript.
+  doc of why you must read the per-language matrix, not the average. On the **hard task it
+  scores 0.25** (3/12) — occasionally nails all 12 capabilities, but not reliably. Rust and
+  TypeScript unqualified.
 * **Qwen 80B local (`Qwen3-Coder-Next`) — the new best local *Python* stack; avoid it for
   Go.** Over **9 reps** (exp-29 + exp-30) it is **perfect on Python (9/9 = 1.00)** — better
   than the 35B's 0.85 — so for local Python where reliability matters more than speed, this
   is now the pick (it is ~1.3× slower than the 35B). On **Go it is only 0.67 (6/9)**: not a
   one-off — **two separate runs stalled to the 25-min wall** (a real, intermittent
-  non-termination bug), plus one near-miss. So Go stays with the 35B (0.85, no stalls). Still
-  weak on TypeScript (0.33) and unqualified for Rust/hard tasks.
+  non-termination bug), plus one near-miss. So Go stays with the 35B (0.85, no stalls). On the
+  **hard task (exp-31) it scores 0.00** (0/6) — it consistently gets ~10/12 capabilities (mean
+  0.83, *higher* than the 35B's 0.79) but **never clears all 12**, so no unattended hard-task
+  run comes out fully correct. Still weak on TypeScript (0.33), unqualified for Rust.
 
 > **On the Opus 4.8 hard number.** 0.59 is an honest blend: a small clean run scored 1.00
 > (n=6) while a larger one scored 0.50 (n=36). The optimistic single-run figure is not

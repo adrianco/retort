@@ -101,11 +101,12 @@ FEATURED_STACKS = [
         "cost_override": 0.0,  # local marginal cost is $0 regardless of logged value
     },
     {
-        # Qwen3-Coder-Next 80B at the correct sampling (exp-29 + exp-30, n=9 on py/go).
-        # Verdict: the BEST local Python stack (9/9 = 1.00, beats the 35B) but UNRELIABLE
-        # on Go (6/9 = 0.67 -- two runs stalled to the 25-min wall, a real intermittent
-        # non-termination bug). Featured so the per-language split is visible in the matrix.
-        # See docs/future-experiments.md exp-30.
+        # Qwen3-Coder-Next 80B at the correct sampling (exp-29 + exp-30 on py/go, n=9;
+        # exp-31 on the brazil hard task, n=6). Verdict: the BEST local Python stack
+        # (9/9 = 1.00, beats the 35B) but UNRELIABLE on Go (6/9 = 0.67 -- two runs stalled
+        # to the 25-min wall) and 0.00 on the hard task (consistently ~10/12 capabilities,
+        # never all 12). Featured so the per-language + hard split is visible in the tables.
+        # See docs/future-experiments.md exp-30/31.
         "name": "Qwen3-Coder-Next 80B (local, $0)",
         "short": "Qwen 80B local",
         "where": (
@@ -192,10 +193,14 @@ def leading_stacks_table(conn):
     for s in FEATURED_STACKS:
         r = metrics(conn, stack_where(s), ROUTINE_TASK)
         h = metrics(conn, stack_where(s), HARD_TASK)
-        # local is not qualified on hard tasks -> mark n/q rather than print a weak number
-        hard_pass = "n/q" if s["kind"] == "local" else fmt_pass(h)
-        hard_cost = "—" if s["kind"] == "local" else fmt_cost(s, h)
-        hard_sec = "—" if s["kind"] == "local" else fmt_sec(h)
+        # Show the measured hard-task number when we have runs; only mark "n/q"
+        # when a stack has genuinely never been run on the hard task. (Local
+        # stacks used to be blanket-n/q; the 35B has brazil-35b runs and the 80B
+        # has exp-31, so those now report real numbers — both poor, which is the
+        # point: local models approach but don't reliably clear hard tasks.)
+        hard_pass = fmt_pass(h)
+        hard_cost = fmt_cost(s, h)
+        hard_sec = fmt_sec(h)
         lines.append(
             f"| **{s['name']}** | {fmt_pass(r)} · {hard_pass} "
             f"| {fmt_cost(s, r)} · {hard_cost} "

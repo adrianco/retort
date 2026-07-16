@@ -219,7 +219,22 @@ stall was a one-off, and whether Python 1.00 holds. Also note the 80B ran with t
 correctly recorded in `stack.json` (the `stack_metadata()` fix), so it ingested with a real
 model id — no slug guessing.
 
-## exp-31 — the 80B on the HARD task (brazil), RUNNING
+## exp-31 DONE — the 80B on the HARD task (brazil)
+
+**Result (n=6, in master.db):** the 80B scored **0.00 pass (0/6)** on brazil — but with a
+**mean requirement_coverage of 0.83** (python 0.75/0.83/0.92, go 0.83/0.92 + 1 stall). It
+**consistently gets ~10/12 capabilities but never all 12**. Compare the 35B: **0.25 (3/12)**,
+mean 0.79 — *lower* average but it occasionally nails all 12. `reevaluate --force` re-confirmed
+every near-miss (genuine, not scorer artifacts).
+
+**Conclusion for the guide:** local models don't reliably clear hard tasks (0–25%). The 80B
+is *closer on average* than the 35B but *worse on pass-proportion* (the metric that matters
+for unattended runs). Hard tasks stay a cloud-frontier niche (Fable 5 = 1.00). The leading
+table now shows the measured local hard numbers instead of a blanket `n/q`. The **Go stall
+recurred here too** (go rep3 stalled to the wall) — the 80B's Go non-termination is
+task-independent.
+
+## exp-31 (superseded plan) — the 80B on the HARD task (brazil)
 
 **Intent:** fill the guide's clearest gap — local models are `n/q` on hard tasks. The 35B
 scored ~0.25 on brazil (exp-25/26). Does the bigger 80B, now the best local Python stack on
