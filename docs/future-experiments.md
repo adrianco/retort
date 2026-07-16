@@ -347,6 +347,12 @@ not run"); rust 0/2 (thrash / near-miss). exp-29 (the 80B, above) was the follow
 The 35B remains the **headline local result** and the production local stack for
 Python/Go; the 80B (exp-29) is a candidate that beat it only on Python.
 
+## exp-37 — 80B Python at 0.7 (complete the 0.7 featured stack) (RUNNING)
+
+Measure 80B Python at ctx 0.7 (was 1.00 at 0.35; never compacts, so expect ~1.00). With
+Python + Go both measured at 0.7, switch the featured 80B numbers to the recommended 0.7
+config. m80 + 0.7, python x6.
+
 ## exp-36 DONE — 80B Go promoted at context_threshold 0.7
 
 80B Go x6 at 0.7: 5/6 pass (rep5 a genuine near-miss 0.917), **0 stalls**. Combined with

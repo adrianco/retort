@@ -1,0 +1,35 @@
+# Experiment 37 — 80B Python at context_threshold 0.7 (complete the 0.7 featured stack).
+# Python was 1.00 at 0.35 and never reaches the compaction point, so 0.7 should be 1.00 too;
+# measuring it lets the featured 80B table move to the recommended 0.7 config (Python+Go).
+# Experiment 30 — more 80B reps on Python/Go. exp-29 (n=3) left the 80B a candidate:
+# python 1.00, go 0.67 (one rep stalled 25m to the wall). This adds reps to answer:
+# was the Go stall a one-off, and does Python 1.00 hold? Same tuned m80 stack as exp-29
+# (temp 0.7, top_p 0.95, top_k 40, rep 1.0, 256K). Design fixed via design.csv to exactly
+# {python, go} × hermes-local × neutral × m80 × 80B; run at 6 replicates.
+# Smoke-test the m80 preset takes effect before the full grid (CLAUDE.md principle).
+experiment:
+  name: experiment-37-py80b-07-bookshop
+  visibility: public
+factors:
+  language: { levels: [go, typescript] }
+  agent: { levels: [hermes-local, claude-code] }
+  prompt: { levels: [neutral, none] }
+  stack: { levels: [m80, m35] }        # design.csv pins m80; registry needs >=2 levels
+  model: { levels: ["mlxlocal/mlx-community--Qwen3-Coder-Next-4bit", "mlxlocal/Qwen3.6-35B-A3B"] }
+responses: [code_quality, token_efficiency, test_coverage, defect_rate, maintainability, idiomatic]
+tasks:
+  - source: bundled://rest-api-crud
+playpen:
+  runner: local
+  replicates: 6
+  timeout_minutes: 60
+  stall_minutes: 25
+  max_turns: 200
+  stack_presets: stacks.yaml
+  local_agents:
+    hermes-local: { harness: hermes, model: mlxlocal/mlx-community--Qwen3-Coder-Next-4bit }
+design: { screening_resolution: 3, significance_threshold: 0.10 }
+promotion:
+  screening_to_trial: { p_value: 0.10 }
+  trial_to_production: { posterior_confidence: 0.80 }
+evaluation: { enabled: true, model: opus-4.8 }
