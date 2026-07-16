@@ -219,6 +219,18 @@ stall was a one-off, and whether Python 1.00 holds. Also note the 80B ran with t
 correctly recorded in `stack.json` (the `stack_metadata()` fix), so it ingested with a real
 model id — no slug guessing.
 
+## exp-33 — TypeScript on the 80B, RUNNING
+
+**Intent:** TS local is a weak, thinly-sampled cell — 35B 0.00 (n=3), 80B 0.33 (n=3) — and
+the guide routes TS→cloud on that thin evidence. Re-test TS on the 80B (the leading local
+model) at 6 reps: is TS local genuinely hopeless, or just under-sampled? Fills/firms a guide
+cell.
+
+**Design:** typescript routine (bookshop) × m80 (80B) × neutral × 6 reps. Tuned m80 stack
+(proven), 60-min timeout. **Hypothesis:** TS lands ~0.3–0.5 (the 80B's TS is genuinely
+weaker than its Python) — confirming TS→cloud, now on firmer n. If it clears ~0.8, TS joins
+Python as a local-viable language on the 80B.
+
 ## exp-32 DONE — prompt-factor re-test on the 80B
 
 **Result (python routine, n=3/prompt):** the prompt is a **flat line on the 80B** — every
