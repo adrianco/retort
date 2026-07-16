@@ -347,7 +347,21 @@ not run"); rust 0/2 (thrash / near-miss). exp-29 (the 80B, above) was the follow
 The 35B remains the **headline local result** and the production local stack for
 Python/Go; the 80B (exp-29) is a candidate that beat it only on Python.
 
-## exp-37 — 80B Python at 0.7 (complete the 0.7 featured stack) (RUNNING)
+## exp-37 INCONCLUSIVE — 80B Python at 0.7 came out anomalous (likely serving degradation)
+
+Python x6 at 0.7 = **4/6**, with **2 fast all-zeros fails** (rep2, rep5; ~130s; diagnose
+GENUINE 'tests do not run on archived code'). This is NOT trustworthy: Python is **21/21 =
+1.00 at 0.35**, and 0.7 cannot mechanistically affect Python (it never reaches the ~92K/183K
+compaction point). The 4 clean cells all scored 1.00; the 2 fails are fast all-zeros. Most
+likely cause: **oMLX serving degradation after ~12h of continuous running this session** (or
+transient variance) — not a real 0.7 effect. Treated as the signal to STOP running on a
+possibly-degraded server rather than push through (per CLAUDE.md: don't trust muddy data).
+
+**Consequence:** the featured 80B numbers STAY at the 0.35 default (Python 1.00, clean). The
+Go promotion (exp-34/36, 0.89 clean) stands. **TODO: re-run Python-at-0.7 on a FRESH oMLX**
+(restart the server) to get a clean number and complete the 0.7 featured stack.
+
+
 
 Measure 80B Python at ctx 0.7 (was 1.00 at 0.35; never compacts, so expect ~1.00). With
 Python + Go both measured at 0.7, switch the featured 80B numbers to the recommended 0.7

@@ -117,7 +117,10 @@ FEATURED_STACKS = [
             "( experiment LIKE '%experiment-29%' OR model LIKE '%Qwen3-Coder-Next%' ) "
             # exp-34 and exp-36 are the context_threshold=0.7 runs (a different stack);
             # keep them out of the featured 0.35-default numbers. See the stall-fix callout.
-            "AND experiment NOT LIKE '%experiment-34%' AND experiment NOT LIKE '%experiment-36%'"
+            "AND experiment NOT LIKE '%experiment-34%' AND experiment NOT LIKE '%experiment-36%' "
+            # exp-37 (Python at 0.7) came out anomalous (2/6 fast all-zeros fails vs Python's
+            # clean 21/21 at 0.35; likely serving degradation after a long session) -- excluded.
+            "AND experiment NOT LIKE '%experiment-37%'"
         ),
         "kind": "local",
         "pass_bar": 0.50,
