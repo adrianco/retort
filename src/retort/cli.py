@@ -827,6 +827,33 @@ def run_experiments(
         engine.dispose()
         return
 
+    # Disk-space preflight. A run writes a fresh playpen per cell (a full app +
+    # its build tree — node_modules/target can be GB each) and the local serving
+    # layer keeps a paged-SSD KV cache that grows to its configured cap. On a
+    # near-full disk the agent's writes fail and the run scores false zeros
+    # (indistinguishable from an incapable model), or oMLX degrades. Fail fast.
+    import shutil as _shutil
+    _playpen_root = os.path.expanduser(
+        str(getattr(workspace_config.playpen, "playpen_root", "") or "~/.retort/work")
+    )
+    _probe = _playpen_root if os.path.isdir(_playpen_root) else os.path.expanduser("~")
+    _free_gb = _shutil.disk_usage(_probe).free / 2**30
+    if _free_gb < 15:
+        raise click.ClickException(
+            f"Low disk: only {_free_gb:.0f} GB free at {_probe}. An experiment writes "
+            f"large per-cell playpens and a growing serving cache; a near-full disk scores "
+            f"false zeros. Free space first (clear ~/.cache/omlx-ssd, ~/.retort/work, and "
+            f"thin local snapshots: `tmutil thinlocalsnapshots / 100000000000 4`), then re-run."
+        )
+    if _free_gb < 40:
+        click.echo(
+            f"⚠️  Disk preflight: {_free_gb:.0f} GB free at {_probe} — low; a long run may "
+            f"fill it (the oMLX paged-SSD cache grows to its cap). Consider clearing caches.",
+            err=True,
+        )
+    else:
+        click.echo(f"Disk preflight: {_free_gb:.0f} GB free — ok.")
+
     # Toolchain preflight — ensure the build/test toolchain each language factor
     # level needs is present, installing missing ones when enabled. Best-effort:
     # failures warn but never abort (scorers already skip on a missing tool), so

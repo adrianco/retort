@@ -261,6 +261,22 @@ timeout_minutes: 60             # a high wall: local models are slow, let good w
 stall_minutes:   25             # kill unproductive loops, not slow-but-productive runs
 ```
 
+**Operational — the local serving layer needs babysitting over long sessions:**
+
+* **Restart oMLX between long runs.** After many hours of continuous serving, oMLX quality
+  degrades — a normally-flawless language (Python is 21/21) starts throwing **fast
+  all-zeros fails** (the model emits garbage in ~2 min). These look like a real result but
+  are a serving artifact; the fix is to kill oMLX (the next run reloads a fresh server) — do
+  it before any run whose result you intend to trust, and treat a sudden cluster of
+  all-zeros on a reliable language as "restart the server," not "the model got worse."
+* **Watch the disk — the paged-SSD cache is a trap.** oMLX's `--paged-ssd-cache` grows to
+  its configured cap (a 120 GB default filled a 926 GB disk to 98% in one session) and, per
+  exp-24, **it doesn't help these generation-bound runs at all** — set the cap small
+  (~20 GB) or disable it. A full disk makes the agent's file writes fail → false zeros. On
+  macOS/APFS, deleting files isn't enough: hourly Time-Machine *local snapshots* pin the
+  freed blocks, so also `tmutil thinlocalsnapshots / 100000000000 4`. `retort run` now does
+  a **disk preflight** (aborts under 15 GB free, warns under 40 GB).
+
 ### Cloud: Claude Fable 5, Sonnet 5, Opus 4.8 / 4.7
 
 There is no single cloud winner — the pick is set by task size (see the tables above):
