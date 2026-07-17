@@ -57,13 +57,37 @@ for graph reads / MCP calls) — otherwise `graphify` is silently identical to `
 publish a false null. (4) Confirm token accounting captures the claimed savings.
 
 **Pairs with the incoming large-existing-codebase task.** A new retort task that *modifies a
-large existing codebase* is being added (user, 2026-07-17). That task is the natural home for
-this experiment: it's where a knowledge graph should help most, and where `none` (blind
-grepping) should struggle most. Build the two together — the task gives Graphify something to
-graph, and Graphify gives the task a reason to have the `tooling` factor. See
-[[incremental-experiments]]: add ONLY the new tooling level / task, don't re-run existing cells.
+large existing codebase* is being added (user, 2026-07-17). Decisions so far (user):
+- **Language: Python** — scores on the 80B/35B locally and on cloud; our strongest coverage.
+- **Scoring: BOTH** — (a) req-coverage over the *new* capabilities the modification must add,
+  layered on the seeded codebase, AND (b) a **no-regression gate**: the seed's existing test
+  suite must still pass. This is a new scorer shape vs bookshop (from-scratch spec only) — the
+  gate needs to run the pre-existing suite against the modified tree and fail on any breakage,
+  not just reward new features. Build/verify that regression gate before trusting results.
+
+That task is the natural home for this experiment: it's where a knowledge graph should help
+most, and where `none` (blind grepping) should struggle most. Build the two together — the
+task gives Graphify something to graph, and Graphify gives the task a reason to have the
+`tooling` factor. See [[incremental-experiments]]: add ONLY the new tooling level / task,
+don't re-run existing cells.
 
 ---
+
+## exp-39 — the 80B on the HARD task (brazil) at FULL CONTEXT 0.9 (RUNNING)
+
+exp-31 ran brazil on the 80B at ctx 0.7 → **0.00 pass** (mean req-cov 0.83, consistently
+~10/12 capabilities, never all 12). The guide currently calls the hard-task result
+"config-invariant." exp-38 disproved that assumption for TypeScript (full context 0.9 took it
+0.33 → 1.00), so **verify it for the hard task instead of assuming**: does keeping the whole
+working history through the long multi-capability MCP-server build let the 80B clear the last
+1-2 requirements? Design: `{python, go} × hermes-local × none × m80 × 80B`, n=3 = 6 cells, at
+`LCM_CONTEXT_THRESHOLD=0.9` (same env override verified in exp-38). SSD cache capped 120GB→5GB
+(exp-24: no benefit; protects a tight disk). **Hypothesis:** likely still poor — exp-38 showed
+the hard task's failures were near-misses, but going 10/12 → 12/12 is a capability step full
+context may not buy; if it moves 0.00→nonzero that's a notable local-on-hard result, if not it
+confirms hard is a genuine capability wall (context-independent). Either way, reconcile the
+guide's "config-invariant" claim with the measured 0.9 number. Launch-and-forget run while the
+Graphify/large-codebase task is assembled.
 
 ## Candidate models to test next (claim better than what we've run, and fit 64 GB)
 
