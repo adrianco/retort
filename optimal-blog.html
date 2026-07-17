@@ -547,10 +547,26 @@ stall_minutes:   25             # kill unproductive loops, not slow-but-producti
 <li><strong>Watch the disk — the paged-SSD cache is a trap.</strong> oMLX's <code>--paged-ssd-cache</code> grows to
   its configured cap (a 120 GB default filled a 926 GB disk to 98% in one session) and, per
   exp-24, <strong>it doesn't help these generation-bound runs at all</strong> — set the cap small
-  (~20 GB) or disable it. A full disk makes the agent's file writes fail → false zeros. On
-  macOS/APFS, deleting files isn't enough: hourly Time-Machine <em>local snapshots</em> pin the
-  freed blocks, so also <code>tmutil thinlocalsnapshots / 100000000000 4</code>. <code>retort run</code> now does
-  a <strong>disk preflight</strong> (aborts under 15 GB free, warns under 40 GB).</li>
+  (~5–20 GB) or disable it. A full disk makes the agent's file writes fail → false zeros.
+  <code>retort run</code> now does a <strong>disk preflight</strong> (aborts under 15 GB free, warns under 40 GB).</li>
+<li><strong>Configure Time Machine for a benchmarking box — or it will eat the disk.</strong> On macOS/APFS,
+  deleting a big cache doesn't free space if a Time-Machine <strong>local snapshot</strong> still pins the
+  freed blocks (an hourly cadence pinned ~93 GB of already-deleted oMLX cache in one session).
+  Two settings fix it, and everything large here is regenerable (models re-download from HF,
+  the repo state lives in git), so exclude it all from backups:
+  <code>sh
+  # exclude the big, regenerable, high-churn paths (‑p = sticky, survives recreation)
+  sudo tmutil addexclusion -p ~/.cache/omlx-ssd     # oMLX paged-SSD prefix cache
+  sudo tmutil addexclusion -p ~/.omlx/cache         # oMLX prefix-block cache
+  sudo tmutil addexclusion -p ~/models              # MLX weights (re-download from HF)
+  sudo tmutil addexclusion -p ~/.cache/huggingface  # HF download cache
+  sudo tmutil addexclusion -p ~/.retort/work        # per-run playpens (transient)
+  # reclaim space a snapshot is already pinning, now (df won't budge until you do):
+  sudo tmutil thinlocalsnapshots / 100000000000 4</code>
+  Also drop the snapshot cadence from <strong>hourly to daily</strong> (e.g. TimeMachineEditor) so cache
+  churn between runs can't pile up dozens of space-pinning snapshots. Exclusions shrink the
+  backup and per-snapshot delta; the daily cadence caps how many pin space at once; thinning
+  clears what's already stuck.</li>
 </ul>
 <h3 id="cloud-claude-fable-5-sonnet-5-opus-48-47">Cloud: Claude Fable 5, Sonnet 5, Opus 4.8 / 4.7</h3>
 <p>There is no single cloud winner — the pick is set by task size (see the tables above):

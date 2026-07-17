@@ -293,10 +293,27 @@ stall_minutes:   25             # kill unproductive loops, not slow-but-producti
 * **Watch the disk — the paged-SSD cache is a trap.** oMLX's `--paged-ssd-cache` grows to
   its configured cap (a 120 GB default filled a 926 GB disk to 98% in one session) and, per
   exp-24, **it doesn't help these generation-bound runs at all** — set the cap small
-  (~20 GB) or disable it. A full disk makes the agent's file writes fail → false zeros. On
-  macOS/APFS, deleting files isn't enough: hourly Time-Machine *local snapshots* pin the
-  freed blocks, so also `tmutil thinlocalsnapshots / 100000000000 4`. `retort run` now does
-  a **disk preflight** (aborts under 15 GB free, warns under 40 GB).
+  (~5–20 GB) or disable it. A full disk makes the agent's file writes fail → false zeros.
+  `retort run` now does a **disk preflight** (aborts under 15 GB free, warns under 40 GB).
+* **Configure Time Machine for a benchmarking box — or it will eat the disk.** On macOS/APFS,
+  deleting a big cache doesn't free space if a Time-Machine **local snapshot** still pins the
+  freed blocks (an hourly cadence pinned ~93 GB of already-deleted oMLX cache in one session).
+  Two settings fix it, and everything large here is regenerable (models re-download from HF,
+  the repo state lives in git), so exclude it all from backups:
+  ```sh
+  # exclude the big, regenerable, high-churn paths (‑p = sticky, survives recreation)
+  sudo tmutil addexclusion -p ~/.cache/omlx-ssd     # oMLX paged-SSD prefix cache
+  sudo tmutil addexclusion -p ~/.omlx/cache         # oMLX prefix-block cache
+  sudo tmutil addexclusion -p ~/models              # MLX weights (re-download from HF)
+  sudo tmutil addexclusion -p ~/.cache/huggingface  # HF download cache
+  sudo tmutil addexclusion -p ~/.retort/work        # per-run playpens (transient)
+  # reclaim space a snapshot is already pinning, now (df won't budge until you do):
+  sudo tmutil thinlocalsnapshots / 100000000000 4
+  ```
+  Also drop the snapshot cadence from **hourly to daily** (e.g. TimeMachineEditor) so cache
+  churn between runs can't pile up dozens of space-pinning snapshots. Exclusions shrink the
+  backup and per-snapshot delta; the daily cadence caps how many pin space at once; thinning
+  clears what's already stuck.
 
 ### Cloud: Claude Fable 5, Sonnet 5, Opus 4.8 / 4.7
 
