@@ -347,16 +347,46 @@ not run"); rust 0/2 (thrash / near-miss). exp-29 (the 80B, above) was the follow
 The 35B remains the **headline local result** and the production local stack for
 Python/Go; the 80B (exp-29) is a candidate that beat it only on Python.
 
-## exp-38 — the FULL 9-language suite on the 80B at FULL CONTEXT (RUNNING)
+## exp-38 DONE — full 9-language 80B at full context: TypeScript UNLOCKED, config promoted to 0.9
 
-Extend the compaction-threshold win to EVERY language. The 80B is only characterized on
-python/go/ts at 0.7; Rust and the niche languages (clojure/java/csharp/elixir/erlang) are
-untested at any high-threshold config. Run all 9 bookshop languages on the 80B at **full
-context** — `LCM_CONTEXT_THRESHOLD=0.9` (compact at ~236K of 262144, vs the promoted 0.7's
-~183K) — 3 reps = 27 cells. Verified 0.9 resolves via `LCMConfig.from_env`; fresh oMLX +
-clean disk (after the exp-37 degradation). **Question:** does full context unlock Rust /
-the niche languages on the 80B, or are those genuine capability gaps? Excluded from the
-featured stack (a distinct 0.9 config) pending results.
+Ran all 9 bookshop languages on the 80B at **full context** (`LCM_CONTEXT_THRESHOLD=0.9`,
+compact at ~236K of 262144), 3 reps = 27 cells. Results (pass = req-coverage ≥ 1.0, n=3):
+
+| Language | pass | mean req-cov | verdict |
+|---|---|---|---|
+| python | **3/3** | 1.00 | reliable local |
+| go | **3/3** | 1.00 | reliable local |
+| typescript | **3/3** | 1.00 | **NEWLY reliable local (was 0.33 at 0.35/0.7)** |
+| rust | 1/3 | 0.94 | near-misses → cloud |
+| java | 0/3 | 0.25 | near-miss → cloud |
+| erlang | 0/3 | 0.19 | → cloud |
+| clojure | 0/3 | 0.00 | GENUINE all-zeros → cloud |
+| csharp | 0/3 | 0.00 | GENUINE all-zeros → cloud |
+| elixir | 0/3 | 0.00 | GENUINE all-zeros → cloud |
+
+**Headline: full context unlocks TypeScript** — 0.33 → 3/3. At 0.9 the agent keeps its whole
+working history through the longer TS build instead of being compacted mid-stream. Python and
+Go stay 3/3, so **0.9 is now the recommended 80B config** (featured stack `where` = exp-38 +
+exp-31 for the hard column; the 0.7 runs remain the larger-n Go evidence and the proof the
+lever is graded 0.35→0.7→0.9).
+
+**Rust is NOT a stall anymore, it's a near-miss (still → cloud).** rep2/rep3 first logged as
+all-zeros, but `retort diagnose` flagged them TOOLING; `rescore` showed the archived Rust
+compiles and its tests pass 100%; `reevaluate` gave the true spec-gate scores 0.92/0.92 — it
+just misses 1–2 requirements. So Rust at full context = 1/3 genuine near-misses, a better
+characterization than the old thrash-to-the-wall. (Process lesson: an all-zeros cell on a
+capable language ⇒ run diagnose+rescore before believing it; 4 of exp-38's 17 fails were
+scorer tooling false-failures.)
+
+**Niche languages are genuine gaps.** clojure/csharp/elixir score a hard 0.00 (diagnosed
+GENUINE — cannot produce working code); java/erlang near-miss but never clear the gate. All
+→ cloud.
+
+**Generator change:** added a per-stack `routine_scope` so the leading-stacks headline is
+scoped to a local stack's recommended languages (35B: python/go; 80B: python/go/ts) — without
+it, exp-38's 5 niche failures would drag the 80B's decision-table number to ~0.37 and wrongly
+rank it below the 35B, which it beats on every shared language. The per-language matrix stays
+unscoped and shows the rust/niche 0.00s in full. Guide + HTML + memory reconciled.
 
 ## exp-37 DONE — 80B Python at 0.7 = 1.00 (the anomaly WAS serving degradation)
 

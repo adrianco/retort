@@ -60,6 +60,36 @@ def test_leading_stacks_table_reports_per_task_reliability():
     assert "n/q" not in out
 
 
+def test_routine_scope_limits_leading_aggregate_not_matrix(monkeypatch):
+    """A local stack's leading-table headline is scoped to its recommended languages,
+    but the per-language matrix stays unscoped (still shows the failing languages)."""
+    # A local stack that aces python but flunks a niche language it shouldn't be used for.
+    stack = {
+        "name": "Local Test 80B",
+        "short": "Local 80B",
+        "where": "experiment LIKE '%exp-test%'",
+        "kind": "local",
+        "pass_bar": 0.50,
+        "cost_override": 0.0,
+        "routine_scope": ["python"],
+    }
+    monkeypatch.setattr(opt, "FEATURED_STACKS", [stack])
+    conn = _db([
+        ("exp-test", "rest-api-crud", "python", "", "none", 1.0, 0.0, 300.0, None, 1.0, 1e6),
+        ("exp-test", "rest-api-crud", "python", "", "none", 1.0, 0.0, 300.0, None, 1.0, 1e6),
+        ("exp-test", "rest-api-crud", "clojure", "", "none", 0.0, 0.0, 300.0, None, 0.0, 1e6),
+        ("exp-test", "rest-api-crud", "clojure", "", "none", 0.0, 0.0, 300.0, None, 0.0, 1e6),
+    ])
+    # Leading table: scoped to python only -> 1.00, NOT the 0.50 all-language blend.
+    lead = opt.leading_stacks_table(conn)
+    assert "1.00 ·" in lead
+    assert "0.50 ·" not in lead
+    # Matrix: unscoped -> the clojure 0.00 row is still visible.
+    matrix = opt.per_language_matrix(conn)
+    assert "| **clojure** | 0.00 (2) |" in matrix
+    assert "| **python** | 1.00 (2) |" in matrix
+
+
 def test_per_language_matrix_shows_pass_and_n_per_cell():
     conn = _db([
         _cloud_row("python", "claude-opus-4-8", 1.0, 0.5),

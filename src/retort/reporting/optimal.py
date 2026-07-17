@@ -102,26 +102,43 @@ FEATURED_STACKS = [
         "kind": "local",
         "pass_bar": 0.50,
         "cost_override": 0.0,  # local marginal cost is $0 regardless of logged value
+        # Headline aggregate scoped to the languages this stack is RECOMMENDED for
+        # (python/go). Rust (0.00) and TS (0.00) failed here and go to cloud; leaving
+        # them in the aggregate would understate the stack on the work it's actually
+        # for. The per-language matrix stays unscoped and shows those 0.00s in full.
+        "routine_scope": ["python", "go"],
     },
     {
-        # Qwen3-Coder-Next 80B at the RECOMMENDED lcm context_threshold 0.7 (see the stall-fix
-        # callout). The 0.35 default suffered an intermittent compaction stall that dragged Go
-        # down and hid the real numbers; at 0.7 the stalls are gone. Featured on the 0.7 runs:
-        #   routine  -> exp-34/36 (Go 0.89, n=9), exp-37 (Python 1.00, n=6), exp-34 (TS 0.33)
-        #   hard     -> exp-31 (brazil, 0.00) -- config-INVARIANT here, its failures were
-        #               near-misses not stalls, so 0.7 wouldn't change them.
-        # The older 0.35 routine runs (exp-29/30/32/33) are intentionally NOT featured now
-        # that the recommended config has moved to 0.7. See docs/future-experiments.md
-        # exp-34/36/37.
-        "name": "Qwen3-Coder-Next 80B (local, $0, ctx 0.7)",
+        # Qwen3-Coder-Next 80B at the RECOMMENDED lcm context_threshold 0.9 ("full context").
+        # exp-38 is the clean full-9-language baseline at 0.9 (n=3/language, one experiment):
+        #   routine  -> python 3/3, go 3/3, TYPESCRIPT 3/3 (all 1.00) -- TS is the unlock: it
+        #               was 0.33 at ctx 0.35/0.7, and full context makes it reliable.
+        #               rust 1/3 (rep2/rep3 are near-misses 0.92/0.83 -- their archived code
+        #               compiles and tests pass 100%, they just miss 1-2 spec reqs; NOT stalls,
+        #               confirmed via `retort diagnose`+`rescore`+`reevaluate`. Rust -> cloud.
+        #               java/erlang 0/3 near-misses; clojure/csharp/elixir 0/3 GENUINE all-zeros
+        #               (cannot produce working code). Niche languages -> cloud.
+        #   hard     -> exp-31 (brazil, 0.00) -- config-INVARIANT (near-misses, not stalls;
+        #               exp-38 did not run the hard task, so the hard column reuses exp-31).
+        # The 0.7 runs (exp-34/36/37) proved the stall-fix and are the larger-n Go evidence
+        # (0.89, n=9); they are the recommended-config PREDECESSOR and now live in the
+        # narrative, not the featured numbers. 0.35 runs (exp-29/30/32/33) are the original
+        # stall-bound baseline. See docs/future-experiments.md exp-38.
+        "name": "Qwen3-Coder-Next 80B (local, $0, ctx 0.9)",
         "short": "Qwen 80B local",
         "where": (
-            "( experiment LIKE '%experiment-34%' OR experiment LIKE '%experiment-36%' "
-            "OR experiment LIKE '%experiment-37%' OR experiment LIKE '%experiment-31%' )"
+            "( experiment LIKE '%experiment-38%' OR experiment LIKE '%experiment-31%' )"
         ),
         "kind": "local",
         "pass_bar": 0.50,
         "cost_override": 0.0,
+        # Headline aggregate scoped to the 80B's RECOMMENDED languages (python/go/ts,
+        # each 3/3=1.00 at ctx 0.9). exp-38 also ran rust (1/3) and 5 niche languages
+        # (0/3) that go to cloud; averaging them in would drag the decision-table number
+        # to ~0.37 and wrongly rank the 80B below the 35B, which it beats on every shared
+        # language. The per-language matrix stays unscoped and shows rust + the niche
+        # 0.00s in full.
+        "routine_scope": ["python", "go", "typescript"],
     },
 ]
 
@@ -152,13 +169,27 @@ def stack_where(s):
     return f"model IN ({lits})"
 
 
-def metrics(conn, where, task, language=None):
-    """n, pass-proportion, avg cost, avg seconds for a selection on one task."""
+def metrics(conn, where, task, language=None, languages=None):
+    """n, pass-proportion, avg cost, avg seconds for a selection on one task.
+
+    `language` restricts to a single language (used by the per-language matrix).
+    `languages` (a list) restricts to a set — used by the leading-stacks table to
+    scope a local stack's HEADLINE aggregate to the languages it is recommended for
+    (`routine_scope`), so a full-suite experiment that also probed languages the
+    stack can't do (and which you'd send to cloud) doesn't drag the decision-table
+    number below a stack that was simply never tried on those hard languages. The
+    per-language matrix stays UNSCOPED, so the raw per-language truth (incl. the
+    niche 0.00s) is always visible for scrutiny.
+    """
     clause = f"({where}) AND task = ? AND {BASE_FILTER}"
     params = [task]
     if language is not None:
         clause += " AND language = ?"
         params.append(language)
+    if languages:
+        placeholders = ",".join("?" for _ in languages)
+        clause += f" AND language IN ({placeholders})"
+        params.extend(languages)
     row = q(
         conn,
         f"""
@@ -198,7 +229,7 @@ def leading_stacks_table(conn):
         "|---|---:|---:|---:|",
     ]
     for s in FEATURED_STACKS:
-        r = metrics(conn, stack_where(s), ROUTINE_TASK)
+        r = metrics(conn, stack_where(s), ROUTINE_TASK, languages=s.get("routine_scope"))
         h = metrics(conn, stack_where(s), HARD_TASK)
         # Show the measured hard-task number when we have runs; only mark "n/q"
         # when a stack has genuinely never been run on the hard task. (Local
