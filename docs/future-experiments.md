@@ -14,6 +14,57 @@ pointers.
 
 ---
 
+## Tooling factor — add **Graphify** (code knowledge graph) as a third level (PLANNED)
+
+The `tooling` factor currently has two levels: **`none`** (the agent gets no extra
+scaffolding) and **`beads`** (beads task-tracking instructions are appended to the agent
+prompt; needs the `bd` CLI — see docs/configuration.md). Add a third level: **`graphify`**.
+
+**What Graphify is.** A knowledge-graph skill for AI coding assistants
+([graphify.com](https://graphify.com/), [GitHub](https://github.com/Graphify-Labs/graphify)).
+It uses Tree-sitter static analysis + LLM semantic extraction to turn an existing
+repository — source, SQL schemas, scripts, docs, notebooks — into a **queryable graph**.
+Outputs land in `graphify-out/`: `graph.json` (the full graph, queryable without re-reading
+files), `GRAPH_REPORT.md` (key concepts / surprising connections / suggested questions), and
+`graph.html` (interactive). It runs Leiden community clustering and flags **god-nodes**
+(highest betweenness-centrality — the files whose change has the widest blast radius). The
+pitch: the agent answers questions about *relationships* instead of grepping snippets, at
+much lower token cost (vendor claims **71.5× fewer tokens/query** on a 52-file mixed corpus).
+
+**Hypothesis (why it's task-dependent).** Graphify's entire value is *comprehending an
+existing large codebase*. On **bookshop** — a small greenfield CRUD the agent writes from
+scratch — there is no prior graph to consult, so `graphify` should be a **no-op or slightly
+negative** (build overhead, extra prompt tokens, nothing to query). It should start to pay
+off on **brazil-bench** (the HARD multi-capability MCP server, 12 requirements spread across
+files) and, most of all, on the **large-existing-codebase task** now being built for retort
+(see below) — exactly the regime (many files, cross-cutting facts) Graphify targets. So this
+is the first factor we expect to interact strongly with **task size**, not to move the mean.
+
+**Design.** `task × tooling{none, beads, graphify}`, on **brazil-bench + the new
+large-codebase task** (skip bookshop, or include one bookshop arm only as the negative
+control that shows graphify doesn't help small greenfield work). Hold model fixed at a strong
+stack first (cloud Opus/Fable to isolate the *tooling* effect from local capability noise),
+then repeat on the local 80B once the cloud signal is known. n≥3/cell; pass = req-coverage.
+
+**Plumbing to build + VERIFY first (CLAUDE.md discipline — a set-but-unverified tool is
+worse than none).** (1) A pre-run hook that builds `graphify-out/` in the playpen *before*
+the agent starts (Graphify needs an API key for the LLM-extraction pass — record it in
+provenance, keep it out of the repo). (2) Expose the graph to the agent as the `graphify`
+tooling level does its prompt injection — either mount `graph.json` + `GRAPH_REPORT.md` and
+add instructions to consult them, or wire the Graphify MCP/skill so the agent can *query* the
+graph live. (3) **Smoke test that the agent actually consults the graph** (grep the transcript
+for graph reads / MCP calls) — otherwise `graphify` is silently identical to `none` and we'd
+publish a false null. (4) Confirm token accounting captures the claimed savings.
+
+**Pairs with the incoming large-existing-codebase task.** A new retort task that *modifies a
+large existing codebase* is being added (user, 2026-07-17). That task is the natural home for
+this experiment: it's where a knowledge graph should help most, and where `none` (blind
+grepping) should struggle most. Build the two together — the task gives Graphify something to
+graph, and Graphify gives the task a reason to have the `tooling` factor. See
+[[incremental-experiments]]: add ONLY the new tooling level / task, don't re-run existing cells.
+
+---
+
 ## Candidate models to test next (claim better than what we've run, and fit 64 GB)
 
 Fit budget: ~56 GB wired GPU → **~45 GB weight ceiling** (leaving room for KV +
