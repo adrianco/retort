@@ -73,21 +73,29 @@ don't re-run existing cells.
 
 ---
 
-## exp-39 — the 80B on the HARD task (brazil) at FULL CONTEXT 0.9 (RUNNING)
+## exp-39 DONE — hard task is config-invariant (VERIFIED): 0/6 at 0.9, same as 0.7
 
-exp-31 ran brazil on the 80B at ctx 0.7 → **0.00 pass** (mean req-cov 0.83, consistently
-~10/12 capabilities, never all 12). The guide currently calls the hard-task result
-"config-invariant." exp-38 disproved that assumption for TypeScript (full context 0.9 took it
-0.33 → 1.00), so **verify it for the hard task instead of assuming**: does keeping the whole
-working history through the long multi-capability MCP-server build let the 80B clear the last
-1-2 requirements? Design: `{python, go} × hermes-local × none × m80 × 80B`, n=3 = 6 cells, at
-`LCM_CONTEXT_THRESHOLD=0.9` (same env override verified in exp-38). SSD cache capped 120GB→5GB
-(exp-24: no benefit; protects a tight disk). **Hypothesis:** likely still poor — exp-38 showed
-the hard task's failures were near-misses, but going 10/12 → 12/12 is a capability step full
-context may not buy; if it moves 0.00→nonzero that's a notable local-on-hard result, if not it
-confirms hard is a genuine capability wall (context-independent). Either way, reconcile the
-guide's "config-invariant" claim with the measured 0.9 number. Launch-and-forget run while the
-Graphify/large-codebase task is assembled.
+exp-31 ran brazil on the 80B at ctx 0.7 → 0.00 (mean req-cov 0.83). The guide *assumed* the
+hard-task result was config-invariant; exp-38 had just disproved that assumption for TypeScript
+(0.33 → 1.00 at full context), so this **verifies it for the hard task instead of assuming**.
+Design: `{python, go} × none × m80 × 80B`, n=3 = 6 cells at `LCM_CONTEXT_THRESHOLD=0.9`; SSD
+cache capped 120GB→5GB (exp-24: no benefit; protects a tight disk). Diagnose+rescore+reevaluate
+applied (4 of 6 fails were scorer TOOLING false-failures — same lesson as exp-38).
+
+**Result: 0/6 pass, same as exp-31 at 0.7 → config-invariance CONFIRMED.**
+- **python 0/3**, mean req-cov 0.75 — rep1 **0.917 (11/12, the closest any local run has come)**,
+  rep2 0.75, rep3 0.583. Near-misses, same profile as exp-31; full context does not clear the
+  last 1-2 capabilities.
+- **go 0/3**, mean 0.22 — rep1 genuine fail, rep2 0.667, **rep3 STALLED** (killed at 25-min
+  no-progress). Go actually *regressed* vs 0.7: at 0.9 a run that can't finish thrashes longer
+  (the same late-compaction downside seen on exp-38's rust rep2). So full context's cost lands
+  exactly where the model is already weak.
+
+**Takeaway:** full context (0.9) is strictly a lever for the *easy* languages (it unlocked TS,
+holds Python/Go) and does **not** raise the hard-task ceiling — if anything it hurts the hard
+task's weak language via stalls. The guide's "config-invariant" claim is now measured, not
+assumed. Featured 80B hard column swapped exp-31 (0.7) → exp-39 (0.9) for config-purity (both
+0.00). Guide + HTML + memory reconciled.
 
 ## Candidate models to test next (claim better than what we've run, and fit 64 GB)
 

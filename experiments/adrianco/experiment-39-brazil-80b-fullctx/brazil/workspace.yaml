@@ -1,0 +1,35 @@
+# Experiment 39 — the 80B (Qwen3-Coder-Next) on the HARD task (brazil-soccer-mcp) at
+# FULL CONTEXT (LCM_CONTEXT_THRESHOLD=0.9). exp-31 ran brazil at ctx 0.7 and scored 0.00
+# (mean req-cov 0.83, ~10/12, never all 12). exp-38 showed full context is NOT
+# config-invariant (it unlocked TypeScript 0.33->1.00), so re-test the hard task at 0.9:
+# does keeping the whole working history through the long MCP-server build get the last
+# 1-2 capabilities? Same tuned m80 stack (temp 0.7, top_p 0.95, top_k 40, rep 1.0, 256K),
+# prompt=none (guide prescribes BDD), 60-min timeout, n=3. SSD cache capped at 5GB (was
+# 120GB; exp-24 proved it gives no benefit and it would fill a tight disk). Design pinned
+# via design.csv to {python, go} × hermes-local × none × m80 × 80B = 6 cells.
+experiment:
+  name: experiment-39-brazil-80b-fullctx-brazil
+  visibility: public
+factors:
+  language: { levels: [python, go] }
+  agent: { levels: [hermes-local, claude-code] }
+  prompt: { levels: [none, neutral] }   # design pins 'none'; registry needs >=2 levels
+  stack: { levels: [m80, m35] }
+  model: { levels: ["mlxlocal/mlx-community--Qwen3-Coder-Next-4bit", "mlxlocal/Qwen3.6-35B-A3B"] }
+responses: [code_quality, token_efficiency, test_coverage, defect_rate, maintainability, idiomatic]
+tasks:
+  - source: github://brazil-bench/benchmark-template/brazilian-soccer-mcp-guide.md
+playpen:
+  runner: local
+  replicates: 3
+  timeout_minutes: 60
+  stall_minutes: 25
+  max_turns: 200
+  stack_presets: stacks.yaml
+  local_agents:
+    hermes-local: { harness: hermes, model: mlxlocal/mlx-community--Qwen3-Coder-Next-4bit }
+design: { screening_resolution: 3, significance_threshold: 0.10 }
+promotion:
+  screening_to_trial: { p_value: 0.10 }
+  trial_to_production: { posterior_confidence: 0.80 }
+evaluation: { enabled: true, model: opus-4.8 }

@@ -118,16 +118,19 @@ FEATURED_STACKS = [
         #               confirmed via `retort diagnose`+`rescore`+`reevaluate`. Rust -> cloud.
         #               java/erlang 0/3 near-misses; clojure/csharp/elixir 0/3 GENUINE all-zeros
         #               (cannot produce working code). Niche languages -> cloud.
-        #   hard     -> exp-31 (brazil, 0.00) -- config-INVARIANT (near-misses, not stalls;
-        #               exp-38 did not run the hard task, so the hard column reuses exp-31).
-        # The 0.7 runs (exp-34/36/37) proved the stall-fix and are the larger-n Go evidence
-        # (0.89, n=9); they are the recommended-config PREDECESSOR and now live in the
-        # narrative, not the featured numbers. 0.35 runs (exp-29/30/32/33) are the original
-        # stall-bound baseline. See docs/future-experiments.md exp-38.
+        #   hard     -> exp-39 (brazil at the SAME 0.9 config, 0/6) -- config-INVARIANT is now
+        #               VERIFIED, not assumed: exp-31 was 0/6 at 0.7, exp-39 is 0/6 at 0.9, so
+        #               full context doesn't crack the hard task (python best 11/12; go actually
+        #               regressed via a stall -- the late-compaction downside on a non-finishing
+        #               run). Hard column uses exp-39 for 0.9 config-purity (exp-38 ran no hard).
+        # The 0.7 runs (exp-34/36/37, and exp-31 hard) proved the stall-fix and are the larger-n
+        # evidence; they are the recommended-config PREDECESSOR and now live in the narrative,
+        # not the featured numbers. 0.35 runs (exp-29/30/32/33) are the original stall-bound
+        # baseline. See docs/future-experiments.md exp-38/39.
         "name": "Qwen3-Coder-Next 80B (local, $0, ctx 0.9)",
         "short": "Qwen 80B local",
         "where": (
-            "( experiment LIKE '%experiment-38%' OR experiment LIKE '%experiment-31%' )"
+            "( experiment LIKE '%experiment-38%' OR experiment LIKE '%experiment-39%' )"
         ),
         "kind": "local",
         "pass_bar": 0.50,

@@ -76,7 +76,7 @@ number to actually decide on. (Hard reliability is single-task, measured on Pyth
 | **Claude Opus 4.8** | 0.98 · 0.59 | $0.96 · $3.27 | 294 s · 608 s |
 | **Claude Opus 4.7** | 1.00 · 0.40 | $0.97 · $2.95 | 190 s · 500 s |
 | **Qwen3.6-35B-A3B (local, $0)** | 0.85 · 0.25 | $0.00 · $0.00 | 365 s · 1542 s |
-| **Qwen3-Coder-Next 80B (local, $0, ctx 0.9)** | 1.00 · 0.00 | $0.00 · $0.00 | 604 s · 1647 s |
+| **Qwen3-Coder-Next 80B (local, $0, ctx 0.9)** | 1.00 · 0.00 | $0.00 · $0.00 | 604 s · 2014 s |
 <!-- GEN:leading-stacks END -->
 
 *(Table generated from `master.db` by `retort report optimal`
@@ -116,9 +116,13 @@ per-stack bullets). Rust local is unqualified (80B 0.33, near-misses).
   tooling false-failures and recovered their true near-miss scores). The other five languages
   → cloud: java/erlang are near-misses (0/3), and **clojure/csharp/elixir score a genuine
   0.00** — they can't produce working code at all (diagnosed GENUINE, not harness). On the
-  **hard task it scores 0.00** — consistently ~10/12 capabilities (mean 0.83, *higher* than
-  the 35B's 0.79) but **never all 12**. Rule: **80B for local Python, Go and TypeScript (at
-  `context_threshold: 0.9`); Rust, the niche languages, and hard tasks → cloud.**
+  **hard task it scores 0.00, and that is now *verified* config-invariant** — re-run at full
+  context (exp-39, brazil at 0.9) it is still **0/6**, same as 0.7 (exp-31): Python gets as
+  close as **11/12** but never all 12, and Go actually *regresses* (a stall — the same
+  late-compaction downside that bites any run that can't finish). So full context is strictly
+  for the easy languages; it does not raise the hard-task ceiling. Rule: **80B for local
+  Python, Go and TypeScript (at `context_threshold: 0.9`); Rust, the niche languages, and hard
+  tasks → cloud.**
 
 > **The 80B's stall was a fixable config artifact, not a capability wall — and raising the
 > compaction threshold is a graded lever, not a switch.** The intermittent hang was lcm
@@ -140,7 +144,8 @@ per-stack bullets). Rust local is unqualified (80B 0.33, near-misses).
 > tokens on a failed Rust/niche cell) — but those languages go to cloud anyway, so it doesn't
 > touch the recommended Python/Go/TS path. (The same lever only *partly* rescues the 35B on
 > Rust — exp-35: first-ever Rust pass at 0.7, but 2/3 still stall. And it doesn't help the hard
-> task, whose failures are near-misses, not hangs.)
+> task: exp-39 re-ran brazil at 0.9 and got the same 0/6 as 0.7, with Go now hitting the
+> late-compaction stall — full context helps the easy languages, not the hard ceiling.)
 >
 > **The same lever partly explains the "Rust wall" — but only partly.** At 0.35 the 35B
 > thrashes to the wall on *every* Rust run (clean 0.00). At 0.7 it scored its **first-ever

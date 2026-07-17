@@ -45,8 +45,9 @@ def test_leading_stacks_table_reports_per_task_reliability():
          "BDD", 1.0, 9.0, 1000.0, None, 1.0, 1e6),
         _cloud_row("python", "claude-opus-4-8", 1.0, 0.9),
         # A local (80B) hard-task run — the leading table shows the measured hard
-        # number (0.00 here), not a blanket "n/q".
-        ("experiment-31-brazil-80b", "brazil-soccer-mcp", "go",
+        # number (0.00 here), not a blanket "n/q". Uses the featured 0.9 hard
+        # experiment (exp-39; the featured 80B where is exp-38 routine + exp-39 hard).
+        ("experiment-39-brazil-80b-fullctx", "brazil-soccer-mcp", "go",
          "mlxlocal/mlx-community--Qwen3-Coder-Next-4bit", "none",
          0.83, 0.0, 1600.0, None, 0.6, 5e6),
     ])
