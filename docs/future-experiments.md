@@ -97,6 +97,7 @@ MoE, ~3B active, ~18–20 GB Q4).
 
 | Model | Size (total/active) | Fit on 64 GB (MLX) | Claim vs ours | Tool format |
 |---|---|---|---|---|
+| **[Ornith-1.0-35B](https://huggingface.co/deepreinforce-ai/Ornith-1.0-35B) (35B-A3B MoE)** ⭐ **QUEUED — like-for-like vs our production 35B** | 35B / ~3B active MoE | **5-bit MLX ≈ ~25 GB** ([leonsarmiento build](https://huggingface.co/leonsarmiento/Ornith-1.0-35B-5bit-mlx)) — fits easily | DeepReinforce AI; **RL agentic-coding fine-tune of Qwen3.5-35B-A3B** (jointly optimizes scaffold + solution rollouts). MIT. Social claim: 77.5 terminal-bench ≈ Opus 4.7 — **hype, measure it** | **Qwen3.5-based → same `<tool_call>` format oMLX already parses.** MLX build confirmed. Low serving risk |
 | **[Agents-A1](https://huggingface.co/InternScience/Agents-A1) (35B MoE)** ⭐ **QUEUED — next new model** | 35B MoE (active n/s) | 4-bit ≈ **~20 GB** — fits easily | InternScience; **agent-tuned** (native function calling, 262K ctx, long-horizon/engineering/science). SciCode 44.3 | **`qwen3_coder` tool parser → Qwen-style, so oMLX should parse it natively.** MLX quants exist. Zero serving risk (unlike Devstral) |
 | **Qwen3-Coder-Next (80B-A3B)** | 80B / 3B MoE | 4-bit ≈ **44.8 GB** (tight; reduce ctx) or 3-bit ≈ **34 GB** (comfortable) | "~96% of the 480B flagship"; "comparable to 10–20× more active params" | **Same Qwen `<tool_call>` format oMLX already parses** — zero new integration risk |
 | ~~**Devstral Small 2 (24B)**~~ **BLOCKED** | 24B dense | ~14 GB Q4 — fits fine | 68% SWE-bench; agent-tuned | **oMLX does NOT parse Devstral's Mistral `[TOOL_CALLS]` format** (it emits the call as text; Hermes executes nothing — gate-probe on `mlx-community/Devstral-Small-2507-4bit` confirmed). Same wall as exp-12. Would need a different serving layer (vLLM with the mistral tool parser, or llama.cpp with the right template). |
@@ -107,11 +108,51 @@ MoE, ~3B active, ~18–20 GB Q4).
 tops open SWE-Bench Pro but no chance), GLM-4.6 (355B), DeepSeek-V4-Pro,
 Kimi K2.6, Qwen3-Coder-480B.
 
-**Recommendation:** add **Qwen3-Coder-Next (80B-A3B)** first — the bigger sibling
-of what we've run, same architecture/tool-format, strongest fitting quality
-claim. Direct "80B vs 35B, same stack" comparison: does doubling the model crack
-Rust / raise the 0.38 ceiling? Optionally add **Devstral Small 2** as a cheap
-second arm (different bet: agent-tuned, not just bigger).
+**Recommendation (updated 2026-07-17):** Qwen3-Coder-Next 80B is **done** (now the featured
+local stack at ctx 0.9 — python/go/ts 1.00; see exp-29..38). The top queued NEW model is now
+**Ornith-1.0-35B** — a like-for-like RL agentic-coding fine-tune of Qwen3.5-35B-A3B with a
+confirmed MLX build, so it isolates *tuning* from size/architecture against our production 35B
+(details below). **Agents-A1** is the second agent-tuned candidate. Both answer the same
+question — "does an agentic-coding tune beat the vanilla Qwen MoE on our tasks?" — Ornith first
+because its Qwen base means lower serving risk. Devstral stays BLOCKED (Mistral tool format).
+
+### Ornith-1.0-35B — queued (like-for-like agentic fine-tune vs our production 35B)
+
+Flagged by a contact as "a tuned Qwen worth testing" (user, 2026-07-17); confirmed on the
+[HF card](https://huggingface.co/deepreinforce-ai/Ornith-1.0-35B). The cleanest new-model
+head-to-head we can run, because it's **the same architecture as our production local stack**:
+a **35B-A3B MoE fine-tuned from Qwen3.5-35B-A3B** by DeepReinforce AI, RL-tuned specifically
+for **agentic coding** (their framework jointly optimizes the scaffold and the solution
+rollouts). MIT-licensed. An [MLX 5-bit build](https://huggingface.co/leonsarmiento/Ornith-1.0-35B-5bit-mlx)
+already exists (~25 GB, fits the 56 GB wired limit with room), and GGUF + full weights are up.
+
+- **Why it's the strongest queued candidate.** It isolates *tuning* from *architecture/size*:
+  same 35B-A3B MoE, same Qwen tool-call format oMLX parses, roughly the same footprint as our
+  `Qwen3.6-35B-A3B` — so a win is attributable to the **RL agentic fine-tune**, not to bigger
+  weights or a new serving layer. It directly answers "does an agentic-coding RL tune beat the
+  vanilla Qwen MoE on *our* tasks?" — the same question Agents-A1 poses, but on a confirmed-MLX
+  Qwen base (lower integration risk than Agents-A1, and a fine-tune of a *newer* base than
+  Devstral). Note the base is Qwen **3.5**-35B while ours is **3.6**-35B — so the comparison is
+  "RL-tuned 3.5 vs vanilla 3.6," a fair-but-not-perfectly-matched base; worth calling out in
+  the writeup.
+- **Claim to measure, not trust.** Social posts cite 77.5 on terminal-bench (≈ Opus 4.7) and
+  "beats Qwen3.6-27B." Our tasks are CRUD + an MCP server, not terminal-bench — treat the
+  number as a prompt to measure. (Same discipline as Agents-A1 / the Devstral hype.)
+- **Pre-flight to VERIFY before a full grid (CLAUDE.md).** (1) **Tool-calling** — gate-probe
+  that oMLX parses its `<tool_call>` output and Hermes executes it (should be fine: Qwen3.5
+  lineage = the format oMLX already handles; but confirm, this is the exact wall Devstral hit).
+  (2) **Sampling** — pull the card's recommended temp/top_p/top_k/penalties, set them, and
+  **verify oMLX honours each** (min_p is silently stripped; repetition/presence penalties
+  derail the agent loop — exp-27). Record as its own `stack` preset, don't inherit m35's.
+  (3) **Context** — confirm the live window actually reaches the configured 262K (the
+  silent-128K bug), and that it tool-loops cleanly under `hermes-lcm`.
+- **Plan.** Once exp-39 lands and oMLX is free, add Ornith as a new `stack` preset (its own
+  recommended sampling) on the **fixed** stack, **bookshop mainstream 4 languages (python/go/
+  ts/rust), n=3** — a direct head-to-head with the re-baselined Qwen3.6-35B (and, for Rust/TS,
+  with the 80B-at-0.9). If it beats the 35B on the mainstream, promote it to the full 9
+  languages and then brazil-bench. Per [[incremental-experiments]]: run ONLY Ornith; compare
+  against the existing rows in master.db, don't re-run them. If it wins, it becomes a new
+  featured local stack in optimal-blog (candidate for the "faster/better 35B-class" slot).
 
 ### Agents-A1 — queued (next NEW model to add)
 
