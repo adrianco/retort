@@ -406,13 +406,35 @@ class TestCoverageScorer:
         out = output_dir.resolve()
         results = out / ".retort-coverage"
         shutil.rmtree(results, ignore_errors=True)
-        try:
-            res = subprocess.run(
-                ["dotnet", "test", "--collect:XPlat Code Coverage",
-                 "--results-directory", str(results), "--nologo"],
-                cwd=out, capture_output=True, text=True, timeout=300,
+        # A bare `dotnet test` needs a solution/project at the cwd; agents
+        # often ship <App>/ + <App>.Tests/ with no root .sln, which errors
+        # with MSB1003 before running anything (false-fail). When the root
+        # has no solution or project, target the test project(s) explicitly.
+        base = ["dotnet", "test", "--collect:XPlat Code Coverage",
+                "--results-directory", str(results), "--nologo"]
+        cmds = [base]
+        has_root_entry = any(
+            next(out.glob(pat), None) is not None
+            for pat in ("*.sln", "*.slnx", "*.csproj")
+        )
+        if not has_root_entry:
+            test_projects = sorted(
+                p for p in out.rglob("*.csproj")
+                if ".retort-coverage" not in p.parts
+                and ("test" in p.stem.lower()
+                     or "Microsoft.NET.Test.Sdk" in p.read_text(errors="replace"))
             )
-        except (subprocess.TimeoutExpired, FileNotFoundError):
+            if test_projects:
+                cmds = [base[:2] + [str(p)] + base[2:] for p in test_projects]
+        res = None
+        for cmd in cmds:
+            try:
+                res = subprocess.run(
+                    cmd, cwd=out, capture_output=True, text=True, timeout=300,
+                )
+            except (subprocess.TimeoutExpired, FileNotFoundError):
+                return None
+        if res is None:
             return None
         try:
             xmls = sorted(
