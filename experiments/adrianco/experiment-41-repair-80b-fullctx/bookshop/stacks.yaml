@@ -1,0 +1,27 @@
+serving:
+  omlx_bin: /Applications/oMLX.app/Contents/MacOS/omlx-cli
+  model_dir: /Users/adriancockcroft/models
+  host: 127.0.0.1
+  port: 8080
+  settings_path: /Users/adriancockcroft/.omlx/settings.json
+  hermes_config: /Users/adriancockcroft/.hermes/config.yaml
+  serve_flags:
+  - --memory-guard
+  - balanced
+  - --paged-ssd-cache-dir
+  - /Users/adriancockcroft/.cache/omlx-ssd-exp41
+  - --paged-ssd-cache-max-size
+  - 20GB
+  log: /private/tmp/claude-501/-Users-adriancockcroft-code/1985cb31-023e-4e0c-808f-49285393ada8/scratchpad/omlx-exp41.log
+  warm_timeout_s: 600
+presets:
+  m80:
+    model: mlx-community--Qwen3-Coder-Next-4bit
+    context_length: 262144
+    context_threshold: 0.9   # Hermes lcm compaction point ("full context"); retort
+                             # exports this as LCM_CONTEXT_THRESHOLD (no manual env var)
+    sampling:
+      temperature: 0.7
+      top_p: 0.95
+      top_k: 40
+      repetition_penalty: 1.0

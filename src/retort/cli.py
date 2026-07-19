@@ -4398,6 +4398,95 @@ def diagnose(experiment_dir, as_json):
                    "--resume --retry-failed")
 
 
+def _nonpassing_languages(exp: Path) -> list[str]:
+    """Languages that have at least one non-``completed`` cell in the experiment's
+    retort.db — the set `recover` refreshes requirement_coverage on. Captured BEFORE
+    rescore (which flips recovered cells to completed)."""
+    import json
+    import sqlite3
+
+    db = exp / "retort.db"
+    if not db.exists():
+        return []
+    conn = sqlite3.connect(str(db))
+    try:
+        rows = conn.execute(
+            "SELECT run_config_json, status FROM experiment_runs"
+        ).fetchall()
+    except sqlite3.OperationalError:
+        return []
+    finally:
+        conn.close()
+    langs: set[str] = set()
+    for cfg_json, status in rows:
+        if status and status != "completed":
+            try:
+                lang = (json.loads(cfg_json or "{}") or {}).get("language")
+            except (ValueError, TypeError):
+                lang = None
+            if lang:
+                langs.add(lang)
+    return sorted(langs)
+
+
+@main.command()
+@click.option(
+    "--experiment-dir",
+    type=click.Path(exists=True),
+    required=True,
+    help="Experiment dir (uses its retort.db + runs/ archives).",
+)
+@click.option(
+    "--reevaluate/--no-reevaluate",
+    "run_reeval",
+    default=True,
+    help="After rescoring, refresh requirement_coverage on the recovered cells' "
+    "languages (default on). Skip it (faster, e.g. for an all-tooling recovery) "
+    "with --no-reevaluate.",
+)
+@click.option("--eval-model", default=None, help="Judge model for the reevaluate pass.")
+@click.option(
+    "--workers", type=int, default=3, help="Parallel workers for rescore / reevaluate."
+)
+@click.pass_context
+def recover(ctx, experiment_dir, run_reeval, eval_model, workers):
+    """Post-run recovery in one step: diagnose → rescore --only-failed → reevaluate.
+
+    The standard cleanup after a local run, which reliably produces a few scorer
+    TOOLING false-failures (all-zeros on code that actually builds and passes —
+    e.g. coverage measured 0 on passing tests). This chains the three commands you
+    would otherwise run by hand: it classifies the failures, rescores the tooling
+    ones back to their true metrics, then refreshes requirement_coverage on the
+    languages that had failures so the spec gate is honest. Finish with
+    `retort aggregate` to publish the corrected numbers to master.db.
+    """
+    exp = Path(experiment_dir)
+    langs = _nonpassing_languages(exp)  # capture before rescore flips them
+
+    click.echo("== diagnose ==")
+    ctx.invoke(diagnose, experiment_dir=experiment_dir)
+
+    click.echo("\n== rescore --only-failed ==")
+    ctx.invoke(rescore, experiment_dir=experiment_dir, only_failed=True, workers=workers)
+
+    if run_reeval and langs:
+        click.echo(f"\n== reevaluate --force --languages {','.join(langs)} ==")
+        ctx.invoke(
+            reevaluate,
+            experiment_dir=experiment_dir,
+            languages=",".join(langs),
+            force=True,
+            workers=workers,
+            eval_model=eval_model,
+        )
+    elif run_reeval:
+        click.echo("\n== reevaluate: no non-passing cells to refresh ==")
+
+    click.echo(
+        "\n→ done. Run `retort aggregate --out master.db` to publish the corrected numbers."
+    )
+
+
 @report.command("compare")
 @click.option(
     "--experiment-dir",

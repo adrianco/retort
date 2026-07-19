@@ -691,8 +691,14 @@ class LocalRunner:
             # openai-compatible `providers.<id>` entry pointing at the local
             # server); the model factor level is passed explicitly with `-m`.
             usage_path = workspace / ".hermes_usage.json"
+            # `serving.hermes_bin` (stacks.yaml) lets a workspace point at a specific
+            # Hermes executable — e.g. a venv/flake binary that isn't on PATH — instead
+            # of relying on a PATH shim. Defaults to the bare `hermes` on PATH.
+            hermes_bin = "hermes"
+            if self.stack_manager is not None:
+                hermes_bin = self.stack_manager.serving.get("hermes_bin", "hermes")
             cmd = [
-                "hermes",
+                hermes_bin,
                 "--usage-file", str(usage_path),
                 "--yolo",
             ]
@@ -801,6 +807,18 @@ class LocalRunner:
         env = os.environ.copy()
         # Disable interactive features
         env["CLAUDE_CODE_NON_INTERACTIVE"] = "1"
+        # A stack preset may pin the Hermes lcm compaction point as a first-class
+        # field: `presets.<name>.context_threshold`. Export it as LCM_CONTEXT_THRESHOLD
+        # so the agent's lcm plugin compacts at that fraction of the context window
+        # (0.9 == "full context" — the featured 80B config). This makes the setting
+        # part of the stack (recorded in provenance) instead of a manual env var the
+        # launcher has to remember. LCMConfig.from_env() honours it over config.yaml.
+        preset_name = stack.extra.get("stack")
+        if preset_name and self.stack_manager is not None:
+            preset = self.stack_manager.presets.get(preset_name, {})
+            threshold = preset.get("context_threshold")
+            if threshold is not None:
+                env["LCM_CONTEXT_THRESHOLD"] = str(threshold)
         return env
 
     def _post_run_evaluate(self, run_dir: Path) -> None:

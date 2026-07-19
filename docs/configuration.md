@@ -173,6 +173,68 @@ With the settings above (210 W, $550, 36 months, 25% utilization):
 
 Compare to Haiku 4.5 at $0.25/$1.25 per million input/output tokens — local hardware breaks even around 5–10 tokens/s depending on the mix.
 
+### Local serving stack (Hermes + oMLX)
+
+The featured local results (Qwen 35B / 80B on Apple Silicon) run the **Hermes** agent against
+models served by **oMLX**. Point `playpen.stack_presets` at a YAML file with two sections —
+`serving` (how to reach/restart the server + find the agent) and `presets` (one entry per
+`stack` factor level, fixing the model, context window, compaction point and sampling). retort
+reloads oMLX at each preset boundary and records the effective config in `provenance.json`.
+
+```yaml
+serving:
+  omlx_bin: /Applications/oMLX.app/Contents/MacOS/omlx-cli
+  hermes_bin: hermes            # path to the Hermes executable; use this instead of a
+                                #   PATH shim when hermes lives in a venv/flake not on PATH
+  hermes_config: ~/.hermes/config.yaml
+  model_dir: ~/models
+  host: 127.0.0.1
+  port: 8080
+  settings_path: ~/.omlx/settings.json
+  serve_flags:                  # keep the paged-SSD cache SMALL — exp-24 showed it gives
+    - --memory-guard            #   no benefit on these generation-bound runs, and a large
+    - balanced                  #   cap silently fills the disk (→ false all-zero fails)
+    - --paged-ssd-cache-dir
+    - ~/.cache/omlx-ssd
+    - --paged-ssd-cache-max-size
+    - 5GB
+presets:
+  m80:
+    model: mlx-community--Qwen3-Coder-Next-4bit
+    context_length: 262144
+    context_threshold: 0.9      # Hermes lcm compaction point as a FRACTION of the window
+                                #   (0.9 = "full context"). retort exports it as
+                                #   LCM_CONTEXT_THRESHOLD to the agent — no manual env var,
+                                #   and it lands in provenance. 0.35 (the default) compacts
+                                #   at ~92K and causes intermittent stalls; 0.9 is featured.
+    sampling: { temperature: 0.6, top_p: 0.95, top_k: 20, repetition_penalty: 1.0 }
+```
+
+| Serving field | Purpose |
+|---|---|
+| `omlx_bin` | oMLX CLI used to (re)start the server at each preset boundary |
+| `hermes_bin` | Hermes executable (default `hermes` on PATH). Set it to a venv/flake binary that isn't on PATH instead of using a shim |
+| `serve_flags` | Flags passed to `omlx serve`. Cap `--paged-ssd-cache-max-size` small (~5GB) or omit it |
+
+| Preset field | Purpose |
+|---|---|
+| `context_length` | The model's context window (set it explicitly; the default fallback is far lower) |
+| `context_threshold` | lcm compaction point as a fraction of `context_length`; exported as `LCM_CONTEXT_THRESHOLD`. `0.9` is the featured 80B config |
+| `sampling` | temperature / top_p / top_k / repetition_penalty. Keep `temperature ≠ 1.0` and `repetition_penalty = 1.0` (see the forbidden-settings notes in optimal-blog.md) |
+
+Recommended `local_agents` profile for this stack:
+
+```yaml
+playpen:
+  local_agents:
+    hermes-local: { harness: hermes, model: mlxlocal/mlx-community--Qwen3-Coder-Next-4bit }
+```
+
+**After a local run**, `retort recover --experiment-dir <dir>` runs the standard cleanup in one
+step — `diagnose` (classify failures TOOLING vs GENUINE) → `rescore --only-failed` (recover the
+scorer false-failures) → `reevaluate` (refresh requirement_coverage on the recovered languages)
+— then finish with `retort aggregate` to publish the corrected numbers.
+
 ## design
 
 Control the design matrix generation.

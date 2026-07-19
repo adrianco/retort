@@ -1240,3 +1240,39 @@ class TestLocalRunnerOpencodeHarness:
 
         assert _parse_opencode_usage('{"type":"step_start"}\n') == (0, {})
         assert _parse_opencode_usage("not json") == (0, {})
+
+
+def test_build_env_exports_context_threshold(tmp_path, monkeypatch):
+    """A stack preset's `context_threshold` is exported as LCM_CONTEXT_THRESHOLD
+    (the Hermes lcm compaction point) so the setting rides in the stack/provenance
+    instead of a manual env var."""
+    from retort.playpen.local_runner import LocalRunner
+    from retort.playpen.runner import StackConfig
+
+    monkeypatch.delenv("LCM_CONTEXT_THRESHOLD", raising=False)
+    runner = LocalRunner(work_dir=tmp_path)
+
+    class _SM:
+        presets = {"m80": {"context_threshold": 0.9}, "m35": {}}
+        serving = {}
+
+    runner.stack_manager = _SM()
+
+    # preset carries the field -> env var set
+    env = runner._build_env(
+        StackConfig(language="rust", agent="hermes-local", framework="", extra={"stack": "m80"})
+    )
+    assert env["LCM_CONTEXT_THRESHOLD"] == "0.9"
+
+    # preset without the field -> not set
+    env2 = runner._build_env(
+        StackConfig(language="go", agent="hermes-local", framework="", extra={"stack": "m35"})
+    )
+    assert "LCM_CONTEXT_THRESHOLD" not in env2
+
+    # no stack manager -> no crash, not set
+    runner.stack_manager = None
+    env3 = runner._build_env(
+        StackConfig(language="go", agent="hermes-local", framework="", extra={"stack": "m80"})
+    )
+    assert "LCM_CONTEXT_THRESHOLD" not in env3
