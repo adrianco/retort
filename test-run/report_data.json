@@ -1,3 +1,0 @@
-Traceback (most recent call last):
-  File "<string>", line 27, in <module>
-AttributeError: 'collections.defaultdict' object has no attribute 'append'

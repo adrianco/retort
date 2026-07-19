@@ -335,3 +335,6 @@ phase1-metaharness/
 phase1-baseline/
 .claude-flow/
 ruvector.db
+
+# Graphify code-graph output (regenerable, dogfood)
+graphify-out/
