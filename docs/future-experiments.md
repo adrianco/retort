@@ -105,8 +105,8 @@ MoE, ~3B active, ~18–20 GB Q4).
 
 | Model | Size (total/active) | Fit on 64 GB (MLX) | Claim vs ours | Tool format |
 |---|---|---|---|---|
-| **[Ornith-1.0-35B](https://huggingface.co/deepreinforce-ai/Ornith-1.0-35B) (35B-A3B MoE)** ⭐ **QUEUED — like-for-like vs our production 35B** | 35B / ~3B active MoE | **5-bit MLX ≈ ~25 GB** ([leonsarmiento build](https://huggingface.co/leonsarmiento/Ornith-1.0-35B-5bit-mlx)) — fits easily | DeepReinforce AI; **RL agentic-coding fine-tune of Qwen3.5-35B-A3B** (jointly optimizes scaffold + solution rollouts). MIT. Social claim: 77.5 terminal-bench ≈ Opus 4.7 — **hype, measure it** | **Qwen3.5-based → same `<tool_call>` format oMLX already parses.** MLX build confirmed. Low serving risk |
-| **[Agents-A1](https://huggingface.co/InternScience/Agents-A1) (35B MoE)** ⭐ **QUEUED — next new model** | 35B MoE (active n/s) | 4-bit ≈ **~20 GB** — fits easily | InternScience; **agent-tuned** (native function calling, 262K ctx, long-horizon/engineering/science). SciCode 44.3 | **`qwen3_coder` tool parser → Qwen-style, so oMLX should parse it natively.** MLX quants exist. Zero serving risk (unlike Devstral) |
+| ~~**Ornith-1.0-35B (35B-A3B MoE)**~~ **SKIPPED — vision-optimized VLM** | 35B / ~3B active MoE | 5-bit MLX ~25 GB (downloaded, deleted) | RL agentic-coding fine-tune of Qwen3.5-35B-A3B | **VLM (`Qwen3_5MoeForConditionalGeneration` + vision_config), served via `mlx_vlm`; recommended sampling collides with our forbidden settings (temp 1.0, rep 1.05). Wrong niche — see write-up.** |
+| ~~**[Agents-A1](https://huggingface.co/InternScience/Agents-A1) (35B MoE)**~~ **also VLM — same caveat** | 35B MoE | 4-bit ≈ ~20 GB | InternScience; agent-tuned (engineering/science). SciCode 44.3 | **Verified 2026-07-19: identical `Qwen3_5MoeForConditionalGeneration` + vision_config — the WHOLE Qwen3.5-35B-A3B family is VLM-arch. Not text-native; deprioritized (would need the `mlx_vlm` text path + a tool-parse gate-probe). Only revisit if we want to test the VLM serving path deliberately.** |
 | **Qwen3-Coder-Next (80B-A3B)** | 80B / 3B MoE | 4-bit ≈ **44.8 GB** (tight; reduce ctx) or 3-bit ≈ **34 GB** (comfortable) | "~96% of the 480B flagship"; "comparable to 10–20× more active params" | **Same Qwen `<tool_call>` format oMLX already parses** — zero new integration risk |
 | ~~**Devstral Small 2 (24B)**~~ **BLOCKED** | 24B dense | ~14 GB Q4 — fits fine | 68% SWE-bench; agent-tuned | **oMLX does NOT parse Devstral's Mistral `[TOOL_CALLS]` format** (it emits the call as text; Hermes executes nothing — gate-probe on `mlx-community/Devstral-Small-2507-4bit` confirmed). Same wall as exp-12. Would need a different serving layer (vLLM with the mistral tool parser, or llama.cpp with the right template). |
 | gpt-oss-120b | 117B / 5.1B MoE | **~64–65 GB — likely won't fit** at 56 GB wired | best raw coder (83% Multi-LCB; Codeforces 2622) | Harmony format; only if we push memory limits (OOM risk) |
@@ -124,7 +124,21 @@ confirmed MLX build, so it isolates *tuning* from size/architecture against our 
 question — "does an agentic-coding tune beat the vanilla Qwen MoE on our tasks?" — Ornith first
 because its Qwen base means lower serving risk. Devstral stays BLOCKED (Mistral tool format).
 
-### Ornith-1.0-35B — queued (like-for-like agentic fine-tune vs our production 35B)
+### Ornith-1.0-35B — EXAMINED, SKIPPED (vision-optimized VLM, agent-hostile sampling)
+
+**Verdict (2026-07-19): downloaded, inspected, deleted — not a fit for this text agent-loop
+stack.** Three disqualifiers found at pre-flight, before any grid: (1) the MLX build is a
+**multimodal VLM** — `architectures: Qwen3_5MoeForConditionalGeneration` with a `vision_config`,
+video/image preprocessors, vision tokens; the card's own usage is `python -m mlx_vlm.generate`.
+Its focus is vision + Terminal-Bench, not our text CRUD/MCP tasks. (2) Its recommended sampling
+**collides with three of our forbidden settings** — temp **1.0** (we found NOT-1.0 is required),
+`repeat_penalty` **1.05** (>1.0 derails the agent loop, exp-27), and `min_p` 0.01 (oMLX strips
+min_p). It's a single-turn benchmark recipe, wrong for multi-turn agent loops. (3) The linked
+5-bit build is itself **deprecated** (points to a `-5bit-XL` variant). oMLX *does* bundle
+`mlx_vlm 0.6.3` with a `qwen3_5_moe` model and the chat template has tool-calling, so it might
+serve — but a vision-tuned model at benchmark sampling is the wrong bet for our niche; not worth
+the integration + a second 25 GB download. **Lesson:** check `architectures` / `model_type` on
+the HF `config.json` at intake — a "tuned Qwen" can be a VLM. (Superseded plan below.)
 
 Flagged by a contact as "a tuned Qwen worth testing" (user, 2026-07-17); confirmed on the
 [HF card](https://huggingface.co/deepreinforce-ai/Ornith-1.0-35B). The cleanest new-model
