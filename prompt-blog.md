@@ -12,14 +12,16 @@ behaviour scenarios — does the resulting code come out more reliably correct? 
 is methodology a ritual the model can take or leave on a task it already knows
 how to do?
 
-## Newest first: on a *local* model the prompt is NOT a flat line — and ATDD is the worst
+## Newest first: the prompt bites in proportion to how *weak* the model is
 
-The most recent prompt data comes from the other end of the capability range: a
-**local** model on a laptop (Qwen3.6-35B-A3B, served with MLX/oMLX, driven by the
-Hermes agent — the stack from the [model blog](model-blog.md)). On the strong
-cloud models below, the prompt is a flat line — they pass whatever you ask. On a
-*weak* model it is not. Sweeping all four methodologies on Python
-(experiment-19, pass-proportion over 3 replicates):
+The most recent prompt data comes from the other end of the capability range —
+**local** models on a laptop (served with MLX/oMLX, driven by the Hermes agent, the
+stack from the [model blog](model-blog.md)) — and it splits cleanly by model
+strength.
+
+On a *weak* local model — **Qwen3.6-35B-A3B** — the prompt is a real lever.
+Sweeping all four methodologies on Python (experiment-19, pass-proportion over 3
+replicates):
 
 | prompt | pass | avg test-cov | avg tokens |
 |---|:--:|:--:|:--:|
@@ -36,10 +38,32 @@ neutral's 0.33, 0.25 vs 0.50, and 0/3 here. A weak model can't carry ATDD's
 front-loaded discipline (turn every acceptance criterion into an executable test
 through the public interface *before* implementing); it flails and burns tokens.
 
-So the sharpened, current advice for a local model **inverts the usual "more
-discipline is better"**: keep the prompt plain, and *don't* reach for ATDD. The
-cloud story below is where that pattern first showed up in miniature — ATDD on the
-one weak-ish cloud stack (Sonnet + Go) was the single place a prompt broke a run.
+But step *up* to the stronger **Qwen3-Coder-Next 80B** and the lever vanishes.
+Re-running the identical Python sweep (experiment-32, n=3) — every methodology
+passes **1.00**, ATDD included:
+
+| prompt | 80B pass |
+|---|:--:|
+| **neutral** | **3/3** |
+| **BDD** | **3/3** |
+| **TDD** | **3/3** |
+| **ATDD** | **3/3** |
+
+Same task, same four prompts, opposite result. The 80B has enough headroom that the
+methodology is ritual: ATDD's front-loaded discipline, which tanked the 35B, is a
+no-op on a model that clears the task comfortably — the same flat line the strong
+cloud models show below.
+
+So the sharpened headline isn't "the prompt is (or isn't) a flat line" — it's that
+**the prompt/methodology lever bites in proportion to how *weak* the model is.** Near
+a model's capability edge (the 35B, and the weak-ish cloud stacks below) the wrong
+methodology breaks the run; on a model with headroom (the 80B, and the strong cloud
+models) it's flat. The practical rule for a local model **inverts the usual "more
+discipline is better"**: reach for a disciplined methodology only when you're near
+the edge. On the **35B**, keep the prompt plain and *never* reach for ATDD; on the
+**80B** (and on cloud) pick **neutral** because it's the cheapest and loses nothing.
+The cloud story below is where that flat line first showed up — with ATDD on the one
+weak-ish cloud stack (Sonnet + Go) as the single place a prompt broke a run.
 
 ## Setting it up so the prompt is the only thing that changes
 

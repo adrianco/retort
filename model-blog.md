@@ -6,7 +6,7 @@
 
 Every few weeks a new frontier model tops the leaderboards, and the implicit advice is "upgrade." Sites like **[llm-stats.com](https://llm-stats.com/)** rank models well across many benchmarks — but they answer a question most engineering teams aren't actually asking. They hold the *stack* constant: one prompt, one harness, a fixed benchmark. They don't tell you whether the newest model is worth 4× the cost **in Rust**, how *reliably* each model gets a Go MCP server completely right, or how long any of it takes.
 
-Those are the variables that decide a real project. So I built **[retort](https://github.com/adrianco/retort)** to measure them properly — with statistical Design of Experiments, the same technique you'd use to tune a manufacturing process. Vary the factors you care about (here: programming **language** × **model version** × **tooling** — and, newly, the **coding agent**, the **prompt methodology**, and **local self-hosted models**), run a factorial grid on a real task, score every cell, and let the analysis tell you which factors actually matter. And because retort accumulates results across a shared database, each new model just gets *added* to what's already known — the point of the project is to measure how each new release behaves without re-running everything. It now spans two tasks, nine languages, the Claude Sonnet/Opus lines (plus a fast-mode variant and the tier-above Fable 5), and **local models running for free on a laptop**. **Newest first:** the most recent work put that on-device local stack — an M5 laptop, $0 per token — against the *hard* task (a Brazilian-soccer MCP server), and found that giving the slow model a bigger time budget roughly doubled how often it succeeds. That's the lead section immediately below the headline board; the rest of the local-model arc and the cloud-model detail (Sonnet 5 and the rest) follow.
+Those are the variables that decide a real project. So I built **[retort](https://github.com/adrianco/retort)** to measure them properly — with statistical Design of Experiments, the same technique you'd use to tune a manufacturing process. Vary the factors you care about (here: programming **language** × **model version** × **tooling** — and, newly, the **coding agent**, the **prompt methodology**, and **local self-hosted models**), run a factorial grid on a real task, score every cell, and let the analysis tell you which factors actually matter. And because retort accumulates results across a shared database, each new model just gets *added* to what's already known — the point of the project is to measure how each new release behaves without re-running everything. It now spans two tasks, nine languages, the Claude Sonnet/Opus lines (plus a fast-mode variant and the tier-above Fable 5), and **local models running for free on a laptop**. **Newest first:** the most recent work re-baselined that on-device local stack — an M5 laptop, $0 per token — on the newest local model (Qwen3-Coder-Next 80B) at full context, and found it now runs Python, Go *and* TypeScript completely reliably (**1.00 each**) — the first time a free laptop stack matches the cloud frontier on those three languages. A follow-up confirmed the *hard* task stays out of local reach regardless of that setting. That's the lead section immediately below the headline board; the rest of the local-model arc and the cloud-model detail (Sonnet 5 and the rest) follow.
 
 ## The metric that matters: how often is it *completely* right?
 
@@ -27,28 +27,38 @@ Here is the full board, every model measured on the two tasks — **pass-proport
 | Claude Opus 4.8 fast ² | cloud | **1.00** | **1.00** | $8.72 |
 | Claude Sonnet 4.6 | cloud | 0.50 | 0.63 | $1.10 |
 | Claude Opus 4.6 | cloud | 0.47 | 0.59 | $1.30 |
-| **Qwen3.6-35B-A3B** *(best local)* ⁵ | **local · $0** | **0.33** ⁹ | **0.38** | **$0** |
-| **Qwen3-Coder-Next-80B-A3B** *(bigger ≠ better)* ⁷ | **local · $0** | — | 0.33 | **$0** |
+| **Qwen3-Coder-Next-80B-A3B** *(best local, ctx 0.9)* ⁷ | **local · $0** | **0.00** ⁹ | **1.00** | **$0** |
+| **Qwen3.6-35B-A3B** *(faster local: Python/Go)* ⁵ | **local · $0** | **0.25** | **0.85** | **$0** |
 | **Qwen3-Coder-30B-A3B** ⁶ | **local · $0** | — | **0.33** | **$0** |
 | **Devstral-24B** *(agent-tuned, wrong harness)* ⁸ | **local · $0** | — | 0.17 | **$0** |
 
 ² Fast mode (`/fast`), 4 languages. Cost at fast mode's **2× per-token rate** ([announcement](https://www.anthropic.com/news/claude-opus-4-8)) — see [Fast mode](#fast-mode-speed-you-pay-double-for).
 ³ **Claude Fable 5** — a distinct model a *tier above* Opus 4.8, priced at the same $10/$50 rate as fast mode. More below.
 ⁴ **Sonnet 5** — experiment 15, a 15-cell language × prompt grid, spec-gated by an independent Opus-4.8 judge; 0.93 hard = 14 of 15 (the miss: Rust + TDD). See [Sonnet 5 in depth](#sonnet-5-in-depth-the-token-bill-the-tdd-lever-and-one-rust-miss).
-⁵ **Qwen3.6-35B-A3B**, served with MLX/oMLX and driven by the Hermes agent on an **M5 / 64 GB laptop** — the *easy* task, four mainstream languages (python/go/typescript/rust). Across **all nine** languages it drops to **0.11** — the niche-language wall (Clojure/Java/C#/Elixir/Erlang all fail); a self-repair second chance lifts that to **0.22**, but only within the mainstream. It's the first local stack to crack TypeScript. Full story in the local-model sections just below.
+⁵ **Qwen3.6-35B-A3B**, served with MLX/oMLX and driven by the Hermes agent on an **M5 / 64 GB laptop**. At correct sampling (temp 0.6, not the old 1.0) and a true 256K context it does **Python and Go at 0.85 each** — the *faster* local pick for those two — but scores **0.00 on TypeScript and Rust** even fully tuned, so its niche is Python/Go only. On the hard task (brazil) it manages **0.25** — it occasionally nails all 12 capabilities, not reliably. Full story in the local-model sections below.
 ⁶ **Qwen3-Coder-30B-A3B** via llama.cpp — **0.08** at a 32 K context, **0.33** at 128 K: context is the first-order lever for a local model.
-⁷ **Qwen3-Coder-Next-80B-A3B** (exp-22), same stack as the 35B. Doubling the model *lowered* first-try reliability (0.33 vs the 35B's 0.50 on these languages) — slower and more prone to never terminating (a Rust run hit the wall at 3.9M tokens). The local mirror of "at the top, extra spend buys nothing."
+⁷ **Qwen3-Coder-Next-80B-A3B** — now the **featured local stack**, once its compaction threshold was raised to full context (`lcm context_threshold: 0.9`). At that setting it runs **Python 1.00, Go 1.00, and TypeScript 1.00** (n=3 each) — TypeScript was only 0.33 at lower thresholds, so *full context, not a new model,* is what unlocked it. **Rust is 0.33** (genuine near-misses, → cloud) and the five niche languages (Clojure/C#/Elixir/Java/Erlang) stay ~0.00. It's slower than the 35B (~600 s routine). The earlier "bigger ≠ better" reading was a config artifact of over-early compaction, now fixed.
 ⁸ **Devstral-24B** (exp-23), a *smaller but agent-tuned* Mistral coder — served via **llama.cpp** (oMLX can't parse its Mistral tool-call format). The lowest local result: 0.17, with **7 of 12 runs never terminating**. Big asterisk: Devstral is tuned for its native OpenHands scaffolding, not Hermes — so this is Devstral on the wrong harness, not its ceiling. Neither *bigger* (80B) nor *agent-tuned-different* (Devstral) beat the general 35B.
-⁹ **The hard task, local (exp-25/26) — the newest work.** The 35B on brazil-bench (**Python + Go only**, the two strongest local languages): **0.17** first-try at a 30-minute timeout, **0.33** at 60 minutes. Local runs are generation-bound, so they need a bigger time budget; Go alone goes from 0/3 (all non-terminating) to a 0.92-requirement-coverage near-miss purely on the extra clock. One Python run built a complete, tested MCP server (req_cov 1.0). The lead section up top has the full story.
+⁹ **The hard task, local.** Both local models are now measured on brazil-bench and both do poorly: the 80B scores **0.00 (0/6)** and the 35B **0.25**. The 80B gets *closer on average* (consistently ~10–11 of 12 capabilities) but never lands all 12. Crucially the 80B's 0.00 is now **verified config-invariant** — re-run at full context (`context_threshold: 0.9`) it is still 0/6, identical to the lower threshold: full context lifts the *easy* languages, not the hard-task ceiling. Hard tasks stay a cloud-frontier niche (Fable 5 = 1.00).
 
-The one-line reading, newest first: **a good local model on a laptop gets about a third of the way to the cloud frontier for free — and only in the languages it actually knows** — while the cloud frontier is a solved ~1.00 on easy work, where extra spend (Sonnet 5, fast mode, the tier-above Fable 5) buys latency and cost but no more reliability. The rest of this piece works newest-first: the local-model arc (how it was built and where the wall is), then the cloud-frontier detail.
+The one-line reading, newest first: **a good local model on a laptop now matches the cloud frontier for free on the languages it knows — Python, Go and TypeScript all reach 1.00 on the easy task — but only there**; Rust, the niche languages, and the hard task all still need the cloud. Meanwhile the cloud frontier is a solved ~1.00 on easy work, where extra spend (Sonnet 5, fast mode, the tier-above Fable 5) buys latency and cost but no more reliability. The rest of this piece works newest-first: the local-model arc (how it was built and where the wall is), then the cloud-frontier detail.
 
 Two things worth pulling out of the board before the deep dives:
 
 - **On the cloud frontier, newer is more reliable — and the older/cheaper models are coin-flips on hard work.** Opus 4.6 and Sonnet 4.6 got the hard task fully right only ~half the time; each generation buys reliability and charges time and money for it. But at the very top, extra spend buys nothing: Sonnet 5, fast mode, and Fable 5 all match Opus 4.8's 1.00/1.00 at higher prices, because where 4.8 is already perfect there's no reliability left to buy.
-- **On a laptop, the whole stack around the model matters more than the model.** Going from 0.08 to 0.38 came from context size, an MLX serving layer that parses the model's tool calls, a model one size up, and an agent that doesn't throw away its own context — none of it a new model. But none of it moves the one hard limit either: language reach.
+- **On a laptop, the whole stack around the model matters more than the model.** The climb from 0.08 to a reliable Python/Go/TypeScript 1.00 came from context size, an MLX serving layer that parses the model's tool calls, a model one size up, an agent that doesn't throw away its own context, and — the final unlock — raising that agent's compaction threshold to full context. None of it a new capability; all of it configuration. What it still doesn't move is the last hard limit: Rust, the niche languages, and the hard task.
 
-## Newest: the sampling settings we'd been getting wrong the whole time
+## Newest: a free laptop stack now matches the cloud on Python, Go *and* TypeScript
+
+The most recent work re-baselined the local stack on the newest local model — **Qwen3-Coder-Next 80B**, an 80B mixture-of-experts — and turned up the result that reorders the whole local story. Run across the easy-task languages at **full context** (the agent's `lcm` compaction threshold raised to 0.9, so it keeps its entire working history instead of compacting partway through a build), it posts **Python 1.00, Go 1.00, TypeScript 1.00** — three of three replicates each. That is the first time a free, on-device stack matches the cloud frontier's reliability on those three languages.
+
+The unlock is a config lever, not a bigger brain. TypeScript scored only **0.33** at the default compaction threshold: the agent kept getting compacted midway through the longer TypeScript build and losing the thread. Raising the threshold to full context — the same one-line change, no new weights — walked it to 3/3. It's the local mirror of the whole project's thesis: the stack around the model moves the result as much as the model does.
+
+Where the ceiling still is: **Rust is 0.33** on the 80B (its failures are genuine near-misses — the code compiles and its tests pass, it just misses a requirement or two — so Rust goes to the cloud), and the five niche languages (Clojure, C#, Elixir, Java, Erlang) still can't produce working code at all. The **35B** stays the *faster* local option for Python and Go (0.85 each), but it scores 0.00 on TypeScript and Rust, so the 80B-at-full-context is the stack to reach for whenever you want TypeScript local.
+
+And a follow-up settled the obvious question — does full context also help the *hard* task? It does not. Re-running the Brazilian-soccer MCP server on the 80B at full context returned **0/6**, exactly the same as the lower threshold: Python gets as close as 11 of 12 capabilities but never all 12, and Go actually *regresses* (a run that can't finish just thrashes longer). So full context is strictly a lever for the easy languages; the hard-task ceiling is now **verified config-invariant**, and hard work stays a cloud-frontier job. The rest of the local-model arc — how the stack was built up to this point — follows below.
+
+## The sampling settings we'd been getting wrong the whole time
 
 Before adding any more models, a check on the *dials* — the request-time sampling parameters (temperature, top_p, top_k, repetition penalty). Every local result in this piece was measured at oMLX's default **temperature 1.0**, well above Qwen's own ~0.6–0.7 recommendation, with no repetition penalty. Do those dials move *reliability*? I ran a fractional factorial (Resolution IV, 8 configs) over the four levers on the 35B stack, bookshop, python+go, 48 runs.
 
@@ -62,9 +72,9 @@ The best configuration turned out to be, almost exactly, **the model author's re
 
 *(This sweep also stress-tested a new part of the harness: an unattended timeout policy that keeps a high wall for slow-but-productive work while killing unproductive loops fast. All four bad runs were caught as stalls at ~16 minutes instead of burning the 45-minute wall — the loops the repetition penalty created, cut short automatically.)*
 
-## Newest: can a laptop model build a real MCP server? (the hard task)
+## Can a laptop model build a real MCP server? (the hard task)
 
-*The most recent experiments, so they lead.* Everything else in this piece measured local models on the *easy* task — a CRUD API. The fair question is whether the best local stack can do something genuinely hard, so I pointed it at **brazil-bench**: a Brazilian-soccer **MCP server** built from a multi-file guide over six real kaggle datasets, with twelve required capabilities — match/team/player/competition queries, league standings computed from results, head-to-head records, aggregate stats, and a test suite (the guide prescribes BDD). This is a task cloud frontier models find non-trivial. I ran the champion **Qwen3.6-35B-A3B** stack on **Python and Go** (its two strongest languages), three replicates each, at the model's full **256K context** — which the runs genuinely used, prompts reaching 108K tokens.
+*An earlier milestone in the local arc — the first time the local stack was pointed at the hard task.* Everything else in this piece measured local models on the *easy* task — a CRUD API. The fair question is whether the best local stack can do something genuinely hard, so I pointed it at **brazil-bench**: a Brazilian-soccer **MCP server** built from a multi-file guide over six real kaggle datasets, with twelve required capabilities — match/team/player/competition queries, league standings computed from results, head-to-head records, aggregate stats, and a test suite (the guide prescribes BDD). This is a task cloud frontier models find non-trivial. I ran the champion **Qwen3.6-35B-A3B** stack on **Python and Go** (its two strongest languages), three replicates each, at the model's full **256K context** — which the runs genuinely used, prompts reaching 108K tokens.
 
 **The answer: it copes — in Python about a third of the time, and in Go once it has enough clock.** One Python run built the whole thing clean: a proper `brazilian_soccer_mcp/` package (server, query engine, data loader) with a passing test suite, **requirement_coverage 1.0, test_coverage 0.96** — a complete, tested MCP server over real data, produced by a free model on a laptop. But at a 30-minute timeout that was only **1 of 6**: half the runs hit the wall (non-termination), and both Go runs produced *no working code at all*.
 
@@ -243,24 +253,26 @@ One more lever was worth testing, because it's how real agents work: give a fail
 
 Developers rarely choose a model in a vacuum — you pick a **language** for the project, then optimize the stack around it. So the practical question isn't "what's the best local model" but "for *my* language, which local model is most reliable?" Broken down that way, across the four local models I ran on the mainstream languages, two things jump out:
 
-| language | 30B | 35B | 80B | Devstral-24B | **best local model** |
-|---|---:|---:|---:|---:|---|
-| **python** | **1.00** | 0.67 | 0.33 | 0.67 | **30B — 1.00** |
-| **go** | 0.33 | 0.50 | **1.00** | 0.00 | **80B — 1.00** |
-| typescript | 0.00 | 0.17 | 0.33 | 0.00 | 80B — 0.33 |
-| rust | 0.00 | 0.17 | 0.33 | 0.00 | 80B — 0.33 |
-| clojure / java / c# / elixir / erlang | — | 0.00 | — | — | *none* |
+Re-baselined on the fixed stack (correct sampling, true 256K context, and the 80B at full context), the current picture is:
 
-*(Pass-proportion, neutral prompt, on the M5 laptop. Single-digit replicates, so read the per-cell picks as directional, not exact — but the tiers are robust.)*
+| language | 35B (tuned) | 80B (ctx 0.9) | **best local** |
+|---|---:|---:|---|
+| **python** | 0.85 | **1.00** | **80B — 1.00** (35B for more speed) |
+| **go** | 0.85 | **1.00** | **80B — 1.00** (35B for more speed) |
+| **typescript** | 0.00 | **1.00** | **80B — 1.00** (needs full context) |
+| **rust** | 0.00 | 0.33 | *none reliable → cloud* |
+| clojure / java / c# / elixir / erlang | 0.00 | 0.00 | *none → cloud* |
 
-- **Python is the most reliable local language, and it isn't close.** *Every* local model handles it — the 30B nails it outright (1.00), and even the models that flounder elsewhere clear it a good share of the time. If your project is Python, a local model is a genuinely viable, free option; it's the one language where a laptop model just works.
-- **The best model is language-dependent — there is no universal winner.** The 80B was the *worst* model on average, yet it's the *best* model for **Go** (1.00, where the 30B is a coin-flip). That's the entire case for this view: optimize the model *per language*, not in aggregate, because the aggregate ranking would have told you to skip the 80B and you'd have picked the wrong model for Go.
-- **TypeScript and Rust are marginal at best (~0.33)** — reachable, but you'll retry a lot; not something to rely on unattended.
-- **The five less-common languages are a flat zero for every model** — the capability wall again. If your project is Clojure, Java, C#, Elixir or Erlang, no local model on this stack is viable today; use the cloud.
+*(Pass-proportion, neutral prompt, on the M5 laptop, n=3 each. Read the picks as directional, but the tiers are robust.)*
 
-The developer takeaway is concrete: **choose the language, then choose the model for that language.** And if the language is yours to pick and you want to stay local and free, choose **Python** — it's where a laptop model is most likely to just get it right.
+- **Python, Go and TypeScript now run locally for free — reliably.** The 80B at full context clears all three at 1.00; the 35B is the *faster* alternative for Python and Go (0.85 each) but scores 0.00 on TypeScript, so it's the 80B when you want TypeScript on-device. If your project is one of these three, a local model is a genuinely viable, free option.
+- **The compaction threshold is the lever, not the weights.** The same 80B scored only 0.33 on TypeScript until its agent was told to keep full context instead of compacting mid-build — a config change unlocked a whole language. Optimize the *stack*, not just the model.
+- **Rust is marginal (~0.33) — reachable but not reliable,** so it goes to the cloud; its local failures are near-misses (compiles, tests pass, misses a requirement) rather than the old thrash-to-the-wall.
+- **The five less-common languages are a flat zero for every local model** — the capability wall the stack can't move. If your project is Clojure, Java, C#, Elixir or Erlang, use the cloud.
 
-The bottom line: on a 64 GB laptop, a good local model is a **plan-with-a-big-model, execute-small, review-everything** tool — free and private, but a third as likely to get an *easy* task completely right as the cloud frontier, and no help at all on the languages it can't do. Worth knowing exactly where that line is *before* you rely on it.
+The developer takeaway is concrete: **choose the language, then choose the model for that language.** For Python, Go or TypeScript you can stay local and free; for everything else, reach for the cloud.
+
+The bottom line: on a 64 GB laptop, a good local model is now a genuinely reliable tool on Python, Go and TypeScript — free, private, and matching the cloud frontier on those three easy-task languages — while Rust, the niche languages, and the hard task still belong in the cloud. Worth knowing exactly where that line is *before* you rely on it.
 
 ## A cache trick that "should" have fixed the 80B — and didn't
 

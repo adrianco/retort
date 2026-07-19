@@ -146,14 +146,18 @@ Git sources are cloned at experiment time. The repo root must contain `task.yaml
 
 ## Built-in scorers
 
-Retort ships with these scorers:
+Retort registers these nine built-in scorers:
 
 | Scorer | Measures |
 |--------|----------|
 | `code_quality` | Lint pass rate, cyclomatic complexity, type coverage |
 | `token_efficiency` | API tokens consumed per unit of functionality |
-| `build_time` | Seconds to first successful build |
 | `test_coverage` | Percentage of code covered by generated tests |
+| `test_quality` | Rewards BDD/acceptance-level tests over plain unit tests |
 | `defect_rate` | Fraction of validation checks that fail |
 | `maintainability` | Success rate when a different agent modifies the code |
+| `bead_usage` | Whether the agent used the beads issue tracker (only when `tooling: beads`) |
+| `findings` | Penalty score from the file-run-issues assessment |
 | `idiomatic` | LLM-as-judge rating of convention adherence (opt-in: per-run claude haiku call) |
+
+(Build timing is no longer a scorer — it is captured automatically as the raw `_duration_seconds` telemetry column.)

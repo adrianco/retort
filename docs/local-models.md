@@ -1,5 +1,14 @@
 # Running local models (the `omp` harness) — findings & gotchas
 
+> **Historical / legacy path.** This page records the `omp` + Ollama/llama.cpp
+> exploration on a 24 GB Mac (experiment-12). It was an early **dead end** — it is
+> **not** how Retort's featured local results are produced. The **current** local
+> stack is the **Hermes** agent + **oMLX** server running **Qwen3.6-35B-A3B** and
+> **Qwen3-Coder-Next 80B** on Apple Silicon (M-series, 64 GB). For the canonical
+> setup see [configuration.md → "Local serving stack (Hermes + oMLX)"](configuration.md#local-serving-stack-hermes--omlx)
+> and the Configuration section of [optimal-blog.md](../optimal-blog.md). The `omp`
+> material below is kept as the alternate/legacy path.
+
 An engineering record of getting a **local** coding model to run as a retort
 agent on a 24 GB Mac, via the `omp` ([oh-my-pi](https://github.com/can1357/oh-my-pi))
 harness. **Bottom line: the harness path works end-to-end and costs $0, but no

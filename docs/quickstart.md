@@ -123,7 +123,7 @@ Review the run plan before committing resources.
 retort run --phase screening --config workspace.yaml
 ```
 
-Each run provisions a Docker container, prompts the AI agent with the task spec, scores the output, and stores results in `retort.db`.
+Each run provisions an isolated local playpen directory and runs the agent CLI on the host (`runner: local`), prompts the AI agent with the task spec, scores the output, and stores results in `retort.db`.
 
 ## 6. Analyze results
 

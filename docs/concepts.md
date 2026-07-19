@@ -26,15 +26,21 @@ Retort uses a two-phase approach:
 
 Each experiment run produces a vector of response metrics:
 
+Nine built-in scorers are available as responses:
+
 | Metric | What it measures |
 |--------|-----------------|
 | `code_quality` | Lint pass rate, complexity, type coverage |
 | `token_efficiency` | Tokens consumed per unit of functionality |
-| `build_time` | Wall clock to first green build |
 | `test_coverage` | Generated test coverage percentage |
+| `test_quality` | Rewards BDD/acceptance-level tests over plain unit tests |
 | `defect_rate` | Post-generation validation failures |
 | `maintainability` | Cross-agent modification success rate |
+| `bead_usage` | Whether the agent used the beads issue tracker (only when `tooling: beads`) |
+| `findings` | Penalty score from the file-run-issues assessment |
 | `idiomatic` | LLM-as-judge convention adherence (opt-in: per-run claude haiku call) |
+
+Build timing is recorded automatically as the raw `_duration_seconds` telemetry column rather than as a scorer.
 
 ## ANOVA: Which factors matter?
 
