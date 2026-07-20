@@ -1577,3 +1577,91 @@ def test_every_command_is_registered_and_imports():
     walk(cli, [])
     # sanity: we actually walked a non-trivial number of commands
     assert len(cli.commands) >= 10
+
+
+class TestRunExecutionPath:
+    """Cover the `run` command's execute -> score -> gate -> persist -> archive
+    loop (the core that stays in cli.py). The runner/scorer/spec-gate are mocked
+    so no agent or judge runs; the assertions are on the observable DB + archive."""
+
+    def _ws(self, tmp_path: Path, evaluation: bool = False) -> Path:
+        cfg = tmp_path / "workspace.yaml"
+        cfg.write_text(
+            "experiment:\n  name: test\n  visibility: private\n"
+            "factors:\n  language:\n    levels: [python, go]\n"
+            "  model:\n    levels: [opus, sonnet]\n"
+            "responses:\n  - code_quality\n  - test_coverage\n"
+            "tasks:\n  - source: bundled://rest-api-crud\n"
+            "playpen:\n  runner: local\n  replicates: 1\n"
+            + ("evaluation:\n  enabled: true\n  model: claude-haiku-4-5\n" if evaluation else ""))
+        return cfg
+
+    def _design1(self, tmp_path: Path) -> Path:
+        """A one-row design so exactly one cell runs."""
+        import pandas as pd
+        path = tmp_path / "design.csv"
+        pd.DataFrame([{"language": "python", "model": "opus"}]).to_csv(path, index_label="run")
+        return path
+
+    def _patch(self, monkeypatch, tmp_path, scores, *, spec=(True, 1.0), exit_code=0):
+        from retort.playpen.runner import RunArtifacts, TaskSpec
+        pp = tmp_path / "pp"
+        (pp / "src").mkdir(parents=True, exist_ok=True)
+        (pp / "src" / "app.py").write_text("x = 1\n")
+        monkeypatch.setattr("retort.playpen.local_runner.LocalRunner.provision", lambda *a, **k: "env-1")
+        monkeypatch.setattr("retort.playpen.local_runner.LocalRunner.execute",
+            lambda *a, **k: RunArtifacts(output_dir=pp, exit_code=exit_code, duration_seconds=0.1,
+                                         token_count=100, metadata={"total_cost_usd": "0.02"}))
+        monkeypatch.setattr("retort.playpen.local_runner.LocalRunner.teardown", lambda *a, **k: None)
+        monkeypatch.setattr("retort.scoring.collector.ScoreCollector.collect", lambda *a, **k: scores)
+        monkeypatch.setattr("retort.playpen.task_loader.load_task",
+            lambda source: TaskSpec(name="t", description="d", prompt="Do it."))
+        monkeypatch.setattr("retort.cli._spec_conformance_passes", lambda *a, **k: spec)
+
+    @staticmethod
+    def _sv(**metrics):
+        from retort.scoring.collector import ScoreResult, ScoreVector
+        return ScoreVector(scores=[ScoreResult(metric_name=k, value=v) for k, v in metrics.items()])
+
+    def _db_rows(self, tmp_path: Path):
+        con = sqlite3.connect(tmp_path / "retort.db")
+        status = con.execute("SELECT status FROM experiment_runs").fetchone()
+        vals = dict(con.execute(
+            "SELECT metric_name, value FROM run_results r "
+            "JOIN experiment_runs e ON r.run_id = e.id").fetchall())
+        con.close()
+        return (status[0] if status else None), vals
+
+    def test_successful_run_persists_completed_scores_and_archives(self, tmp_path, monkeypatch):
+        cfg = self._ws(tmp_path, evaluation=True)
+        self._patch(monkeypatch, tmp_path,
+                    self._sv(code_quality=0.9, test_coverage=1.0), spec=(True, 1.0))
+        result = CliRunner().invoke(cli, ["run", "--phase", "screening", "--config", str(cfg),
+                                          "--design", str(self._design1(tmp_path))])
+        assert result.exit_code == 0, result.output
+        status, vals = self._db_rows(tmp_path)
+        assert status == "completed"
+        assert vals["code_quality"] == 0.9
+        assert vals["requirement_coverage"] == 1.0            # spec gate verdict persisted
+        # archive of the run's code was written under runs/
+        runs = tmp_path / "runs"
+        assert runs.exists() and any(runs.rglob("app.py"))
+
+    def test_gate_marks_failed_when_tests_did_not_run(self, tmp_path, monkeypatch):
+        cfg = self._ws(tmp_path, evaluation=False)
+        self._patch(monkeypatch, tmp_path, self._sv(test_coverage=0.0, code_quality=0.0))
+        result = CliRunner().invoke(
+            cli, ["run", "--phase", "screening", "--config", str(cfg),
+                  "--design", str(self._design1(tmp_path)), "--no-second-chance"])
+        assert result.exit_code == 0, result.output
+        status, _ = self._db_rows(tmp_path)
+        assert status == "failed"            # conformance gate: tests_did_not_run -> failed
+
+    def test_agent_crash_is_recorded_crashed(self, tmp_path, monkeypatch):
+        cfg = self._ws(tmp_path, evaluation=False)
+        self._patch(monkeypatch, tmp_path, self._sv(test_coverage=1.0), exit_code=1)
+        result = CliRunner().invoke(cli, ["run", "--phase", "screening", "--config", str(cfg),
+                                          "--design", str(self._design1(tmp_path))])
+        assert result.exit_code == 0, result.output
+        status, _ = self._db_rows(tmp_path)
+        assert status == "crashed"           # agent did not succeed -> crashed (retried on --resume)
