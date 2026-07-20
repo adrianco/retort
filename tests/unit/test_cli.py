@@ -1390,3 +1390,190 @@ def test_diagnose_flags_interrupted_usage_casualty(tmp_path: Path):
     assert result.exit_code == 0, result.output
     assert "INTERRUPTED" in result.output
     assert "0 GENUINE" in result.output
+
+
+# ---------------------------------------------------------------------------
+# Self-repair helpers + the `recover` command (previously uncovered — the code
+# the cli.py -> commands/ split will move, so it needs a safety net first).
+# ---------------------------------------------------------------------------
+
+def _make_failed_run_db(db_path: Path, cfg: dict, replicate: int, *, status="failed",
+                        req_cov=None):
+    """A retort.db (real ORM schema) with one non-passing experiment_run."""
+    import json
+    from retort.storage.database import create_tables, get_engine, get_session_factory
+    from retort.storage.models import ExperimentRun, RunResult, RunStatus
+
+    engine = get_engine(db_path)
+    create_tables(engine)
+    session = get_session_factory(engine)()
+    run = ExperimentRun(replicate=replicate, status=getattr(RunStatus, status),
+                        run_config_json=json.dumps(cfg), error_message="tests did not run")
+    session.add(run)
+    session.flush()
+    session.add(RunResult(run_id=run.id, metric_name="test_coverage", value=0.0))
+    if req_cov is not None:
+        session.add(RunResult(run_id=run.id, metric_name="requirement_coverage", value=req_cov))
+    session.commit()
+    session.close()
+    engine.dispose()
+
+
+def test_repair_prior_run_finds_and_skips(tmp_path: Path):
+    from retort.cli import _repair_prior_run
+
+    cfg = {"language": "go", "model": "sonnet"}
+    _make_failed_run_db(tmp_path / "retort.db", cfg, 1, status="failed", req_cov=0.9)
+    # archived code for the failed cell
+    rep = tmp_path / "runs" / "language=go_model=sonnet" / "rep1"
+    rep.mkdir(parents=True)
+    (rep / "calc.go").write_text("package main\n")
+    (rep / "TASK.md").write_text("do it")  # a skip-listed file, not "code"
+
+    prior = _repair_prior_run(str(tmp_path), "go", 1)
+    assert prior is not None
+    assert prior["dir"] == rep and prior["status"] == "failed" and prior["req_cov"] == 0.9
+
+    # no such (language, replicate) → None
+    assert _repair_prior_run(str(tmp_path), "go", 2) is None
+    # a run that already passed (req_cov 1.0) → nothing to repair
+    _make_failed_run_db(tmp_path / "passed.db", {"language": "rust", "model": "x"}, 1,
+                        status="completed", req_cov=1.0)
+    (tmp_path / "runs" / "language=rust_model=x" / "rep1").mkdir(parents=True)
+    (tmp_path / "runs" / "language=rust_model=x" / "rep1" / "a.rs").write_text("fn main(){}")
+    assert _repair_prior_run(str(tmp_path / "passed.db"), "rust", 1) is None
+
+
+def test_seed_repair_workspace_seeds_code_and_feedback(tmp_path: Path):
+    import json
+    from retort.cli import _seed_repair_workspace
+
+    prior_dir = tmp_path / "prior"
+    prior_dir.mkdir()
+    (prior_dir / "calc.go").write_text("package main\nfunc Add(a,b int) int { return a }\n")
+    (prior_dir / "stack.json").write_text("{}")  # skip-listed, must NOT copy
+    (prior_dir / "assessment.json").write_text(
+        json.dumps({"top_findings": [{"title": "Add is wrong"}]}))
+
+    reqs = tmp_path / "REQUIREMENTS.json"
+    reqs.write_text(json.dumps({"requirements": [
+        {"id": "R1", "requirement": "Add must sum", "how_to_verify": "go test"}]}))
+
+    env = tmp_path / "env"
+    env.mkdir()
+    (env / "TASK.md").write_text("Original task text.")
+    _seed_repair_workspace(env, {"dir": prior_dir, "status": "failed", "req_cov": 0.9}, reqs)
+
+    assert (env / "calc.go").read_text().startswith("package main")  # code seeded
+    assert not (env / "stack.json").exists()                          # skip-listed excluded
+    fb = (env / "FEEDBACK.md").read_text()
+    assert "R1" in fb and "Add must sum" in fb                        # requirement checklist
+    assert "requirement_coverage 0.90" in fb                          # verdict
+    assert "Add is wrong" in fb                                       # assessment finding
+    assert (env / "REQUIREMENTS.json").exists()                       # checklist copied in
+    assert (env / "TASK.md").read_text().startswith("# REPAIR TASK")  # banner prepended
+    assert "Original task text." in (env / "TASK.md").read_text()     # original kept
+
+
+def test_nonpassing_languages(tmp_path: Path):
+    from retort.cli import _nonpassing_languages
+    import json
+    db = tmp_path / "retort.db"
+    con = sqlite3.connect(db)
+    con.execute("CREATE TABLE experiment_runs (id INTEGER PRIMARY KEY, run_config_json TEXT, status TEXT)")
+    rows = [("python", "completed"), ("go", "failed"), ("rust", "crashed"),
+            ("go", "completed"), ("java", "failed")]
+    for lang, st in rows:
+        con.execute("INSERT INTO experiment_runs (run_config_json, status) VALUES (?,?)",
+                    (json.dumps({"language": lang}), st))
+    con.commit(); con.close()
+    # go has a failed AND a completed cell → still listed; python (all completed) excluded
+    assert _nonpassing_languages(tmp_path) == ["go", "java", "rust"]
+    # missing db → empty, no crash
+    assert _nonpassing_languages(tmp_path / "nope") == []
+
+
+def test_recover_chains_diagnose_and_rescore(tmp_path: Path):
+    """`recover --no-reevaluate` runs diagnose then rescore --only-failed, and a
+    tooling false-failure (go code that actually builds) flips to completed."""
+    import json
+    import shutil as _sh
+    import pytest
+    if _sh.which("go") is None:
+        pytest.skip("go toolchain not installed")
+
+    exp = tmp_path
+    rep = exp / "runs" / "language=go_model=sonnet" / "rep1"
+    rep.mkdir(parents=True)
+    (rep / "go.mod").write_text("module ex\ngo 1.21\n")
+    (rep / "calc.go").write_text(
+        "package main\nfunc Add(a, b int) int { return a + b }\nfunc main() {}\n")
+    (rep / "calc_test.go").write_text(
+        "package main\nimport \"testing\"\n\n"
+        "func TestAdd(t *testing.T) {\n\tif Add(1, 2) != 3 {\n\t\tt.Fail()\n\t}\n}\n")
+    _make_failed_run_db(exp / "retort.db", {"language": "go", "model": "sonnet"}, 1)
+    (exp / "workspace.yaml").write_text(
+        "experiment:\n  name: test\n  visibility: private\n"
+        "factors:\n  language:\n    levels: [go]\n"
+        "responses:\n  - code_quality\n  - test_coverage\n"
+        "tasks:\n  - source: bundled://rest-api-crud\n")
+
+    result = CliRunner().invoke(cli, ["recover", "--experiment-dir", str(exp), "--no-reevaluate"])
+    assert result.exit_code == 0, result.output
+    assert "diagnose" in result.output and "rescore" in result.output
+    # rescore recovered the tooling false-failure → status flipped to completed
+    con = sqlite3.connect(exp / "retort.db")
+    status = con.execute("SELECT status FROM experiment_runs").fetchone()[0]
+    con.close()
+    assert status == "completed"
+
+
+def test_reevaluate_persists_coverage_offline(tmp_path: Path, monkeypatch):
+    """`retort reevaluate` iterates archived cells, matches DB rows, and persists
+    requirement_coverage — exercised with the judge model mocked out."""
+    import retort.cli as clic
+
+    cfg = {"language": "go", "model": "sonnet"}
+    _make_failed_run_db(tmp_path / "retort.db", cfg, 1, status="completed")  # completed, no coverage yet
+    rep = tmp_path / "runs" / "language=go_model=sonnet" / "rep1"
+    rep.mkdir(parents=True)
+    (rep / "calc.go").write_text("package main\n")
+    (tmp_path / "workspace.yaml").write_text(
+        "experiment:\n  name: test\n  visibility: private\n"
+        "factors:\n  language:\n    levels: [go]\n"
+        "responses:\n  - code_quality\n"
+        "tasks:\n  - source: bundled://rest-api-crud\n"
+        "evaluation:\n  enabled: true\n  model: claude-haiku-4-5\n")
+
+    monkeypatch.setattr(clic, "_eval_tooling_preflight", lambda *a, **k: (True, "ok"))
+    monkeypatch.setattr(clic, "_spec_conformance_passes", lambda *a, **k: (True, 1.0))
+
+    result = CliRunner().invoke(cli, ["reevaluate", "--experiment-dir", str(tmp_path)])
+    assert result.exit_code == 0, result.output
+    v = sqlite3.connect(tmp_path / "retort.db").execute(
+        "SELECT value FROM run_results WHERE metric_name='requirement_coverage'").fetchone()
+    assert v is not None and v[0] == 1.0
+
+
+def test_every_command_is_registered_and_imports():
+    """Refactor guard: invoke --help on every command and subcommand. If the
+    cli.py -> commands/ split ever fails to import or register one, its --help
+    exits non-zero here. Cheap, comprehensive wiring check across the whole CLI."""
+    import click as _click
+    runner = CliRunner()
+
+    def walk(cmd, path):
+        # a group: recurse into its subcommands
+        if isinstance(cmd, _click.Group):
+            # the group itself responds to --help
+            res = runner.invoke(cli, path + ["--help"])
+            assert res.exit_code == 0, f"{' '.join(path) or 'retort'} --help failed:\n{res.output}"
+            for name, sub in cmd.commands.items():
+                walk(sub, path + [name])
+        else:
+            res = runner.invoke(cli, path + ["--help"])
+            assert res.exit_code == 0, f"{' '.join(path)} --help failed:\n{res.output}"
+
+    walk(cli, [])
+    # sanity: we actually walked a non-trivial number of commands
+    assert len(cli.commands) >= 10
