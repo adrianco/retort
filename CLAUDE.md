@@ -55,4 +55,8 @@ How to apply:
   failure as HARNESS / TOOLING / GENUINE — run it on any surprising zero.
 - Experiments live under `experiments/<owner>/experiment-NN-<slug>/` so contributions
   merge cleanly and every run is attributable. See [`experiments/README.md`](experiments/README.md).
-- **After** results land: update the write-ups and push (see the model/optimal blogs).
+- **After** results land: run `retort recover` + `retort aggregate`, update the write-ups and
+  push (the model/optimal blogs), and **move the experiment's entry from the
+  [`future-experiments.md`](docs/future-experiments.md) queue to
+  [`past-experiments.md`](docs/past-experiments.md)** (append in increasing experiment order). Do
+  the same for a model candidate the moment you decide it isn't worth testing.

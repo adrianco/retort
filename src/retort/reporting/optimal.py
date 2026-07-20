@@ -90,7 +90,7 @@ FEATURED_STACKS = [
         # NOT LIKE '%Next%' guard keeps the 80B Qwen3-Coder-Next rows (also served under
         # an mlxlocal/ id) out of the 35B stack -- they are their own stack below.
         # exp-35 (35B Rust at context_threshold 0.7) is a DIFFERENT stack (the featured 35B
-        # is at the 0.35 default) so it is excluded -- see docs/future-experiments.md exp-35.
+        # is at the 0.35 default) so it is excluded -- see docs/past-experiments.md exp-35.
         "name": "Qwen3.6-35B-A3B (local, $0)",
         "short": "Qwen 35B local",
         "where": (
@@ -126,7 +126,7 @@ FEATURED_STACKS = [
         # The 0.7 runs (exp-34/36/37, and exp-31 hard) proved the stall-fix and are the larger-n
         # evidence; they are the recommended-config PREDECESSOR and now live in the narrative,
         # not the featured numbers. 0.35 runs (exp-29/30/32/33) are the original stall-bound
-        # baseline. See docs/future-experiments.md exp-38/39.
+        # baseline. See docs/past-experiments.md exp-38/39.
         "name": "Qwen3-Coder-Next 80B (local, $0, ctx 0.9)",
         "short": "Qwen 80B local",
         "where": (
