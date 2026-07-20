@@ -472,3 +472,120 @@ def report_aliasing(
         click.echo(rendered)
 
 
+
+
+@report.command("compare")
+@click.option(
+    "--experiment-dir",
+    type=click.Path(exists=True, file_okay=False),
+    default=".",
+    show_default=True,
+    help="Experiment directory containing retort.db and runs/.",
+)
+@click.option(
+    "--config",
+    type=click.Path(exists=True),
+    default="workspace.yaml",
+    show_default=True,
+    help="cli.Path to workspace YAML config (for model settings).",
+)
+@click.option(
+    "--output",
+    "-o",
+    type=click.Path(),
+    default=None,
+    help="Output path for comparison.md. Defaults to <experiment>/reports/comparison.md.",
+)
+@click.option(
+    "--group-by",
+    type=str,
+    default=None,
+    help="Comma-separated factors to isolate. Default: all factors.",
+)
+def report_compare(
+    experiment_dir: str, config: str, output: str | None, group_by: str | None
+) -> None:
+    """Compare evaluated runs across factor dimensions via the compare-runs skill."""
+    from retort.config.loader import load_workspace
+
+    workspace_config = load_workspace(config)
+    exp_dir = cli.Path(experiment_dir).resolve()
+
+    skill = cli._find_skill("compare-runs", start=exp_dir)
+    if skill is None:
+        raise click.ClickException("skills/compare-runs not found")
+
+    params = {"experiment_dir": str(exp_dir)}
+    if output:
+        params["output_file"] = str(cli.Path(output).resolve())
+    if group_by:
+        params["group_by"] = group_by
+
+    click.echo(f"Running compare-runs (model={workspace_config.evaluation.model})...")
+    rc, out = cli._invoke_claude_skill(skill, params, workspace_config.evaluation.model, timeout=600)
+    if rc != 0:
+        raise click.ClickException(f"compare-runs failed rc={rc}: {out[:500]}")
+    click.echo(out.strip() or "(compare-runs completed)")
+
+
+@report.command("web")
+@click.option(
+    "--db",
+    type=click.Path(exists=True),
+    required=True,
+    help="cli.Path to the retort SQLite database.",
+)
+@click.option(
+    "--config",
+    type=click.Path(exists=True),
+    default=None,
+    help="Optional workspace.yaml — used to read experiment.visibility.",
+)
+@click.option(
+    "--out",
+    "out_dir",
+    type=click.Path(),
+    default=None,
+    help="Output directory. Defaults to <db-dir>/reports/web/.",
+)
+@click.option(
+    "--title",
+    type=str,
+    default=None,
+    help="Override page title (defaults to the experiment name).",
+)
+def report_web(
+    db: str, config: str | None, out_dir: str | None, title: str | None,
+) -> None:
+    """Generate static HTML reports from the run database.
+
+    Produces an index.html with a sortable per-stack maturity table plus
+    raw run details. No JavaScript framework — pure HTML + CSS + a small
+    inline sort script.
+
+    Respects experiment.visibility from workspace.yaml: in private mode,
+    file paths and per-run details are redacted to aggregate metrics only.
+    Public mode includes the full drill-down per stack.
+    """
+    from retort.reporting.web import generate_web_report
+
+    db_path = cli.Path(db).resolve()
+    output = cli.Path(out_dir).resolve() if out_dir else db_path.parent / "reports" / "web"
+
+    visibility = "public"
+    if config:
+        from retort.config.loader import load_workspace
+        try:
+            ws = load_workspace(config)
+            visibility = ws.experiment.visibility
+        except Exception as exc:
+            click.echo(f"warning: could not read visibility from {config}: {exc}", err=True)
+
+    n_pages = generate_web_report(
+        db_path=db_path,
+        output_dir=output,
+        title=title,
+        visibility=visibility,
+    )
+    click.echo(f"Wrote {n_pages} page(s) to {output}", err=True)
+    click.echo(str(output / "index.html"))
