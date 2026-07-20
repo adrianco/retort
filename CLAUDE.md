@@ -60,3 +60,21 @@ How to apply:
   [`future-experiments.md`](docs/future-experiments.md) queue to
   [`past-experiments.md`](docs/past-experiments.md)** (append in increasing experiment order). Do
   the same for a model candidate the moment you decide it isn't worth testing.
+
+## Code layout — where CLI commands live
+
+`src/retort/cli.py` holds the **`run` command** (the core experiment pipeline) plus the
+**shared helpers** (`_archive_run_workspace`, `_persist_*`, `_spec_conformance_passes`, …)
+and the click **group definitions** (`main`, `report`, `design`, `export`, `tasks`, `plugin`).
+Every **other command lives in `src/retort/commands/<area>.py`** — `scoring` (evaluate/
+reevaluate/rescore/diagnose/recover), `reporting` (report *), `analysis` (analyze/aggregate/
+maturity), `workspace` (init/visibility-check/design generate/promote/intake), `monitoring`,
+`utility` (plugin/export/tasks). cli.py imports these at its **bottom** (after the groups +
+helpers are defined, so it isn't circular) and re-exports moved names for back-compat.
+
+**Adding a command: put it in the matching `commands/` module, not cli.py** (keep cli.py to
+the run pipeline). Register it on the shared group (`from retort.cli import <group>`); if it
+needs a cli.py helper/constant, reference it through the module — `cli._helper(...)` (do
+`from retort import cli`), never `from retort.cli import _helper` — so monkeypatching in tests
+still reaches it. The `test_every_command_is_registered_and_imports` guard invokes `--help`
+on every command, so a broken import/registration fails loudly.
