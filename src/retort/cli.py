@@ -712,9 +712,10 @@ def run_experiments(
         prompts_dir = config_dir / "prompts"
         stack_manager = None
         if workspace_config.playpen.stack_presets:
-            from retort.playpen.stack_reload import OmlxStackManager
+            from retort.playpen.stack_reload import make_stack_manager
             registry_path = config_dir / workspace_config.playpen.stack_presets
-            stack_manager = OmlxStackManager(registry_path)
+            # backend (oMLX / llama.cpp) is chosen by serving.backend in the registry
+            stack_manager = make_stack_manager(registry_path)
         runner = LocalRunner(
             timeout_minutes=workspace_config.playpen.timeout_minutes,
             stall_minutes=workspace_config.playpen.stall_minutes,
