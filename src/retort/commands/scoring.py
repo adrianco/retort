@@ -85,7 +85,7 @@ def evaluate(
         targets = sorted(
             rep
             for _cell_name, cell in cli._iter_archive_cells(runs_root)
-            for rep in cell.iterdir() if rep.is_dir() and rep.name.startswith("rep")
+            for rep in cell.iterdir() if rep.is_dir() and cli._is_rep_dir(rep.name)
         )
         if not targets:
             raise click.ClickException(f"No rep directories found under {runs_root}")
@@ -173,7 +173,7 @@ def reevaluate(experiment_dir, config, eval_model, workers, languages, force):
         rep
         for _cell_name, cell in cli._iter_archive_cells(runs_root)
         for rep in cell.iterdir()
-        if rep.is_dir() and rep.name.startswith("rep") and not rep.name.endswith("-failed")
+        if rep.is_dir() and cli._is_rep_dir(rep.name)
     )
     lang_filter = {s.strip() for s in languages.split(",")} if languages else None
     work = []
@@ -382,7 +382,7 @@ def rescore(experiment_dir, config, languages, only_failed, metrics_only, worker
         if lang_filter and run_config.get("language") not in lang_filter:
             continue
         for rep in sorted(cell.iterdir()):
-            if not rep.is_dir() or not rep.name.startswith("rep") or rep.name.endswith("-failed"):
+            if not rep.is_dir() or not cli._is_rep_dir(rep.name):
                 continue
             m = re.search(r"rep(\d+)", rep.name)
             replicate = int(m.group(1)) if m else 1

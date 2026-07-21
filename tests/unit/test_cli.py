@@ -1665,3 +1665,13 @@ class TestRunExecutionPath:
         assert result.exit_code == 0, result.output
         status, _ = self._db_rows(tmp_path)
         assert status == "crashed"           # agent did not succeed -> crashed (retried on --resume)
+
+
+def test_is_rep_dir_excludes_siblings():
+    """Regression (issue #44): evaluate/reevaluate/rescore must select ONLY exact
+    rep<N> dirs, never sibling dirs that merely start with 'rep' — else a preserved
+    dead attempt gets judged and races its score onto the real replicate's row."""
+    from retort.cli import _is_rep_dir
+    assert _is_rep_dir("rep1") and _is_rep_dir("rep12")
+    for bad in ("rep3-failed", "rep3-failed-attempt1", "rep2-old", "rep1.bak", "reports", "rep"):
+        assert not _is_rep_dir(bad), bad

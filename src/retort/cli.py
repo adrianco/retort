@@ -1883,6 +1883,23 @@ def _run_config_from_cell_name(name: str) -> dict | None:
     return dict(pairs) if pairs else None
 
 
+_REP_DIR_RE = re.compile(r"rep\d+$")
+
+
+def _is_rep_dir(name: str) -> bool:
+    """True only for a *live* replicate archive dir — exactly ``rep<N>``.
+
+    Guards evaluate/reevaluate/rescore against sibling dirs that merely *start*
+    with ``rep`` (issue #44): a preserved dead attempt (``rep3-failed-attempt1``),
+    a backup (``rep2-old``, ``rep1.bak``), etc. The old ``startswith("rep") and not
+    endswith("-failed")`` test let those through, so a sibling got judged and its
+    score raced onto the real replicate's DB row (last writer wins), silently
+    overwriting a genuine pass with a preserved failure. ``diagnose`` keeps its own
+    broader match because it *wants* the ``-failed`` dirs.
+    """
+    return _REP_DIR_RE.fullmatch(name) is not None
+
+
 def _iter_archive_cells(runs_root: Path) -> list[tuple[str, Path]]:
     """Return ``(cell_name, cell_dir)`` for every archived cell under ``runs_root``.
 
