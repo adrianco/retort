@@ -586,8 +586,8 @@ class TestEvaluateCommand:
         cell_b = runs_root / "cell-b"
         cell_a.mkdir()
         cell_b.mkdir()
-        rep_a = cell_a / "rep-0"
-        rep_b = cell_b / "rep-0"
+        rep_a = cell_a / "rep0"
+        rep_b = cell_b / "rep0"
         rep_a.mkdir()
         rep_b.mkdir()
 
