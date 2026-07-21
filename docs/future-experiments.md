@@ -108,6 +108,20 @@ weights) and the only clean new-model probe left. To try a Mistral-family or Dev
 the stack manager would need a llama.cpp / vLLM serving backend (they parse the Mistral tool format
 oMLX can't).
 
+## Candidate models to test next
+
+New open-weight coding models found by the daily scan that plausibly fit 64GB at 4-bit; promote to a
+numbered experiment when prioritised.
+
+- 2026-07-21 **Poolside Laguna XS 2.1** — 33B-total / 3B-active MoE agentic coder, 256K context,
+  permissive open weights (released 2026-07-02; license loosened vs the Apache-2.0 XS.2). Same size
+  class as Qwen3-Coder-30B-A3B → 4-bit ≈ ~17GB, fits 64GB with wide headroom. Poolside publishes INT4
+  weights directly (also BF16/FP8/NVFP4); runs via Ollama/llama.cpp/vLLM, MLX likely (the XS.2
+  predecessor had native MLX). **Caveat:** custom `poolside_v1` XML tool-call protocol, not the
+  OpenAI/Hermes format oMLX parses — needs a tool-parse gate-probe first (same risk class as the
+  Devstral/Mistral tool-format mismatch that killed that attempt).
+  Source: https://poolside.ai/blog/introducing-laguna-xs-2-1
+
 ---
 
 ## Standing method notes
