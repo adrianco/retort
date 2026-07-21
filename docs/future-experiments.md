@@ -113,14 +113,16 @@ oMLX can't).
 New open-weight coding models found by the daily scan that plausibly fit 64GB at 4-bit; promote to a
 numbered experiment when prioritised.
 
-- 2026-07-21 **Poolside Laguna XS 2.1** — 33B-total / 3B-active MoE agentic coder, 256K context,
-  permissive open weights (released 2026-07-02; license loosened vs the Apache-2.0 XS.2). Same size
-  class as Qwen3-Coder-30B-A3B → 4-bit ≈ ~17GB, fits 64GB with wide headroom. Poolside publishes INT4
-  weights directly (also BF16/FP8/NVFP4); runs via Ollama/llama.cpp/vLLM, MLX likely (the XS.2
-  predecessor had native MLX). **Caveat:** custom `poolside_v1` XML tool-call protocol, not the
-  OpenAI/Hermes format oMLX parses — needs a tool-parse gate-probe first (same risk class as the
-  Devstral/Mistral tool-format mismatch that killed that attempt).
-  Source: https://poolside.ai/blog/introducing-laguna-xs-2-1
+- *(none currently queued — the daily scan appends here. **Laguna XS 2.1** was gate-probed
+  2026-07-21 and is BLOCKED: its `laguna` arch isn't in mainline oMLX/llama.cpp yet (support PRs
+  unmerged) — see past-experiments.)*
+
+**Serving backends:** retort now supports **`serving.backend: omlx | llamacpp`** (2026-07-21). The
+llama.cpp path (`llama-server`, Metal-native, GGUF, `--jinja` tool templates) serves models oMLX
+can't — any GGUF whose arch + tool format are in *mainline* llama.cpp. It unblocks **Devstral**
+(Mistral arch/parser are mainline) but NOT Laguna (arch unmerged). To add vLLM later (broadest
+tool-parser incl. `poolside_v1`), extend `make_stack_manager` with a third backend — note vLLM's
+Metal support is weak, so it suits a CUDA box, not this Mac.
 
 ---
 

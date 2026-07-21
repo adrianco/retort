@@ -199,10 +199,20 @@ ceiling).
   text path + a tool-parse gate-probe. Revisit only if we deliberately want to test the VLM serving
   path. (Was queued as the "agent-tuned beats general" head-to-head; that hypothesis is better
   tested by exp-41 self-repair or a non-VLM candidate.)
-- **Devstral Small 2 (24B) — BLOCKED (Mistral tool format).** oMLX does not parse Devstral's
-  `[TOOL_CALLS]` format (it emits the call as text; Hermes executes nothing — gate-probe confirmed,
-  same wall as exp-12). Would need a different serving layer (vLLM with the Mistral tool parser, or
-  llama.cpp with the right template).
+- **Poolside Laguna XS 2.1 (33B/3B MoE) — BLOCKED (arch not in mainline serving).** Gate-probe
+  2026-07-21. Text arch (`LagunaForCausalLM`, 262K ctx), MLX + GGUF builds exist (~17 GB Q4), but it
+  can't be served by anything mainline: **oMLX** lacks the `laguna` arch (mlx-lm 0.31.3) *and* the
+  `poolside_v1` XML tool parser; **llama.cpp** (brew build 9910 *and* master) lacks the `laguna`
+  arch too — its support PRs are **unmerged** (#25165 open, #25595 closed-unmerged) with open Metal
+  MoE-overflow issues. Downloaded the Q4 GGUF and confirmed `llama-server` errors `unknown model
+  architecture: 'laguna'`. Testable only via an experimental llama.cpp PR-branch build or vLLM (which
+  has the `poolside_v1` parser). Deprioritised: modest expected value (30B-class) vs. building from
+  an unmerged PR. Revisit once laguna lands in a mainline llama.cpp release.
+- **Devstral Small 2 (24B) — NOW UNBLOCKABLE via the llama.cpp backend.** oMLX doesn't parse its
+  Mistral `[TOOL_CALLS]` format (exp-12/23 wall). But retort now has a **`serving.backend: llamacpp`**
+  path (2026-07-21), and Devstral's Mistral arch + tool template *are* in mainline llama.cpp — so it
+  can now be gate-probed via `llama-server --jinja`. Requeue if the agent-tuned-coder question is
+  worth re-testing on a fair stack (its exp-23 0.17 ran at temp 1.0 through the write-refusal bug).
 - **Excluded — too big for 64 GB:** gpt-oss-120b (~64–65 GB, over the wired limit), GLM-4.5-Air /
   4.7-Flash (borderline), and the multi-GPU tier (MiniMax M3 428B, GLM-4.6 355B, DeepSeek-V4-Pro,
   Kimi K2.6, Qwen3-Coder-480B).
