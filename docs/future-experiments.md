@@ -63,6 +63,24 @@ task). Optionally test re-running `graphify update` between turns as a second ar
 and gives a maintained graph for future work.* Per incremental-experiments: add ONLY the new tooling
 level / task; don't re-run existing cells.
 
+**Groundwork VERIFIED (2026-07-22):** graphify 0.9.20 + graphify-mcp are installed (`~/.local/bin`,
+a `uv` tool → package `graphifyy`, interpreter at `~/.local/share/uv/tools/graphifyy/bin/python`).
+The offline, no-key AST extraction API is:
+```python
+from graphify.extract import collect_files, extract
+files  = collect_files(Path(target))          # walks the tree, picks code files
+result = extract(files, cache_root=Path(target))   # {nodes, edges, input_tokens, output_tokens}
+```
+Dogfooded on retort's `src/` → **1361 nodes, 2833 edges from 75 files in 0.7 s**, $0. **Gotcha
+(must handle in the hook):** `extract()` uses a `multiprocessing` pool with the `spawn` start method
+(macOS default), which re-imports the driver's `__main__` — so it MUST run from a real `.py` FILE,
+not `python -c "…"` or a heredoc/stdin (those fail with `FileNotFoundError: …/<stdin>` per worker and
+return 0 nodes). The prototype hook driver is `scratchpad/build_graph.py`. The full pipeline
+(clustering + `GRAPH_REPORT.md` + god-node/blast-radius) is Part C of the skill on top of this AST
+result; the pre-run hook can call `extract()` directly for the graph and generate the report from it.
+The MCP server is `graphify-mcp` (stdio) for the live-query arm. Next: wire the hook into the playpen
+provisioner as a `tooling: graphify` capability, then the no-regression scorer + the large task.
+
 ## 2. exp-41 — self-repair iteration-2 on the 80B ctx-0.9 near-misses  — SCAFFOLDED, ready to launch
 
 Scaffolded at `experiments/adrianco/experiment-41-repair-80b-fullctx/` (m80 preset now uses the
