@@ -12,6 +12,7 @@ import json
 import os
 import re
 import shutil
+import signal
 import subprocess
 import sys
 from pathlib import Path
@@ -106,6 +107,80 @@ _ANSI_RE = re.compile(r"\x1b\[[0-9;]*m")
 
 def _strip_ansi(s: str) -> str:
     return _ANSI_RE.sub("", s)
+
+
+def _killpg(pgid: int) -> None:
+    try:
+        os.killpg(pgid, signal.SIGKILL)
+    except (ProcessLookupError, PermissionError, OSError):
+        pass
+
+
+class _Reaped:
+    """A ``subprocess.CompletedProcess``-compatible result (the attributes the
+    test-execution paths read: ``stdout`` / ``stderr`` / ``returncode``)."""
+
+    __slots__ = ("stdout", "stderr", "returncode")
+
+    def __init__(self, stdout: str, stderr: str, returncode: int | None):
+        self.stdout = stdout
+        self.stderr = stderr
+        self.returncode = returncode
+
+
+def _run_reaped(cmd, *, cwd, timeout, env=None, stdin=None) -> _Reaped:
+    """Run a TEST command in its own process group and SIGKILL the whole group
+    afterward.
+
+    A model-authored test sometimes starts a real server — e.g. a REST API bound
+    to a fixed port — as a background child. Plain ``subprocess.run`` reaps only
+    the command it launched; the server child is orphaned, keeps LISTENing, and
+    then a "bind: Address already in use" false-fails the cell's own retry AND any
+    later cell that reuses the port (observed in exp-43: leaked ``book-api``
+    servers on 8765). Running under ``start_new_session=True`` puts the command
+    and every child it spawns in one process group; killing that group on the way
+    out reaps the server too.
+
+    Drop-in for ``subprocess.run`` on the test-execution paths: same
+    ``stdout``/``stderr``/``returncode``, same ``TimeoutExpired`` /
+    ``FileNotFoundError`` contract (so existing ``except`` clauses still work).
+
+    Output goes to temp FILES, not pipes, and we ``wait()`` on the direct child
+    rather than ``communicate()``. A backgrounded server inherits the parent's
+    stdout PIPE and holds it open, so ``communicate`` (and plain
+    ``subprocess.run``) would block for the full server lifetime even after the
+    test command itself exits — the temp-file + ``wait`` path returns as soon as
+    the direct child does, then reaps the group.
+    """
+    import tempfile
+
+    with tempfile.TemporaryFile() as ofile, tempfile.TemporaryFile() as efile:
+        proc = subprocess.Popen(  # noqa: S603 — cmd is a scorer-built argv list
+            cmd, cwd=cwd, env=env,
+            stdout=ofile, stderr=efile, stdin=stdin,
+            start_new_session=True,  # fresh session+group; children inherit the pgid
+        )
+        pgid = proc.pid  # session leader ⇒ pgid == pid
+        timed_out = False
+        try:
+            proc.wait(timeout=timeout)
+        except subprocess.TimeoutExpired:
+            timed_out = True
+        finally:
+            # Reap the command AND any server it backgrounded, on both paths.
+            _killpg(pgid)
+            try:
+                proc.wait(timeout=10)
+            except Exception:  # noqa: BLE001 — best-effort
+                pass
+        ofile.seek(0)
+        efile.seek(0)
+        out = ofile.read().decode("utf-8", "replace")
+        err = efile.read().decode("utf-8", "replace")
+
+    if timed_out:
+        raise subprocess.TimeoutExpired(cmd, timeout, output=out, stderr=err)
+    return _Reaped(out, err, proc.returncode)
 
 
 # Apple languages need XCTest/Foundation, which ship with a FULL Xcode — not the
@@ -203,11 +278,9 @@ class TestCoverageScorer:
 
         try:
             try:
-                result = subprocess.run(
+                result = _run_reaped(
                     cmd,
                     cwd=output_dir,
-                    capture_output=True,
-                    text=True,
                     # SwiftPM dependency graphs (e.g. a Vapor app) can take many
                     # minutes to resolve + compile from cold, well past the 300s
                     # that suits the interpreted-language runners — a timeout here
@@ -273,10 +346,10 @@ class TestCoverageScorer:
         out = output_dir.resolve()
         profile = out / ".retort-cover.out"
         try:
-            run_res = subprocess.run(
+            run_res = _run_reaped(
                 ["go", "test", "-count=1", "-coverpkg=./...",
                  "-coverprofile", str(profile), "./..."],
-                cwd=out, capture_output=True, text=True, timeout=300,
+                cwd=out, timeout=300,
             )
         except (subprocess.TimeoutExpired, FileNotFoundError):
             return None
@@ -321,9 +394,9 @@ class TestCoverageScorer:
         """
         for tests_cmd in _tests_only_commands(language, output_dir):
             try:
-                result = subprocess.run(
-                    tests_cmd, cwd=output_dir, capture_output=True,
-                    text=True, timeout=300, env=env, stdin=subprocess.DEVNULL,
+                result = _run_reaped(
+                    tests_cmd, cwd=output_dir, timeout=300, env=env,
+                    stdin=subprocess.DEVNULL,
                 )
             except (subprocess.TimeoutExpired, FileNotFoundError):
                 continue
@@ -436,9 +509,8 @@ class TestCoverageScorer:
 
         for cmd in cmds:
             try:
-                result = subprocess.run(
-                    cmd, cwd=output_dir, capture_output=True, text=True, timeout=180,
-                    env=env,
+                result = _run_reaped(
+                    cmd, cwd=output_dir, timeout=180, env=env,
                 )
             except (subprocess.TimeoutExpired, FileNotFoundError):
                 continue
@@ -487,8 +559,8 @@ class TestCoverageScorer:
         res = None
         for cmd in cmds:
             try:
-                res = subprocess.run(
-                    cmd, cwd=out, capture_output=True, text=True, timeout=300,
+                res = _run_reaped(
+                    cmd, cwd=out, timeout=300,
                 )
             except (subprocess.TimeoutExpired, FileNotFoundError):
                 return None
@@ -523,8 +595,7 @@ class TestCoverageScorer:
 
         def _run(cmd, timeout=300) -> tuple[str, int | None]:
             try:
-                r = subprocess.run(cmd, cwd=output_dir, capture_output=True,
-                                   text=True, timeout=timeout, env=env)
+                r = _run_reaped(cmd, cwd=output_dir, timeout=timeout, env=env)
                 return _strip_ansi((r.stdout or "") + "\n" + (r.stderr or "")), r.returncode
             except (subprocess.TimeoutExpired, FileNotFoundError, OSError):
                 return "", None
@@ -590,9 +661,8 @@ class TestCoverageScorer:
             pass
         for args in (["--coverage"], []):
             try:
-                r = subprocess.run(
-                    ["bun", "test", *args], cwd=output_dir,
-                    capture_output=True, text=True, timeout=180,
+                r = _run_reaped(
+                    ["bun", "test", *args], cwd=output_dir, timeout=180,
                     stdin=subprocess.DEVNULL,
                 )
             except (subprocess.TimeoutExpired, FileNotFoundError):

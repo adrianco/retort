@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import subprocess
 import tempfile
 from pathlib import Path
 
@@ -1055,3 +1056,36 @@ def test_swiftpm_build_dir_skipped_in_loc(tmp_path):
     dep.mkdir(parents=True)
     (dep / "Vapor.swift").write_text("\n".join(f"let v{i} = {i}" for i in range(5000)))
     assert _count_source_lines(tmp_path, "swift") == 2  # only the authored lines
+
+
+@pytest.mark.skipif(shutil.which("bash") is None, reason="needs bash")
+def test_run_reaped_kills_backgrounded_server(tmp_path):
+    """exp-43 leak: a test that backgrounds a server (a REST API on a fixed port)
+    must be REAPED, so it can't outlive the scorer and squat the port for the
+    cell's retry or a later cell."""
+    import os as _os
+    import time as _t
+    from retort.scoring.scorers.test_coverage import _run_reaped
+    marker = tmp_path / "pid"
+    r = _run_reaped(
+        ["bash", "-c", f"sleep 120 & echo $! > '{marker}'; echo started; exit 0"],
+        cwd=str(tmp_path), timeout=30,
+    )
+    assert r.returncode == 0 and "started" in r.stdout
+    pid = int(marker.read_text().strip())
+    _t.sleep(0.5)
+    with pytest.raises(ProcessLookupError):
+        _os.kill(pid, 0)  # reaped with the process group
+
+
+@pytest.mark.skipif(shutil.which("bash") is None, reason="needs bash")
+def test_run_reaped_timeout_not_blocked_by_backgrounded_child(tmp_path):
+    """The timeout must fire on the direct child exiting, NOT wait for a
+    backgrounded child holding the output pipe (which is why plain
+    subprocess.run/communicate can't be used here)."""
+    import time as _t
+    from retort.scoring.scorers.test_coverage import _run_reaped
+    t0 = _t.time()
+    with pytest.raises(subprocess.TimeoutExpired):
+        _run_reaped(["bash", "-c", "sleep 30 & sleep 30"], cwd=str(tmp_path), timeout=2)
+    assert _t.time() - t0 < 15  # returned near the 2s bound, not 30s
