@@ -58,13 +58,17 @@ _DEFECT_COMMANDS: dict[str, list[list[str]]] = {
         ["dotnet", "build", "--nologo"],
     ],
     # Swift: `swift build` surfaces warnings as file:line:col (like java/csharp).
-    # C/C++/Objective-C compiler-warning counting needs build-system integration
-    # (CMake/Make/xcodebuild) — a follow-up; their quality still comes from the
-    # other scorers + the test_coverage gate.
     "swift": [
         ["swift", "build"],
     ],
+    # C/C++/Objective-C are handled separately (see _NATIVE_LANGS below): they
+    # have no single canonical command, so a build-system-aware `-Wall -Wextra`
+    # build supplies the compiler-warning signal.
 }
+
+# C-family languages whose defect signal comes from native_warnings_build rather
+# than a fixed _DEFECT_COMMANDS entry.
+_NATIVE_LANGS = frozenset({"c", "cpp", "objc"})
 
 
 _LOC_EXTENSIONS: dict[str, set[str]] = {
@@ -116,9 +120,19 @@ class DefectRateScorer:
 
     def _count_defects(self, output_dir: Path, language: str) -> int:
         """Run all configured defect tools and count distinct (file, line) hits."""
-        commands = _DEFECT_COMMANDS.get(language, [])
         seen: set[tuple[str, str]] = set()
 
+        if language in _NATIVE_LANGS:
+            # C-family: build with -Wall -Wextra and count warning/error diags.
+            from retort.scoring.scorers._common import (
+                NATIVE_DIAG_RE, native_warnings_build,
+            )
+            output = native_warnings_build(output_dir)
+            for m in NATIVE_DIAG_RE.finditer(output):
+                seen.add((m.group(1), m.group(2)))
+            return len(seen)
+
+        commands = _DEFECT_COMMANDS.get(language, [])
         for cmd in commands:
             output = self._run(cmd, output_dir, language)
             if output is None:

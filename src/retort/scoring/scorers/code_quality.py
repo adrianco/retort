@@ -24,9 +24,11 @@ LINT_COMMANDS: dict[str, list[str]] = {
     # Clojure: clj-kondo is the de facto linter; skip if not installed
     # (the scorer returns a neutral 0.5 when the command is missing).
     "clojure": ["clj-kondo", "--lint", "."],
-    # Swift: swiftlint if present (skipped gracefully otherwise). C/C++/ObjC
-    # clang-tidy needs a compile_commands.json — a follow-up.
+    # Swift: swiftlint if present (skipped gracefully otherwise).
     "swift": ["swiftlint", "--quiet"],
+    # C/C++/Objective-C use the compiler as the linter (see _NATIVE_LANGS +
+    # _native_lint_score) — a build-system-aware `-Wall -Wextra` build, mirroring
+    # how java/csharp/erlang use their compiler for lint.
     # Elixir: mix compile reports warnings-as-errors when the project is
     # properly structured. Credo (optional dep) is not assumed present.
     "elixir": ["mix", "compile", "--warnings-as-errors"],
@@ -36,6 +38,10 @@ LINT_COMMANDS: dict[str, list[str]] = {
     # C#: `dotnet build` catches compile errors + warnings (mirrors java's mvn compile).
     "csharp": ["dotnet", "build", "--nologo"],
 }
+
+# C-family languages whose lint signal comes from a native -Wall build rather
+# than a fixed LINT_COMMANDS entry (see _native_lint_score).
+_NATIVE_LANGS = frozenset({"c", "cpp", "objc"})
 
 
 class CodeQualityScorer:
@@ -74,6 +80,9 @@ class CodeQualityScorer:
 
     def _lint_score(self, output_dir: Path, language: str) -> float:
         """Run linter and compute pass rate."""
+        if language in _NATIVE_LANGS:
+            return self._native_lint_score(output_dir)
+
         cmd = LINT_COMMANDS.get(language)
         if cmd is None:
             return 0.5  # No linter available — neutral score
@@ -100,6 +109,26 @@ class CodeQualityScorer:
             return max(0.0, 1.0 - (issues * 0.05))
         except (subprocess.TimeoutExpired, FileNotFoundError):
             return 0.5
+
+    def _native_lint_score(self, output_dir: Path) -> float:
+        """Lint C/C++/Objective-C via a `-Wall -Wextra` build (compiler-as-linter).
+
+        Counts distinct warning/error diagnostics; 0 → 1.0, each one costs 0.05
+        (same curve as the generic linter path). A build system that's absent or
+        whose tools are missing yields no output → neutral 0.5, never a false
+        perfect score. A genuine build failure is still caught by the
+        test_coverage conformance gate.
+        """
+        from retort.scoring.scorers._common import (
+            NATIVE_DIAG_RE, native_warnings_build,
+        )
+        output = native_warnings_build(output_dir)
+        if not output.strip():
+            return 0.5  # no build system / toolchain — neutral, no signal
+        issues = {(m.group(1), m.group(2)) for m in NATIVE_DIAG_RE.finditer(output)}
+        if not issues:
+            return 1.0
+        return max(0.0, 1.0 - len(issues) * 0.05)
 
     def _structure_score(self, output_dir: Path, language: str) -> float:
         """Score based on file organization."""

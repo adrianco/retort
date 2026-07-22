@@ -457,6 +457,19 @@ class TestDefectRateScorer:
         assert _count_source_lines(tmp_path, "erlang") == 2
         assert _count_source_lines(tmp_path, "elixir") == 3
 
+    def test_native_diag_regex_counts_warnings_not_notes(self):
+        """C/C++/ObjC defect + lint count warning/error diagnostics only — not the
+        `note:` continuation lines or bare file:line noise the compiler also emits."""
+        from retort.scoring.scorers._common import NATIVE_DIAG_RE
+        out = (
+            "src/add.c:2:9: warning: unused variable 'x' [-Wunused-variable]\n"
+            "src/add.c:2:9: note: expanded from macro\n"          # note -> ignored
+            "src/main.cpp:10:1: error: expected ';'\n"
+            "Building CXX object CMakeFiles/foo.dir/main.cpp.o\n"  # no diag -> ignored
+        )
+        hits = {(m.group(1), m.group(2)) for m in NATIVE_DIAG_RE.finditer(out)}
+        assert hits == {("src/add.c", "2"), ("src/main.cpp", "10")}
+
 
 class TestMaintainabilityScorer:
     def test_failed_run_scores_zero(self, failed_artifacts, python_stack):
@@ -784,6 +797,32 @@ def _go_module(tmp_path: Path) -> RunArtifacts:
     )
     return RunArtifacts(
         output_dir=tmp_path, stdout="", exit_code=0, duration_seconds=1.0)
+
+
+@pytest.mark.skipif(
+    shutil.which("cmake") is None or shutil.which("clang") is None,
+    reason="cmake/clang toolchain not installed",
+)
+def test_native_cmake_defect_and_lint_end_to_end(tmp_path):
+    """C via CMake: the -Wall build feeds defect_rate + code_quality, and it is
+    cache-independent — a warny project scores warnings on EVERY scorer call, not
+    just the first (an incremental rebuild re-emits zero warnings)."""
+    (tmp_path / "add.c").write_text(
+        "int add(int a, int b) {\n    int unused_local = 42;\n    return a + b;\n}\n"
+    )
+    (tmp_path / "CMakeLists.txt").write_text(
+        "cmake_minimum_required(VERSION 3.15)\nproject(p C)\nadd_library(add add.c)\n"
+    )
+    art = RunArtifacts(output_dir=tmp_path, stdout="", exit_code=0, duration_seconds=1.0)
+    stack = StackConfig(language="c", agent="x", framework="x")
+    dr = DefectRateScorer()
+    # Two calls in a row: the second must also see the warning (clean rebuild),
+    # so warny code can't slip to a perfect defect_rate via build caching.
+    first = dr.score(art, stack)
+    second = dr.score(art, stack)
+    assert first < 1.0 and second < 1.0, (first, second)
+    # code_quality's lint component also drops below the clean 1.0.
+    assert CodeQualityScorer()._native_lint_score(tmp_path) < 1.0
 
 
 @pytest.mark.skipif(shutil.which("go") is None, reason="go toolchain not installed")
