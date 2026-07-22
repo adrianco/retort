@@ -151,6 +151,12 @@ def _live_context_tokens(
     import datetime as _dt
     import json as _json
 
+    # Shared with the local runner: context = prompt + both cache reads (NOT the
+    # output). Imported here because this path (live context for an in-flight
+    # cell) was unreachable until the run-process detection was fixed to match by
+    # cwd, so the missing import never fired.
+    from retort.playpen.local_runner import _turn_context
+
     log = workspace / "_agent_stdout.log"
     if log.is_file():
         try:
@@ -2509,6 +2515,66 @@ def _etime_to_seconds(etime: str) -> float | None:
     return float(days * 86400 + secs)
 
 
+def _retort_run_pids_for(db_path: Path) -> list[str]:
+    """PIDs of the ``retort run`` process(es) working on THIS experiment.
+
+    Matches two invocation styles, because the earlier argv-only matching missed
+    the one the docs actually recommend:
+
+    * ``cd <exp> && retort run --config workspace.yaml`` — the experiment is named
+      NOWHERE in argv (paths are relative), so we match on the process **working
+      directory** being the experiment dir. This is the common case that made
+      ``--watch`` exit immediately and hid the running cell.
+    * ``retort run <exp>`` / ``--config <exp>/workspace.yaml`` — the slug or
+      dir-name DOES appear in argv, so we match that too (cwd may be elsewhere).
+
+    Best-effort and local-only: returns [] if it can't tell (no process access).
+    """
+    import subprocess
+
+    exp_dir = db_path.resolve().parent
+    slug = next((p for p in reversed(exp_dir.parts) if p.startswith("experiment-")), None)
+
+    def _run(args: list[str]) -> subprocess.CompletedProcess | None:
+        try:
+            return subprocess.run(args, capture_output=True, text=True, timeout=5)
+        except Exception:  # noqa: BLE001 — best-effort; never break the monitor
+            return None
+
+    # Candidate processes: every `retort run` carries the (required) `--phase`
+    # flag. The `[-]` char class stops pgrep from reading the pattern as a flag
+    # and stops the pattern from matching pgrep's own argv.
+    r = _run(["pgrep", "-f", r"[-]-phase"])
+    if r is None or r.returncode not in (0, 1):
+        return []
+
+    matched: list[str] = []
+    for pid in r.stdout.split():
+        psc = _run(["ps", "-o", "command=", "-p", pid])
+        cmd = psc.stdout.strip() if psc else ""
+        if " run " not in f" {cmd} ":  # must be the `run` subcommand, not design/report
+            continue
+        # (a) argv names the experiment (the `retort run <exp>` style).
+        if (slug and slug in cmd) or f"/{exp_dir.name}" in cmd or f" {exp_dir.name}" in cmd:
+            matched.append(pid)
+            continue
+        # (b) the process cwd IS the experiment dir (the `cd <exp> && retort run
+        #     --config workspace.yaml` style — nothing identifying in argv).
+        lf = _run(["lsof", "-a", "-p", pid, "-d", "cwd", "-Fn"])
+        cwd = ""
+        if lf is not None:
+            for line in lf.stdout.splitlines():
+                if line.startswith("n"):
+                    cwd = line[1:]
+                    break
+        try:
+            if cwd and Path(cwd).resolve() == exp_dir:
+                matched.append(pid)
+        except OSError:
+            pass
+    return matched
+
+
 def _discover_active_runs(db_path: Path) -> list[dict]:
     """Best-effort list of in-flight agent runs for this experiment.
 
@@ -2533,11 +2599,11 @@ def _discover_active_runs(db_path: Path) -> list[dict]:
         except Exception:  # noqa: BLE001 - best-effort; never fail the monitor
             return None
 
-    exp = db_path.resolve().parent.name
-    # Match both invocation styles: the `retort run ... <exp>` console script and
-    # the `python -c '...main()' run ... <exp>` form (used by sharded runners).
-    r = _run(["pgrep", "-f", f"run .*{exp}"])
-    if r is None or r.returncode not in (0, 1):
+    # The `retort run` parents for this experiment — matched by cwd OR argv, so a
+    # run launched from inside the experiment dir (nothing identifying in argv) is
+    # found, not just the `retort run <exp>` style. Returns [] off the run host.
+    run_pids = _retort_run_pids_for(db_path)
+    if not run_pids:
         return []
     # Launchers that sit BETWEEN `retort run` and the agent, so the agent is a
     # grandchild rather than a direct child (e.g. `uv run … hermes`, an
@@ -2563,7 +2629,7 @@ def _discover_active_runs(db_path: Path) -> list[dict]:
 
     active: list[dict] = []
     seen: set[str] = set()
-    for rpid in r.stdout.split():
+    for rpid in run_pids:
         for cpid in _agent_candidate_pids(rpid):
             psc = _run(["ps", "-o", "command=", "-p", cpid])
             cmd = psc.stdout.strip() if psc else ""
@@ -2685,18 +2751,10 @@ def _run_in_flight(db_path: Path) -> bool:
     whole experiment (between cells and during the spec-gate eval too), so it is
     the correct "still going" signal. Best-effort: returns False if it can't tell.
     """
-    import subprocess
-
-    parts = db_path.resolve().parts
-    # Match on the experiment slug (…/experiment-NN-slug/…) so we don't pick up a
-    # DIFFERENT experiment's run just because both share a task-dir name (bookshop).
-    slug = next((p for p in reversed(parts) if p.startswith("experiment-")), None)
-    pattern = f"run .*{re.escape(slug)}" if slug else f"run .*{re.escape(db_path.resolve().parent.name)}"
-    try:
-        r = subprocess.run(["pgrep", "-f", pattern], capture_output=True, text=True, timeout=5)
-    except Exception:  # noqa: BLE001 — best-effort; never break the monitor
-        return False
-    return r.returncode == 0 and bool(r.stdout.strip())
+    # Matched by cwd OR argv (see _retort_run_pids_for): a run launched from
+    # inside the experiment dir names the experiment nowhere in argv, so the old
+    # argv-only pgrep found nothing and `--watch` exited immediately mid-run.
+    return bool(_retort_run_pids_for(db_path))
 
 
 

@@ -1710,3 +1710,70 @@ def test_archive_replace_existing_preserves_prior_as_failed(tmp_path: Path):
     a3.mkdir(parents=True); (a3 / "v3.py").write_text("attempt3")
     d3 = _archive_run_workspace(runs, cfg, 1, _art(tmp_path / "a3", 0))
     assert not (d3 / "src" / "v3.py").exists()
+
+
+def test_live_context_tokens_imports_turn_context(tmp_path):
+    """Regression: `_live_context_tokens` referenced `_turn_context` without
+    importing it (lost in the cli.py split). The path was dormant until the run-
+    process detection was fixed to match by cwd, then `retort monitor` on an
+    in-flight cloud cell crashed with NameError. Feed a claude stream-json
+    assistant usage line and assert it computes context (prompt + both caches)."""
+    from retort import cli
+    (tmp_path / "_agent_stdout.log").write_text(
+        '{"type":"assistant","message":{"usage":{"input_tokens":100,'
+        '"cache_read_input_tokens":2000,"cache_creation_input_tokens":400,'
+        '"output_tokens":50}}}\n'
+    )
+    latest, peak = cli._live_context_tokens(tmp_path, None, None)
+    # context = 100 + 2000 + 400 (output excluded); no NameError.
+    assert latest == 2500 and peak == 2500
+
+
+def test_retort_run_pids_matches_by_cwd(tmp_path, monkeypatch):
+    """Regression: a `retort run` launched from INSIDE the experiment dir names
+    the experiment nowhere in argv, so the old argv-only pgrep found nothing —
+    `--watch` exited immediately and the running cell was hidden. Match by the
+    process cwd instead."""
+    from retort import cli
+
+    exp_dir = tmp_path / "experiment-99-demo" / "bookshop"
+    exp_dir.mkdir(parents=True)
+    db = exp_dir / "retort.db"
+    db.write_text("")  # only .parent is used
+
+    # A run whose argv is fully relative (no slug / dir-name), cwd == exp_dir.
+    cmd = "/x/.venv/bin/retort run --phase screening --config workspace.yaml --design design.csv"
+
+    def fake_run(args, **kwargs):
+        import subprocess
+        joined = " ".join(args)
+        if args[0] == "pgrep":
+            out = "4242\n"
+        elif args[0] == "ps":
+            out = cmd + "\n"
+        elif args[0] == "lsof":
+            out = f"p4242\nn{exp_dir.resolve()}\n"  # -Fn: cwd line starts with 'n'
+        else:
+            out = ""
+        return subprocess.CompletedProcess(args, 0, out, "")
+
+    monkeypatch.setattr("subprocess.run", fake_run)
+    assert cli._retort_run_pids_for(db) == ["4242"]
+
+    # A different experiment's run (cwd elsewhere, no slug in argv) must NOT match.
+    other = tmp_path / "elsewhere"
+    other.mkdir()
+
+    def fake_run_other(args, **kwargs):
+        import subprocess
+        out = ""
+        if args[0] == "pgrep":
+            out = "4242\n"
+        elif args[0] == "ps":
+            out = cmd + "\n"
+        elif args[0] == "lsof":
+            out = f"p4242\nn{other.resolve()}\n"
+        return subprocess.CompletedProcess(args, 0, out, "")
+
+    monkeypatch.setattr("subprocess.run", fake_run_other)
+    assert cli._retort_run_pids_for(db) == []
