@@ -735,8 +735,9 @@ def run_experiments(
 
             _serving = getattr(stack_manager, "serving", {}) or {}
 
-            def _agent_cli(_name: str, _spec: dict) -> str:
-                _harness = (_spec or {}).get("harness", _name)
+            def _agent_cli(_name: str, _spec) -> str:
+                # _spec is a LocalAgentConfig (pydantic), not a dict — use getattr.
+                _harness = getattr(_spec, "harness", None) or _name
                 if _harness == "hermes":
                     return _serving.get("hermes_bin", "hermes")
                 return _harness  # omp / gemini / opencode resolve by their own name
