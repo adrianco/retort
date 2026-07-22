@@ -42,6 +42,7 @@ Full, always-current results live in three companion documents — each the **si
 - ⭐ **[optimal-blog.md](optimal-blog.md)** — *what to run today*: the leading stacks, the per-language / per-task-size recommendation, and the exact configuration each needs (generated from `master.db` by `retort report optimal`). No history — stacks appear when they lead and are removed when they don't.
 - 📝 **[model-blog.md](model-blog.md)** — the narrative: reliability-vs-cost, fast mode, the local-model arc, and the measurement bugs found along the way.
 - 🎯 **[prompt-blog.md](prompt-blog.md)** — whether the prescribed test methodology (BDD / TDD / ATDD vs none) moves reliability.
+- 🧩 **[harness-blog.md](harness-blog.md)** — a newcomer's map of the *stack under the model*: what oMLX / llama.cpp / Hermes / GGUF / MLX / `omp` are, where they came from, what competes with what and why there are so many — plus what the metaharness factors mean and what they'd test.
 
 The headline metric is **pass-proportion**: over N replicates of a stack, the fraction whose runs *fully implement the spec* (`requirement_coverage == 1.0`). Read it as **the probability a single unattended run comes out completely correct**. A single sub-1.0 run is a fail.
 
