@@ -166,6 +166,57 @@ full Xcode** (Foundation + XCTest), so it can't run in a Linux CI — mark it ma
 is the safe first one to wire up. Expect the local 80B to be weaker here than on Python/Go/TS
 (these languages are far less represented in training) — the point is to *measure* that gap.
 
+## 6. Methodology: harness-orchestration factor (`retort-metaharness`)  — SIDE-BRANCH, staged
+
+There is an in-repo but **unused** methodology layer, [`retort_metaharness/`](../retort_metaharness/)
+(console script `retort-metaharness`; 13 passing tests; not referenced anywhere else until now). It
+makes the **agentic-orchestration harness itself** a first-class DoE factor — the axis Retort's main
+grid can't currently decompose. Where the `agent` factor is coarse (claude-code vs hermes-local), this
+crosses *orchestration strategy* with model/language/task and lets the ANOVA attribute variance to
+**harness vs model vs language + interactions**:
+
+| factor | levels |
+|---|---|
+| **harness_config** | base-ReAct · self-consistency-N · routed (cheap→frontier) · +agenticow-memory · +darwin-evolved-genome |
+| **scaffold** | none · plan-and-solve · reflexion |
+| **model** | deepseek-v4-pro · glm-5.2 · opus-4.8 · gpt-5.2 (via OpenRouter) |
+
+It **composes** Retort's engine (design generator + aliasing, `analysis.anova`, `analysis.pareto`,
+`classify_phase`) rather than forking it. The per-cell adapter is `src/retort/playpen/metaharness_runner.py`.
+
+**Why it's worth doing:** it's the natural generalization of Retort's own headline finding — *"prompt is
+a lever only in proportion to model weakness"* — from prompt → full orchestration, and it puts the
+`routed` cost-vs-reliability tradeoff directly on the Pareto front.
+
+**Honest prerequisites / risks (why it's a side-branch, not a promotion):**
+- **The real harness lives outside the repo.** `metaharness_runner.py` is only an adapter; the
+  routing/memory/darwin-genome logic is the external `METAHARNESS_SOLVER`. **No solver → only the $0
+  `LocalStubRunner` fixture runs, which is explicitly *not* a benchmark.** Blocker #1.
+- **Cloud-only + metered** (OpenRouter, key in `/tmp/.orkey`) — a different serving path from the
+  local-model spine, and `self-consistency-N × frontier × replicates` gets expensive: needs a hard $ cap.
+- **Results island:** it emits `results.csv` and analyzes *that* — it does **not** yet feed `master.db` /
+  `retort aggregate` / `report optimal`. Merging is real work, deferred to Stage 3.
+
+**Staged plan (agreed — cheapest→most valuable, each stage gates the next):**
+1. **Stage 0 — de-orphan (this entry + a README pointer).** Done: the capability is now discoverable
+   with its prerequisites stated up front.
+2. **Stage 1 — $0 pipeline bookend.** Run `retort-metaharness smoke` (LocalStubRunner) as the
+   "plumbing is green" pre-flight — already passing, zero OpenRouter cost. Satisfies the CLAUDE.md
+   "verify before you spend" rule for this sub-system.
+3. **Stage 2 — first real screen** *(gated on: solver available + OR key + a hard $ cap).* Deliberately
+   small: `model{deepseek-v4-pro, opus-4.8} × harness{base-ReAct, self-consistency-5, routed,
+   +agenticow-memory} × scaffold{none, reflexion} × language{python, go}` on `rest-api-crud`,
+   fractional (0.5), aliasing reported, n=3. **Hypothesis up front:** harness_config's main-effect
+   variance share is non-trivial vs model — else orchestration is a no-op on these tasks (a publishable
+   null, like the prompt study).
+4. **Stage 3 — confirm + Pareto** *(only if Stage 2 shows a real harness effect).* Full-factorial
+   confirmation on the winning config + a routed-vs-frontier cost-Pareto, and **merge its responses
+   into `master.db`** so a "harness maturity" row lands in the optimal-blog.
+
+**Promotion rule:** keep it a documented side-branch (cloud-orchestration experiments only, never
+touching the local-model spine) **until a Stage-2 screen shows harness-config variance is real** — then
+invest in the solver dependency, master.db merge, and first-class docs.
+
 ## Candidate models to test next
 
 New open-weight coding models found by the daily scan that plausibly fit 64GB at 4-bit; promote to a
