@@ -1,0 +1,9 @@
+run,language,agent,prompt,stack,model
+0,c,claude-code,neutral,m80,claude-opus-4-8
+1,cpp,claude-code,neutral,m80,claude-opus-4-8
+2,objc,claude-code,neutral,m80,claude-opus-4-8
+3,swift,claude-code,neutral,m80,claude-opus-4-8
+4,c,hermes-local,neutral,m80,mlxlocal/mlx-community--Qwen3-Coder-Next-4bit
+5,cpp,hermes-local,neutral,m80,mlxlocal/mlx-community--Qwen3-Coder-Next-4bit
+6,objc,hermes-local,neutral,m80,mlxlocal/mlx-community--Qwen3-Coder-Next-4bit
+7,swift,hermes-local,neutral,m80,mlxlocal/mlx-community--Qwen3-Coder-Next-4bit

@@ -1,0 +1,34 @@
+# Experiment 43 — MORE LANGUAGES exploration: C / C++ / Objective-C / Swift.
+# Initial cloud-vs-local comparison on bookshop: Opus 4.8 vs the leading local stack
+# (Qwen3-Coder-Next 80B at context_threshold 0.9), 1 replicate = 8 runs.
+#
+# ⚠️ BLOCKED pending scorer support. Toolchain entries exist (toolchains.py: c/cpp/
+# objc/swift), but the scorers don't yet build/test/score these 4 languages — see
+# docs/future-experiments.md "More languages" for the build setup + what to add.
+# Do NOT launch until the scorers handle these languages, or every run fails the
+# mechanical gate (test_coverage=0) and the data is garbage.
+experiment:
+  name: experiment-43-morelangs-bookshop
+  visibility: public
+factors:
+  language: { levels: [c, cpp, objc, swift] }
+  agent: { levels: [hermes-local, claude-code] }
+  prompt: { levels: [neutral, none] }   # design pins 'neutral'; registry needs >=2
+  stack: { levels: [m80, m35] }          # design pins m80 for local; unused for cloud
+  model: { levels: ["mlxlocal/mlx-community--Qwen3-Coder-Next-4bit", "claude-opus-4-8"] }
+responses: [code_quality, token_efficiency, test_coverage, defect_rate, maintainability, idiomatic]
+tasks:
+  - source: bundled://rest-api-crud
+playpen:
+  runner: local
+  replicates: 1                # exploration — one replicate for the first comparison
+  timeout_minutes: 60          # local models are slow; give them the wall
+  stall_minutes: 25
+  max_turns: 200
+  stack_presets: stacks.yaml
+  prompts_dir: prompts
+  local_agents:
+    hermes-local: { harness: hermes, model: mlxlocal/mlx-community--Qwen3-Coder-Next-4bit }
+design: { screening_resolution: 3, significance_threshold: 0.10 }
+promotion: { screening_to_trial: { p_value: 0.10 }, trial_to_production: { posterior_confidence: 0.80 } }
+evaluation: { enabled: true, model: opus-4.8 }

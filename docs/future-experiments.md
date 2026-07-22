@@ -108,6 +108,42 @@ weights) and the only clean new-model probe left. To try a Mistral-family or Dev
 the stack manager would need a llama.cpp / vLLM serving backend (they parse the Mistral tool format
 oMLX can't).
 
+## 5. More languages — C / C++ / Objective-C / Swift exploration  — SCHEDULED
+
+Extend beyond the 9 current languages to the **systems + Apple** tier. Scaffolded at
+`experiments/adrianco/experiment-43-morelangs/bookshop/`.
+
+**Design (exploration, deliberately thin):** `language{c, cpp, objc, swift} × model{opus-4.8,
+qwen-80B} × bookshop(rest-api-crud) × prompt=neutral × 1 replicate` = **8 runs**. One replicate
+is enough for a first *comparison/exploration* — cloud frontier (Opus 4.8) vs the leading local
+stack (Qwen3-Coder-Next 80B at `context_threshold: 0.9`) on each new language. Promote to n≥3 +
+the hard task only for languages that look viable.
+
+**PREREQUISITE — scorer support (blocks the run).** These 4 languages are new to the harness.
+Toolchain entries are added (`toolchains.py`: c/cpp/objc/swift, so the preflight checks/install
+the compilers), but the **scorers don't yet build/test/score them** — `test_coverage`,
+`defect_rate`, `code_quality`, `maintainability`, `idiomatic`, `token_efficiency` only know the
+existing 9 (extension maps + build/test/coverage commands). Without that, every run fails the
+mechanical gate (test_coverage=0) and mis-scores. So before launching, add each language to the
+scorers (build/test/coverage/lint command + file extension). Swift is the cleanest (one canonical
+toolchain); C/C++ vary by build system; Objective-C is macOS-only.
+
+**Build setup per language** (graduate to the README toolchain table once supported):
+
+| Lang | ext | compiler / build | test + coverage the scorer runs | lint | install (macOS) |
+|---|---|---|---|---|---|
+| **Swift** | `.swift` | SwiftPM (`swift build`) | `swift test --enable-code-coverage`; coverage via `llvm-cov export` on `.build/*/codecov/*.profdata` | `swift-format lint` / `swiftlint` | `brew install swift` (or Xcode) |
+| **C** | `.c` | `clang`/`gcc`, CMake or Makefile | build the agent's test target, run it; coverage `--coverage` (gcov) → `lcov`/`gcovr` | `clang-tidy` | Xcode CLT (`clang` preinstalled) + `brew install cmake lcov` |
+| **C++** | `.cpp/.cc/.hpp` | `clang++`/`g++`, CMake | `ctest` on the agent's framework (Catch2 / GoogleTest / doctest); coverage gcov/`llvm-cov` | `clang-tidy` | Xcode CLT + `brew install cmake lcov` |
+| **Objective-C** | `.m/.h` | `clang` + Foundation (**macOS only**) | XCTest via `xcodebuild test`, or a plain assert executable; coverage `llvm-cov` | `clang-tidy` | Xcode (full, for XCTest/Foundation) |
+
+**Notes / risks:** C and C++ have **no single canonical test runner** (Go's `go test` has no
+equivalent) — the agent picks a framework, so the scorer must detect the build system (CMake vs
+Makefile) and the test target, or run `bookshop`'s own provided harness. **Objective-C needs a
+full Xcode** (Foundation + XCTest), so it can't run in a Linux CI — mark it macOS-only. **Swift**
+is the safe first one to wire up. Expect the local 80B to be weaker here than on Python/Go/TS
+(these languages are far less represented in training) — the point is to *measure* that gap.
+
 ## Candidate models to test next
 
 New open-weight coding models found by the daily scan that plausibly fit 64GB at 4-bit; promote to a

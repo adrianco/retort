@@ -59,9 +59,18 @@ TOOLCHAINS: dict[str, Toolchain] = {
     "clojure": Toolchain("clojure", "lein", ("leiningen",), ("leiningen",), "Clojure (Leiningen)"),
     "elixir": Toolchain("elixir", "mix", ("elixir",), ("elixir",), "Elixir"),
     "erlang": Toolchain("erlang", "rebar3", ("rebar3",), ("rebar3",), "Erlang (rebar3)"),
+    # Systems / Apple languages (exploration — see docs/future-experiments.md
+    # "More languages"). The probe is the compiler/driver; the scorers also need
+    # CMake (C/C++) and coverage tooling — documented with the experiment.
+    "c": Toolchain("c", "clang", ("llvm", "cmake", "lcov"), ("clang", "cmake", "lcov"), "C (clang + CMake)"),
+    "cpp": Toolchain("cpp", "clang++", ("llvm", "cmake", "lcov"), ("clang", "cmake", "lcov"), "C++ (clang++ + CMake)"),
+    "objc": Toolchain("objc", "clang", ("llvm",), (), "Objective-C (clang + Foundation, macOS)"),
+    "swift": Toolchain("swift", "swift", ("swift",), (), "Swift (SwiftPM)"),
 }
 # Common aliases for the same toolchain.
-for _alias, _canon in {"ts": "typescript", "js": "javascript", "c#": "csharp", "dotnet": "csharp"}.items():
+for _alias, _canon in {"ts": "typescript", "js": "javascript", "c#": "csharp",
+                       "dotnet": "csharp", "c++": "cpp", "cxx": "cpp",
+                       "objective-c": "objc", "objectivec": "objc"}.items():
     TOOLCHAINS[_alias] = TOOLCHAINS[_canon]
 
 

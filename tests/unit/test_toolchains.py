@@ -125,3 +125,16 @@ class TestFormatReport:
         missing = ensure_toolchains(["go"], install=False, which=lambda p: None)
         missing_line = format_report(missing, installed_action=False)[0]
         assert "missing" in missing_line
+
+
+def test_systems_language_toolchains_registered():
+    """C/C++/Objective-C/Swift toolchain entries + aliases (for the more-languages experiment)."""
+    from retort.playpen.toolchains import TOOLCHAINS, required_toolchains
+    for lang, probe in [("c", "clang"), ("cpp", "clang++"), ("objc", "clang"), ("swift", "swift")]:
+        assert lang in TOOLCHAINS, lang
+        assert TOOLCHAINS[lang].probe == probe
+    for alias, canon in [("c++", "cpp"), ("cxx", "cpp"), ("objective-c", "objc")]:
+        assert TOOLCHAINS[alias] is TOOLCHAINS[canon]
+    tcs = required_toolchains(["swift", "c", "c++", "python"])
+    labels = {t.label for t in tcs}
+    assert any("Swift" in l for l in labels) and any("C++" in l for l in labels)

@@ -6,6 +6,20 @@
 
 ---
 
+## Contribute your experiment results
+
+**Ran retort on a model, language, or task combination we haven't tried? Open a pull request with the results — they're welcome and credited.** Every contributor's runs land in their own namespace:
+
+```
+experiments/<your-github-id>/experiment-<name>/
+```
+
+Namespacing by GitHub id **avoids collisions** between contributors and makes every run **attributable** — the path itself is the provenance and the credit. Your `experiment-<name>/` carries its own `workspace.yaml`, `design.csv`, per-run archives, `retort.db`, and a `provenance.json` recording the exact stack each run used, so the result is reproducible and traceable to you. `retort aggregate` folds your runs into the shared `master.db` alongside everyone else's, and `retort report optimal` picks them up in the leading-stack tables.
+
+See [`experiments/README.md`](experiments/README.md) for the layout and the step-by-step (describe the experiment to Claude Code, or drive the CLI directly), and [`docs/future-experiments.md`](docs/future-experiments.md) for the open queue if you want something worth running.
+
+---
+
 ## Features
 
 - **Factorial / fractional-factorial designs** over `language × model × tooling` (and any factors you add — context length, sampling, agent, prompt), generated automatically — run the full grid or a fraction.
