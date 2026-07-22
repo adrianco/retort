@@ -1777,3 +1777,38 @@ def test_retort_run_pids_matches_by_cwd(tmp_path, monkeypatch):
 
     monkeypatch.setattr("subprocess.run", fake_run_other)
     assert cli._retort_run_pids_for(db) == []
+
+
+def test_repair_prior_run_finds_model_slash_nested_archive(tmp_path):
+    """Regression: --repair-from located `runs/*language=X*/repN`, but a model id
+    with a slash (mlxlocal/mlx-community--…) nests the rep dir one level deeper,
+    so the lookup found no code and silently returned None → the repair run would
+    seed nothing (a silent null). Recurse to find the nested archive."""
+    import json as _json
+    import sqlite3
+    from retort import cli
+
+    exp = tmp_path / "experiment-x" / "bookshop"
+    runs = exp / "runs"
+    # the slash-nested layout the local 80B produces
+    cell = (runs / "agent=hermes-local_language=rust_model=mlxlocal"
+                 / "mlx-community--Qwen3-Coder-Next-4bit_prompt=neutral_stack=m80")
+    rep = cell / "rep2"
+    (rep / "src").mkdir(parents=True)
+    (rep / "Cargo.toml").write_text("[package]\nname='x'\n")
+    (rep / "src" / "main.rs").write_text("fn main() {}\n")
+
+    db = sqlite3.connect(exp / "retort.db")
+    db.execute("CREATE TABLE experiment_runs (id INTEGER PRIMARY KEY, status TEXT, "
+               "replicate INT, run_config_json TEXT)")
+    db.execute("CREATE TABLE run_results (run_id INT, metric_name TEXT, value REAL)")
+    db.execute("INSERT INTO experiment_runs VALUES (1,'completed',2,?)",
+               (_json.dumps({"language": "rust"}),))
+    db.execute("INSERT INTO run_results VALUES (1,'requirement_coverage',0.9167)")
+    db.commit(); db.close()
+
+    pr = cli._repair_prior_run(str(exp), "rust", 2)
+    assert pr is not None, "nested archive not found"
+    assert pr["dir"].name == "rep2" and abs(pr["req_cov"] - 0.9167) < 1e-6
+    # a rep that already passed (req_cov 1.0) is not repairable
+    assert cli._repair_prior_run(str(exp), "rust", 9) is None  # no such rep

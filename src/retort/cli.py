@@ -1227,9 +1227,19 @@ def _repair_prior_run(base: str, language: str, replicate: int):
     # already passed → nothing to repair
     if status == "completed" and req_cov is not None and abs(req_cov - 1.0) < 1e-9:
         return None
-    # locate the archived code dir for this (language, replicate)
-    matches = _glob.glob(str(runs_root / f"*language={language}*" / f"rep{replicate}"))
-    prior_dir = next((Path(m) for m in matches if Path(m).is_dir()), None)
+    # Locate the archived code dir for this (language, replicate). The rep dir is
+    # NOT always a direct child of the `*language=X*` cell dir: a model id with a
+    # slash (mlxlocal/mlx-community--…) nests it one level deeper
+    # (…language=rust_model=mlxlocal/mlx-community--…_stack=m80/rep2). Recurse with
+    # `**` (matches zero-or-more segments, so the flat layout still matches) and
+    # take the SHALLOWEST hit, so a stray `repN` inside the code tree can't win.
+    matches = _glob.glob(
+        str(runs_root / f"*language={language}*" / "**" / f"rep{replicate}"),
+        recursive=True,
+    )
+    prior_dir = next(
+        (Path(m) for m in sorted(matches, key=len) if Path(m).is_dir()), None
+    )
     if prior_dir is None:
         return None
     # must contain some source to seed
