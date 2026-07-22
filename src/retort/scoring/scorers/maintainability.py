@@ -68,6 +68,10 @@ _SOURCE_EXTENSIONS: dict[str, set[str]] = {
     "erlang": {".erl", ".hrl"},
     "elixir": {".ex", ".exs"},
     "csharp": {".cs"},
+    "c": {".c", ".h"},
+    "cpp": {".cpp", ".cc", ".cxx", ".hpp", ".h"},
+    "objc": {".m", ".h"},
+    "swift": {".swift"},
 }
 
 # Build/dependency output that must never be counted as project source.

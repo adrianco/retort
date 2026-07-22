@@ -57,6 +57,13 @@ _DEFECT_COMMANDS: dict[str, list[list[str]]] = {
     "csharp": [
         ["dotnet", "build", "--nologo"],
     ],
+    # Swift: `swift build` surfaces warnings as file:line:col (like java/csharp).
+    # C/C++/Objective-C compiler-warning counting needs build-system integration
+    # (CMake/Make/xcodebuild) — a follow-up; their quality still comes from the
+    # other scorers + the test_coverage gate.
+    "swift": [
+        ["swift", "build"],
+    ],
 }
 
 
@@ -70,6 +77,10 @@ _LOC_EXTENSIONS: dict[str, set[str]] = {
     "erlang": {".erl", ".hrl"},
     "elixir": {".ex", ".exs"},
     "csharp": {".cs"},
+    "c": {".c", ".h"},
+    "cpp": {".cpp", ".cc", ".cxx", ".hpp", ".h"},
+    "objc": {".m", ".h"},
+    "swift": {".swift"},
 }
 
 

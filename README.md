@@ -119,8 +119,15 @@ You only need the toolchains for the languages you list as `language` factor lev
 | **clojure** | `clojure -M:test` **and** `lein test`, `cloverage`, `clj-kondo` | `brew install clojure/tools/clojure leiningen borkdude/brew/clj-kondo` | see [clojure.org](https://clojure.org/guides/install_clojure) / [leiningen.org](https://leiningen.org/#install) |
 | **erlang** | `rebar3 eunit` **and** `rebar3 ct`, `rebar3 compile` | `brew install erlang rebar3` | `apt install erlang rebar3` |
 | **elixir** | `mix test`, `mix compile --all-warnings` | `brew install elixir` | `apt install elixir` |
+| **csharp** | `dotnet test`, `dotnet build` (.NET SDK) | `brew install dotnet` | `apt install dotnet-sdk-8.0` |
+| **swift** | `swift test --enable-code-coverage`, `swift build`; `swiftlint` (optional) | `brew install swift swiftlint` (or Xcode) | `apt install swift` |
+| **c** ᴱ | `clang` + `cmake`; CTest / Makefile test target (pass-rate = coverage proxy) | Xcode CLT + `brew install cmake lcov` | `apt install clang cmake lcov` |
+| **cpp** ᴱ | `clang++` + `cmake`; CTest (Catch2 / GoogleTest / doctest) | Xcode CLT + `brew install cmake lcov` | `apt install clang cmake lcov` |
+| **objc** ᴱ | `clang` + Foundation/XCTest via `xcodebuild` (**macOS only**) | full **Xcode** | — (macOS only) |
 
 > ⚠️ **Clojure needs *both* the Clojure CLI and Leiningen** (agents pick either a `deps.edn` or a `project.clj` layout). **Erlang needs `rebar3`**; **Elixir needs `mix`**. A missing toolchain is the single most common "why did every run of language X fail?" — verify with `lein test`, `rebar3 --version`, `mix --version` before launching.
+>
+> ᴱ **Exploratory (exp-43).** C / C++ / Objective-C are scored by **test pass-rate as the coverage proxy** (no single canonical runner, so the scorer auto-detects CMake+CTest → Makefile → xcodebuild); their `clang-tidy` lint + compiler-warning defect counts are a follow-up. Objective-C requires a full Xcode (Foundation + XCTest) and can't run on Linux CI.
 
 ### Run an experiment — describe it in plain language
 

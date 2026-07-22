@@ -2,11 +2,11 @@
 # Initial cloud-vs-local comparison on bookshop: Opus 4.8 vs the leading local stack
 # (Qwen3-Coder-Next 80B at context_threshold 0.9), 1 replicate = 8 runs.
 #
-# ⚠️ BLOCKED pending scorer support. Toolchain entries exist (toolchains.py: c/cpp/
-# objc/swift), but the scorers don't yet build/test/score these 4 languages — see
-# docs/future-experiments.md "More languages" for the build setup + what to add.
-# Do NOT launch until the scorers handle these languages, or every run fails the
-# mechanical gate (test_coverage=0) and the data is garbage.
+# Scorer support landed 2026-07-22: toolchains (c/cpp/objc/swift), extension maps in
+# all per-file scorers, and test_coverage (swift via SwiftPM; c/cpp/objc via
+# _native_coverage — CMake+CTest / Makefile / xcodebuild, pass-rate as the proxy).
+# READY TO RUN. Smoke-test one c + one swift stack end-to-end before the full grid
+# (CLAUDE.md), and remember Objective-C is macOS-only (needs full Xcode).
 experiment:
   name: experiment-43-morelangs-bookshop
   visibility: public

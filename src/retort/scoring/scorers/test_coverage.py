@@ -13,6 +13,7 @@ import os
 import re
 import shutil
 import subprocess
+import sys
 from pathlib import Path
 
 from retort.playpen.runner import RunArtifacts, StackConfig
@@ -30,6 +31,9 @@ COVERAGE_COMMANDS: dict[str, list[str]] = {
     # Rust requires cargo-llvm-cov which isn't always installed
     # Java: jacoco via maven if pom.xml exists
     "java": ["mvn", "-q", "test", "jacoco:report"],
+    # Swift: SwiftPM. --enable-code-coverage also RUNS the tests, so the pass-rate
+    # fallback parses the same output when no line-% is emitted (like rust).
+    "swift": ["swift", "test", "--enable-code-coverage"],
     # Clojure: cloverage via clojure CLI; requires :test alias to be set up
     "clojure": ["clojure", "-Sdeps",
                 "{:deps {cloverage/cloverage {:mvn/version \"1.2.4\"}}}",
@@ -48,6 +52,7 @@ _TESTS_ONLY_COMMANDS: dict[str, list[str]] = {
     # -M:test runs :main-opts (most common agent pattern); -X:test requires
     # :exec-fn which agents less commonly set up.
     "clojure": ["clojure", "-M:test"],
+    "swift": ["swift", "test"],
     # Rust: cargo-llvm-cov not always installed; fall back to plain test run.
     "rust": ["cargo", "test"],
     # Elixir: mix test (agent-generated projects ship their fetched deps/, so a
@@ -103,6 +108,44 @@ def _strip_ansi(s: str) -> str:
     return _ANSI_RE.sub("", s)
 
 
+# Apple languages need XCTest/Foundation, which ship with a FULL Xcode — not the
+# Command Line Tools.
+_APPLE_LANGUAGES = frozenset({"swift", "objc"})
+
+
+def _apple_env(language: str) -> dict[str, str] | None:
+    """Env override so Swift / Objective-C subprocesses can find XCTest.
+
+    When ``xcode-select`` points at the Command Line Tools (common on CI and dev
+    boxes) but a full ``Xcode.app`` is installed, ``swift test`` / ``xcodebuild``
+    fail with "no such module 'XCTest'" — a false zero for the WHOLE Apple-language
+    tier, indistinguishable from a model that couldn't do the task. Point
+    ``DEVELOPER_DIR`` at the full Xcode for these subprocesses (no ``sudo``, unlike
+    ``xcode-select -s``). Returns a full env dict to hand to ``subprocess``, or
+    ``None`` when there's nothing to fix: not an Apple language, not macOS, the
+    caller already set ``DEVELOPER_DIR``, no full Xcode found, or the active
+    toolchain is already a full Xcode.
+    """
+    if language not in _APPLE_LANGUAGES or sys.platform != "darwin":
+        return None
+    if os.environ.get("DEVELOPER_DIR"):
+        return None  # caller already chose a toolchain; respect it
+    active = ""
+    try:
+        r = subprocess.run(["xcode-select", "-p"], capture_output=True,
+                           text=True, timeout=10)
+        active = (r.stdout or "").strip()
+    except (OSError, subprocess.SubprocessError):
+        pass
+    if active and "CommandLineTools" not in active:
+        return None  # active dir is already a full Xcode
+    for app in sorted(Path("/Applications").glob("Xcode*.app"), reverse=True):
+        dev = app / "Contents" / "Developer"
+        if dev.is_dir():
+            return {**os.environ, "DEVELOPER_DIR": str(dev)}
+    return None
+
+
 class TestCoverageScorer:
     """Scores test coverage as the line/statement coverage percentage.
 
@@ -125,6 +168,8 @@ class TestCoverageScorer:
             pct = self._go_coverage(artifacts.output_dir)
         elif stack.language == "csharp":
             pct = self._csharp_coverage(artifacts.output_dir)
+        elif stack.language in ("c", "cpp", "objc"):
+            pct = self._native_coverage(artifacts.output_dir, stack.language)
         else:
             pct = self._coverage_via_command(artifacts.output_dir, stack.language)
 
@@ -146,7 +191,9 @@ class TestCoverageScorer:
             rate2 = self._tests_pass_rate(output_dir, language)
             return rate2 * 100.0 if rate2 is not None else None
 
-        env = None
+        # Apple languages (swift here; objc goes through _native_coverage) may
+        # need DEVELOPER_DIR pointed at a full Xcode so XCTest resolves.
+        env = _apple_env(language)
         cleanup: Path | None = None
         if language == "python":
             # Find an existing venv or create one with the project's deps, so a
@@ -452,6 +499,54 @@ class TestCoverageScorer:
         rate = _parse_test_pass_rate(combined, "csharp")
         return rate * 100.0 if rate is not None else None
 
+    def _native_coverage(self, output_dir: Path, language: str) -> float | None:
+        """C / C++ / Objective-C — no single canonical runner, so detect the build
+        system: CMake+CTest (dominant), then Makefile, then (objc) an Xcode project.
+        Returns the test pass-rate as the coverage proxy (like rust); real line
+        coverage (gcov/llvm-cov) is a follow-up. macOS is required for Objective-C
+        (Foundation/XCTest)."""
+        output_dir = output_dir.resolve()
+        # objc's xcodebuild/XCTest needs a full Xcode; point DEVELOPER_DIR at it
+        # when the active toolchain is only the CLT (no-op for c/cpp).
+        env = _apple_env(language)
+
+        def _run(cmd, timeout=300):
+            try:
+                r = subprocess.run(cmd, cwd=output_dir, capture_output=True,
+                                   text=True, timeout=timeout, env=env)
+                return _strip_ansi((r.stdout or "") + "\n" + (r.stderr or ""))
+            except (subprocess.TimeoutExpired, FileNotFoundError, OSError):
+                return ""
+
+        # 1. CMake + CTest — build, then run ctest (prints "N tests failed out of M").
+        if (output_dir / "CMakeLists.txt").exists():
+            combined = "\n".join(_run(c) for c in (
+                ["cmake", "-S", ".", "-B", "build", "-DCMAKE_BUILD_TYPE=Debug"],
+                ["cmake", "--build", "build"],
+                ["ctest", "--test-dir", "build", "--output-on-failure"],
+            ))
+            rate = _parse_test_pass_rate(combined, language)
+            if rate is not None:
+                return rate * 100.0
+
+        # 2. Makefile — `make` then a conventional test target.
+        if (output_dir / "Makefile").exists() or (output_dir / "makefile").exists():
+            combined = "\n".join(_run(c) for c in (["make"], ["make", "test"], ["make", "check"]))
+            rate = _parse_test_pass_rate(combined, language)
+            if rate is not None:
+                return rate * 100.0
+
+        # 3. Objective-C: an Xcode project driven by xcodebuild (XCTest).
+        if language == "objc":
+            projs = list(output_dir.glob("*.xcodeproj"))
+            if projs:
+                combined = _run(["xcodebuild", "test", "-project", projs[0].name,
+                                 "-scheme", projs[0].stem], timeout=400)
+                rate = _parse_test_pass_rate(combined, language)
+                if rate is not None:
+                    return rate * 100.0
+        return None
+
     def _bun_coverage(self, output_dir: Path) -> float | None:
         """Bun coverage path — `bun test --coverage`, parse % Lines, then pass-rate."""
         try:
@@ -704,7 +799,21 @@ _TEST_PASS_PATTERNS: dict[str, list[re.Pattern[str]]] = {
         # Generic "N tests, M failures" (some EUnit/CT formatters use it)
         re.compile(r"(?P<total>\d+)\s+tests?,\s+(?P<failures>\d+)\s+failures?"),
     ],
+    # Swift / XCTest (also xcodebuild): "Executed 12 tests, with 0 failures (0 unexpected)"
+    "swift": [
+        re.compile(r"Executed\s+(?P<total>\d+)\s+tests?,\s+with\s+(?P<failures>\d+)\s+failure"),
+    ],
+    # C / C++ / Objective-C via CTest: "100% tests passed, 0 tests failed out of 12";
+    # XCTest (objc under xcodebuild) uses the swift/Executed form, added too.
+    "c": [
+        re.compile(r"(?P<failed>\d+)\s+tests?\s+failed\s+out\s+of\s+(?P<total>\d+)"),
+        re.compile(r"Executed\s+(?P<total>\d+)\s+tests?,\s+with\s+(?P<failures>\d+)\s+failure"),
+    ],
 }
+
+
+# C++/Objective-C reuse C's ctest/xctest pass-rate patterns.
+_TEST_PASS_PATTERNS["cpp"] = _TEST_PASS_PATTERNS["objc"] = _TEST_PASS_PATTERNS["c"]
 
 
 def _parse_test_pass_rate(output: str, language: str) -> float | None:

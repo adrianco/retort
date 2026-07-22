@@ -119,14 +119,25 @@ is enough for a first *comparison/exploration* — cloud frontier (Opus 4.8) vs 
 stack (Qwen3-Coder-Next 80B at `context_threshold: 0.9`) on each new language. Promote to n≥3 +
 the hard task only for languages that look viable.
 
-**PREREQUISITE — scorer support (blocks the run).** These 4 languages are new to the harness.
-Toolchain entries are added (`toolchains.py`: c/cpp/objc/swift, so the preflight checks/install
-the compilers), but the **scorers don't yet build/test/score them** — `test_coverage`,
-`defect_rate`, `code_quality`, `maintainability`, `idiomatic`, `token_efficiency` only know the
-existing 9 (extension maps + build/test/coverage commands). Without that, every run fails the
-mechanical gate (test_coverage=0) and mis-scores. So before launching, add each language to the
-scorers (build/test/coverage/lint command + file extension). Swift is the cleanest (one canonical
-toolchain); C/C++ vary by build system; Objective-C is macOS-only.
+**PREREQUISITE — scorer support (DONE 2026-07-22, run is unblocked).** These 4 languages were new
+to the harness. Now wired end-to-end:
+- **Toolchains** (`toolchains.py`): c/cpp/objc/swift entries + `c++`/`cxx`/`objective-c` aliases, so
+  the preflight checks/installs the compilers (clang/CMake/lcov; swift).
+- **Extension maps**: all six per-file scorers (`token_efficiency`, `maintainability`, `idiomatic`,
+  `defect_rate`, `code_quality`) know `.c/.h`, `.cpp/.cc/.cxx/.hpp`, `.m`, `.swift` — so they count
+  source instead of scoring 0.
+- **test_coverage (the mechanical gate)**: Swift runs `swift test --enable-code-coverage` via the
+  standard command path; C/C++/ObjC go through a new `_native_coverage` that **detects the build
+  system** — CMake+CTest first, then Makefile, then (ObjC) `xcodebuild` — and returns the **test
+  pass-rate as the coverage proxy** (same approach as Rust). Regression test:
+  `test_test_coverage_parses_native_and_swift_pass_rate`.
+- **defect_rate / code_quality lint**: Swift fully wired (`swift build` warnings; `swiftlint`).
+  *Follow-up:* C/C++/ObjC compiler-warning counting + `clang-tidy` need build-system/compile-db
+  integration — deferred; their quality still comes from the other scorers + the coverage gate.
+
+Swift is the cleanest (one canonical toolchain); C/C++ vary by build system; Objective-C is
+macOS-only. **The run can launch** — remember to smoke-test one c + one swift stack end-to-end
+(per CLAUDE.md) before the full 8-run grid.
 
 **Build setup per language** (graduate to the README toolchain table once supported):
 

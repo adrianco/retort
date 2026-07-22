@@ -56,6 +56,10 @@ class TokenEfficiencyScorer:
             "java": {".java"},
             "clojure": {".clj", ".cljc", ".cljs"},
             "csharp": {".cs"},
+            "c": {".c", ".h"},
+            "cpp": {".cpp", ".cc", ".cxx", ".hpp", ".h"},
+            "objc": {".m", ".h"},
+            "swift": {".swift"},
         }
         exts = extensions.get(language, {".py"})
 

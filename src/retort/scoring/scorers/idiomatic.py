@@ -45,6 +45,10 @@ _LANGUAGE_EXTENSIONS: dict[str, set[str]] = {
     "elixir": {".ex", ".exs"},
     "erlang": {".erl", ".hrl"},
     "csharp": {".cs"},
+    "c": {".c", ".h"},
+    "cpp": {".cpp", ".cc", ".cxx", ".hpp", ".h"},
+    "objc": {".m", ".h"},
+    "swift": {".swift"},
 }
 
 from retort.scoring.scorers._common import SKIP_PARTS as _SKIP_PARTS

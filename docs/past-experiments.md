@@ -207,7 +207,7 @@ ceiling).
   MoE-overflow issues. Downloaded the Q4 GGUF and confirmed `llama-server` errors `unknown model
   architecture: 'laguna'`. Testable only via an experimental llama.cpp PR-branch build or vLLM (which
   has the `poolside_v1` parser). Deprioritised: modest expected value (30B-class) vs. building from
-  an unmerged PR. Revisit once laguna lands in a mainline llama.cpp release.
+  an unmerged PR. Revisit once laguna lands in a mainline llama.cpp release. **Revisit path found (2026-07-22):** Ollama *does* ship `laguna-xs-2.1` (its bundled llama.cpp has the arch), and Poolside's own **`pool`** agent (ACP, speaks `poolside_v1` natively) drives it via `ollama launch pool --model laguna-xs.2`. So Laguna is testable by adding `pool` as a retort agent harness (bounded work, like the gemini/omp/opencode harnesses) pointed at Ollama-served laguna — no oMLX/llama.cpp arch gap on that path.
 - **Devstral Small 2 (24B) — NOW UNBLOCKABLE via the llama.cpp backend.** oMLX doesn't parse its
   Mistral `[TOOL_CALLS]` format (exp-12/23 wall). But retort now has a **`serving.backend: llamacpp`**
   path (2026-07-21), and Devstral's Mistral arch + tool template *are* in mainline llama.cpp — so it

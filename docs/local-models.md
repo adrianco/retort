@@ -104,7 +104,7 @@ Ranked for a 24 GB Mac (~18 GB weight budget) + reliable tool-calls + agentic co
 |---|---|---|
 | **Devstral Small (24B)** | purpose-built for coding agents (Mistral × All-Hands/OpenHands), tuned for tool-use loops | ~14 GB (needs Metal limit raised; expects agent scaffolding) |
 | **Qwen3-Coder-30B-A3B** | MoE (3B active → fast), 50.3% SWE-bench Verified on a single 24 GB GPU, "extremely stable tool calling" — jschoch's "Qwen 3.6" lineage | ~18 GB (edge) |
-| **Gemma-4 (27B)** | Apr-2026; "fewer dropped tool calls, fewer malformed JSON, native function calling" | ~17 GB (jschoch saw reasoning loops on his llama.cpp build) |
+| ~~**Gemma-4 (27B)**~~ | ~~Apr-2026~~ — **deprioritised (dated; superseded by newer 27B-class models)**; jschoch saw reasoning loops on his llama.cpp build | ~17 GB |
 | **Qwen2.5-Coder-32B** | matches GPT-4o on HumanEval; very stable tools | ~20 GB (over budget on 24 GB) |
 | GLM-5.1 / DeepSeek-R1-32B / Kimi K2.6 | top-tier agentic, but want >24 GB VRAM | — |
 

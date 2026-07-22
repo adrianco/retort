@@ -24,6 +24,9 @@ LINT_COMMANDS: dict[str, list[str]] = {
     # Clojure: clj-kondo is the de facto linter; skip if not installed
     # (the scorer returns a neutral 0.5 when the command is missing).
     "clojure": ["clj-kondo", "--lint", "."],
+    # Swift: swiftlint if present (skipped gracefully otherwise). C/C++/ObjC
+    # clang-tidy needs a compile_commands.json — a follow-up.
+    "swift": ["swiftlint", "--quiet"],
     # Elixir: mix compile reports warnings-as-errors when the project is
     # properly structured. Credo (optional dep) is not assumed present.
     "elixir": ["mix", "compile", "--warnings-as-errors"],
@@ -110,6 +113,10 @@ class CodeQualityScorer:
             "elixir": ".ex",
             "erlang": ".erl",
             "csharp": ".cs",
+            "c": ".c",
+            "cpp": ".cpp",
+            "objc": ".m",
+            "swift": ".swift",
         }
         ext = extensions.get(language, ".py")
         from retort.scoring.scorers._common import iter_source_files
