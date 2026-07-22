@@ -739,6 +739,16 @@ def test_test_coverage_parses_native_and_swift_pass_rate():
     # XCTest summary emitted by both ctest-driven and xcodebuild-driven suites.
     assert p("Executed 10 tests, with 0 failures (0 unexpected)", "objc") == 1.0
     assert abs(p("Executed 8 tests, with 1 failure (0 unexpected)", "swift") - 7/8) < 1e-9
+    # TAP fallback: hand-rolled C/C++ test binaries (plain Makefile, no CTest)
+    # print `ok`/`not ok` lines the structured patterns miss. Regression: a real
+    # Opus-generated C bookshop false-zeroed at the gate despite 18 passing tests.
+    tap = ("  ok   - opens db\n  ok   - inserts a book\n"
+           "  not ok - lists filtered\nPASS: done\n")
+    assert abs(p(tap, "c") - 2/3) < 1e-9
+    assert abs(p(tap, "cpp") - 2/3) < 1e-9
+    assert p("ok 1 - x\nok 2 - y\n1..2\n", "objc") == 1.0
+    # TAP is scoped to the native langs — it must not hijack other languages.
+    assert p("ok - something informal", "python") is None
     # Module-level extension maps: every scorer must know the source suffixes
     # or it scores 0. (code_quality/token_efficiency hold theirs method-locally.)
     from retort.scoring.scorers import maintainability, idiomatic, defect_rate

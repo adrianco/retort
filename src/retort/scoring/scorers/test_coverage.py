@@ -855,7 +855,35 @@ def _parse_test_pass_rate(output: str, language: str) -> float | None:
                     best_passed, best_total = passed, total
         if best_total is not None and best_total > 0:
             return max(0.0, min(1.0, best_passed / best_total))
+
+    # C/C++/Objective-C fallback: hand-rolled test binaries (plain Makefile, no
+    # CTest) very commonly print TAP — `ok - ...` / `not ok - ...` lines — which
+    # none of the structured patterns above match. Count them as a last resort so
+    # a passing bespoke suite isn't false-zeroed at the conformance gate.
+    if language in ("c", "cpp", "objc"):
+        return _parse_tap_rate(output)
     return None
+
+
+# TAP result lines: `ok 1 - desc`, `not ok - desc`, `  ok - desc` (leading space
+# tolerated). `\b` after keeps `okay`/`notok` from matching.
+_TAP_LINE_RE = re.compile(r"(?m)^\s*(ok|not ok)\b")
+
+
+def _parse_tap_rate(output: str) -> float | None:
+    """Pass-rate from TAP (`ok` / `not ok`) output, or None if there is none."""
+    if not output:
+        return None
+    passed = failed = 0
+    for m in _TAP_LINE_RE.finditer(output):
+        if m.group(1) == "ok":
+            passed += 1
+        else:
+            failed += 1
+    total = passed + failed
+    if total == 0:
+        return None
+    return passed / total
 
 
 def _to_int(s: str | None) -> int | None:
