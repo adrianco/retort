@@ -1675,3 +1675,38 @@ def test_is_rep_dir_excludes_siblings():
     assert _is_rep_dir("rep1") and _is_rep_dir("rep12")
     for bad in ("rep3-failed", "rep3-failed-attempt1", "rep2-old", "rep1.bak", "reports", "rep"):
         assert not _is_rep_dir(bad), bad
+
+
+def test_archive_replace_existing_preserves_prior_as_failed(tmp_path: Path):
+    """Regression (issue #42): a retry/second-try must archive the workspace whose
+    scores are persisted, preserving the prior attempt as rep<N>-failed — not keep
+    the stale prior archive under rep<N>."""
+    from retort.cli import _archive_run_workspace
+    from retort.playpen.runner import RunArtifacts
+
+    runs = tmp_path / "runs"
+    cfg = {"language": "python", "model": "opus"}
+
+    def _art(d, code):
+        d.mkdir(parents=True, exist_ok=True)
+        return RunArtifacts(output_dir=d, exit_code=code, duration_seconds=1.0)
+
+    # attempt 1: agent succeeded but gate-failed -> archived to rep1 (no -failed suffix)
+    a1 = tmp_path / "a1" / "src"
+    a1.mkdir(parents=True); (a1 / "v1.py").write_text("attempt1")
+    d1 = _archive_run_workspace(runs, cfg, 1, _art(tmp_path / "a1", 0))
+    assert d1.name == "rep1" and (d1 / "src" / "v1.py").exists()
+
+    # retry with replace_existing -> rep1 holds attempt 2; attempt 1 preserved as rep1-failed
+    a2 = tmp_path / "a2" / "src"
+    a2.mkdir(parents=True); (a2 / "v2.py").write_text("attempt2")
+    d2 = _archive_run_workspace(runs, cfg, 1, _art(tmp_path / "a2", 0), replace_existing=True)
+    assert d2.name == "rep1"
+    assert (d2 / "src" / "v2.py").exists() and not (d2 / "src" / "v1.py").exists()
+    assert (runs / "language=python_model=opus" / "rep1-failed" / "src" / "v1.py").exists()
+
+    # without replace_existing -> idempotent (does not overwrite)
+    a3 = tmp_path / "a3" / "src"
+    a3.mkdir(parents=True); (a3 / "v3.py").write_text("attempt3")
+    d3 = _archive_run_workspace(runs, cfg, 1, _art(tmp_path / "a3", 0))
+    assert not (d3 / "src" / "v3.py").exists()

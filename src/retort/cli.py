@@ -926,6 +926,10 @@ def run_experiments(
                     archived = _archive_run_workspace(
                         archive_root, run_config, rep, artifacts,
                         visibility=workspace_config.experiment.visibility,
+                        # On --retry-failed this run supersedes a prior attempt's
+                        # archive; replace it (preserving the old as rep<N>-failed)
+                        # so the archive matches the scores we persist (#42).
+                        replace_existing=retry_failed,
                     )
                     if archived is not None:
                         try:
@@ -992,6 +996,10 @@ def run_experiments(
                                 arch2 = _archive_run_workspace(
                                     archive_root, run_config, rep, a2,
                                     visibility=workspace_config.experiment.visibility,
+                                    # the second-chance attempt supersedes attempt 1's
+                                    # rep<N> archive — replace it so the archive holds
+                                    # the workspace whose scores we record (#42).
+                                    replace_existing=True,
                                 )
                                 if arch2 is not None:
                                     try:
@@ -1426,6 +1434,7 @@ def _archive_run_workspace(
     replicate: int,
     artifacts,
     visibility: str = "private",
+    replace_existing: bool = False,
 ) -> Path | None:
     """Copy a run's workspace into the archive so it survives /tmp cleanup.
 
@@ -1449,8 +1458,23 @@ def _archive_run_workspace(
     suffix = "" if artifacts.succeeded else "-failed"
     dest = archive_root / cell_name / f"rep{replicate}{suffix}"
     if dest.exists():
-        # Already archived (idempotent on resume of an in-progress run).
-        return dest
+        if replace_existing and suffix == "":
+            # A prior attempt (the pre-retry run, or the second-chance's first
+            # attempt) already occupies rep<N>. Without this the archive step
+            # early-returned and kept the OLD workspace while the DB recorded the
+            # RETRY's scores — a passing row over an empty/failed archive (#42).
+            # Preserve the prior attempt as rep<N>-failed (evidence + diagnose),
+            # then fall through to archive the attempt whose scores we persist.
+            failed_dest = archive_root / cell_name / f"rep{replicate}-failed"
+            if failed_dest.exists():
+                shutil.rmtree(failed_dest, ignore_errors=True)
+            try:
+                dest.rename(failed_dest)
+            except OSError:
+                shutil.rmtree(dest, ignore_errors=True)
+        else:
+            # Already archived (idempotent on resume of an in-progress run).
+            return dest
     dest.parent.mkdir(parents=True, exist_ok=True)
     try:
         # Archive source + tests only. Build output and vendored dependencies
