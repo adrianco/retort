@@ -111,12 +111,16 @@ oMLX can't).
 ## 5. More languages — C / C++ / Objective-C / Swift  — DONE (exp-43), see past-experiments
 
 First systems/Apple-tier run landed 2026-07-22 → moved to [past-experiments.md](past-experiments.md) (exp-43). Full scorer support (build/test/coverage/lint) + toolchains for c/cpp/objc/swift shipped; the README has the per-language toolchain table
-and the full-Xcode prerequisite. **Headline:** cloud (Opus 4.8) passes all four cleanly; the local
-80B degrades by language (C++ a genuine 0.50 partial, C/ObjC/Swift incomplete).
+and the full-Xcode prerequisite. **Headline (after `retort recover` with the harness fixes):** cloud
+(Opus 4.8) passes all four cleanly; the local 80B **fully implements C (ReqCov 1.0)** and near-misses
+C++ (0.83) — the C 0.00→1.00 flip was a server-leak harness bug, not the model. ObjC/Swift are genuine
+incompletes (no build system / broken Vapor build).
 
 **Follow-ups worth queueing:**
-- A **clean local re-run** once the server-process-reaping fix lands (exp-43's local column was
-  partly confounded by leaked server processes squatting ports — the C cell especially).
+- **ObjC/Swift-local a fair shot** — the 80B produced ObjC source with no build system and a Vapor
+  Swift app that won't build in-env; a lighter task variant or build-scaffold nudge would separate
+  "can't" from "didn't scaffold". (The server-reaping fix + clean re-score is DONE.)
+- **C++-local repair (exp-41-style)** — cpp is at 0.83 (~5/6 reqs), a repair candidate like Rust.
 - **More languages** (Kotlin, Zig, Scala, …) reuse the same scorer machinery — add on request.
 
 ## 6. Methodology: harness-orchestration factor (`retort-metaharness`)  — SIDE-BRANCH, staged

@@ -163,24 +163,30 @@ Qwen3-Coder-Next 80B local @ ctx 0.9} × bookshop × n=1` = 8 cells. The point w
 cloud-vs-local read on four languages new to the harness — and, as much, to *harden the harness* for
 them.
 
-**Result — cloud sweeps, local struggles (with caveats):**
+**Result (after `retort recover` with all harness fixes applied — req-coverage / spec-gate):**
 
 | lang | Opus 4.8 (cloud) | Qwen 80B (local) |
 |---|---|---|
-| **c**   | ✓ pass (TAP unit tests) | 0.00 — compiles clean, but wrote a fragile fixed-port integration test that leaked a server → port conflict (harness-contaminated) |
-| **cpp** | ✓ pass | **0.50 cov, quality 0.93** — the one clean *genuine partial*: compiles, high quality, ~½ tests pass, incomplete spec |
-| **objc**| ✓ pass | 0.00 — wrote 1134 loc of ObjC but **no build system / tests** (genuine incomplete) |
-| **swift**| ✓ pass (Swift Testing + Vapor) | 0.00 — wrote a real SwiftPM/Vapor project; build/test didn't pass |
+| **c**   | ReqCov **1.0** ✓ | ReqCov **1.0** ✓ — **full pass** (cq 1.00, cov 1.00) |
+| **cpp** | ReqCov 1.0 ✓ | ReqCov **0.83** — near-miss (cq 0.93, ~5/6 requirements; a repair candidate like Rust) |
+| **objc**| ReqCov 1.0 ✓ | fail — wrote 1134 loc ObjC but **no build system / tests** (genuine incomplete) |
+| **swift**| ReqCov 1.0 ✓ | fail — real SwiftPM/Vapor project, build/test didn't pass (genuine) |
 
-**Headline:** the **frontier handles all four cleanly**; the **80B degrades by language** — best on
-C++ (a genuine 0.50 partial), down to incomplete scaffolding on C/ObjC/Swift. Consistent with the
-known pattern (local strong on Python/Go/TS, weak on everything less-represented), now extended to the
-systems tier. **Caveat:** the *local* numbers are a first, **partly harness-confounded** read, not a
-clean verdict — six harness bugs surfaced mid-run and were fixed as they appeared, and the C cell in
-particular is contaminated by the server-leak issue. A clean re-run after the server-reaping fix
-(follow-up task) would firm up the local column; the cloud 4/4 is solid.
+**Headline:** the **frontier sweeps 4/4**; the **80B fully implements the C bookshop (ReqCov 1.0)**
+and near-misses C++ (0.83) — much stronger on the systems tier than the *raw* run suggested, and
+better than it does on several "niche" languages. ObjC/Swift are genuine incompletes (no runnable
+tests / a broken Vapor build). So the systems-tier gap is **C/C++ are locally viable-to-close; the
+Apple frameworks are not yet**.
 
-**The real yield was harness hardening for four new languages** (all fixed + regression-tested):
+**⚠️ The number that moved most was a HARNESS bug, not the model.** The raw run scored local-C
+**0.00**; `retort recover` (with the new server-reaping fix) flipped it to **1.00**. The 80B's C was
+*always* correct — its integration test backgrounded a server that leaked and squatted port 8765, so
+the retry and scorer hit "address already in use" and false-failed working code. Six harness bugs in
+total surfaced and were fixed *before* any conclusion was drawn (below); the recovered numbers above
+are the honest result. Textbook "suspect the harness before the model": publishing the raw run would
+have claimed "the 80B can't write C," which is flatly false.
+
+**The harness hardening — the real yield of the run** (all fixed + regression-tested):
 1. **hermes not on PATH** → all 4 local cells crashed at 0.0s → `serving.hermes_bin` + a new
    **local-agent binary preflight** (`retort run` now warns up front instead of crashing every cell).
 2. **C has no canonical test format** — three real bookshops used three formats (TAP, `N checks, M
@@ -193,9 +199,16 @@ particular is contaminated by the server-leak issue. A clean re-run after the se
    added to `SKIP_PARTS`.
 6. **`retort monitor --watch`** exited immediately / hid the running cell for `cd <exp> && retort run`
    launches → detect the run process by **cwd**, not just argv.
-Plus a filed follow-up: **reap leaked server processes** so a model's server-based integration test
-can't squat a port and false-fail later cells. Full scorer support (build/test/coverage/lint) for
-c/cpp/objc/swift landed here — see the README toolchain table.
+7. **Leaked server processes** (the big one) — a model's integration test backgrounds a real server
+   that outlives the test command, keeps LISTENing, and false-fails the retry + later cells with
+   "address already in use" → `_run_reaped` runs every test command in its own process group and
+   SIGKILLs the group afterward (temp-file output + `wait()`, since a backgrounded server holds the
+   stdout pipe open and blocks `communicate()`). This is what flipped local-C 0.00 → 1.00 on recover.
+
+Full scorer support (build/test/coverage/lint) for c/cpp/objc/swift landed here — see the README
+toolchain table. Remaining follow-up: give ObjC/Swift-local a fair shot — the 80B produced ObjC
+source with no build system and a Vapor Swift app that won't build in-env; a lighter task variant or
+a build-scaffold nudge would separate "can't" from "didn't scaffold."
 
 ---
 
