@@ -749,6 +749,11 @@ def test_test_coverage_parses_native_and_swift_pass_rate():
     assert p("ok 1 - x\nok 2 - y\n1..2\n", "objc") == 1.0
     # TAP is scoped to the native langs — it must not hijack other languages.
     assert p("ok - something informal", "python") is None
+    # Bespoke C/C++ summary lines (each real Opus-generated bookshop used a
+    # different one): "N checks, M failures" / assertions / errors.
+    assert p("33 checks, 0 failures", "c") == 1.0
+    assert abs(p("5 checks, 2 failures", "c") - 3/5) < 1e-9
+    assert abs(p("10 assertions: 1 failed", "cpp") - 9/10) < 1e-9
     # Module-level extension maps: every scorer must know the source suffixes
     # or it scores 0. (code_quality/token_efficiency hold theirs method-locally.)
     from retort.scoring.scorers import maintainability, idiomatic, defect_rate
@@ -833,6 +838,38 @@ def test_native_cmake_defect_and_lint_end_to_end(tmp_path):
     assert first < 1.0 and second < 1.0, (first, second)
     # code_quality's lint component also drops below the clean 1.0.
     assert CodeQualityScorer()._native_lint_score(tmp_path) < 1.0
+
+
+@pytest.mark.skipif(shutil.which("make") is None or shutil.which("cc") is None,
+                    reason="make/cc toolchain not installed")
+def test_native_makefile_exit_code_fallback(tmp_path):
+    """C via a plain Makefile whose test binary prints an UNRECOGNISED summary
+    but exits 0 → test_coverage=1.0 via the exit-code fallback. Regression: real
+    Opus bookshops printed bespoke formats ('33 checks, 0 failures', TAP, bare
+    function names) that no pattern matched, false-failing working code at the
+    gate. The runner's exit code is the universal pass/fail signal."""
+    mk = ("test: test_main\n\t./test_main\n"
+          "test_main: test_main.c\n\tcc -o test_main test_main.c\n")
+    stack = StackConfig(language="c", agent="x", framework="x")
+    scorer = TestCoverageScorer()
+
+    # Passing binary, deliberately weird summary that matches NONE of the patterns.
+    passing = tmp_path / "pass"; passing.mkdir()
+    (passing / "test_main.c").write_text(
+        '#include <stdio.h>\n'
+        'int main(void){ printf("~~ everything nominal ~~\\n"); return 0; }\n')
+    (passing / "Makefile").write_text(mk)
+    art = RunArtifacts(output_dir=passing, stdout="", exit_code=0, duration_seconds=1.0)
+    assert scorer.score(art, stack) == 1.0
+
+    # Failing binary (exit 1, still no parseable summary) must NOT pass — the
+    # exit-code signal has to distinguish pass from fail. Separate dir so there's
+    # no stale-binary / mtime race with the passing case above.
+    failing = tmp_path / "fail"; failing.mkdir()
+    (failing / "test_main.c").write_text("int main(void){ return 1; }\n")
+    (failing / "Makefile").write_text(mk)
+    art2 = RunArtifacts(output_dir=failing, stdout="", exit_code=0, duration_seconds=1.0)
+    assert scorer.score(art2, stack) == 0.0
 
 
 @pytest.mark.skipif(shutil.which("go") is None, reason="go toolchain not installed")

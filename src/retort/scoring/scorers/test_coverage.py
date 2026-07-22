@@ -510,41 +510,62 @@ class TestCoverageScorer:
         # when the active toolchain is only the CLT (no-op for c/cpp).
         env = _apple_env(language)
 
-        def _run(cmd, timeout=300):
+        def _run(cmd, timeout=300) -> tuple[str, int | None]:
             try:
                 r = subprocess.run(cmd, cwd=output_dir, capture_output=True,
                                    text=True, timeout=timeout, env=env)
-                return _strip_ansi((r.stdout or "") + "\n" + (r.stderr or ""))
+                return _strip_ansi((r.stdout or "") + "\n" + (r.stderr or "")), r.returncode
             except (subprocess.TimeoutExpired, FileNotFoundError, OSError):
-                return ""
+                return "", None
+
+        # Text-parsing gives a GRADED rate when the runner's summary is one we
+        # recognise (ctest / XCTest / TAP / "N checks, M failures"). But C/C++
+        # test binaries invent endless summary formats, so the universal signal
+        # is the test command's EXIT CODE: a runner returns non-zero iff a test
+        # failed. So: parse first (graded); else exit-0 means the suite ran and
+        # passed (1.0); else no signal.
+        def _rate_or_exit(combined: str, test_rc: int | None) -> float | None:
+            rate = _parse_test_pass_rate(combined, language)
+            if rate is not None:
+                return rate * 100.0
+            if test_rc == 0:
+                return 100.0
+            return None
 
         # 1. CMake + CTest — build, then run ctest (prints "N tests failed out of M").
         if (output_dir / "CMakeLists.txt").exists():
-            combined = "\n".join(_run(c) for c in (
+            outs = [_run(c) for c in (
                 ["cmake", "-S", ".", "-B", "build", "-DCMAKE_BUILD_TYPE=Debug"],
                 ["cmake", "--build", "build"],
                 ["ctest", "--test-dir", "build", "--output-on-failure"],
-            ))
-            rate = _parse_test_pass_rate(combined, language)
-            if rate is not None:
-                return rate * 100.0
+            )]
+            combined = "\n".join(o for o, _ in outs)
+            result = _rate_or_exit(combined, outs[-1][1])  # ctest is the test cmd
+            if result is not None:
+                return result
 
-        # 2. Makefile — `make` then a conventional test target.
+        # 2. Makefile — `make` (build), then a conventional test target. The test
+        #    target's exit code is the fallback pass signal.
         if (output_dir / "Makefile").exists() or (output_dir / "makefile").exists():
-            combined = "\n".join(_run(c) for c in (["make"], ["make", "test"], ["make", "check"]))
-            rate = _parse_test_pass_rate(combined, language)
-            if rate is not None:
-                return rate * 100.0
+            _run(["make"])  # build first (its own warnings/errors aren't the test signal)
+            test_outs = [_run(c) for c in (["make", "test"], ["make", "check"])]
+            combined = "\n".join(o for o, _ in test_outs)
+            # Best exit code among the test-y targets (one of test/check usually
+            # doesn't exist → non-zero "No rule to make target"; the other runs).
+            test_rc = 0 if any(rc == 0 for _, rc in test_outs) else 1
+            result = _rate_or_exit(combined, test_rc)
+            if result is not None:
+                return result
 
         # 3. Objective-C: an Xcode project driven by xcodebuild (XCTest).
         if language == "objc":
             projs = list(output_dir.glob("*.xcodeproj"))
             if projs:
-                combined = _run(["xcodebuild", "test", "-project", projs[0].name,
-                                 "-scheme", projs[0].stem], timeout=400)
-                rate = _parse_test_pass_rate(combined, language)
-                if rate is not None:
-                    return rate * 100.0
+                combined, rc = _run(["xcodebuild", "test", "-project", projs[0].name,
+                                     "-scheme", projs[0].stem], timeout=400)
+                result = _rate_or_exit(combined, rc)
+                if result is not None:
+                    return result
         return None
 
     def _bun_coverage(self, output_dir: Path) -> float | None:
@@ -808,6 +829,12 @@ _TEST_PASS_PATTERNS: dict[str, list[re.Pattern[str]]] = {
     "c": [
         re.compile(r"(?P<failed>\d+)\s+tests?\s+failed\s+out\s+of\s+(?P<total>\d+)"),
         re.compile(r"Executed\s+(?P<total>\d+)\s+tests?,\s+with\s+(?P<failures>\d+)\s+failure"),
+        # Bespoke C/C++ summary line, e.g. "33 checks, 0 failures" / "12 tests, 1
+        # error" / "5 assertions: 2 failed". noun ∈ checks/tests/assertions/cases.
+        re.compile(
+            r"(?P<total>\d+)\s+(?:checks?|tests?|assertions?|cases?)[\s,:]+"
+            r"(?P<failures>\d+)\s+(?:failures?|errors?|failed)"
+        ),
     ],
 }
 
