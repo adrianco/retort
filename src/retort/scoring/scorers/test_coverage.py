@@ -8,6 +8,8 @@ the test pass rate — better signal than 0 when tests clearly do run.
 
 from __future__ import annotations
 
+import json
+import os
 import re
 import shutil
 import subprocess
@@ -283,50 +285,72 @@ class TestCoverageScorer:
         except OSError:
             return None
 
+        # Bun's built-in runner (`bun test`, often with bun:sqlite) is matched by
+        # neither jest nor vitest detection — handle it first, with Bun's tooling.
+        if (output_dir / "bun.lock").exists() or "bun test" in text:
+            return self._bun_coverage(output_dir)
+
+        env: dict[str, str] | None = None
+
         if not (output_dir / "node_modules").exists():
+            # Scripts must run: --ignore-scripts skips node-gyp builds, leaving
+            # native deps (better-sqlite3 et al.) without bindings, so a green
+            # suite false-fails with "Could not locate the bindings file". The
+            # scorer executes the project's tests anyway, so package scripts are
+            # not an additional trust boundary.
             try:
                 subprocess.run(
-                    ["npm", "install", "--ignore-scripts"],
-                    cwd=output_dir, capture_output=True, timeout=120,
+                    ["npm", "install"],
+                    cwd=output_dir, capture_output=True, timeout=180,
+                )
+            except (subprocess.TimeoutExpired, FileNotFoundError):
+                pass
+        elif not _native_bindings_ok(output_dir):
+            # node_modules exists (archived run) but native builds are missing —
+            # e.g. the module tree was installed with --ignore-scripts, or the
+            # archive moved across machines. `npm rebuild` regenerates bindings.
+            try:
+                subprocess.run(
+                    ["npm", "rebuild"],
+                    cwd=output_dir, capture_output=True, timeout=180,
                 )
             except (subprocess.TimeoutExpired, FileNotFoundError):
                 pass
 
         if "vitest" in text:
-            # Prefer invoking via node directly: npm may install vitest with a
-            # broken relative-path bin wrapper (.bin/vitest → ./dist/cli.js)
-            # that fails when cwd != node_modules/.bin.
-            vitest_cli = output_dir / "node_modules" / "vitest" / "dist" / "cli.js"
-            if vitest_cli.exists():
-                for args in [["--coverage"], []]:
-                    try:
-                        r = subprocess.run(
-                            ["node", str(vitest_cli), "run"] + args,
-                            cwd=output_dir, capture_output=True, text=True, timeout=180,
-                        )
-                    except (subprocess.TimeoutExpired, FileNotFoundError):
-                        continue
-                    combined = _strip_ansi(r.stdout + "\n" + r.stderr)
-                    pct = _parse_coverage(combined, "typescript")
-                    if pct is not None:
-                        return pct
-                    rate = _parse_test_pass_rate(combined, "typescript")
-                    if rate is not None:
-                        return rate * 100.0
-                return None
             # Try coverage first, then a plain run for the pass-rate fallback —
             # a project without @vitest/coverage-v8 fails `--coverage` but its
             # tests still pass, and that must not score 0 (test-gate veto).
+            # Then direct `node dist/cli.js` (npm sometimes installs a broken
+            # relative-path bin wrapper), and finally the project's own `npm
+            # test` script: cli.js is itself un-runnable on some vitest
+            # versions (MODULE_NOT_FOUND), so no single invocation is reliable
+            # and the shared loop must fall through, never early-return.
             cmds = [
                 ["npx", "vitest", "run", "--coverage", "--reporter=basic"],
                 ["npx", "vitest", "run", "--reporter=basic"],
             ]
+            vitest_cli = output_dir / "node_modules" / "vitest" / "dist" / "cli.js"
+            if vitest_cli.exists():
+                cmds += [
+                    ["node", str(vitest_cli), "run", "--coverage"],
+                    ["node", str(vitest_cli), "run"],
+                ]
+            cmds.append(["npm", "test"])
         elif "jest" in text:
             cmds = [
                 ["npx", "jest", "--coverage", "--coverageReporters=text-summary"],
                 ["npx", "jest"],
             ]
-        elif "node --test" in text or "node:test" in text:
+            # ESM Jest ("type": "module", or a test script that already sets
+            # the flag) must run under --experimental-vm-modules; without it
+            # every suite fails to load and a green project scores 0.
+            if _jest_needs_vm_modules(text):
+                node_opts = os.environ.get("NODE_OPTIONS", "")
+                env = os.environ | {
+                    "NODE_OPTIONS": f"{node_opts} --experimental-vm-modules".strip()
+                }
+        elif "node --test" in text or "node:test" in text or "tsx --test" in text:
             # Node's built-in test runner (node:test) — no jest/vitest dependency.
             # Such projects define a `test` script like
             # `tsc && node --test dist/**/*.test.js`. Run it (with a type-stripping
@@ -340,12 +364,23 @@ class TestCoverageScorer:
                 ["node", "--test", "--experimental-strip-types"],
             ]
         else:
-            return None
+            # Unrecognized runner (agents keep inventing new ones — tsx, ava,
+            # uvu, …). If the project defines a `test` script at all, run it and
+            # fall back to the pass-rate parse rather than scoring 0: a green
+            # suite under an unknown runner must not false-fail the gate.
+            try:
+                scripts = json.loads(text).get("scripts", {})
+            except ValueError:
+                scripts = {}
+            if not scripts.get("test"):
+                return None
+            cmds = [["npm", "test"]]
 
         for cmd in cmds:
             try:
                 result = subprocess.run(
                     cmd, cwd=output_dir, capture_output=True, text=True, timeout=180,
+                    env=env,
                 )
             except (subprocess.TimeoutExpired, FileNotFoundError):
                 continue
@@ -371,13 +406,35 @@ class TestCoverageScorer:
         out = output_dir.resolve()
         results = out / ".retort-coverage"
         shutil.rmtree(results, ignore_errors=True)
-        try:
-            res = subprocess.run(
-                ["dotnet", "test", "--collect:XPlat Code Coverage",
-                 "--results-directory", str(results), "--nologo"],
-                cwd=out, capture_output=True, text=True, timeout=300,
+        # A bare `dotnet test` needs a solution/project at the cwd; agents
+        # often ship <App>/ + <App>.Tests/ with no root .sln, which errors
+        # with MSB1003 before running anything (false-fail). When the root
+        # has no solution or project, target the test project(s) explicitly.
+        base = ["dotnet", "test", "--collect:XPlat Code Coverage",
+                "--results-directory", str(results), "--nologo"]
+        cmds = [base]
+        has_root_entry = any(
+            next(out.glob(pat), None) is not None
+            for pat in ("*.sln", "*.slnx", "*.csproj")
+        )
+        if not has_root_entry:
+            test_projects = sorted(
+                p for p in out.rglob("*.csproj")
+                if ".retort-coverage" not in p.parts
+                and ("test" in p.stem.lower()
+                     or "Microsoft.NET.Test.Sdk" in p.read_text(errors="replace"))
             )
-        except (subprocess.TimeoutExpired, FileNotFoundError):
+            if test_projects:
+                cmds = [base[:2] + [str(p)] + base[2:] for p in test_projects]
+        res = None
+        for cmd in cmds:
+            try:
+                res = subprocess.run(
+                    cmd, cwd=out, capture_output=True, text=True, timeout=300,
+                )
+            except (subprocess.TimeoutExpired, FileNotFoundError):
+                return None
+        if res is None:
             return None
         try:
             xmls = sorted(
@@ -394,6 +451,33 @@ class TestCoverageScorer:
         combined = _strip_ansi((res.stdout or "") + "\n" + (res.stderr or ""))
         rate = _parse_test_pass_rate(combined, "csharp")
         return rate * 100.0 if rate is not None else None
+
+    def _bun_coverage(self, output_dir: Path) -> float | None:
+        """Bun coverage path — `bun test --coverage`, parse % Lines, then pass-rate."""
+        try:
+            subprocess.run(
+                ["bun", "install"], cwd=output_dir,
+                capture_output=True, timeout=120,
+            )
+        except (subprocess.TimeoutExpired, FileNotFoundError):
+            pass
+        for args in (["--coverage"], []):
+            try:
+                r = subprocess.run(
+                    ["bun", "test", *args], cwd=output_dir,
+                    capture_output=True, text=True, timeout=180,
+                    stdin=subprocess.DEVNULL,
+                )
+            except (subprocess.TimeoutExpired, FileNotFoundError):
+                return None
+            combined = _strip_ansi(r.stdout + "\n" + r.stderr)
+            pct = _parse_bun_coverage(combined)
+            if pct is not None:
+                return pct
+            rate = _parse_bun_pass_rate(combined)
+            if rate is not None:
+                return rate * 100.0
+        return None
 
 
 def _parse_cobertura(path: Path) -> float | None:
@@ -424,6 +508,70 @@ def _parse_cobertura(path: Path) -> float | None:
         return float(rate) * 100.0
     except ValueError:
         return None
+
+
+def _native_bindings_ok(output_dir: Path) -> bool:
+    """True unless a node-gyp dependency is present without its built binding.
+
+    A package with a `binding.gyp` that has no `build/Release/*.node` was
+    installed without running its build (e.g. `--ignore-scripts`) — its import
+    will throw "Could not locate the bindings file" and every test false-fails.
+    """
+    modules = output_dir / "node_modules"
+    if not modules.is_dir():
+        return True
+    for gyp in modules.glob("*/binding.gyp"):
+        pkg_dir = gyp.parent
+        if not (
+            list(pkg_dir.glob("build/Release/*.node"))
+            or list(pkg_dir.glob("prebuilds/**/*.node"))
+        ):
+            return False
+    return True
+
+
+def _jest_needs_vm_modules(pkg_text: str) -> bool:
+    """True when this package.json implies ESM Jest.
+
+    Either the package declares `"type": "module"`, or its test script
+    already sets --experimental-vm-modules (the agent knew, but the scorer
+    invokes `npx jest` directly and would drop the env var).
+    """
+    if "experimental-vm-modules" in pkg_text:
+        return True
+    try:
+        pkg = json.loads(pkg_text)
+    except json.JSONDecodeError:
+        return False
+    return isinstance(pkg, dict) and pkg.get("type") == "module"
+
+
+def _parse_bun_coverage(output: str) -> float | None:
+    """Extract % Lines from Bun's coverage table 'All files' row."""
+    for line in output.splitlines():
+        if line.strip().startswith("All files"):
+            # columns: File | % Funcs | % Lines | Uncovered Line #s
+            parts = [p.strip() for p in line.split("|")]
+            if len(parts) >= 3:
+                try:
+                    return float(parts[2])
+                except ValueError:
+                    return None
+    return None
+
+
+def _parse_bun_pass_rate(output: str) -> float | None:
+    """Bun summary: ' 35 pass' / ' 0 fail' (on separate lines)."""
+    m_pass = re.search(r"^\s*(\d+)\s+pass\b", output, re.MULTILINE)
+    if m_pass is None:
+        return None
+    m_fail = re.search(r"^\s*(\d+)\s+fail\b", output, re.MULTILINE)
+    passed = int(m_pass.group(1))
+    failed = int(m_fail.group(1)) if m_fail else 0
+    total = passed + failed
+    if total == 0:
+        return None
+    return passed / total
 
 
 def _parse_coverage(output: str, language: str) -> float | None:

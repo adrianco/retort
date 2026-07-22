@@ -345,6 +345,21 @@ class TestTestCoverageScorer:
         mixed = "# tests 5\n# pass 3\n# fail 2\n# cancelled 0\n"
         assert _parse_test_pass_rate(mixed, "typescript") == 3 / 5
 
+    def test_jest_esm_detection(self):
+        # Regression: ESM Jest projects ("type": "module", run via
+        # NODE_OPTIONS=--experimental-vm-modules) fail to load every suite
+        # when the scorer invokes `npx jest` without the flag, scoring 0
+        # despite a green suite (kimi ts ground-truthed 67/67 passing).
+        from retort.scoring.scorers.test_coverage import _jest_needs_vm_modules
+        esm = '{"type": "module", "scripts": {"test": "jest"}}'
+        assert _jest_needs_vm_modules(esm)
+        flag_in_script = ('{"scripts": {"test": "NODE_OPTIONS=--experimental'
+                          '-vm-modules jest"}}')
+        assert _jest_needs_vm_modules(flag_in_script)
+        cjs = '{"scripts": {"test": "jest"}}'
+        assert not _jest_needs_vm_modules(cjs)
+        assert not _jest_needs_vm_modules("not json {")
+
     def test_clojure_runner_follows_project_layout(self, tmp_path):
         # Regression: a Leiningen project (project.clj, no deps.edn) must be
         # tested with `lein test`, not the clojure CLI's `-M:test` (which finds
