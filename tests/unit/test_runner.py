@@ -1276,3 +1276,35 @@ def test_build_env_exports_context_threshold(tmp_path, monkeypatch):
         StackConfig(language="go", agent="hermes-local", framework="", extra={"stack": "m80"})
     )
     assert "LCM_CONTEXT_THRESHOLD" not in env3
+
+
+def test_graphify_prompt_injection():
+    """tooling:graphify tells the agent to consult graphify-out/ before editing."""
+    from retort.playpen.local_runner import _build_agent_prompt
+    from retort.playpen.runner import StackConfig
+    stack = StackConfig(language="python", agent="claude-code", framework="none",
+                        extra={"tooling": "graphify"})
+    p = _build_agent_prompt(stack)
+    assert "graphify-out/" in p and "GRAPH_REPORT.md" in p and "graphify query" in p
+    # none/beads must NOT get the graphify text
+    none_stack = StackConfig(language="python", agent="claude-code", framework="none")
+    assert "graphify" not in _build_agent_prompt(none_stack)
+
+
+import shutil as _sh  # noqa: E402
+
+
+@pytest.mark.skipif(_sh.which("graphify") is None, reason="graphify not installed")
+def test_graphify_hook_builds_graph(tmp_path):
+    """The pre-run hook extracts an offline AST graph of the seeded code into
+    graphify-out/ (graph.json + GRAPH_REPORT.md)."""
+    from retort.playpen.graphify_hook import build_graph
+    (tmp_path / "app").mkdir()
+    (tmp_path / "app" / "m.py").write_text(
+        "class Book:\n    def d(self): return 1\ndef mk(): return Book()\n")
+    (tmp_path / "app" / "api.py").write_text(
+        "from app.m import Book, mk\ndef create(): return mk()\n")
+    stats = build_graph(tmp_path)
+    assert stats and stats["nodes"] > 0 and stats["files"] == 2
+    assert (tmp_path / "graphify-out" / "graph.json").is_file()
+    assert (tmp_path / "graphify-out" / "GRAPH_REPORT.md").is_file()

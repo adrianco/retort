@@ -346,6 +346,16 @@ class LocalRunner:
                     capture_output=True,
                 )
 
+        # tooling:graphify pre-run hook — build a knowledge graph of the SEEDED
+        # code (offline, $0) so the agent can query relationships. Done after the
+        # seed + git init so it graphs the existing tree; best-effort (a no-op if
+        # graphify isn't installed, or on a greenfield task with nothing to graph).
+        if stack.extra.get("tooling") == "graphify":
+            from retort.playpen.graphify_hook import build_graph
+            stats = build_graph(env_dir)
+            if stats:
+                logger.info("graphify graph seeded for %s: %s", env_id, stats)
+
         self._envs[env_id] = _EnvInfo(
             env_id=env_id,
             workspace=env_dir,
@@ -878,6 +888,16 @@ def _build_agent_prompt(stack: StackConfig, prompt_injection: str = "") -> str:
             " Use bd (beads) for task tracking. "
             "Run bd init first, then bd create for each subtask, "
             "bd update --claim to claim work, and bd close when done."
+        )
+    elif tooling == "graphify":
+        prompt += (
+            " A code knowledge graph of the existing codebase has been built for "
+            "you in graphify-out/. BEFORE editing, consult it to understand "
+            "relationships: read graphify-out/GRAPH_REPORT.md for the high-level "
+            "map and the highest-connectivity nodes, and run "
+            "`graphify query \"<question>\"`, `graphify path \"A\" \"B\"`, or "
+            "`graphify explain \"<symbol>\"` to trace what calls what and the blast "
+            "radius of a change, instead of grepping the whole tree."
         )
 
     if prompt_injection:
