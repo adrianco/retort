@@ -1131,3 +1131,21 @@ class TestNoRegressionScorer:
         _t.sleep(0.5)
         with pytest.raises(ProcessLookupError):
             _os.kill(int(marker.read_text().strip()), 0)
+
+
+def test_no_regression_actually_runs_python_suite(tmp_path):
+    """Regression: a `python -m pytest` baseline command must actually RUN — bare
+    `python` is often not on the scorer's PATH, which silently fell to the neutral
+    1.0 (a gate that never gated). ensure_python_env supplies an interpreter with
+    pytest, so a passing suite → 1.0 by really running, a failing one → 0.0."""
+    import json as _json
+    from retort.scoring.scorers.no_regression import NoRegressionScorer
+    (tmp_path / "test_ok.py").write_text("def test_ok():\n    assert 1 + 1 == 2\n")
+    (tmp_path / ".retort-regression.json").write_text(
+        _json.dumps({"command": ["python", "-m", "pytest", "test_ok.py", "-q"], "timeout": 120}))
+    art = RunArtifacts(output_dir=tmp_path, stdout="", exit_code=0, duration_seconds=1.0)
+    stack = StackConfig(language="python", agent="x", framework="none")
+    assert NoRegressionScorer().score(art, stack) == 1.0
+    # now make it fail — the gate must catch it (proves it really ran)
+    (tmp_path / "test_ok.py").write_text("def test_ok():\n    assert 1 + 1 == 3\n")
+    assert NoRegressionScorer().score(art, stack) == 0.0

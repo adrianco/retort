@@ -1,0 +1,42 @@
+name: py-catalog-reservations
+description: |
+  MODIFY-EXISTING task: add a reservations feature to a seeded Python library
+  (catalog/: books, members, loans). Exercises comprehension of an existing
+  codebase (the graphify tooling factor) plus a no-regression gate — the seed's
+  existing test suite (tests/test_catalog.py) must keep passing.
+
+prompt: |
+  You are modifying an EXISTING Python library that is already present in this
+  directory. The package `catalog/` implements a small library catalog:
+    - catalog/models.py   — Book, Member, Loan data types
+    - catalog/store.py     — in-memory persistence for books and members
+    - catalog/loans.py     — LoanService: borrow / return / availability
+    - catalog/service.py   — Catalog facade orchestrating the above
+    - tests/test_catalog.py — the EXISTING test suite (must keep passing)
+
+  Add a **reservations** capability so a member can reserve a book that has no
+  copies available, and the reservation is fulfilled automatically when a copy is
+  returned. Requirements:
+
+  1. `reserve(member_id, book_id)` on the Catalog facade records a reservation, but
+     ONLY when the book currently has zero available copies. Reserving a book that
+     still has copies available raises an error (the member should just borrow it).
+  2. Reserving with an unknown member or unknown book raises an error. A member may
+     not hold two reservations for the same book (raises).
+  3. Reservations for a book are FIFO. `list_reservations(book_id)` returns the
+     reserving member ids in the order the reservations were made.
+  4. When a book is returned (`return_book`) and it has at least one reservation,
+     the EARLIEST reservation is fulfilled automatically: that member is given the
+     loan (so availability stays 0) and the reservation is removed.
+  5. `cancel_reservation(member_id, book_id)` removes a pending reservation, raising
+     if the member has none for that book.
+  6. Expose reserve / cancel_reservation / list_reservations through the `Catalog`
+     facade in catalog/service.py.
+
+  Constraints:
+  - Do NOT change existing behavior — every test in tests/test_catalog.py must
+    still pass unchanged.
+  - Add tests for the new reservation behavior.
+  - Keep the existing layering (models / store / loans / service).
+
+timeout_minutes: 30

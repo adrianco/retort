@@ -21,6 +21,10 @@ tasks:
     source: bundled://rest-api-crud
     description: CRUD REST API for a book catalog — the "easy" task (exp 1, 6, 7-bookshop, 8).
 
+  - name: py-catalog-reservations
+    source: bundled://py-catalog-reservations
+    description: MODIFY-EXISTING Python task — add a reservations feature to a seeded catalog/ library. Ships a seed/ codebase + existing suite (no_regression gate) for the Graphify tooling experiment (future-experiments §1).
+
   - name: brazil-bench
     source: github://brazil-bench/benchmark-template/brazilian-soccer-mcp-guide.md
     description: Brazilian-soccer MCP server built from a multi-file guide — the "hard" task (exp 2-5, 7-brazil).

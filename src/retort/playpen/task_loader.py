@@ -195,6 +195,13 @@ def _load_from_dir(task_dir: Path) -> TaskSpec:
     validate_path = task_dir / "validate.py"
     validation_script = str(validate_path) if validate_path.exists() else None
 
+    # A modify-existing task ships its seed codebase (the existing code + tests +
+    # .retort-regression.json) in a `seed/` subdir. When present, it becomes the
+    # support_dir so provision copies it into the playpen before the agent starts
+    # (and the graphify hook graphs it). Greenfield tasks have no seed/ → None.
+    seed_dir = task_dir / "seed"
+    support_dir = seed_dir if seed_dir.is_dir() else None
+
     return TaskSpec(
         name=data["name"],
         description=data.get("description", ""),
@@ -202,6 +209,7 @@ def _load_from_dir(task_dir: Path) -> TaskSpec:
         validation_script=validation_script,
         timeout_minutes=data.get("timeout_minutes", 30),
         max_turns=data.get("max_turns"),
+        support_dir=support_dir,
     )
 
 

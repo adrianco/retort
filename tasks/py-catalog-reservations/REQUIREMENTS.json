@@ -1,0 +1,18 @@
+{
+  "task": "py-catalog-reservations",
+  "source": "bundled://py-catalog-reservations",
+  "note": "Pinned requirement checklist for the NEW reservations capability only (the modification the agent must add on top of the seeded catalog/ library). The no_regression scorer separately gates that the seed's existing suite still passes. Constant denominator across runs — do not regenerate per-run.",
+  "requirements": [
+    {"id": "R1", "requirement": "reserve(member_id, book_id) records a reservation when the book has 0 available copies", "how_to_verify": "After all copies are on loan, reserve() succeeds and the reservation is tracked."},
+    {"id": "R2", "requirement": "reserve() raises when the book still has copies available", "how_to_verify": "Reserving an available book raises an error (member should borrow instead)."},
+    {"id": "R3", "requirement": "reserve() raises for an unknown member or unknown book", "how_to_verify": "Reserving with a bad member id or book id raises."},
+    {"id": "R4", "requirement": "A member cannot hold two reservations for the same book", "how_to_verify": "A second reserve() by the same member for the same book raises."},
+    {"id": "R5", "requirement": "list_reservations(book_id) returns reserving members in FIFO order", "how_to_verify": "Reservations are returned in the order they were created."},
+    {"id": "R6", "requirement": "return_book auto-fulfills the earliest reservation", "how_to_verify": "After a return with a pending reservation, the earliest reserver holds the loan, availability stays 0, and that reservation is gone."},
+    {"id": "R7", "requirement": "cancel_reservation(member_id, book_id) removes a pending reservation", "how_to_verify": "cancel_reservation removes it; list_reservations no longer shows that member."},
+    {"id": "R8", "requirement": "cancel_reservation raises when the member has no reservation for that book", "how_to_verify": "Cancelling a non-existent reservation raises."},
+    {"id": "R9", "requirement": "All new behavior is exposed through the Catalog facade (service.py)", "how_to_verify": "reserve / cancel_reservation / list_reservations are methods on Catalog."},
+    {"id": "R10", "requirement": "New tests cover the reservation behavior", "how_to_verify": ">=3 new tests exercise reserve/fulfill/cancel (test_coverage > 0)."},
+    {"id": "R11", "requirement": "The pre-existing tests/test_catalog.py suite still passes unchanged", "how_to_verify": "No-regression: the original 6 tests pass against the modified tree (also gated by no_regression scorer)."}
+  ]
+}

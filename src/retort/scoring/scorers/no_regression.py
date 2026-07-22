@@ -27,10 +27,12 @@ from __future__ import annotations
 
 import json
 import logging
+import shutil
 import subprocess
 from pathlib import Path
 
 from retort.playpen.runner import RunArtifacts, StackConfig
+from retort.scoring.scorers._venv import ensure_python_env
 from retort.scoring.scorers.test_coverage import _run_reaped
 
 logger = logging.getLogger(__name__)
@@ -68,13 +70,26 @@ class NoRegressionScorer:
             logger.warning("no_regression: bad %s: %s", _SPEC_FILE, exc)
             return 1.0  # a malformed gate must not falsely fail a run
 
-        try:
-            result = _run_reaped(cmd, cwd=out.resolve(), timeout=timeout)
-        except (subprocess.TimeoutExpired, FileNotFoundError, OSError) as exc:
-            # A baseline suite that can't be run (missing runner, or it hangs past
-            # the timeout) is a no-signal, not a proven regression — stay neutral
-            # so a tooling gap doesn't masquerade as the model breaking the seed.
-            logger.warning("no_regression: baseline suite did not run: %s", exc)
-            return 1.0
+        # A `python`/`python3` baseline command needs an interpreter that actually
+        # has pytest + the seed's deps. The bare `python` is often not even on the
+        # scorer's PATH (→ FileNotFoundError → a silently-neutral gate that never
+        # ran). ensure_python_env finds/creates a venv with the deps, exactly as
+        # the python coverage path does.
+        env = None
+        cleanup: Path | None = None
+        if Path(str(cmd[0])).name in ("python", "python3"):
+            env, cleanup = ensure_python_env(out.resolve())
 
-        return 1.0 if result.returncode == 0 else 0.0
+        try:
+            try:
+                result = _run_reaped(cmd, cwd=out.resolve(), timeout=timeout, env=env)
+            except (subprocess.TimeoutExpired, FileNotFoundError, OSError) as exc:
+                # A baseline that can't run at all (missing runner, or it hangs past
+                # the timeout) is a no-signal, not a proven regression — stay neutral
+                # so a tooling gap doesn't masquerade as the model breaking the seed.
+                logger.warning("no_regression: baseline suite did not run: %s", exc)
+                return 1.0
+            return 1.0 if result.returncode == 0 else 0.0
+        finally:
+            if cleanup is not None:
+                shutil.rmtree(cleanup, ignore_errors=True)

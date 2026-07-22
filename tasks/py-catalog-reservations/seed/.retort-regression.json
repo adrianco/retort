@@ -1,0 +1,1 @@
+{"command": ["python", "-m", "pytest", "tests/test_catalog.py", "-q", "--tb=short"], "timeout": 120}
