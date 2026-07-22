@@ -148,6 +148,15 @@ macOS-only. **The run can launch** — remember to smoke-test one c + one swift 
 | **C++** | `.cpp/.cc/.hpp` | `clang++`/`g++`, CMake | `ctest` on the agent's framework (Catch2 / GoogleTest / doctest); coverage gcov/`llvm-cov` | `clang-tidy` | Xcode CLT + `brew install cmake lcov` |
 | **Objective-C** | `.m/.h` | `clang` + Foundation (**macOS only**) | XCTest via `xcodebuild test`, or a plain assert executable; coverage `llvm-cov` | `clang-tidy` | Xcode (full, for XCTest/Foundation) |
 
+**Host prerequisite (verified 2026-07-22 on the exp-43 machine):** **Swift *and* Objective-C need a
+full Xcode installed AND launched once** — XCTest/Foundation don't ship with the Command Line
+Tools. Install Xcode, open it once (accept the license + let it install components), and confirm
+`DEVELOPER_DIR=/Applications/Xcode.app/Contents/Developer xcodebuild -checkFirstLaunchStatus`
+returns exit 0. No `sudo xcode-select -s` needed: the scorer's `_apple_env` auto-points
+`DEVELOPER_DIR` at the installed Xcode when `xcode-select` still targets the CLT. Without a
+launched Xcode, every Swift/ObjC run fails the gate with `no such module 'XCTest'` (a false zero).
+C/C++ only need `clang` + `cmake` (CLT is enough).
+
 **Notes / risks:** C and C++ have **no single canonical test runner** (Go's `go test` has no
 equivalent) — the agent picks a framework, so the scorer must detect the build system (CMake vs
 Makefile) and the test target, or run `bookshop`'s own provided harness. **Objective-C needs a

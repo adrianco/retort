@@ -99,6 +99,7 @@ retort --help                    # CLI loads → deps OK
 | **Python 3.11+**, **C/C++ toolchain + cmake** | runtime + building `OApackage` |
 | **`claude` CLI, authenticated** | the default agent runner, and the spec-gate judge |
 | **Per-language toolchains** | the scorer **builds, tests, and lints** the generated code — see the table below |
+| **Full Xcode, installed *and launched once*** | only for **Swift / Objective-C** (XCTest + Foundation) — see the Apple-language note below |
 | **`bd` (beads) CLI** | only if a factor uses `tooling: beads` |
 | **`gemini` / `omp` CLI, or Hermes + oMLX** | only to run non-Claude agents — see [Comparing coding agents](#comparing-coding-agents) and [docs/configuration.md](docs/configuration.md#local-serving-stack-hermes--omlx) |
 
@@ -128,6 +129,8 @@ You only need the toolchains for the languages you list as `language` factor lev
 > ⚠️ **Clojure needs *both* the Clojure CLI and Leiningen** (agents pick either a `deps.edn` or a `project.clj` layout). **Erlang needs `rebar3`**; **Elixir needs `mix`**. A missing toolchain is the single most common "why did every run of language X fail?" — verify with `lein test`, `rebar3 --version`, `mix --version` before launching.
 >
 > ᴱ **Exploratory (exp-43).** C / C++ / Objective-C are scored by **test pass-rate as the coverage proxy** (no single canonical runner, so the scorer auto-detects CMake+CTest → Makefile → xcodebuild); their `clang-tidy` lint + compiler-warning defect counts are a follow-up. Objective-C requires a full Xcode (Foundation + XCTest) and can't run on Linux CI.
+>
+> 🍎 **Swift / Objective-C prerequisite — full Xcode, installed *and launched once* (macOS only).** XCTest and Foundation ship only with a full **Xcode.app**, not the Command Line Tools. Install Xcode from the App Store (or [developer.apple.com](https://developer.apple.com/xcode/)), then **open it once** so it accepts the license and installs its components — verify with `DEVELOPER_DIR=/Applications/Xcode.app/Contents/Developer xcodebuild -checkFirstLaunchStatus` (exit 0 = ready). You do **not** need `sudo xcode-select -s`: when `xcode-select` still points at the CLT, the scorer auto-sets `DEVELOPER_DIR` to the installed Xcode so `swift test` / `xcodebuild` find XCTest. Without a launched Xcode, Swift/ObjC runs fail the mechanical gate with `no such module 'XCTest'`.
 
 ### Run an experiment — describe it in plain language
 
