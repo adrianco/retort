@@ -61,7 +61,8 @@ class TokenEfficiencyScorer:
 
         total = 0
         for ext in exts:
-            for f in artifacts.output_dir.rglob(f"*{ext}"):
+            from retort.scoring.scorers._common import iter_source_files
+            for f in iter_source_files(artifacts.output_dir, ext):
                 try:
                     content = f.read_text()
                     # Count non-blank, non-comment lines

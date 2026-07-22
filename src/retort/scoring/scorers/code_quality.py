@@ -112,7 +112,8 @@ class CodeQualityScorer:
             "csharp": ".cs",
         }
         ext = extensions.get(language, ".py")
-        source_files = list(output_dir.rglob(f"*{ext}"))
+        from retort.scoring.scorers._common import iter_source_files
+        source_files = list(iter_source_files(output_dir, ext))
 
         if not source_files:
             return 0.0

@@ -151,10 +151,7 @@ def _count_source_lines(output_dir: Path, language: str) -> int:
     if not exts:
         return 0
 
-    skip_parts = {
-        "node_modules", "target", "__pycache__", ".git", "dist", "build",
-        "_build", "deps", ".rebar3",
-    }
+    from retort.scoring.scorers._common import SKIP_PARTS as skip_parts
     total = 0
     for ext in exts:
         for p in output_dir.rglob(f"*{ext}"):

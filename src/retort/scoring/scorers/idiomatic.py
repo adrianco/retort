@@ -47,7 +47,7 @@ _LANGUAGE_EXTENSIONS: dict[str, set[str]] = {
     "csharp": {".cs"},
 }
 
-_SKIP_PARTS = {"node_modules", "target", "__pycache__", ".git", "dist", "build"}
+from retort.scoring.scorers._common import SKIP_PARTS as _SKIP_PARTS
 
 # Cap the prompt body to keep latency + cost bounded. 4 KB is plenty for a
 # representative sample without sending an entire project.

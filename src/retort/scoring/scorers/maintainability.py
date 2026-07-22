@@ -73,10 +73,7 @@ _SOURCE_EXTENSIONS: dict[str, set[str]] = {
 # Build/dependency output that must never be counted as project source.
 # `_build`/`deps` (erlang rebar3, elixir mix) and `target` (rust/clojure)
 # otherwise pull whole dependency trees into the file scan.
-_SKIP_PARTS = {
-    "node_modules", "target", "__pycache__", ".git", "dist", "build",
-    "_build", "deps", ".rebar3",
-}
+from retort.scoring.scorers._common import SKIP_PARTS as _SKIP_PARTS
 
 # Tunable thresholds. Each is the value at which the corresponding sub-score is 0.
 # The sub-score is 1.0 at the "ideal" anchor and linearly decays.
