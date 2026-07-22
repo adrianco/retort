@@ -78,8 +78,30 @@ not `python -c "…"` or a heredoc/stdin (those fail with `FileNotFoundError: �
 return 0 nodes). The prototype hook driver is `scratchpad/build_graph.py`. The full pipeline
 (clustering + `GRAPH_REPORT.md` + god-node/blast-radius) is Part C of the skill on top of this AST
 result; the pre-run hook can call `extract()` directly for the graph and generate the report from it.
-The MCP server is `graphify-mcp` (stdio) for the live-query arm. Next: wire the hook into the playpen
-provisioner as a `tooling: graphify` capability, then the no-regression scorer + the large task.
+The MCP server is `graphify-mcp` (stdio) for the live-query arm.
+
+**PLUMBING BUILT + VERIFIED (2026-07-22) — the experiment is now runnable:**
+1. ✅ **`tooling: graphify` capability** (`playpen/graphify_hook.py` + `LocalRunner.provision` +
+   prompt injection): builds `graphify-out/{graph.json,GRAPH_REPORT.md}` on the seeded code before
+   the agent starts, and tells the agent to consult it. Subprocess w/ graphify's own interpreter
+   (isolates tree-sitter deps + the spawn gotcha). No-op if graphify absent.
+2. ✅ **`no_regression` scorer** (`scoring/scorers/no_regression.py`, registered): runs the seed's
+   existing suite (`.retort-regression.json`) under the process-group reaper + `ensure_python_env`,
+   → 1.0 pass / 0.0 regressed / 1.0 N/A. **Verified it genuinely gates** (pristine→1.0, an injected
+   bug→0.0) — an earlier version silently fell to neutral because bare `python` wasn't on PATH.
+3. ✅ **`py-catalog-reservations` modify-existing task** (`tasks/py-catalog-reservations/`): a seeded
+   `catalog/` library (models→store→loans→service) + a passing 6-test suite; TASK.md adds a
+   reservations feature (blast radius spans the modules). `task_loader` now maps a task's `seed/`
+   subdir → `support_dir`. End-to-end verified: provision seeds it → graphify builds a 45-node graph
+   naming Catalog/Store/LoanService/borrow/return_book → no_regression gates the real suite.
+
+**REMAINING (runtime, not build):**
+- **Consultation smoke (the plan's must-verify):** one Opus cell with `tooling: graphify` on the
+  catalog task — grep the transcript for graph reads (`GRAPH_REPORT.md` / `graphify query`); if the
+  agent ignores it, graphify ≡ none and the result is a false null.
+- **Run** `task{py-catalog-reservations} × tooling{none, beads, graphify}` on a strong cloud stack
+  first (isolate the tooling effect), then repeat on the local 80B. n≥3, pass = req-coverage AND
+  no_regression. Optionally add the brazil-bench arm + the `graphify --update`-between-turns arm.
 
 ## 2. exp-41 — self-repair iteration-2 on the 80B ctx-0.9 near-misses  — SCAFFOLDED, ready to launch
 

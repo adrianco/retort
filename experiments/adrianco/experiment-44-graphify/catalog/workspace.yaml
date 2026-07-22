@@ -1,0 +1,23 @@
+# Experiment 44 — Graphify tooling factor on the modify-existing Python task.
+# Does a pre-built code knowledge graph help an agent modify an existing codebase?
+# Cloud (Opus 4.8) first to isolate the tooling effect from local-capability noise.
+# pass = requirement_coverage (new capability) AND no_regression (existing suite).
+experiment:
+  name: experiment-44-graphify-catalog
+  visibility: public
+factors:
+  language: { levels: [python, go] }        # design pins python
+  agent: { levels: [claude-code, hermes-local] }  # design pins claude-code
+  tooling: { levels: [none, beads, graphify] }
+  model: { levels: [claude-opus-4-8, claude-sonnet-5] }  # design pins opus
+responses: [code_quality, test_coverage, no_regression, token_efficiency, defect_rate]
+tasks:
+  - source: bundled://py-catalog-reservations
+playpen:
+  runner: local
+  replicates: 1
+  timeout_minutes: 30
+  max_turns: 200
+design: { screening_resolution: 3, significance_threshold: 0.10 }
+promotion: { screening_to_trial: { p_value: 0.10 }, trial_to_production: { posterior_confidence: 0.80 } }
+evaluation: { enabled: true, model: opus-4.8 }

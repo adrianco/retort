@@ -1,0 +1,81 @@
+{
+  "agent_config": {
+    "hermes": {
+      "_config_version": 33,
+      "context_engine": "lcm",
+      "context_length": 262144,
+      "context_length_top_level": 262144,
+      "context_length_unset_per_model": false,
+      "max_turns": 30,
+      "model": "mlx-community--Qwen3-Coder-Next-4bit",
+      "plugins": [
+        "hermes-lcm"
+      ],
+      "provider_api": "http://127.0.0.1:8080/v1"
+    }
+  },
+  "harness": {
+    "local_agents": {},
+    "max_turns": 200,
+    "no_write_abort_after": 3,
+    "playpen_root": "/Users/adriancockcroft/.retort/work",
+    "replicates": 1,
+    "runner": "local",
+    "stack_presets": null,
+    "stall_minutes": 0,
+    "timeout_minutes": 30
+  },
+  "host": {
+    "cpu": "Apple M5 Pro",
+    "iogpu_wired_limit_mb": "57344",
+    "machine": "Mac17,9",
+    "platform": "macOS-26.5.1-arm64-arm-64bit-Mach-O",
+    "python": "3.14.6",
+    "ram_bytes": "68719476736"
+  },
+  "models": {
+    "claude-opus-4-8": {
+      "served_as": "claude-opus-4-8"
+    }
+  },
+  "retort": {
+    "branch": "main",
+    "commit": "88f9f9c5988c6e4e228ba4f7c6aa1c1dfae34a09",
+    "dirty": true
+  },
+  "serving": {
+    "omlx": {
+      "cache": {
+        "enabled": true,
+        "hot_cache_max_size": "0",
+        "hot_cache_only": false,
+        "initial_cache_blocks": 256,
+        "ssd_cache_dir": null,
+        "ssd_cache_max_size": "auto"
+      },
+      "model_dirs": [
+        "/Users/adriancockcroft/models"
+      ],
+      "sampling": {
+        "max_context_window": 32768,
+        "max_context_window_policy": null,
+        "max_tokens": 32768,
+        "repetition_penalty": 1.0,
+        "temperature": 0.7,
+        "top_k": 40,
+        "top_p": 0.95
+      }
+    }
+  },
+  "stack_presets": null,
+  "tools": {
+    "cargo": "cargo 1.96.0 (30a34c682 2026-05-25) (Homebrew)",
+    "claude": "2.1.197 (Claude Code)",
+    "go": "go version go1.26.4 darwin/arm64",
+    "hermes": null,
+    "llama_server": "version: 9910 (f5525f7e7)",
+    "node": "v26.4.0",
+    "omlx": "0.5.0rc1",
+    "omp": "omp/16.3.12"
+  }
+}
