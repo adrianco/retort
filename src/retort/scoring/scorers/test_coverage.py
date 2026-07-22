@@ -208,7 +208,11 @@ class TestCoverageScorer:
                     cwd=output_dir,
                     capture_output=True,
                     text=True,
-                    timeout=300,
+                    # SwiftPM dependency graphs (e.g. a Vapor app) can take many
+                    # minutes to resolve + compile from cold, well past the 300s
+                    # that suits the interpreted-language runners — a timeout here
+                    # returns no output and false-zeroes a passing suite.
+                    timeout=900 if language == "swift" else 300,
                     env=env,
                 )
             except (subprocess.TimeoutExpired, FileNotFoundError):
@@ -224,6 +228,13 @@ class TestCoverageScorer:
             rate = _parse_test_pass_rate(combined, language)
             if rate is not None:
                 return rate * 100.0
+            # Swift: test-framework summaries vary (XCTest vs Swift Testing vs a
+            # future one), but `swift test` returns 0 iff the suite passed — the
+            # same universal exit-code signal used for the native C path. Use it
+            # when no summary parsed, so a passing suite in an unrecognised format
+            # isn't false-zeroed at the gate.
+            if language == "swift" and result.returncode == 0:
+                return 100.0
             # Fallback 2: the coverage command may have aborted before tests ran
             # (e.g. mvn jacoco:report when the plugin isn't in the pom, or the
             # clojure-CLI cloverage command on a Leiningen project). Try the
@@ -820,9 +831,16 @@ _TEST_PASS_PATTERNS: dict[str, list[re.Pattern[str]]] = {
         # Generic "N tests, M failures" (some EUnit/CT formatters use it)
         re.compile(r"(?P<total>\d+)\s+tests?,\s+(?P<failures>\d+)\s+failures?"),
     ],
-    # Swift / XCTest (also xcodebuild): "Executed 12 tests, with 0 failures (0 unexpected)"
+    # Swift. Two frameworks with different summaries:
+    #  * XCTest:        "Executed 12 tests, with 0 failures (0 unexpected)"
+    #  * Swift Testing: "✔ Test run with 6 tests passed after 1.2 seconds."
+    #                   "✘ Test run with 6 tests failed ... with 3 issues."
+    # (Swift 6's Testing framework — @Suite/@Test — is now the default the agents
+    # reach for; its output matches none of the XCTest patterns.)
     "swift": [
         re.compile(r"Executed\s+(?P<total>\d+)\s+tests?,\s+with\s+(?P<failures>\d+)\s+failure"),
+        re.compile(r"Test run with (?P<total>\d+) tests? passed"),
+        re.compile(r"Test run with (?P<total>\d+) tests? failed.*?(?P<failures>\d+)\s+issue"),
     ],
     # C / C++ / Objective-C via CTest: "100% tests passed, 0 tests failed out of 12";
     # XCTest (objc under xcodebuild) uses the swift/Executed form, added too.

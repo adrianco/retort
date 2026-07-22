@@ -739,6 +739,12 @@ def test_test_coverage_parses_native_and_swift_pass_rate():
     # XCTest summary emitted by both ctest-driven and xcodebuild-driven suites.
     assert p("Executed 10 tests, with 0 failures (0 unexpected)", "objc") == 1.0
     assert abs(p("Executed 8 tests, with 1 failure (0 unexpected)", "swift") - 7/8) < 1e-9
+    # Swift Testing (Swift 6's @Suite/@Test framework, now the default the agents
+    # reach for) — a different summary than XCTest. Regression: an Opus bookshop
+    # using Swift Testing false-zeroed at the gate despite 6 passing tests.
+    assert p("✔ Test run with 6 tests passed after 1.2 seconds.", "swift") == 1.0
+    assert abs(p("✘ Test run with 6 tests failed after 1.2 seconds with 3 issues.",
+                 "swift") - 3/6) < 1e-9
     # TAP fallback: hand-rolled C/C++ test binaries (plain Makefile, no CTest)
     # print `ok`/`not ok` lines the structured patterns miss. Regression: a real
     # Opus-generated C bookshop false-zeroed at the gate despite 18 passing tests.

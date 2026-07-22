@@ -1,5 +1,9 @@
 serving:
   omlx_bin: /Applications/oMLX.app/Contents/MacOS/omlx-cli
+  # hermes is NOT on PATH on this host (it lives in a dedicated venv). Point at it
+  # explicitly, or every hermes-local cell CRASHES at 0.0s with "Agent CLI not
+  # found: 'hermes'" (a harness failure, not a model result).
+  hermes_bin: /Users/adriancockcroft/hermes-venv/bin/hermes
   model_dir: /Users/adriancockcroft/models
   host: 127.0.0.1
   port: 8080

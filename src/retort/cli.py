@@ -722,6 +722,47 @@ def run_experiments(
             registry_path = config_dir / workspace_config.playpen.stack_presets
             # backend (oMLX / llama.cpp) is chosen by serving.backend in the registry
             stack_manager = make_stack_manager(registry_path)
+
+        # Local-agent binary preflight. A configured local agent whose CLI can't
+        # be resolved crashes EVERY cell that uses it at 0.0s ("Agent CLI not
+        # found"), which is indistinguishable from a model that produced nothing —
+        # a harness failure masquerading as a model result. Check up front and
+        # warn with the concrete fix, before a single cell is burned.
+        _local_agents = workspace_config.playpen.local_agents or {}
+        if _local_agents:
+            import os as _os
+            import shutil as _sh
+
+            _serving = getattr(stack_manager, "serving", {}) or {}
+
+            def _agent_cli(_name: str, _spec: dict) -> str:
+                _harness = (_spec or {}).get("harness", _name)
+                if _harness == "hermes":
+                    return _serving.get("hermes_bin", "hermes")
+                return _harness  # omp / gemini / opencode resolve by their own name
+
+            _missing: list[tuple[str, str]] = []
+            for _an, _spec in _local_agents.items():
+                _bin = _agent_cli(_an, _spec)
+                _ok = _bin if (_os.path.isabs(_bin) and _os.path.exists(_bin)) else _sh.which(_bin)
+                if _ok is None:
+                    _missing.append((_an, _bin))
+            if _missing:
+                click.echo("Local-agent preflight:")
+                for _an, _bin in _missing:
+                    _hint = (
+                        f" — set serving.hermes_bin in {workspace_config.playpen.stack_presets} "
+                        "to the hermes binary's path"
+                        if _bin == "hermes"
+                        else f" — install it or put '{_bin}' on PATH"
+                    )
+                    click.echo(
+                        f"  ⚠ agent '{_an}': CLI '{_bin}' not found{_hint}. "
+                        "Every cell using it will crash at 0.0s."
+                    )
+            else:
+                click.echo(f"Local-agent preflight: {len(_local_agents)} agent(s) OK.")
+
         runner = LocalRunner(
             timeout_minutes=workspace_config.playpen.timeout_minutes,
             stall_minutes=workspace_config.playpen.stall_minutes,
