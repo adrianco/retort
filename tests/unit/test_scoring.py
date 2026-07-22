@@ -1043,3 +1043,15 @@ def test_csharp_obj_scaffold_scores_zero(tmp_path):
     # a real authored file OUTSIDE obj/ is still counted
     (tmp_path / "Program.cs").write_text("class P { static void Main() {} }\n")
     assert [p.name for p in iter_source_files(tmp_path, ".cs")] == ["Program.cs"]
+
+
+def test_swiftpm_build_dir_skipped_in_loc(tmp_path):
+    """Regression: SwiftPM vendors dependency SOURCE under .build/checkouts, so a
+    Swift project's loc ballooned ~1000x (measured 834K vs ~200) and wrecked every
+    per-file metric. .build must be skipped like build/_build."""
+    from retort.scoring.scorers.defect_rate import _count_source_lines
+    (tmp_path / "main.swift").write_text("print(\"hi\")\nlet x = 1\n")
+    dep = tmp_path / ".build" / "checkouts" / "vapor" / "Sources"
+    dep.mkdir(parents=True)
+    (dep / "Vapor.swift").write_text("\n".join(f"let v{i} = {i}" for i in range(5000)))
+    assert _count_source_lines(tmp_path, "swift") == 2  # only the authored lines

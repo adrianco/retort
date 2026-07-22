@@ -108,63 +108,16 @@ weights) and the only clean new-model probe left. To try a Mistral-family or Dev
 the stack manager would need a llama.cpp / vLLM serving backend (they parse the Mistral tool format
 oMLX can't).
 
-## 5. More languages — C / C++ / Objective-C / Swift exploration  — SCHEDULED
+## 5. More languages — C / C++ / Objective-C / Swift  — DONE (exp-43), see past-experiments
 
-Extend beyond the 9 current languages to the **systems + Apple** tier. Scaffolded at
-`experiments/adrianco/experiment-43-morelangs/bookshop/`.
+First systems/Apple-tier run landed 2026-07-22 → moved to [past-experiments.md](past-experiments.md) (exp-43). Full scorer support (build/test/coverage/lint) + toolchains for c/cpp/objc/swift shipped; the README has the per-language toolchain table
+and the full-Xcode prerequisite. **Headline:** cloud (Opus 4.8) passes all four cleanly; the local
+80B degrades by language (C++ a genuine 0.50 partial, C/ObjC/Swift incomplete).
 
-**Design (exploration, deliberately thin):** `language{c, cpp, objc, swift} × model{opus-4.8,
-qwen-80B} × bookshop(rest-api-crud) × prompt=neutral × 1 replicate` = **8 runs**. One replicate
-is enough for a first *comparison/exploration* — cloud frontier (Opus 4.8) vs the leading local
-stack (Qwen3-Coder-Next 80B at `context_threshold: 0.9`) on each new language. Promote to n≥3 +
-the hard task only for languages that look viable.
-
-**PREREQUISITE — scorer support (DONE 2026-07-22, run is unblocked).** These 4 languages were new
-to the harness. Now wired end-to-end:
-- **Toolchains** (`toolchains.py`): c/cpp/objc/swift entries + `c++`/`cxx`/`objective-c` aliases, so
-  the preflight checks/installs the compilers (clang/CMake/lcov; swift).
-- **Extension maps**: all six per-file scorers (`token_efficiency`, `maintainability`, `idiomatic`,
-  `defect_rate`, `code_quality`) know `.c/.h`, `.cpp/.cc/.cxx/.hpp`, `.m`, `.swift` — so they count
-  source instead of scoring 0.
-- **test_coverage (the mechanical gate)**: Swift runs `swift test --enable-code-coverage` via the
-  standard command path; C/C++/ObjC go through a new `_native_coverage` that **detects the build
-  system** — CMake+CTest first, then Makefile, then (ObjC) `xcodebuild` — and returns the **test
-  pass-rate as the coverage proxy** (same approach as Rust). Regression test:
-  `test_test_coverage_parses_native_and_swift_pass_rate`.
-- **defect_rate / code_quality lint**: Swift via `swift build` warnings + `swiftlint`. C/C++/ObjC
-  use the **compiler as the linter** — a shared `native_warnings_build` (`_common.py`) does a
-  build-system-aware `-Wall -Wextra` build (CMake with C/CXX/OBJC/OBJCXX flags, or Makefile) and
-  both scorers count distinct warning/error diagnostics (the pattern Java/C#/Erlang already use).
-  Every call forces a clean recompile so cached/incremental builds can't hide warnings.
-
-Swift is the cleanest (one canonical toolchain); C/C++ vary by build system; Objective-C is
-macOS-only. **The run can launch** — remember to smoke-test one c + one swift stack end-to-end
-(per CLAUDE.md) before the full 8-run grid.
-
-**Build setup per language** (graduate to the README toolchain table once supported):
-
-| Lang | ext | compiler / build | test + coverage the scorer runs | lint | install (macOS) |
-|---|---|---|---|---|---|
-| **Swift** | `.swift` | SwiftPM (`swift build`) | `swift test --enable-code-coverage`; coverage via `llvm-cov export` on `.build/*/codecov/*.profdata` | `swift-format lint` / `swiftlint` | `brew install swift` (or Xcode) |
-| **C** | `.c` | `clang`/`gcc`, CMake or Makefile | build + run the agent's test target; pass-rate = coverage proxy | compiler `-Wall -Wextra` diagnostics | Xcode CLT (`clang` preinstalled) + `brew install cmake` |
-| **C++** | `.cpp/.cc/.hpp` | `clang++`/`g++`, CMake | `ctest` on the agent's framework (Catch2 / GoogleTest / doctest); pass-rate proxy | compiler `-Wall -Wextra` diagnostics | Xcode CLT + `brew install cmake` |
-| **Objective-C** | `.m/.h` | `clang` + Foundation (**macOS only**) | XCTest via `xcodebuild test`, or a plain assert executable; pass-rate proxy | compiler `-Wall -Wextra` (OBJC flags) | Xcode (full, for XCTest/Foundation) |
-
-**Host prerequisite (verified 2026-07-22 on the exp-43 machine):** **Swift *and* Objective-C need a
-full Xcode installed AND launched once** — XCTest/Foundation don't ship with the Command Line
-Tools. Install Xcode, open it once (accept the license + let it install components), and confirm
-`DEVELOPER_DIR=/Applications/Xcode.app/Contents/Developer xcodebuild -checkFirstLaunchStatus`
-returns exit 0. No `sudo xcode-select -s` needed: the scorer's `_apple_env` auto-points
-`DEVELOPER_DIR` at the installed Xcode when `xcode-select` still targets the CLT. Without a
-launched Xcode, every Swift/ObjC run fails the gate with `no such module 'XCTest'` (a false zero).
-C/C++ only need `clang` + `cmake` (CLT is enough).
-
-**Notes / risks:** C and C++ have **no single canonical test runner** (Go's `go test` has no
-equivalent) — the agent picks a framework, so the scorer must detect the build system (CMake vs
-Makefile) and the test target, or run `bookshop`'s own provided harness. **Objective-C needs a
-full Xcode** (Foundation + XCTest), so it can't run in a Linux CI — mark it macOS-only. **Swift**
-is the safe first one to wire up. Expect the local 80B to be weaker here than on Python/Go/TS
-(these languages are far less represented in training) — the point is to *measure* that gap.
+**Follow-ups worth queueing:**
+- A **clean local re-run** once the server-process-reaping fix lands (exp-43's local column was
+  partly confounded by leaked server processes squatting ports — the C cell especially).
+- **More languages** (Kotlin, Zig, Scala, …) reuse the same scorer machinery — add on request.
 
 ## 6. Methodology: harness-orchestration factor (`retort-metaharness`)  — SIDE-BRANCH, staged
 

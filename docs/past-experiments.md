@@ -156,6 +156,47 @@ languages; it does not raise the hard-task ceiling.** The featured 80B hard colu
 (0.9) for config-purity. 4/6 fails were scorer TOOLING false-failures (recovered via `retort
 recover`).
 
+### exp-43 — C / C++ / Objective-C / Swift exploration (cloud vs local 80B)
+
+First run on the **systems + Apple** tier: `language{c, cpp, objc, swift} × model{Opus 4.8 cloud,
+Qwen3-Coder-Next 80B local @ ctx 0.9} × bookshop × n=1` = 8 cells. The point was a first
+cloud-vs-local read on four languages new to the harness — and, as much, to *harden the harness* for
+them.
+
+**Result — cloud sweeps, local struggles (with caveats):**
+
+| lang | Opus 4.8 (cloud) | Qwen 80B (local) |
+|---|---|---|
+| **c**   | ✓ pass (TAP unit tests) | 0.00 — compiles clean, but wrote a fragile fixed-port integration test that leaked a server → port conflict (harness-contaminated) |
+| **cpp** | ✓ pass | **0.50 cov, quality 0.93** — the one clean *genuine partial*: compiles, high quality, ~½ tests pass, incomplete spec |
+| **objc**| ✓ pass | 0.00 — wrote 1134 loc of ObjC but **no build system / tests** (genuine incomplete) |
+| **swift**| ✓ pass (Swift Testing + Vapor) | 0.00 — wrote a real SwiftPM/Vapor project; build/test didn't pass |
+
+**Headline:** the **frontier handles all four cleanly**; the **80B degrades by language** — best on
+C++ (a genuine 0.50 partial), down to incomplete scaffolding on C/ObjC/Swift. Consistent with the
+known pattern (local strong on Python/Go/TS, weak on everything less-represented), now extended to the
+systems tier. **Caveat:** the *local* numbers are a first, **partly harness-confounded** read, not a
+clean verdict — six harness bugs surfaced mid-run and were fixed as they appeared, and the C cell in
+particular is contaminated by the server-leak issue. A clean re-run after the server-reaping fix
+(follow-up task) would firm up the local column; the cloud 4/4 is solid.
+
+**The real yield was harness hardening for four new languages** (all fixed + regression-tested):
+1. **hermes not on PATH** → all 4 local cells crashed at 0.0s → `serving.hermes_bin` + a new
+   **local-agent binary preflight** (`retort run` now warns up front instead of crashing every cell).
+2. **C has no canonical test format** — three real bookshops used three formats (TAP, `N checks, M
+   failures`, bare names) → make the **test-command exit code the universal pass signal** in
+   `_native_coverage`, plus TAP + broadened summary patterns.
+3. **Swift 6 uses Swift Testing** (`@Suite`/`@Test`), not XCTest → added its patterns + a `swift test`
+   exit-code fallback + a 900s timeout (SwiftPM/Vapor builds are slow).
+4. **DEVELOPER_DIR** auto-resolution so Swift/ObjC XCTest works when `xcode-select` points at the CLT.
+5. **`.build` (SwiftPM vendored deps) wasn't skipped** → swift loc inflated ~1000× (834K vs ~200) →
+   added to `SKIP_PARTS`.
+6. **`retort monitor --watch`** exited immediately / hid the running cell for `cd <exp> && retort run`
+   launches → detect the run process by **cwd**, not just argv.
+Plus a filed follow-up: **reap leaked server processes** so a model's server-based integration test
+can't squat a port and false-fail later cells. Full scorer support (build/test/coverage/lint) for
+c/cpp/objc/swift landed here — see the README toolchain table.
+
 ---
 
 ## Historical: harness bugs & the local re-baseline saga

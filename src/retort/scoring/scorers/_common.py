@@ -18,6 +18,11 @@ from pathlib import Path
 SKIP_PARTS = {
     "node_modules", "target", "__pycache__", ".git", "dist", "build",
     "_build", "deps", ".rebar3", "obj", "bin", ".venv", "build-warn",
+    # SwiftPM vendors its dependency SOURCE (Vapor/NIO/... .swift files) under
+    # `.build/checkouts`; without skipping it a Swift project's loc balloons by
+    # ~1000x (measured: 834K vs ~500 authored lines), wrecking every per-file
+    # metric (defect_rate, maintainability, token_efficiency, idiomatic).
+    ".build",
 }
 
 
