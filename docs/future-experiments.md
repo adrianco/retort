@@ -113,9 +113,16 @@ oMLX can't).
 New open-weight coding models found by the daily scan that plausibly fit 64GB at 4-bit; promote to a
 numbered experiment when prioritised.
 
-- *(none currently queued — the daily scan appends here. **Laguna XS 2.1** was gate-probed
-  2026-07-21 and is BLOCKED: its `laguna` arch isn't in mainline oMLX/llama.cpp yet (support PRs
-  unmerged) — see past-experiments.)*
+- *(**Laguna XS 2.1** was gate-probed 2026-07-21 and is BLOCKED: its `laguna` arch isn't in
+  mainline oMLX/llama.cpp yet (support PRs unmerged) — see past-experiments.)*
+- 2026-07-22 — **Qwen3.6-27B (dense, MTP)** — Apache 2.0 dense 27B, flagship-level agentic
+  coding (reported to beat the Qwen3.5-397B-A17B MoE on coding benchmarks); ~16.8 GB at
+  Q4_K_M so it fits 64GB with huge headroom. Tool-calling / agentic-coding native. GGUF ships
+  (e.g. `unsloth/Qwen3.6-27B-MTP-GGUF`) and **MTP is merged in mainline llama.cpp** (1.7–2.4×
+  faster local inference) → directly servable via Retort's new `serving.backend: llamacpp`
+  path, no oMLX arch gap. A strong dense-vs-MoE local coding probe distinct from the tested
+  Qwen3.6-35B-A3B / Qwen3-Coder-Next-80B MoEs (also feeds the issue-#40 MoE-vs-dense question).
+  Source: https://qwen.ai/blog?id=qwen3.6-27b — GGUF: https://huggingface.co/unsloth/Qwen3.6-27B-MTP-GGUF
 
 **Serving backends:** retort now supports **`serving.backend: omlx | llamacpp`** (2026-07-21). The
 llama.cpp path (`llama-server`, Metal-native, GGUF, `--jinja` tool templates) serves models oMLX
