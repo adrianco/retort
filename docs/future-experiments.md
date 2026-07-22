@@ -96,12 +96,14 @@ The MCP server is `graphify-mcp` (stdio) for the live-query arm.
    naming Catalog/Store/LoanService/borrow/return_book → no_regression gates the real suite.
 
 **REMAINING (runtime, not build):**
-- **Consultation smoke (the plan's must-verify):** one Opus cell with `tooling: graphify` on the
-  catalog task — grep the transcript for graph reads (`GRAPH_REPORT.md` / `graphify query`); if the
-  agent ignores it, graphify ≡ none and the result is a false null.
-- **Run** `task{py-catalog-reservations} × tooling{none, beads, graphify}` on a strong cloud stack
-  first (isolate the tooling effect), then repeat on the local 80B. n≥3, pass = req-coverage AND
-  no_regression. Optionally add the brazil-bench arm + the `graphify --update`-between-turns arm.
+- ✅ **Consultation smoke PASSED (2026-07-22, exp-44 rep1):** one Opus cell, `tooling: graphify`,
+  catalog task — the transcript shows the agent genuinely used the graph (**4× read GRAPH_REPORT.md,
+  4× graph.json, ran `graphify explain` ×3 / `query` ×2 / `path` ×2**), implemented reservations, and
+  `no_regression=1.00` (existing suite still passes). graphify is NOT ≡ none — the full run is safe.
+- **Run** `task{py-catalog-reservations} × tooling{none, beads, graphify}` on Opus first (isolate the
+  tooling effect — `experiment-44-graphify/` is scaffolded; widen design.csv to all three tooling
+  levels, n≥3), then repeat on the local 80B. Pass = req-coverage AND no_regression. Optionally add
+  the brazil-bench arm + the `graphify --update`-between-turns arm.
 
 ## 2. exp-41 — self-repair iteration-2 on the 80B ctx-0.9 near-misses  — SCAFFOLDED, ready to launch
 

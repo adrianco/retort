@@ -52,9 +52,48 @@ tasks:
   - source: funkygibbon-port
 ```
 
-The agent should `git clone` the-goodies at the pinned tag (`v0.2.2`) into its
-workspace and add the port as a new directory; the build/test step runs the
-port's own tests.
+## Retort run model — PR on a worktree, not a copy (DESIGN, 2026-07-22)
+
+This is a **large existing repo** (~30K lines), so the default playpen model —
+`shutil.copytree` the support dir into every attempt, strip `.git`, `git init`
+fresh — is wrong twice over: it makes N big copies AND destroys the base history a
+port needs to diff against. Since the deliverable only *adds* a new top-level
+directory, the natural unit of work and of storage is a **PR (a diff)**, not a
+tree. Design:
+
+1. **Base repo cloned ONCE, cached + pinned.** `the-goodies@v0.2.2` →
+   `~/.retort/repos/the-goodies` (reference/bare clone). One deterministic base
+   for every attempt and every language.
+2. **Each attempt is a `git worktree`, not a copy.**
+   `git worktree add <playpen> -b retort/<env_id> v0.2.2` — shares the base object
+   store (no history duplication), and is a real git repo so the agent can commit
+   and we can diff. The agent no longer self-clones; the repo is already checked
+   out. **With local runs' `--parallel 1`, only one worktree exists at a time, so
+   peak disk ≈ one checkout regardless of N** — this is what kills the "lots of big
+   copies" problem. The worktree is `git worktree remove`d after scoring.
+3. **The artifact is the PR, stored per attempt.** After the agent runs:
+   `git add -A && git commit`, then `git format-patch v0.2.2..HEAD` →
+   `runs/.../repN/attempt.patch` (+ the branch ref + commit sha). Tiny — just the
+   port + its tests. **The archive stores the patch, never a copy of the-goodies.**
+4. **Scored in the worktree, then torn down.** The fixtures/conformance tests and
+   `test_coverage` run against the live worktree before removal; **`no_regression`
+   runs the-goodies' own existing suite** (the Python/TS clients must still pass —
+   the port must not break them), which is exactly what that gate is for.
+5. **Winners → a real GitHub PR** *(chosen model)*. Every attempt is stored as a
+   local patch/branch; additionally, the **promoted/winning attempt(s)** (e.g. the
+   best rep per language, by req-coverage) push a branch and open a real PR on
+   the-goodies via `gh` — provenance + review without N×reps of PR noise. Needs
+   `gh` auth + write access; opening PRs is gated to promotion, not every run.
+
+**Prompt change under this model:** the-goodies is *already* checked out in the
+workspace — so drop the "clone it yourself" step; tell the agent to add its port
+as a new top-level dir and NOT modify the existing clients.
+
+**Retort changes needed (opt-in, greenfield tasks untouched):** a `base_repo:
+{url, ref}` + `mode: repo-pr` in `task.yaml`; a worktree branch in
+`LocalRunner.provision` (instead of `_copy_support_files`); a post-execute
+commit → `format-patch` capture; `_archive_run_workspace` stores the patch for a
+`repo-pr` task; and a promotion hook that opens the real PR on winners.
 
 ## Publishing as a GitHub template repo (brazil-bench style)
 
