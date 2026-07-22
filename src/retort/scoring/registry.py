@@ -72,6 +72,7 @@ def create_default_registry() -> ScorerRegistry:
     from retort.scoring.scorers.findings import FindingsScorer
     from retort.scoring.scorers.idiomatic import IdiomaticScorer
     from retort.scoring.scorers.maintainability import MaintainabilityScorer
+    from retort.scoring.scorers.no_regression import NoRegressionScorer
     from retort.scoring.scorers.test_coverage import TestCoverageScorer
     from retort.scoring.scorers.test_quality import TestQualityScorer
     from retort.scoring.scorers.token_efficiency import TokenEfficiencyScorer
@@ -85,6 +86,9 @@ def create_default_registry() -> ScorerRegistry:
     registry.register(DefectRateScorer())
     registry.register(MaintainabilityScorer())
     registry.register(FindingsScorer())
+    # Opt-in via responses: list — only meaningful for modify-existing tasks that
+    # seed a .retort-regression.json (returns 1.0 = N/A otherwise, like bead_usage).
+    registry.register(NoRegressionScorer())
     # Opt-in via responses: list — every invocation makes an LLM call.
     registry.register(IdiomaticScorer())
     # build_time was removed in favor of the raw `_duration_seconds`

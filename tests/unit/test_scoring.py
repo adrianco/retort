@@ -66,8 +66,9 @@ class TestScorerRegistry:
         # build_time was removed — use the raw `_duration_seconds`
         # telemetry instead (auto-persisted from artifacts.duration_seconds).
         assert "bead_usage_score" in reg
+        assert "no_regression" in reg
         assert "build_time" not in reg
-        assert len(reg) == 9
+        assert len(reg) == 10
 
     def test_register_and_get(self):
         reg = ScorerRegistry()
@@ -90,6 +91,7 @@ class TestScorerRegistry:
             "findings",
             "idiomatic",
             "maintainability",
+            "no_regression",
             "test_coverage",
             "test_quality",
             "token_efficiency",
@@ -1089,3 +1091,43 @@ def test_run_reaped_timeout_not_blocked_by_backgrounded_child(tmp_path):
     with pytest.raises(subprocess.TimeoutExpired):
         _run_reaped(["bash", "-c", "sleep 30 & sleep 30"], cwd=str(tmp_path), timeout=2)
     assert _t.time() - t0 < 15  # returned near the 2s bound, not 30s
+
+
+class TestNoRegressionScorer:
+    def _art(self, d):
+        return RunArtifacts(output_dir=d, stdout="", exit_code=0, duration_seconds=1.0)
+
+    def _stack(self):
+        return StackConfig(language="python", agent="x", framework="none")
+
+    def test_not_applicable_when_no_spec(self, tmp_path):
+        from retort.scoring.scorers.no_regression import NoRegressionScorer
+        # no .retort-regression.json → N/A → 1.0 (don't penalise a greenfield task)
+        assert NoRegressionScorer().score(self._art(tmp_path), self._stack()) == 1.0
+
+    def test_passing_baseline_scores_one(self, tmp_path):
+        import json as _json
+        from retort.scoring.scorers.no_regression import NoRegressionScorer
+        (tmp_path / ".retort-regression.json").write_text(
+            _json.dumps({"command": ["bash", "-c", "exit 0"], "timeout": 30}))
+        assert NoRegressionScorer().score(self._art(tmp_path), self._stack()) == 1.0
+
+    def test_regressed_baseline_scores_zero(self, tmp_path):
+        import json as _json
+        from retort.scoring.scorers.no_regression import NoRegressionScorer
+        # a pre-existing test now fails (non-zero exit) → regression → 0.0
+        (tmp_path / ".retort-regression.json").write_text(
+            _json.dumps({"command": ["bash", "-c", "echo 'test_old FAILED'; exit 1"]}))
+        assert NoRegressionScorer().score(self._art(tmp_path), self._stack()) == 0.0
+
+    def test_baseline_that_backgrounds_a_server_is_reaped(self, tmp_path):
+        """The baseline suite runs under the reaper — a server it starts can't leak."""
+        import json as _json, os as _os, time as _t
+        from retort.scoring.scorers.no_regression import NoRegressionScorer
+        marker = tmp_path / "pid"
+        (tmp_path / ".retort-regression.json").write_text(_json.dumps(
+            {"command": ["bash", "-c", f"sleep 120 & echo $! > '{marker}'; exit 0"]}))
+        assert NoRegressionScorer().score(self._art(tmp_path), self._stack()) == 1.0
+        _t.sleep(0.5)
+        with pytest.raises(ProcessLookupError):
+            _os.kill(int(marker.read_text().strip()), 0)
