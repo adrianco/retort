@@ -1,0 +1,10 @@
+{
+  "severity_counts": {"critical": 0, "high": 1, "medium": 0, "low": 0, "info": 0},
+  "penalty_score": 0.9,
+  "top_findings": [
+    {"id": "test-fail-idseq", "kind": "test_failure", "severity": "high", "title": "4 controller integration tests fail — H2 IDENTITY sequence not reset across @Transactional rollback", "evidence": "scores.json test_coverage=0.7917 => 19/24 pass; BookControllerIntegrationTest asserts absolute ids/Location (lines 51,143,178,199) but @Transactional rollback does not reset the auto-increment counter", "suggestion": "Capture the created id from the POST response and use it in subsequent requests, or reset the schema per test, instead of hard-coding id=1"}
+  ],
+  "requirement_coverage": 0.9167,
+  "model": "mlxlocal/mlx-community--Qwen3-Coder-Next-4bit",
+  "evaluated_at": "2026-07-23T00:40:02Z"
+}

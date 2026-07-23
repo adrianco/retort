@@ -1,0 +1,14 @@
+{
+  "severity_counts": {"critical": 0, "high": 7, "medium": 0, "low": 0, "info": 0},
+  "penalty_score": 0.3,
+  "top_findings": [
+    {"id": "R1", "kind": "requirement_partial", "severity": "high", "title": "POST /books dead over HTTP — handler init/2 calls nonexistent cowboy_req:match_params/1", "evidence": "src/book_api_handler.erl:9 cowboy_req:match_params(Req0); 0 occurrences in cowboy 2.10.0 cowboy_req.erl. init/2 raises undef on every /books request.", "suggestion": "Use cowboy_req:binding(id, Req0, undefined) and branch on undefined."},
+    {"id": "R2", "kind": "requirement_partial", "severity": "high", "title": "GET /books dead over HTTP — same match_params/1 undef crash", "evidence": "src/book_api_handler.erl:9 crashes before the GET collection clause at line 38.", "suggestion": "Fix init/2 binding extraction (see R1)."},
+    {"id": "R3", "kind": "requirement_missing", "severity": "high", "title": "?author= filter broken three ways: nonexistent cowboy_req:query_param/2, unreachable, and type-mismatched", "evidence": "src/book_api_handler.erl:39 query_param/2 absent from cowboy 2.10.0; unreachable via :9; binary_to_list at :41 vs binary DB author at :61.", "suggestion": "Use cowboy_req:match_qs and compare against a binary."},
+    {"id": "R4", "kind": "requirement_partial", "severity": "high", "title": "GET /books/{id} dead over HTTP — same match_params/1 undef crash", "evidence": "src/book_api_handler.erl:9 crashes before handle_book_request GET clause at line 76.", "suggestion": "Fix init/2 binding extraction (see R1)."},
+    {"id": "R5", "kind": "requirement_partial", "severity": "high", "title": "PUT /books/{id} dead over HTTP — match_params/1 undef plus jiffy decode defect", "evidence": "src/book_api_handler.erl:9 crashes; line 93 jiffy:decode without return_maps -> is_map guard at :98 never matches.", "suggestion": "Fix init/2 (R1) and use jiffy:decode with [return_maps]."}
+  ],
+  "requirement_coverage": 0.3333,
+  "model": "mlxlocal/mlx-community--Qwen3-Coder-Next-4bit",
+  "evaluated_at": "2026-07-23T00:40:46Z"
+}

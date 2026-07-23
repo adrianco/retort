@@ -1,0 +1,14 @@
+{
+  "severity_counts": {"critical": 2, "high": 3, "medium": 0, "low": 0, "info": 0},
+  "penalty_score": 0.2,
+  "top_findings": [
+    {"id": "R8-R10-wiring", "kind": "requirement_missing", "severity": "critical", "title": "HTTP server not wired to the router — no route reachable at runtime", "evidence": "src/book_api_http.erl:12-19 starts httpd with modules=[book_api_http] but no do/1 callback is exported anywhere; book_api_handler is referenced by nothing but its own module line, so handle_request/1 is dead code.", "suggestion": "Export a do/1 that adapts inets mod_data to book_api_handler:handle_request/1, or use cowboy with a dispatch table."},
+    {"id": "R4-R6-keypos", "kind": "requirement_missing", "severity": "critical", "title": "ETS keypos bug: GET/PUT/DELETE by id always return not_found", "evidence": "src/book_api_db.erl:17 {keypos,2} but insert {NextId,NewBook} at :69 makes the map the key; ets:lookup(books,Id) at :42,:81,:103 never matches an integer id.", "suggestion": "Use default keypos 1 so the integer NextId at position 1 is the key."},
+    {"id": "R1-keymismatch", "kind": "requirement_missing", "severity": "high", "title": "POST /books create path: binary-vs-atom key mismatch always yields 400", "evidence": "handler parse_json builds binary keys (src/book_api_handler.erl:210-244) but create_book/1 matches atom keys #{title:=_,author:=_} (src/book_api_db.erl:50) -> {error,invalid_data}. The correct book:parse_json/1 (src/book.erl:64) is never used by the handler.", "suggestion": "Route the create path through book:parse_json/1, or match binary keys in create_book."},
+    {"id": "R7", "kind": "requirement_missing", "severity": "high", "title": "Storage is in-memory ETS + ad-hoc file dump, not SQLite/embedded DB", "evidence": "src/book_api_db.erl:17 ets:new(books,[named_table,public,{keypos,2}]); persistence is an io_lib:format term dump (src/book_api_db.erl:116-147). No DETS/Mnesia/SQLite.", "suggestion": "Use DETS or Mnesia (disc_copies), or a SQLite NIF/port driver."},
+    {"id": "test-hollow-crud", "kind": "disabled_test", "severity": "high", "title": "CRUD 'integration' tests are ?assert(true) stubs — test_coverage=1.0 is misleading", "evidence": "test/book_api_test.erl:117-125 handler_health_endpoint/0 and handler_books_crud/0 are just ?assert(true). No insert->lookup round-trip is tested, so the passing suite is blind to all four confirmed defects.", "suggestion": "Add a create->get/update/delete round-trip test asserting the created id is retrievable."}
+  ],
+  "requirement_coverage": 0.1667,
+  "model": "mlxlocal/mlx-community--Qwen3-Coder-Next-4bit",
+  "evaluated_at": "2026-07-23T00:42:29Z"
+}

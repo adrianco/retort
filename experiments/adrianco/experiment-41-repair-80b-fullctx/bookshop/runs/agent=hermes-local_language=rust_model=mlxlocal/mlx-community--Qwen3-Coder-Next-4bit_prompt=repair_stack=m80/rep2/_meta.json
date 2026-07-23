@@ -1,0 +1,12 @@
+{
+  "replicate": 2,
+  "run_config": {
+    "agent": "hermes-local",
+    "language": "rust",
+    "model": "mlxlocal/mlx-community--Qwen3-Coder-Next-4bit",
+    "prompt": "repair",
+    "stack": "m80"
+  },
+  "succeeded": true,
+  "visibility": "public"
+}

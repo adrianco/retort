@@ -1,0 +1,61 @@
+plugins {
+    id 'java'
+    id 'application'
+    id 'jacoco'
+}
+
+group = 'com.bookapi'
+version = '1.0-SNAPSHOT'
+
+java {
+    sourceCompatibility = JavaVersion.VERSION_17
+    targetCompatibility = JavaVersion.VERSION_17
+}
+
+repositories {
+    mavenCentral()
+}
+
+dependencies {
+    // Spark Java framework for REST API
+    implementation 'com.sparkjava:spark-core:2.9.4'
+    
+    // Jackson for JSON serialization
+    implementation 'com.fasterxml.jackson.core:jackson-databind:2.17.1'
+    implementation 'com.fasterxml.jackson.datatype:jackson-datatype-jsr310:2.17.1'
+    
+    // SQLite JDBC driver
+    implementation 'org.xerial:sqlite-jdbc:3.46.0.1'
+    
+    // SLF4J for logging
+    implementation 'org.slf4j:slf4j-api:2.0.13'
+    implementation 'ch.qos.logback:logback-classic:1.5.7'
+    
+    // Validation
+    implementation 'jakarta.validation:jakarta.validation-api:3.0.2'
+    
+    // Testing
+    testImplementation 'org.junit.jupiter:junit-jupiter:5.10.2'
+    testImplementation 'org.mockito:mockito-core:5.12.0'
+    testImplementation 'com.squareup.okhttp3:okhttp:4.12.0'
+    testRuntimeOnly 'org.junit.platform:junit-platform-launcher'
+}
+
+application {
+    mainClass = 'com.bookapi.Main'
+}
+
+tasks.named('test') {
+    useJUnitPlatform()
+    testLogging {
+        events "passed", "skipped", "failed"
+    }
+    finalizedBy jacocoTestReport
+}
+
+tasks.named('jacocoTestReport') {
+    reports {
+        html.required = true
+        xml.required = true
+    }
+}

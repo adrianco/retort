@@ -1,0 +1,61 @@
+plugins {
+    id 'java'
+    id 'application'
+}
+
+group = 'com.example'
+version = '1.0-SNAPSHOT'
+
+java {
+    sourceCompatibility = JavaVersion.VERSION_17
+    targetCompatibility = JavaVersion.VERSION_17
+}
+
+repositories {
+    mavenCentral()
+}
+
+dependencies {
+    // Jetty for embedded HTTP server
+    implementation 'org.eclipse.jetty:jetty-server:11.0.24'
+    implementation 'org.eclipse.jetty:jetty-http:11.0.24'
+    implementation 'org.eclipse.jetty:jetty-util:11.0.24'
+    implementation 'org.eclipse.jetty:jetty-servlet:11.0.24'
+    
+    // Jackson for JSON
+    implementation 'com.fasterxml.jackson.core:jackson-databind:2.17.2'
+    implementation 'com.fasterxml.jackson.core:jackson-core:2.17.2'
+    implementation 'com.fasterxml.jackson.core:jackson-annotations:2.17.2'
+    
+    // SQLite JDBC
+    implementation 'org.xerial:sqlite-jdbc:3.46.1.3'
+    
+    // Servlet API
+    implementation 'jakarta.servlet:jakarta.servlet-api:5.0.0'
+    
+    // JUnit for testing
+    testImplementation 'org.junit.jupiter:junit-jupiter:5.10.3'
+    testRuntimeOnly 'org.junit.platform:junit-platform-launcher'
+}
+
+application {
+    mainClass = 'com.example.BookApiApplication'
+}
+
+tasks.named('test', Test) {
+    useJUnitPlatform()
+    testLogging {
+        events "passed", "skipped", "failed"
+    }
+}
+
+tasks.named('jar', Jar) {
+    archiveClassifier = 'all'
+    manifest {
+        attributes 'Main-Class': 'com.example.BookApiApplication'
+    }
+    duplicatesStrategy = DuplicatesStrategy.EXCLUDE
+    from {
+        configurations.runtimeClasspath.collect { it.isDirectory() ? it : zipTree(it) }
+    }
+}

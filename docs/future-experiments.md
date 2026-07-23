@@ -111,23 +111,13 @@ The MCP server is `graphify-mcp` (stdio) for the live-query arm.
      lift a marginal case). Reuses `experiment-44-graphify/` — add the hermes-local cells.
   Optionally: the `graphify --update`-between-turns arm.
 
-## 2. exp-41 — self-repair iteration-2 on the 80B ctx-0.9 near-misses  — SCAFFOLDED, ready to launch
+## 2. exp-41 — self-repair iteration-2  — DONE (see past-experiments)
 
-Scaffolded at `experiments/adrianco/experiment-41-repair-80b-fullctx/` (m80 preset now uses the
-`context_threshold: 0.9` field). Launch with `retort run --repair-from
-experiments/adrianco/experiment-38-alllang-80b-fullctx/bookshop` on the near-miss languages
-(rust/java/erlang), n=3.
-
-**Key framing (discovered while analysing exp-38/39):** the default inline **second-chance already
-does one feedback-driven repair** on every failing cell (confirmed via the `_second_try` metric —
-set on all exp-38 near-misses). So our reported near-misses (Rust 0.917, hard-task python 11/12) are
-*already post-one-repair*. exp-41 therefore tests **iteration 2**: does a second dedicated repair
-pass, seeded with the iteration-1 code + a fresh FEEDBACK.md, close the last 1-2 requirements?
-
-**Headline:** Rust at 0.92 (missing ~1 requirement) is the most-likely-to-flip and highest-value —
-if a repair pass takes Rust from 1/3 to 2-3/3, **Rust becomes locally viable** on the 80B. java
-(0.75) / erlang secondary. The all-zeros niche languages are excluded (no coherent code to repair).
-Repair runs are `prompt=repair`, half-credit, excluded from the headline pass-proportion.
+Ran 2026-07-22 → past-experiments. **Verdict: iteration-2 self-repair is NOT a reliable lever.**
+Rust's 0.9167 near-miss did not close (stayed 0.83–0.92), erlang flat (0.333); only java lifted
+0.75→0.92 (still <1.0). The inline iter-1 second-chance already captures the repairable gain;
+Rust stays cloud-only on the 80B. (Optional: a `--resume --retry-failed` re-run to complete the 3
+cells INTERRUPTED by a ~23s hermes/oMLX hiccup — wouldn't change the Rust/Erlang verdict.)
 
 ## 3. Inference-lever sweep — remaining tiers (issue #40)  — OPEN
 

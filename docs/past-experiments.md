@@ -156,6 +156,29 @@ languages; it does not raise the hard-task ceiling.** The featured 80B hard colu
 (0.9) for config-purity. 4/6 fails were scorer TOOLING false-failures (recovered via `retort
 recover`).
 
+### exp-41 — self-repair ITERATION 2 does not close the 80B's near-misses
+
+Tested whether a *second* dedicated repair pass (seeded with the iter-1 code + a fresh FEEDBACK.md via
+`--repair-from exp-38`) closes the last 1–2 requirements on the 80B's near-misses. Design: rust/java/
+erlang × `prompt=repair` × m80 × n=3 (rust rep1 skipped — already 1.0 in exp-38). Post-`recover` (3 of
+6 fails were scorer TOOLING false-zeros; the diagnose caught them):
+
+| lang | exp-38 baseline (post-iter-1) | iter-2 repaired req_cov | verdict |
+|---|---|---|---|
+| **rust** | 0.9167 (11/12) | 0.917, 0.833 | **no gain** — the headline near-miss did NOT close |
+| **erlang** | 0.3333 | 0.333, 0.333 | **no change** |
+| **java** | 0.75 | 0.917 (rep1) | **+1 req** — the only lift; still <1.0 |
+
+**Headline: iteration-2 self-repair is not a reliable lever.** The most-likely-to-flip cell (Rust at
+0.9167) stayed there — a second pass reproduces the same near-miss rather than closing the final
+requirement, so **Rust does not become locally viable on the 80B** (stays cloud). Erlang flat. The one
+positive is java 0.75→0.92 (repair closed ~1 req on a lower-starting-point cell), but nothing reached
+1.0. **Interpretation:** the *default inline* second-chance (iteration-1, which already runs on every
+failing cell) captures essentially all the repairable gain; a dedicated iteration-2 mostly re-derives
+the same result. **Caveat:** 3 cells (erlang rep3, java rep2/rep3) were INTERRUPTED at ~23 s — a
+mid-run hermes/oMLX hiccup, not scored — so java's iter-2 picture is one rep, not three; a
+`--resume --retry-failed` re-run would complete it, but wouldn't change the Rust/Erlang verdict.
+
 ### exp-43 — C / C++ / Objective-C / Swift exploration (cloud vs local 80B)
 
 First run on the **systems + Apple** tier: `language{c, cpp, objc, swift} × model{Opus 4.8 cloud,

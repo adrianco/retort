@@ -1,0 +1,11 @@
+{
+  "severity_counts": {"critical": 0, "high": 2, "medium": 0, "low": 0, "info": 0},
+  "penalty_score": 0.8,
+  "top_findings": [
+    {"id": "R4", "kind": "requirement_partial", "severity": "high", "title": "GET /books/{id} returns 500 instead of 404 for a missing book", "evidence": "src/repository.rs:71 get_book_by_id uses .fetch_one() -> sqlx::Error::RowNotFound on absent id; converted via #[from] into AppError::Database (src/lib.rs:9) -> 500 (src/lib.rs:19). AppError::NotFound->404 exists but is never used by the get-by-id path. Repair agent never ran (_agent_stdout.log 'API call failed after 3 retries'), so the flagged defect was not fixed.", "suggestion": "Use .fetch_optional() and map None to AppError::NotFound in get_book_by_id (and update_book)."},
+    {"id": "R8", "kind": "requirement_partial", "severity": "high", "title": "Inappropriate 500 status code for a missing resource on GET/PUT by id", "evidence": "GET /books/{id} (src/api.rs:31) and PUT /books/{id} (src/api.rs:70) return 500 for a missing id via fetch_one -> RowNotFound -> AppError::Database -> 500 (src/lib.rs:19); a missing resource should be 404.", "suggestion": "Map RowNotFound to AppError::NotFound in the repository."}
+  ],
+  "requirement_coverage": 0.8333,
+  "model": "mlxlocal/mlx-community--Qwen3-Coder-Next-4bit",
+  "evaluated_at": "2026-07-23T00:47:19Z"
+}
