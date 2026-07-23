@@ -1,0 +1,29 @@
+# Experiment 45 — Graphify tooling factor on the LOCAL 80B (the weaker-model arm).
+# exp-44 showed tooling is a no-op for Opus on the catalog task (all 1.0). Does a
+# pre-built code knowledge graph help the local Qwen3-Coder-Next 80B — a weaker
+# model where comprehending the seed might be the bottleneck? pass = req-coverage
+# AND no_regression.
+experiment:
+  name: experiment-45-graphify-local-catalog
+  visibility: public
+factors:
+  language: { levels: [python, go] }               # design pins python
+  agent: { levels: [hermes-local, claude-code] }   # design pins hermes-local
+  tooling: { levels: [none, beads, graphify] }
+  stack: { levels: [m80, m35] }                    # design pins m80
+  model: { levels: ["mlxlocal/mlx-community--Qwen3-Coder-Next-4bit", "mlxlocal/Qwen3.6-35B-A3B"] }
+responses: [code_quality, test_coverage, no_regression, token_efficiency, defect_rate]
+tasks:
+  - source: bundled://py-catalog-reservations
+playpen:
+  runner: local
+  replicates: 3
+  timeout_minutes: 45
+  stall_minutes: 25
+  max_turns: 200
+  stack_presets: stacks.yaml
+  local_agents:
+    hermes-local: { harness: hermes, model: mlxlocal/mlx-community--Qwen3-Coder-Next-4bit }
+design: { screening_resolution: 3, significance_threshold: 0.10 }
+promotion: { screening_to_trial: { p_value: 0.10 }, trial_to_production: { posterior_confidence: 0.80 } }
+evaluation: { enabled: true, model: opus-4.8 }

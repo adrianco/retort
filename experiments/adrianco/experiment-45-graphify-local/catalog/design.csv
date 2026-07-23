@@ -1,0 +1,4 @@
+run,language,agent,tooling,stack,model
+0,python,hermes-local,none,m80,mlxlocal/mlx-community--Qwen3-Coder-Next-4bit
+1,python,hermes-local,beads,m80,mlxlocal/mlx-community--Qwen3-Coder-Next-4bit
+2,python,hermes-local,graphify,m80,mlxlocal/mlx-community--Qwen3-Coder-Next-4bit
