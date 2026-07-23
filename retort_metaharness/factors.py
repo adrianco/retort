@@ -53,6 +53,8 @@ class Level:
     id: str
     doc: str
     openrouter: str = ""
+    served: str = ""  # for LOCAL model levels: the oMLX-served model id the
+    #                   local backend drives (empty for OpenRouter/non-model)
     runner_flags: Mapping[str, str] = field(default_factory=dict)
 
 
@@ -81,6 +83,20 @@ MODEL_LEVELS: tuple[Level, ...] = (
         "gpt-5.2",
         "OpenAI GPT-5.2 — a gpt-5.x frontier comparator.",
         openrouter="openai/gpt-5.2",
+    ),
+    # LOCAL model levels — driven by the `local` backend (Hermes + oMLX), no
+    # OpenRouter. Chosen so `routed` can escalate cheap-local → strong-local
+    # (35B → 80B). `served` is the oMLX-served id; `openrouter` stays empty.
+    Level(
+        "qwen-80b-local",
+        "Qwen3-Coder-Next 80B (MLX 4-bit) served by oMLX — the strong local model.",
+        served="mlxlocal/mlx-community--Qwen3-Coder-Next-4bit",
+    ),
+    Level(
+        "qwen-35b-local",
+        "Qwen3.6-35B-A3B (MLX) served by oMLX — the cheap/fast local model; the "
+        "draft tier for `routed`.",
+        served="mlxlocal/Qwen3.6-35B-A3B",
     ),
 )
 
@@ -190,6 +206,16 @@ def get_level(factor: str, level_id: str) -> Level:
 def openrouter_id(model_level: str) -> str:
     """Map a model factor level to its OpenRouter model id."""
     return get_level(F_MODEL, model_level).openrouter
+
+
+def served_id(model_level: str) -> str:
+    """Map a LOCAL model factor level to its oMLX-served id (empty if not local)."""
+    return get_level(F_MODEL, model_level).served
+
+
+def is_local_model(model_level: str) -> bool:
+    """True if this model level is a local (oMLX-served) model, not OpenRouter."""
+    return bool(get_level(F_MODEL, model_level).served)
 
 
 def runner_flags_for(factor: str, level_id: str) -> dict[str, str]:

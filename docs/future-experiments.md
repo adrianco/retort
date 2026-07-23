@@ -175,6 +175,25 @@ incompletes (no build system / broken Vapor build).
 
 ## 6. Methodology: harness-orchestration factor (`retort-metaharness`)  — SIDE-BRANCH, staged
 
+> **Path B — a LOCAL backend (no OpenRouter, no external solver) — IN PROGRESS (2026-07-22, user-directed).**
+> Keep the existing OpenRouter path (`MetaHarnessRunner` → the external `METAHARNESS_SOLVER`) untouched
+> (the contributor, ruvnet, will sort the solver out) and ADD a `backend: local` runner that drives our
+> own Qwen 35B/80B via **Hermes + oMLX**. **Foundation confirmed:** oMLX returns OpenAI-format
+> `tool_calls` for the 80B (`finish_reason: tool_calls`), so a local model can drive an agentic
+> tool-loop exactly like a cloud one. **Done:** local model factor levels (`qwen-80b-local`,
+> `qwen-35b-local`) + `factors.served_id`/`is_local_model` helpers. **To build (`retort_metaharness/local_runner.py`,
+> a `CellRunner`):** compose retort's OWN pipeline in-process — `LocalRunner` (provision + Hermes
+> execute on the served model) → `ScoreCollector.collect` (code_quality/test_coverage) →
+> `cli._spec_conformance_passes` (requirement_coverage via the Opus spec-gate) → cost from
+> `local_inference_cost` (~\$0). Map the generic factors: **base-ReAct** = one run; **self-consistency-N**
+> = N runs, best by test_coverage; **routed** = 35B draft → escalate to 80B on gate-fail; **scaffold**
+> {none, plan-and-solve, reflexion} = prompt injection. `+agenticow-memory`/`+darwin-genome` are the
+> external solver's proprietary features → mark N/A on the local backend. **Why it matters:** unlike the
+> frontier (exp-44/45 showed tooling is a no-op on strong models), the *weak local* models are exactly
+> where orchestration (self-consistency, routing, reflexion) has real headroom — the prompt-lever
+> finding predicts it should bite here. First run: `harness_config{base-ReAct, self-consistency-5,
+> routed, reflexion} × model{qwen-35b, qwen-80b} × rest-api-crud`, n≥3, on the local stack.
+
 There is an in-repo but **unused** methodology layer, [`retort_metaharness/`](../retort_metaharness/)
 (console script `retort-metaharness`; 13 passing tests; not referenced anywhere else until now). It
 makes the **agentic-orchestration harness itself** a first-class DoE factor — the axis Retort's main
