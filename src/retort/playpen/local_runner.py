@@ -903,6 +903,12 @@ def _build_agent_prompt(stack: StackConfig, prompt_injection: str = "") -> str:
     if prompt_injection:
         prompt += " " + prompt_injection
 
+    # Direct escape hatch for programmatic callers (e.g. the metaharness local
+    # backend injecting a scaffold) that don't drive the prompt-file factor.
+    direct = stack.extra.get("prompt_injection", "")
+    if direct:
+        prompt += " " + direct
+
     return prompt
 
 

@@ -91,12 +91,15 @@ def design_cmd(model, harness, scaffold, language, task, full, fraction, phase, 
 @click.option("--replicates", type=int, default=1, help="Replicates per cell.")
 @click.option(
     "--runner",
-    type=click.Choice(["local-stub", "metaharness"]),
+    type=click.Choice(["local-stub", "metaharness", "local"]),
     default="local-stub",
-    help="local-stub = $0 no-LLM pipeline check; metaharness = the real runner.",
+    help="local-stub = $0 no-LLM pipeline check; metaharness = the OpenRouter "
+         "external-solver runner; local = OUR models via Hermes+oMLX (no key).",
 )
 @click.option("--runner-cmd", default=None, help="Command for the metaharness runner (or $METAHARNESS_RUNNER_CMD).")
-def run_cmd(design_csv, out, replicates, runner, runner_cmd):
+@click.option("--stacks", default=None, help="For --runner local: path to the oMLX stacks.yaml (serving + presets).")
+@click.option("--task", "task_source", default="bundled://rest-api-crud", help="For --runner local: task source.")
+def run_cmd(design_csv, out, replicates, runner, runner_cmd, stacks, task_source):
     """Execute each design cell via the runner; write a metered results CSV."""
     plan_df = pd.read_csv(design_csv)
     configs = plan_df.to_dict(orient="records")
@@ -108,6 +111,14 @@ def run_cmd(design_csv, out, replicates, runner, runner_cmd):
             click.echo("warning: no OpenRouter key at /tmp/.orkey — the runner "
                        "needs it for real model calls.", err=True)
         r: mz_runner.CellRunner = mz_runner.MetaHarnessRunner(cmd=runner_cmd)
+    elif runner == "local":
+        if not stacks:
+            raise click.ClickException(
+                "--runner local needs --stacks <oMLX stacks.yaml> (the serving + "
+                "80B/35B presets). See experiments/**/stacks.yaml."
+            )
+        from retort_metaharness.local_runner import LocalModelRunner
+        r = LocalModelRunner(stacks_yaml=stacks, task_source=task_source)
     else:
         r = mz_runner.LocalStubRunner()
 
