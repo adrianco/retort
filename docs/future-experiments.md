@@ -149,6 +149,15 @@ weights) and the only clean new-model probe left. To try a Mistral-family or Dev
 the stack manager would need a llama.cpp / vLLM serving backend (they parse the Mistral tool format
 oMLX can't).
 
+**IN PROGRESS (2026-07-22):** ✅ **arch is supported** — oMLX's mlx-lm ships `mlx_lm/models/gpt_oss.py`,
+so unlike Laguna there's no arch wall. Downloading `mlx-community/gpt-oss-20b-MXFP4-Q8` (~12 GB, native
+MXFP4) to the HF cache. **Next — the gate-probe (do this BEFORE any full run, à la exp-42 Laguna):**
+serve it in oMLX, drive one bookshop cell via Hermes, and confirm the agent's **tool calls actually
+parse** (Harmony format through oMLX + Hermes). If tool-parse works → run one bookshop replica vs the
+35B/80B as an initial comparison; if it doesn't → document as blocked (like Laguna/Devstral) and reject
+from the candidate list. NOTE the tool-consultation-logging follow-up (exp-45): verifying tool-parse on
+a Hermes run may need the same session-log parsing.
+
 ## 5. More languages — C / C++ / Objective-C / Swift  — DONE (exp-43), see past-experiments
 
 First systems/Apple-tier run landed 2026-07-22 → moved to [past-experiments.md](past-experiments.md) (exp-43). Full scorer support (build/test/coverage/lint) + toolchains for c/cpp/objc/swift shipped; the README has the per-language toolchain table
