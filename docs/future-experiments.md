@@ -282,6 +282,18 @@ numbered experiment when prioritised.
   path, no oMLX arch gap. A strong dense-vs-MoE local coding probe distinct from the tested
   Qwen3.6-35B-A3B / Qwen3-Coder-Next-80B MoEs (also feeds the issue-#40 MoE-vs-dense question).
   Source: https://qwen.ai/blog?id=qwen3.6-27b — GGUF: https://huggingface.co/unsloth/Qwen3.6-27B-MTP-GGUF
+- 2026-07-23 — **NVIDIA Nemotron-Cascade-2-30B-A3B** — 30B-total / 3B-active **hybrid
+  Mamba-Transformer MoE**, NVIDIA Open Model License (permissive open weights + open training
+  data). Explicitly coding-targeted: native function-calling + structured-JSON + FIM (trained on
+  1.3M tool-calling samples), **87.2 LiveCodeBench v6** (vs Qwen3.5-35B-A3B 74.6), gold-tier
+  IOI/ICPC 2025 claims. **Q4_K_M GGUF ≈ 24.5 GB → fits 64GB with big headroom**; community GGUFs
+  ship (bartowski / mradermacher / freddm). First **NVIDIA-lineage** local candidate — a distinct
+  architecture from the Qwen MoEs and a fresh dense-vs-hybrid probe. **Caveats:** (1) it's a March-2026
+  release, not a last-cycle drop — it surfaced via current r/LocalLLaMA agentic-coding coverage, so
+  judge priority accordingly; (2) the **hybrid Mamba-Transformer arch must be gate-probed for serving**
+  — confirm `nemotron-h`/hybrid-SSM support in mainline llama.cpp (`serving.backend: llamacpp`) or oMLX
+  before a full run (à la Laguna). Source: https://awesomeagents.ai/news/nvidia-nemotron-cascade-2-open-moe-30b/
+  — GGUF: https://huggingface.co/bartowski/nvidia_Nemotron-Cascade-2-30B-A3B-GGUF
 
 **Serving backends:** retort now supports **`serving.backend: omlx | llamacpp`** (2026-07-21). The
 llama.cpp path (`llama-server`, Metal-native, GGUF, `--jinja` tool templates) serves models oMLX
