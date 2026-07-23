@@ -1,0 +1,12 @@
+{
+  "replicate": 3,
+  "run_config": {
+    "agent": "hermes-local",
+    "language": "python",
+    "model": "mlxlocal/mlx-community--Qwen3-Coder-Next-4bit",
+    "stack": "m80",
+    "tooling": "beads"
+  },
+  "succeeded": true,
+  "visibility": "public"
+}

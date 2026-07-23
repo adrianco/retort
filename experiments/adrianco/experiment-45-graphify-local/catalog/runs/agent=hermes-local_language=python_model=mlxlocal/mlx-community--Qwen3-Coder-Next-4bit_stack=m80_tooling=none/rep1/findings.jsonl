@@ -1,0 +1,1 @@
+{"id": "note-token-eff", "kind": "enhancement", "severity": "info", "title": "Low token efficiency (0.0138) — 405k total tokens for a small modification", "evidence": ".hermes_usage.json: total_tokens=405411, output_tokens=6541, api_calls=17; scores.json token_efficiency=0.013813", "suggestion": "Informational only — reflects the local 80B stack's verbosity, not a code defect."}

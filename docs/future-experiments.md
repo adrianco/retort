@@ -104,12 +104,15 @@ The MCP server is `graphify-mcp` (stdio) for the live-query arm.
   on the catalog task — all three **1.0 req_cov + 1.0 no_regression**; tooling is a pure no-op on
   correctness (beads +67% time, graphify +9%, for zero gain). A clean null on an easy/small task, as
   predicted — the control, not the headline.
-- **REMAINING (the real tests — where graphify SHOULD bite):**
-  1. **Large-repo arm:** the funkygibbon-port / the-goodies (~30K lines) task, once its PR-on-worktree
-     run model is built (see `tasks/funkygibbon-port/README.md`) — navigation is genuinely hard there.
-  2. **Local-80B arm:** the same catalog task on the local 80B (a weaker model where a code map might
-     lift a marginal case). Reuses `experiment-44-graphify/` — add the hermes-local cells.
-  Optionally: the `graphify --update`-between-turns arm.
+- ✅ **Local-80B arm DONE (exp-45 → past-experiments):** same null — all tooling 1.0 on the 80B too.
+  **Caveat that became a follow-up:** Hermes' minimal stdout means we can't *verify* the 80B consulted
+  the graph (claude-code's stream-json let us prove it for Opus). **Harness follow-up: make local-agent
+  tool-consultation verifiable** (parse Hermes' usage/session file, or verbose logging) — a prerequisite
+  for trusting the graphify signal on the large-repo arm.
+- **REMAINING — the real test:** the **large-repo arm** — funkygibbon-port / the-goodies (~30K lines),
+  where navigation is genuinely the bottleneck. Needs its PR-on-worktree run model built (see
+  `tasks/funkygibbon-port/README.md`) + the user's seed work. Optionally: `graphify --update` between
+  turns.
 
 ## 2. exp-41 — self-repair iteration-2  — DONE (see past-experiments)
 

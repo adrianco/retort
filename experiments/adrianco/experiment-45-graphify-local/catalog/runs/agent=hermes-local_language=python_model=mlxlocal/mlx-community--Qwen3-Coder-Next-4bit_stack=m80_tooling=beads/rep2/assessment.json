@@ -1,0 +1,10 @@
+{
+  "severity_counts": {"critical": 0, "high": 0, "medium": 0, "low": 0, "info": 0},
+  "penalty_score": 1.0,
+  "top_findings": [],
+  "requirement_coverage": 1.0,
+  "model": "mlxlocal/mlx-community--Qwen3-Coder-Next-4bit",
+  "evaluated_at": "2026-07-23T01:20:03Z",
+  "min_severity": "high",
+  "note": "2 findings in findings.jsonl (1 low, 1 info) all fall below min_severity=high; filtered out."
+}

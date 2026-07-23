@@ -260,11 +260,31 @@ navigates without a map.
 existing codebase, so a clean null on a *small* one is exactly what predicts where it *should* bite.
 The plumbing itself is validated: the consultation smoke confirmed Opus genuinely used the graph (4×
 GRAPH_REPORT.md reads + `graphify explain`/`query`/`path`), so this null is "tooling didn't help," not
-"tooling was ignored." **Follow-up arms (the real tests):** (a) the **large-repo** task
-(funkygibbon-port / the-goodies ~30K lines, where navigation is genuinely hard), and (b) the **local
-80B** on this same task (a weaker model where a map might lift a marginal case). New reusable
-machinery landed here: the `tooling: graphify` capability, the `no_regression` scorer, and a
-seed-based modify-existing task type (`seed/` → support_dir).
+"tooling was ignored." New reusable machinery landed here: the `tooling: graphify` capability, the
+`no_regression` scorer, and a seed-based modify-existing task type (`seed/` → support_dir).
+
+### exp-45 — Graphify tooling on the LOCAL 80B (the weaker-model arm)
+
+Same design as exp-44 (`tooling{none,beads,graphify} × catalog × n=3`) but on the local
+**Qwen3-Coder-Next 80B** — the "does a weaker model need the map?" half. **Result: identical null —
+all three tooling levels 1.0 req_cov + 1.0 no_regression** (graphify 170 s ≈ none 181 s; beads +43 %).
+The 80B solves this small modify-existing task cleanly unaided, just like Opus.
+
+**⚠️ Important caveat — consultation is UNVERIFIABLE for the local agent.** Unlike claude-code (whose
+stream-json logs every Read/Bash, so exp-44 *proved* Opus queried the graph), **Hermes writes only a
+minimal stdout** (~11 lines: no tool-call log), so grepping the transcript for graph reads finds
+nothing — which is a *logging gap, not proof the 80B ignored the graph*. The graph WAS built
+(graphify-out/ present, 45 nodes, noted in the eval). So exp-45's null is honestly "tooling didn't
+change the outcome," but we cannot distinguish "consulted-but-didn't-need-it" from "ignored-it" for
+the 80B. **Harness follow-up:** parse Hermes' usage/session file (or enable verbose logging) so
+tool-consultation is verifiable for local agents — this matters for the funkygibbon large-repo
+graphify arm, where "did the agent actually use the graph?" is the whole question.
+
+**Combined §1 conclusion (exp-44 + exp-45):** on a *small* modify-existing task, tooling
+(none/beads/graphify) is a no-op on correctness for **both** the frontier and the local 80B — a
+~200-line seed is navigable without a map, and beads only adds wall-time. The real test of Graphify's
+value stays the **large-repo** arm (funkygibbon-port / the-goodies ~30K lines), where navigation is
+the actual bottleneck.
 
 ---
 
