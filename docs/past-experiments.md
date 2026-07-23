@@ -210,6 +210,39 @@ toolchain table. Remaining follow-up: give ObjC/Swift-local a fair shot — the 
 source with no build system and a Vapor Swift app that won't build in-env; a lighter task variant or
 a build-scaffold nudge would separate "can't" from "didn't scaffold."
 
+### exp-44 — Graphify tooling factor on a modify-existing Python task (frontier arm)
+
+First run of the **tooling: graphify** factor (a pre-built code knowledge graph) on the new
+**modify-existing** task `py-catalog-reservations` (add a reservations feature to a seeded
+catalog/ library; scored on req-coverage of the new capability AND a no_regression gate that the
+seed's existing suite still passes). Design: `tooling{none, beads, graphify} × Opus 4.8 × n=3` = 9
+cells, cloud-first to isolate the tooling effect from local-capability noise.
+
+**Result — tooling is a NO-OP on correctness here; it only costs time:**
+
+| tooling | req_cov | no_regression | code_quality | mean duration |
+|---|---|---|---|---|
+| **none**     | **1.0** | 1.0 | 0.833 | **79 s** |
+| **beads**    | **1.0** | 1.0 | 0.833 | 132 s (**+67%**) |
+| **graphify** | **1.0** | 1.0 | 0.833 | 86 s (+9%) |
+
+All three sweep 3/3 at perfect req-coverage and no-regression. **beads actively costs 67% more wall
+time** (the issue-tracking loop) for zero correctness gain; **graphify's graph-build + consultation
+adds ~9%** and also changes nothing. This is the same shape as the prompt blog's finding, now for
+*tooling*: **on a strong model + an easy task, tooling is a lever only in proportion to model
+weakness — here, zero.** The catalog seed is ~5 modules / ~200 lines, which a frontier model
+navigates without a map.
+
+**This is the control, not the headline.** Graphify's value proposition is comprehending a *large*
+existing codebase, so a clean null on a *small* one is exactly what predicts where it *should* bite.
+The plumbing itself is validated: the consultation smoke confirmed Opus genuinely used the graph (4×
+GRAPH_REPORT.md reads + `graphify explain`/`query`/`path`), so this null is "tooling didn't help," not
+"tooling was ignored." **Follow-up arms (the real tests):** (a) the **large-repo** task
+(funkygibbon-port / the-goodies ~30K lines, where navigation is genuinely hard), and (b) the **local
+80B** on this same task (a weaker model where a map might lift a marginal case). New reusable
+machinery landed here: the `tooling: graphify` capability, the `no_regression` scorer, and a
+seed-based modify-existing task type (`seed/` → support_dir).
+
 ---
 
 ## Historical: harness bugs & the local re-baseline saga

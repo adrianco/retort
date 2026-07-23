@@ -100,10 +100,16 @@ The MCP server is `graphify-mcp` (stdio) for the live-query arm.
   catalog task — the transcript shows the agent genuinely used the graph (**4× read GRAPH_REPORT.md,
   4× graph.json, ran `graphify explain` ×3 / `query` ×2 / `path` ×2**), implemented reservations, and
   `no_regression=1.00` (existing suite still passes). graphify is NOT ≡ none — the full run is safe.
-- **Run** `task{py-catalog-reservations} × tooling{none, beads, graphify}` on Opus first (isolate the
-  tooling effect — `experiment-44-graphify/` is scaffolded; widen design.csv to all three tooling
-  levels, n≥3), then repeat on the local 80B. Pass = req-coverage AND no_regression. Optionally add
-  the brazil-bench arm + the `graphify --update`-between-turns arm.
+- ✅ **Frontier arm DONE (exp-44 → past-experiments):** `tooling{none,beads,graphify} × Opus × n=3`
+  on the catalog task — all three **1.0 req_cov + 1.0 no_regression**; tooling is a pure no-op on
+  correctness (beads +67% time, graphify +9%, for zero gain). A clean null on an easy/small task, as
+  predicted — the control, not the headline.
+- **REMAINING (the real tests — where graphify SHOULD bite):**
+  1. **Large-repo arm:** the funkygibbon-port / the-goodies (~30K lines) task, once its PR-on-worktree
+     run model is built (see `tasks/funkygibbon-port/README.md`) — navigation is genuinely hard there.
+  2. **Local-80B arm:** the same catalog task on the local 80B (a weaker model where a code map might
+     lift a marginal case). Reuses `experiment-44-graphify/` — add the hermes-local cells.
+  Optionally: the `graphify --update`-between-turns arm.
 
 ## 2. exp-41 — self-repair iteration-2 on the 80B ctx-0.9 near-misses  — SCAFFOLDED, ready to launch
 

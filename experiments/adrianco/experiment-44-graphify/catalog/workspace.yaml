@@ -15,7 +15,7 @@ tasks:
   - source: bundled://py-catalog-reservations
 playpen:
   runner: local
-  replicates: 1
+  replicates: 3
   timeout_minutes: 30
   max_turns: 200
 design: { screening_resolution: 3, significance_threshold: 0.10 }

@@ -19,7 +19,7 @@
     "max_turns": 200,
     "no_write_abort_after": 3,
     "playpen_root": "/Users/adriancockcroft/.retort/work",
-    "replicates": 1,
+    "replicates": 3,
     "runner": "local",
     "stack_presets": null,
     "stall_minutes": 0,
@@ -40,7 +40,7 @@
   },
   "retort": {
     "branch": "main",
-    "commit": "88f9f9c5988c6e4e228ba4f7c6aa1c1dfae34a09",
+    "commit": "b4c555959448464a6dd0c9b6538ee4824434105f",
     "dirty": true
   },
   "serving": {

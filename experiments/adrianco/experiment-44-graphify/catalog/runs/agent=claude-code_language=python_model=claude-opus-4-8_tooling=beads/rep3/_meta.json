@@ -1,0 +1,11 @@
+{
+  "replicate": 3,
+  "run_config": {
+    "agent": "claude-code",
+    "language": "python",
+    "model": "claude-opus-4-8",
+    "tooling": "beads"
+  },
+  "succeeded": true,
+  "visibility": "public"
+}

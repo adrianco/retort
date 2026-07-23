@@ -1,2 +1,4 @@
 run,language,agent,tooling,model
-0,python,claude-code,graphify,claude-opus-4-8
+0,python,claude-code,none,claude-opus-4-8
+1,python,claude-code,beads,claude-opus-4-8
+2,python,claude-code,graphify,claude-opus-4-8
