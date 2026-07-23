@@ -175,7 +175,31 @@ incompletes (no build system / broken Vapor build).
 
 ## 6. Methodology: harness-orchestration factor (`retort-metaharness`)  — SIDE-BRANCH, staged
 
+> **What metaharness ACTUALLY is (per ruvnet's explainer, https://metaharness-explainer.vercel.app/ —
+> corrects the framing below).** It is *"a factory for agent frameworks,"* not an orchestration-strategy
+> set: `npx metaharness` **generates a branded, npm-publishable agent harness** that wraps a model. Its
+> real features are **Router** (difficulty-routing to the cheapest model that clears your quality bar,
+> ~1/10 cost), **Darwin Mode** (the wrapper self-tunes its settings, sandbox-tests, keeps only what
+> measurably helps), **project-scoped Memory**, **Skills/agents**, and **`harness genome <repo>`** (a
+> fit/build/safety/cost report card). It runs a **local MCP tool server + a repo-aware CLI** (default-deny
+> governance, signed receipts) — **no external cloud solver**, and it is **model-agnostic**.
+> **KEY: Hermes is one of its six native host platforms** (Claude Code, Codex, pi.dev, **Hermes**,
+> OpenClaw, RVM) — so evaluating metaharness on OUR local models via Hermes+oMLX is a first-class,
+> intended path, not a workaround.
+>
+> **Reconciliation the factor model needs:** the `harness_config` levels below mix *generic ReAct*
+> concepts (base-ReAct, self-consistency-N, scaffold — retort's own, NOT metaharness features) with the
+> real metaharness features (routed≈**Router**, +agenticow-memory≈**Memory**, +darwin-genome≈**Darwin
+> Mode**). To evaluate the REAL tool, the cleaner factor is metaharness's own toggles — **Router / Darwin
+> / Memory / Skills on-vs-off** — measured on a `npx metaharness`-generated **Hermes-targeted** harness.
+> The "external solver" in `metaharness_runner.py` is really "a metaharness-generated harness for a
+> host." Do this reconciliation WITH ruvnet.
+>
 > **Path B — a LOCAL backend (no OpenRouter, no external solver) — IN PROGRESS (2026-07-22, user-directed).**
+> Aligned with the above (Hermes is native). NOTE: the `LocalModelRunner` built here is a valid *generic
+> local-orchestration* harness (base-ReAct / self-consistency / routed / scaffold as a stand-in) — a
+> useful foundation, but it is NOT ruvnet's actual metaharness-generated harness. The real local eval:
+> `npx metaharness` → Hermes-targeted harness → retort's DoE toggles Router/Darwin/Memory.
 > Keep the existing OpenRouter path (`MetaHarnessRunner` → the external `METAHARNESS_SOLVER`) untouched
 > (the contributor, ruvnet, will sort the solver out) and ADD a `backend: local` runner that drives our
 > own Qwen 35B/80B via **Hermes + oMLX**. **Foundation confirmed:** oMLX returns OpenAI-format
