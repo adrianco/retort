@@ -176,6 +176,29 @@ incompletes (no build system / broken Vapor build).
 
 ## 6. Methodology: harness-orchestration factor (`retort-metaharness`)  — SIDE-BRANCH, staged
 
+> **SHARPENED DIRECTION (2026-07-24, user) — metaharness belongs in the `tooling` factor, and the
+> integration is a closed loop with `optimal-blog.md`.** metaharness is an **optimization + memory
+> layer that ROUTES to the best harness/model per problem**, minimizing cost at a high success rate.
+> So it's a **`tooling` level alongside `beads`** (`tooling: {none, beads, metaharness}`) — NOT the
+> orchestration-strategy DoE sketched below, and NOT the generic `LocalModelRunner` I built (that's a
+> stand-in, now superseded by this). How it works:
+> 1. **A full metaharness install is the `tooling: metaharness` capability.** When enabled, the run
+>    hands the model/harness choice to metaharness's router (our harnesses = claude-code / hermes).
+> 2. **Feed retort → metaharness (BUILT, retort side):** metaharness currently routes on hand-heuristics;
+>    we drive it *mechanistically* from measured results. `retort report optimal --routing-json` emits
+>    the per (task, language) **cheapest measured stack that clears its pass-bar** — e.g. python/go →
+>    free local 35B (\$0 @ 0.85), rust/systems/niche → cheapest cloud model @ 1.00. That IS the routing
+>    table (`optimal.routing_config` / `per_language_routing`). This is the "best starting point per
+>    language/task" feed.
+> 3. **The experiment:** `tooling{none, beads, metaharness} × language × task`, measuring **cost AND
+>    success** — does metaharness (fed by optimal-blog) hit the cost/success optimum vs a fixed choice?
+> 4. **Contribute back:** the retort-derived routing table goes upstream to metaharness, replacing its
+>    heuristics — the closed loop (retort measures → optimal-blog → metaharness routes → contribute back).
+>
+> **Still to build:** the `tooling: metaharness` playpen capability (install + hand it the routing JSON +
+> let it pick per cell), coordinated with ruvnet on metaharness's routing-config format. The retort feed
+> (`--routing-json`) is done and tested.
+
 > **What metaharness ACTUALLY is (per ruvnet's explainer, https://metaharness-explainer.vercel.app/ —
 > corrects the framing below).** It is *"a factory for agent frameworks,"* not an orchestration-strategy
 > set: `npx metaharness` **generates a branded, npm-publishable agent harness** that wraps a model. Its

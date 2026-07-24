@@ -286,29 +286,70 @@ def per_language_matrix(conn):
 # ---------------------------------------------------------------------------
 # Table 3: per-language routine — cheapest stack that clears its bar
 # ---------------------------------------------------------------------------
-def per_language_table(conn):
-    langs = routine_languages(conn)
-    lines = [
-        "| Language | Routine → cheapest qualifying stack | Reliability | n |",
-        "|---|---|---:|---:|",
-    ]
-    for lang in langs:
+def per_language_routing(conn, task=ROUTINE_TASK):
+    """Per language, the CHEAPEST featured stack that clears its pass-bar on
+    ``task`` — the measured routing decision. Returns a dict keyed by language:
+    ``{lang: {"stack", "models", "cost", "pass", "n"} | None}`` (None = no
+    qualifying stack in the db). This is the machine-readable form of the
+    "cheapest qualifying" table — the data a router (metaharness) consumes to pick
+    the cheapest model that maintains a high success rate for each language/task.
+    """
+    routing: dict[str, dict | None] = {}
+    for lang in routine_languages(conn):
         candidates = []
         for s in FEATURED_STACKS:
-            m = metrics(conn, stack_where(s), ROUTINE_TASK, language=lang)
+            m = metrics(conn, stack_where(s), task, language=lang)
             if m["n"] and m["pass"] >= s["pass_bar"]:
                 cost = s.get("cost_override", m["cost"] if m["cost"] is not None else 1e9)
                 candidates.append((cost, s, m))
         if not candidates:
-            lines.append(f"| **{lang}** | *no qualifying stack in db* | — | — |")
+            routing[lang] = None
             continue
         candidates.sort(key=lambda c: c[0])
         cost, s, m = candidates[0]
-        cost_str = "$0" if s.get("cost_override") == 0.0 else f"${m['cost']:.2f}"
+        routing[lang] = {
+            "stack": s["name"],
+            "models": list(s.get("models", [])),
+            "cost": 0.0 if s.get("cost_override") == 0.0 else m["cost"],
+            "pass": m["pass"],
+            "n": m["n"],
+        }
+    return routing
+
+
+def per_language_table(conn):
+    routing = per_language_routing(conn)
+    lines = [
+        "| Language | Routine → cheapest qualifying stack | Reliability | n |",
+        "|---|---|---:|---:|",
+    ]
+    for lang, r in routing.items():
+        if r is None:
+            lines.append(f"| **{lang}** | *no qualifying stack in db* | — | — |")
+            continue
+        cost_str = "$0" if r["cost"] == 0.0 else f"${r['cost']:.2f}"
         lines.append(
-            f"| **{lang}** | {s['name']} ({cost_str}) | {m['pass']:.2f} | {m['n']} |"
+            f"| **{lang}** | {r['stack']} ({cost_str}) | {r['pass']:.2f} | {r['n']} |"
         )
     return "\n".join(lines)
+
+
+def routing_config(conn):
+    """The full retort→metaharness routing table: per (task, language) the
+    cheapest measured stack that maintains high success. A machine-readable feed
+    so metaharness routes from Retort's OPTIMAL-BLOG results (measured) instead of
+    hand-heuristics — and can be contributed back upstream. Shape:
+    ``{"source": "retort optimal-blog", "objective": "min cost @ pass-bar",
+       "routes": {task: {lang: {stack, models, cost, pass, n}}}}``.
+    """
+    routes = {}
+    for task in (ROUTINE_TASK, HARD_TASK):
+        routes[task] = per_language_routing(conn, task=task)
+    return {
+        "source": "retort report optimal (master.db)",
+        "objective": "cheapest featured stack per language/task that clears its pass-bar",
+        "routes": routes,
+    }
 
 
 # ---------------------------------------------------------------------------

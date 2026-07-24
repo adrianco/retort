@@ -164,7 +164,18 @@ def report_dashboard(db: str, fmt: str, output: str | None) -> None:
     metavar="BLOG_MD",
     help="Splice the generated tables into a blog file's GEN markers, in place.",
 )
-def report_optimal(db: str | None, health_only: bool, write_blog: str | None) -> None:
+@click.option(
+    "--routing-json",
+    "routing_json",
+    type=click.Path(),
+    default=None,
+    metavar="OUT.json",
+    help="Emit the machine-readable routing table (per language/task, the cheapest "
+    "measured stack that clears its pass-bar) — the feed a router (metaharness) "
+    "consumes to pick the cheapest model at high success. '-' for stdout.",
+)
+def report_optimal(db: str | None, health_only: bool, write_blog: str | None,
+                   routing_json: str | None) -> None:
     """Select the optimal stack per language/task from master.db.
 
     Aggregates the measured runs into the tables that drive optimal-blog.md:
@@ -192,7 +203,15 @@ def report_optimal(db: str | None, health_only: bool, write_blog: str | None) ->
         )
     conn = opt.open_db(db_path)
     try:
-        if health_only:
+        if routing_json:
+            import json as _json
+            payload = _json.dumps(opt.routing_config(conn), indent=2, default=str)
+            if routing_json == "-":
+                click.echo(payload)
+            else:
+                Path(routing_json).write_text(payload)
+                click.echo(f"Wrote routing table → {routing_json}")
+        elif health_only:
             click.echo(opt.health_report(conn, opt.REPO))
         elif write_blog:
             path = Path(write_blog)
