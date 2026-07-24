@@ -1,0 +1,29 @@
+# Experiment 47 — gpt-oss-20b (OpenAI open weights) on bookshop, vs the 35B/80B.
+# The gate-probe passed (oMLX parses its Harmony tool calls into OpenAI tool_calls),
+# so this is the first real run. A 20B is unlikely to beat the 35B — this is a
+# LINEAGE probe (is a non-Qwen local model competitive at all?), not an expected win.
+experiment:
+  name: experiment-47-gptoss20b-bookshop
+  visibility: public
+factors:
+  language: { levels: [python, go, typescript] }
+  agent: { levels: [hermes-local, claude-code] }   # design pins hermes-local
+  prompt: { levels: [neutral, none] }              # design pins neutral
+  stack: { levels: [gptoss, m80] }                 # design pins gptoss
+  model: { levels: ["mlxlocal/mlx-community--gpt-oss-20b-MXFP4-Q8", "mlxlocal/mlx-community--Qwen3-Coder-Next-4bit"] }
+responses: [code_quality, token_efficiency, test_coverage, defect_rate, maintainability, idiomatic]
+tasks:
+  - source: bundled://rest-api-crud
+playpen:
+  runner: local
+  replicates: 1
+  timeout_minutes: 45
+  stall_minutes: 25
+  max_turns: 200
+  stack_presets: stacks.yaml
+  prompts_dir: prompts
+  local_agents:
+    hermes-local: { harness: hermes, model: mlxlocal/mlx-community--gpt-oss-20b-MXFP4-Q8 }
+design: { screening_resolution: 3, significance_threshold: 0.10 }
+promotion: { screening_to_trial: { p_value: 0.10 }, trial_to_production: { posterior_confidence: 0.80 } }
+evaluation: { enabled: true, model: opus-4.8 }

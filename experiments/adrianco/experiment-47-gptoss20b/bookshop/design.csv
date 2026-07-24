@@ -1,0 +1,4 @@
+run,language,agent,prompt,stack,model
+0,python,hermes-local,neutral,gptoss,mlxlocal/mlx-community--gpt-oss-20b-MXFP4-Q8
+1,go,hermes-local,neutral,gptoss,mlxlocal/mlx-community--gpt-oss-20b-MXFP4-Q8
+2,typescript,hermes-local,neutral,gptoss,mlxlocal/mlx-community--gpt-oss-20b-MXFP4-Q8
