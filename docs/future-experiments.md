@@ -15,6 +15,32 @@ push; verify every tuning parameter takes effect with a smoke test first; after 
 
 ---
 
+## 0. exp-46 — Opus 5: all languages × both tasks  — RUNNING (2026-07-24, top priority)
+
+A new frontier model shipped (**Claude Opus 5**). Add it to the results and measure
+**tokens, time and cost** across every supported language on **both** tasks. Per
+incremental-experiments: run ONLY the new model's cells; compare against `master.db`.
+
+**Model-id VERIFIED before spending** (the CLAUDE.md rule): `claude -p --model claude-opus-5`
+self-reports `claude-opus-5` and bills real tokens/cost, while a bogus id (`claude-opus-99-fake`)
+returns **404** — so the CLI validates ids and acceptance proves real routing, not a silent
+fallback to the default model. Aliases added: `opus-5` / `opus5` → `claude-opus-5` (the bare
+`opus` alias deliberately still pins 4.7, so old configs don't silently repoint). Cost comes
+from the CLI's own `total_cost_usd`, so no price table is needed.
+
+**Design (n=1 — the user expects ~always-succeed, so one replicate is enough for a first read):**
+- **bookshop** (`rest-api-crud`): **13 languages** — python, go, typescript, rust, clojure, java,
+  csharp, elixir, erlang, c, cpp, objc, swift (the full set master.db covers for this task).
+- **brazil-bench** (hard): **all 13 languages too** (user, 2026-07-24) — the same set. The systems
+  tier (c/cpp/objc/swift) has **never** run the hard task, so those 4 cells are entirely new data.
+- = **26 cells**, `prompt=neutral`, spec-gate ON, agent = claude-code (follows the model id).
+
+**Hypotheses.** (a) *bookshop:* Opus 5 clears ~all 13 at req-coverage 1.00 — the interesting
+numbers there are **cost and duration** vs Opus 4.8 (is the new generation cheaper/faster per
+solved task?). (b) *brazil-bench is the real test:* **no** model has ever reliably cleared the hard
+task (best local 0/6, and cloud tops out short of a clean sweep). If Opus 5 sweeps brazil across
+9 languages, that's the first model to break the hard-task ceiling — the headline result.
+
 ## 1. Graphify tooling factor + large-existing-codebase task  — PLANNED (top priority)
 
 Add a third level to the `tooling` factor (currently `none` / `beads`): **`graphify`** — a

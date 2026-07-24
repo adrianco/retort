@@ -189,6 +189,13 @@ MODEL_ALIASES: dict[str, str] = {
     "sonnet5": "claude-sonnet-5",
     "haiku-4.5": "claude-haiku-4-5",
     "fable-5": "claude-fable-5",
+    # Opus 5 (2026-07). Verified callable: `claude -p --model claude-opus-5` self-reports
+    # the id and bills, while a bogus id 404s — so acceptance proves real routing, not a
+    # silent fallback to the CLI default. NOTE the bare `opus` alias above deliberately
+    # still pins 4.7: changing it would retroactively repoint any existing config that
+    # says `opus` (e.g. a --resume of an old experiment) at a different model.
+    "opus-5": "claude-opus-5",
+    "opus5": "claude-opus-5",
     # Fast-mode variant: a "<id>-fast" model level runs the same model with
     # Claude Code fast mode on (faster output) — handled in _build_agent_command.
     "opus-4.8-fast": "claude-opus-4-8-fast",

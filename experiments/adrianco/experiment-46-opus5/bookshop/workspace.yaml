@@ -1,0 +1,22 @@
+# Experiment 46 (bookshop) — Claude Opus 5 across all 13 supported languages.
+# Adds the new frontier model to the results; measures tokens/time/cost + req-coverage.
+# Model id VERIFIED callable before launch (bogus ids 404, so acceptance == real routing).
+experiment:
+  name: experiment-46-opus5-bookshop
+  visibility: public
+factors:
+  language: { levels: [python, go, typescript, rust, clojure, java, csharp, elixir, erlang, c, cpp, objc, swift] }
+  model: { levels: [claude-opus-5, claude-opus-4-8] }   # design pins opus-5
+  prompt: { levels: [neutral, none] }                   # design pins neutral
+responses: [code_quality, token_efficiency, test_coverage, defect_rate, maintainability, idiomatic]
+tasks:
+  - source: bundled://rest-api-crud
+playpen:
+  runner: local
+  replicates: 1
+  timeout_minutes: 30
+  max_turns: 200
+  prompts_dir: prompts
+design: { screening_resolution: 3, significance_threshold: 0.10 }
+promotion: { screening_to_trial: { p_value: 0.10 }, trial_to_production: { posterior_confidence: 0.80 } }
+evaluation: { enabled: true, model: opus-4.8 }
