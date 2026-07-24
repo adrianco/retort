@@ -15,6 +15,7 @@ playpen:
   runner: local
   replicates: 1
   timeout_minutes: 60
+  stall_minutes: 25    # kill a no-progress run early (matches prior brazil runs)
   max_turns: 200
   prompts_dir: prompts
 design: { screening_resolution: 3, significance_threshold: 0.10 }
