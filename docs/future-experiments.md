@@ -176,7 +176,18 @@ weights) and the only clean new-model probe left. To try a Mistral-family or Dev
 the stack manager would need a llama.cpp / vLLM serving backend (they parse the Mistral tool format
 oMLX can't).
 
-**IN PROGRESS (2026-07-22):** ✅ **arch is supported** — oMLX's mlx-lm ships `mlx_lm/models/gpt_oss.py`,
+**GATE-PROBE PASSED (2026-07-24) — the candidate is UNBLOCKED and ready to run.** Downloaded
+`mlx-community/gpt-oss-20b-MXFP4-Q8` (~12 GB, 3 shards; the first fetch stalled and was restarted).
+Served it on a separate oMLX instance (port 8081, `--hf-cache`, so the main server was untouched) and
+probed the **Harmony tool-format** question directly:
+`finish_reason: tool_calls` with a well-formed call — `{"name":"list_files","arguments":"{\"path\":\".\"}"}`.
+So **oMLX parses gpt-oss's tool calls into proper OpenAI `tool_calls`** — unlike Laguna (arch wall)
+and Devstral (Mistral format oMLX can't parse), this one is fully servable AND drivable by Hermes.
+**Next:** one bookshop replica vs the 35B/80B as an initial comparison (a 20B is unlikely to beat the
+35B, so this is a lineage probe — OpenAI open weights — not a expected win). NOTE: the main oMLX
+discovers models at startup, so it needs a reload to see gpt-oss.
+
+**Earlier (2026-07-22):** ✅ **arch is supported** — oMLX's mlx-lm ships `mlx_lm/models/gpt_oss.py`,
 so unlike Laguna there's no arch wall. Downloading `mlx-community/gpt-oss-20b-MXFP4-Q8` (~12 GB, native
 MXFP4) to the HF cache. **Next — the gate-probe (do this BEFORE any full run, à la exp-42 Laguna):**
 serve it in oMLX, drive one bookshop cell via Hermes, and confirm the agent's **tool calls actually
