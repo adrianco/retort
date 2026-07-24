@@ -36,6 +36,7 @@ logger = logging.getLogger(__name__)
 _PROGRESS_SKIP_DIRS = {".git", "data", "__pycache__", "node_modules", "target", ".venv"}
 _PROGRESS_SKIP_FILES = {
     "_agent_stdout.log", "_agent_stderr.log", ".hermes_usage.json",
+    "_hermes_session.jsonl",
     "TASK.md", "stack.json", "README.md", "prompts.txt",
 }
 
@@ -465,6 +466,13 @@ class LocalRunner:
                 self._resolve_harness(stack), stdout_text, info.workspace
             )
             cost_usd = _parse_float(metadata.get("total_cost_usd"), 0.0)
+
+            # Hermes logs no tool calls to stdout — export its session transcript
+            # so tool-consultation IS verifiable for local runs (see agent_consulted).
+            if self._resolve_harness(stack) == "hermes":
+                _hb = (self.stack_manager.serving.get("hermes_bin", "hermes")
+                       if self.stack_manager is not None else "hermes")
+                _export_hermes_session(info.workspace, _hb)
 
             # Fast mode bills at 2× but the CLI reports the standard-rate cost —
             # scale it up so the recorded cost is what's actually charged.
@@ -910,6 +918,71 @@ def _build_agent_prompt(stack: StackConfig, prompt_injection: str = "") -> str:
         prompt += " " + direct
 
     return prompt
+
+
+def _export_hermes_session(workspace: Path, hermes_bin: str) -> None:
+    """Persist the Hermes run's full transcript (with tool calls) to
+    ``_hermes_session.jsonl`` in the workspace.
+
+    Hermes writes only a minimal ~11-line stdout with NO tool-call log, so a
+    consultation check ("did the agent read GRAPH_REPORT.md / run graphify?")
+    can't grep ``_agent_stdout.log`` for a local run the way it can for
+    claude-code's stream-json. But Hermes DOES persist the full transcript in its
+    SQLite session store, keyed by the ``session_id`` it records in
+    ``.hermes_usage.json``. Export that session so the transcript is archived with
+    the run and greppable. Best-effort: a missing id / failed export just skips.
+    """
+    import json as _json
+
+    usage = workspace / ".hermes_usage.json"
+    if not usage.is_file():
+        return
+    try:
+        session_id = _json.loads(usage.read_text()).get("session_id")
+    except (OSError, ValueError):
+        return
+    if not session_id:
+        return
+    try:
+        r = subprocess.run(
+            [hermes_bin, "sessions", "export", "--session-id", str(session_id),
+             "--format", "jsonl", "-"],
+            capture_output=True, text=True, timeout=60,
+        )
+    except (OSError, subprocess.SubprocessError):
+        return
+    if r.returncode == 0 and r.stdout:
+        try:
+            (workspace / "_hermes_session.jsonl").write_text(r.stdout)
+        except OSError:
+            pass
+
+
+def agent_consulted(run_dir: Path, *patterns: str) -> bool | None:
+    """Did the agent's transcript reference any of ``patterns`` (case-insensitive)?
+
+    Cross-agent consultation detector: claude-code / omp log their tool calls to
+    ``_agent_stdout.log`` (stream-json); Hermes' tool calls live in
+    ``_hermes_session.jsonl`` (exported post-run by ``_export_hermes_session``).
+    Checks whichever transcripts exist. Returns None when NONE is present (can't
+    tell — don't mistake a missing log for "the agent ignored the tool"), else
+    True/False. Use it to verify e.g. that a ``tooling: graphify`` cell actually
+    read ``GRAPH_REPORT.md`` / ran ``graphify`` before trusting a graphify signal.
+    """
+    import re as _re
+
+    blobs: list[str] = []
+    for name in ("_hermes_session.jsonl", "_agent_stdout.log"):
+        p = run_dir / name
+        if p.is_file():
+            try:
+                blobs.append(p.read_text(errors="replace"))
+            except OSError:
+                pass
+    if not blobs:
+        return None
+    blob = "\n".join(blobs)
+    return any(_re.search(_re.escape(pat), blob, _re.IGNORECASE) for pat in patterns)
 
 
 def _persist_agent_output(workspace: Path, stdout: str, stderr: str) -> None:

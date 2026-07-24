@@ -1308,3 +1308,20 @@ def test_graphify_hook_builds_graph(tmp_path):
     assert stats and stats["nodes"] > 0 and stats["files"] == 2
     assert (tmp_path / "graphify-out" / "graph.json").is_file()
     assert (tmp_path / "graphify-out" / "GRAPH_REPORT.md").is_file()
+
+
+def test_agent_consulted_cross_agent(tmp_path):
+    """agent_consulted detects tool/artifact use across agents: claude in
+    _agent_stdout.log, hermes in _hermes_session.jsonl; None when no transcript."""
+    from retort.playpen.local_runner import agent_consulted
+    # no transcript → can't tell
+    assert agent_consulted(tmp_path, "graphify") is None
+    # hermes-style transcript
+    (tmp_path / "_hermes_session.jsonl").write_text(
+        '{"role":"assistant","tool_calls":[{"function":{"name":"read_file",'
+        '"arguments":"{\\"path\\":\\"GRAPH_REPORT.md\\"}"}}]}\n')
+    assert agent_consulted(tmp_path, "GRAPH_REPORT.md", "graphify") is True
+    assert agent_consulted(tmp_path, "beads", "clj-kondo") is False
+    # claude-style stdout also checked
+    (tmp_path / "_agent_stdout.log").write_text('{"type":"assistant"} ran graphify query\n')
+    assert agent_consulted(tmp_path, "graphify query") is True

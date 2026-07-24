@@ -105,10 +105,11 @@ The MCP server is `graphify-mcp` (stdio) for the live-query arm.
   correctness (beads +67% time, graphify +9%, for zero gain). A clean null on an easy/small task, as
   predicted — the control, not the headline.
 - ✅ **Local-80B arm DONE (exp-45 → past-experiments):** same null — all tooling 1.0 on the 80B too.
-  **Caveat that became a follow-up:** Hermes' minimal stdout means we can't *verify* the 80B consulted
-  the graph (claude-code's stream-json let us prove it for Opus). **Harness follow-up: make local-agent
-  tool-consultation verifiable** (parse Hermes' usage/session file, or verbose logging) — a prerequisite
-  for trusting the graphify signal on the large-repo arm.
+  ✅ **Consultation now VERIFIABLE for local agents (2026-07-24):** `_export_hermes_session` writes
+  `_hermes_session.jsonl` (from Hermes' SQLite session store, keyed by `.hermes_usage.json`'s
+  `session_id`) after each Hermes run, and `agent_consulted()` greps it cross-agent. Retroactively
+  confirmed: **all 3 exp-45 graphify cells DID consult the graph** (95–115 tool_call refs) — the 80B
+  null is "used-but-didn't-help," like Opus. This unblocks the large-repo arm's consultation check.
 - **REMAINING — the real test:** the **large-repo arm** — funkygibbon-port / the-goodies (~30K lines),
   where navigation is genuinely the bottleneck. Needs its PR-on-worktree run model built (see
   `tasks/funkygibbon-port/README.md`) + the user's seed work. Optionally: `graphify --update` between
