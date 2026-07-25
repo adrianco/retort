@@ -1088,6 +1088,13 @@ def _parse_hermes_usage(workspace: Path | None) -> tuple[int, dict[str, str]]:
     metadata["total_cost_usd"] = str(cost if cost is not None else 0.0)
     if data.get("model"):
         metadata["model"] = str(data["model"])
+    # Turn count — Hermes reports `api_calls` (one per model round-trip), the local
+    # equivalent of claude-code's `num_turns`. Without this, local runs record no
+    # turns at all and can't be compared with cloud stacks on the "how many agentic
+    # steps did it take?" axis — the axis versions-blog.md shows is the dominant
+    # driver of time and cost.
+    if data.get("api_calls") is not None:
+        metadata["num_turns"] = str(data["api_calls"])
     return int(total or 0), metadata
 
 

@@ -1325,3 +1325,17 @@ def test_agent_consulted_cross_agent(tmp_path):
     # claude-style stdout also checked
     (tmp_path / "_agent_stdout.log").write_text('{"type":"assistant"} ran graphify query\n')
     assert agent_consulted(tmp_path, "graphify query") is True
+
+
+def test_hermes_usage_records_turns(tmp_path):
+    """Local runs must record a turn count: Hermes reports `api_calls` (one per
+    model round-trip), the equivalent of claude-code's num_turns. Without it the
+    local stacks can't be compared on the steps axis that versions-blog.md shows
+    drives time and cost (exp-49 prerequisite)."""
+    import json as _json
+    from retort.playpen.local_runner import _parse_hermes_usage
+    (tmp_path / ".hermes_usage.json").write_text(_json.dumps({
+        "total_tokens": 775514, "api_calls": 28, "model": "qwen", "completed": True}))
+    tokens, meta = _parse_hermes_usage(tmp_path)
+    assert tokens == 775514
+    assert meta["num_turns"] == "28"
