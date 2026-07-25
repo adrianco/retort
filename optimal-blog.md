@@ -71,11 +71,12 @@ number to actually decide on. (Hard reliability is single-task, measured on Pyth
 <!-- GEN:leading-stacks START -->
 | Stack | Reliability (routine · hard) | Cost (routine · hard) | Time (routine · hard) |
 |---|---:|---:|---:|
-| **Claude Fable 5** | 1.00 · 1.00 | $1.05 · $8.98 | 143 s · 1039 s |
+| **Claude Opus 5** | 1.00 · 1.00 | $3.15 · $21.67 | 607 s · 2630 s |
+| **Claude Fable 5** | 1.00 · 1.00 | $1.09 · $8.98 | 142 s · 1039 s |
 | **Claude Sonnet 5** | 1.00 · 0.93 | $1.10 · $7.64 | 237 s · 1252 s |
-| **Claude Opus 4.8** | 0.98 · 0.59 | $0.96 · $3.27 | 294 s · 608 s |
+| **Claude Opus 4.8** | 0.98 · 0.59 | $0.99 · $3.27 | 294 s · 608 s |
 | **Claude Opus 4.7** | 1.00 · 0.40 | $0.97 · $2.95 | 190 s · 500 s |
-| **Qwen3.6-35B-A3B (local, $0)** | 0.85 · 0.25 | $0.00 · $0.00 | 365 s · 1542 s |
+| **Qwen3.6-35B-A3B (local, $0)** | 0.83 · 0.25 | $0.00 · $0.00 | 348 s · 1542 s |
 | **Qwen3-Coder-Next 80B (local, $0, ctx 0.9)** | 1.00 · 0.00 | $0.00 · $0.00 | 604 s · 2014 s |
 <!-- GEN:leading-stacks END -->
 
@@ -178,17 +179,21 @@ scores 0.00 on Rust/TypeScript; the 80B local is strong on Python but drops on G
 *across* a row to pick the cheapest stack that actually passes *that* language:
 
 <!-- GEN:per-language-matrix START -->
-| Language | Fable 5 | Sonnet 5 | Opus 4.8 | Opus 4.7 | Qwen 35B local | Qwen 80B local |
-|---|---:|---:|---:|---:|---:|---:|
-| **clojure** | 1.00 (3) | — | 1.00 (6) | 1.00 (6) | — | 0.00 (3) |
-| **csharp** | — | 1.00 (3) | 1.00 (1) | — | — | 0.00 (3) |
-| **elixir** | — | — | 1.00 (3) | 1.00 (3) | — | 0.00 (3) |
-| **erlang** | — | — | 1.00 (3) | 1.00 (3) | — | 0.00 (3) |
-| **go** | 1.00 (3) | 1.00 (3) | 1.00 (7) | 1.00 (6) | 0.85 (27) | 1.00 (3) |
-| **java** | — | — | 0.83 (6) | 1.00 (6) | — | 0.00 (3) |
-| **python** | 1.00 (3) | 1.00 (3) | 1.00 (7) | 1.00 (6) | 0.85 (27) | 1.00 (3) |
-| **rust** | 1.00 (3) | 1.00 (3) | 1.00 (6) | 1.00 (6) | 0.00 (2) | 0.33 (3) |
-| **typescript** | — | 1.00 (3) | 1.00 (7) | 1.00 (6) | 0.00 (3) | 1.00 (3) |
+| Language | Opus 5 | Fable 5 | Sonnet 5 | Opus 4.8 | Opus 4.7 | Qwen 35B local | Qwen 80B local |
+|---|---:|---:|---:|---:|---:|---:|---:|
+| **c** | 1.00 (1) | — | — | 1.00 (1) | — | — | — |
+| **clojure** | 1.00 (1) | 1.00 (3) | — | 1.00 (6) | 1.00 (6) | — | 0.00 (3) |
+| **cpp** | 1.00 (1) | — | — | 1.00 (1) | — | — | — |
+| **csharp** | 1.00 (1) | — | 1.00 (3) | 1.00 (1) | — | — | 0.00 (3) |
+| **elixir** | 1.00 (1) | — | — | 1.00 (3) | 1.00 (3) | — | 0.00 (3) |
+| **erlang** | 1.00 (1) | — | — | 1.00 (3) | 1.00 (3) | — | 0.00 (3) |
+| **go** | 1.00 (1) | 1.00 (3) | 1.00 (3) | 1.00 (7) | 1.00 (6) | 0.87 (30) | 1.00 (3) |
+| **java** | 1.00 (1) | — | — | 0.83 (6) | 1.00 (6) | — | 0.00 (3) |
+| **objc** | 1.00 (1) | — | — | 1.00 (1) | — | — | — |
+| **python** | 1.00 (1) | 1.00 (3) | 1.00 (3) | 1.00 (7) | 1.00 (6) | 0.80 (30) | 1.00 (3) |
+| **rust** | 1.00 (1) | 1.00 (3) | 1.00 (3) | 1.00 (6) | 1.00 (6) | 0.00 (2) | 0.33 (3) |
+| **swift** | 1.00 (1) | — | — | 1.00 (1) | — | — | — |
+| **typescript** | 1.00 (1) | 1.00 (1) | 1.00 (3) | 1.00 (7) | 1.00 (6) | 0.33 (6) | 1.00 (3) |
 <!-- GEN:per-language-matrix END -->
 
 **The language split: Python, Go and TypeScript run locally for free (on the 80B at full
@@ -357,14 +362,18 @@ stacks table above is generated the same way.
 <!-- GEN:per-language START -->
 | Language | Routine → cheapest qualifying stack | Reliability | n |
 |---|---|---:|---:|
+| **c** | Claude Opus 4.8 ($1.28) | 1.00 | 1 |
 | **clojure** | Claude Opus 4.7 ($1.06) | 1.00 | 6 |
+| **cpp** | Claude Opus 4.8 ($1.08) | 1.00 | 1 |
 | **csharp** | Claude Opus 4.8 ($0.65) | 1.00 | 1 |
 | **elixir** | Claude Opus 4.8 ($0.85) | 1.00 | 3 |
 | **erlang** | Claude Opus 4.8 ($1.35) | 1.00 | 3 |
-| **go** | Qwen3.6-35B-A3B (local, $0) ($0) | 0.85 | 27 |
+| **go** | Qwen3.6-35B-A3B (local, $0) ($0) | 0.87 | 30 |
 | **java** | Claude Opus 4.7 ($0.92) | 1.00 | 6 |
-| **python** | Qwen3.6-35B-A3B (local, $0) ($0) | 0.85 | 27 |
+| **objc** | Claude Opus 4.8 ($1.52) | 1.00 | 1 |
+| **python** | Qwen3.6-35B-A3B (local, $0) ($0) | 0.80 | 30 |
 | **rust** | Claude Opus 4.8 ($0.71) | 1.00 | 6 |
+| **swift** | Claude Opus 4.8 ($1.25) | 1.00 | 1 |
 | **typescript** | Qwen3-Coder-Next 80B (local, $0, ctx 0.9) ($0) | 1.00 | 3 |
 <!-- GEN:per-language END -->
 

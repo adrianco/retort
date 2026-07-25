@@ -51,6 +51,17 @@ BASE_FILTER = "coalesce(prompt,'') != 'repair'"
 # ---------------------------------------------------------------------------
 FEATURED_STACKS = [
     {
+        # exp-46: 26/26 — every one of the 13 languages on BOTH tasks, the only
+        # model that clears the hard task everywhere. Listed first because it is
+        # the broadest-coverage stack; the cheapest-qualifying logic still prefers
+        # Fable 5 / 4.8 wherever they qualify, which is the point.
+        "name": "Claude Opus 5",
+        "short": "Opus 5",
+        "models": ["claude-opus-5"],
+        "kind": "cloud",
+        "pass_bar": 1.00,
+    },
+    {
         "name": "Claude Fable 5",
         "short": "Fable 5",
         "models": ["claude-fable-5"],
