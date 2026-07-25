@@ -287,6 +287,37 @@ whole question.
 value stays the **large-repo** arm (funkygibbon-port / the-goodies ~30K lines), where navigation is
 the actual bottleneck.
 
+### exp-47 — gpt-oss-20b (OpenAI open weights): fast, uneven, not a replacement
+
+First run of the **gpt-oss-20b** candidate (MXFP4 4-bit, ~12 GB) after its gate-probe passed —
+**oMLX parses its Harmony tool calls into proper OpenAI `tool_calls`**, so unlike Laguna (arch wall)
+and Devstral (unparseable Mistral format) it is fully servable AND drivable by Hermes. A lineage
+probe: is a non-Qwen local model competitive? `language{python, go, typescript} × n=3` on bookshop,
+ctx 131072 @ threshold 0.9, sampling matched to the 35B/80B baselines.
+
+**Result (post-`recover`, n=3) — compared with the local incumbents:**
+
+| language | gpt-oss-20b (12 GB) | Qwen 80B (42 GB, n=3) | Qwen 35B (n=3) |
+|---|---|---|---|
+| **go** | **3/3** — mean **95 s** | 1.00 — 345 s | 1.00 — 259 s |
+| **typescript** | 2/3 — 206 s | 1.00 — 1026 s | **0.00** (fails) |
+| **python** | **1/3** — 298 s | 1.00 — 440 s | 1.00 — 126 s |
+
+**Headline: genuinely fast and Go-solid, but too uneven to displace the 80B.** On **Go it matches the
+flagship at ~3.6× the speed** from a quarter the memory — the standout number. It also **beats the 35B
+on TypeScript** (0.67 vs 0.00), a language the 35B can't do at all. But **Python is only 1/3**, where
+both Qwen models are perfect, so it is *not* a drop-in local default.
+
+**Method note — why n=1 would have published a falsehood.** The first replicate swept **3/3 at
+req-coverage 1.0**, which read as "a 20B matches the 80B." Replicates 2–3 demolished that: python fell
+to 1/3 (one gate failure, one 0.9167 near-miss) and typescript to 2/3. `retort diagnose` classified the
+three failures **2 TOOLING / 1 GENUINE**, but rescoring did **not** lift the TOOLING ones to passes —
+so the final numbers stand. The single-replicate sweep was luck, not capability.
+
+**Verdict:** keep the 80B as the featured local stack. gpt-oss-20b earns a place as the **fast Go
+option** and as evidence that the OpenAI open-weights lineage is viable locally. Worth a follow-up at
+n≥5 on Go, and a look at whether Python's failures are a prompt/scaffold artifact.
+
 ---
 
 ## Historical: harness bugs & the local re-baseline saga

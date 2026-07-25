@@ -1,0 +1,11 @@
+{
+  "severity_counts": {"critical": 0, "high": 2, "medium": 0, "low": 0, "info": 0},
+  "penalty_score": 0.8,
+  "top_findings": [
+    {"id": "R11", "kind": "doc_missing", "severity": "high", "title": "No README.md with setup/run instructions", "evidence": "find -iname 'readme*' over run_dir returns nothing; only main.py, requirements.txt, tests/test_main.py exist. TASK.md Deliverables require 'A README.md with setup and run instructions'", "suggestion": "Add a README.md documenting install (pip install -r requirements.txt) and run (uvicorn main:app) steps"},
+    {"id": "R12", "kind": "requirement_missing", "severity": "high", "title": "Fewer than 3 running tests: only 2 defined and both skipped", "evidence": "tests/test_main.py defines exactly 2 test functions (test_health, test_crud); pytest final run reports '2 skipped, 6 warnings' with 'async def functions are not natively supported and have been skipped' — effective_tests=0; REQUIREMENTS.json R12 requires '>= 3 tests exist and run'", "suggestion": "Add asyncio_mode=auto (pytest.ini/pyproject) so pytest-asyncio collects the async tests, and add a third test (e.g. 404 / validation-rejection case)"}
+  ],
+  "requirement_coverage": 0.8333,
+  "model": "mlxlocal/mlx-community--gpt-oss-20b-MXFP4-Q8",
+  "evaluated_at": "2026-07-25T00:27:54Z"
+}

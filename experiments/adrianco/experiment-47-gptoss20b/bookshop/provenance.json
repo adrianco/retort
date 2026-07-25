@@ -3,11 +3,11 @@
     "hermes": {
       "_config_version": 33,
       "context_engine": "lcm",
-      "context_length": 262144,
-      "context_length_top_level": 262144,
+      "context_length": 131072,
+      "context_length_top_level": 131072,
       "context_length_unset_per_model": false,
       "max_turns": 30,
-      "model": "mlx-community--Qwen3-Coder-Next-4bit",
+      "model": "mlx-community--gpt-oss-20b-MXFP4-Q8",
       "plugins": [
         "hermes-lcm"
       ],
@@ -24,7 +24,7 @@
     "max_turns": 200,
     "no_write_abort_after": 3,
     "playpen_root": "/Users/adriancockcroft/.retort/work",
-    "replicates": 1,
+    "replicates": 3,
     "runner": "local",
     "stack_presets": "stacks.yaml",
     "stall_minutes": 25,
@@ -52,7 +52,7 @@
   },
   "retort": {
     "branch": "main",
-    "commit": "f4bc05b640f0b20baefe6127d590eaf30141a6c9",
+    "commit": "7313198544963434cfa58f13d073441d9e01303c",
     "dirty": true
   },
   "serving": {

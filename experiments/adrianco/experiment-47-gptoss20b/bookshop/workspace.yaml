@@ -16,7 +16,7 @@ tasks:
   - source: bundled://rest-api-crud
 playpen:
   runner: local
-  replicates: 1
+  replicates: 3
   timeout_minutes: 45
   stall_minutes: 25
   max_turns: 200

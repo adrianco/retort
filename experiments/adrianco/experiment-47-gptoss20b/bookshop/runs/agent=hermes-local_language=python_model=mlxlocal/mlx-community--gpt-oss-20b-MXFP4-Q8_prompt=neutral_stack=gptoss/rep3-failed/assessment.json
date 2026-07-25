@@ -1,0 +1,23 @@
+{
+  "severity_counts": {
+    "critical": 0,
+    "high": 1,
+    "medium": 0,
+    "low": 0,
+    "info": 0
+  },
+  "penalty_score": 0.9,
+  "top_findings": [
+    {
+      "id": "R12",
+      "kind": "requirement_partial",
+      "severity": "high",
+      "title": "'At least 3 tests' deliverable only partially met \u2014 4 tests exist but none pass",
+      "evidence": "tests/test_api.py defines 4 async tests, but the actual scored run executed 0 of their bodies: .coverage shows only import/def/decorator lines covered (test_api.py lines 1-3,5,6,12,13,27,28,46,47) and no endpoint body in app/main.py ran. Reproduced: without pytest-asyncio all 4 FAIL ('async def functions are not natively supported'); with pytest-asyncio+httpx<0.28 only test_health passes and the other 3 fail 'sqlite3.OperationalError: no such table: books' (AsyncClient(app=app) never triggers the lifespan init_db); with httpx>=0.28 all 4 fail (app= kwarg removed). 0 effective passing tests in every configuration. Count (>=3) is met; 'and run' is not.",
+      "suggestion": "Add pytest-asyncio to deps and configure asyncio_mode=auto; switch to transport=httpx.ASGITransport(app=app) and wrap in an ASGI lifespan manager (or use fastapi.testclient.TestClient) so init_db() runs and the DB table exists before requests."
+    }
+  ],
+  "requirement_coverage": 0.9167,
+  "model": "mlxlocal/mlx-community--gpt-oss-20b-MXFP4-Q8",
+  "evaluated_at": "2026-07-25T01:00:22Z"
+}

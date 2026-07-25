@@ -1,0 +1,10 @@
+{
+  "severity_counts": {"critical": 0, "high": 1, "medium": 0, "low": 0, "info": 0},
+  "penalty_score": 0.9,
+  "top_findings": [
+    {"id": "R11", "kind": "doc_missing", "severity": "high", "title": "README.md missing despite being a required deliverable", "evidence": "No README* on disk (find -iname '*readme*' empty); _hermes_session.jsonl has exactly 5 write_file calls (go.mod, main.go, db.go, router.go, router_test.go) and none for README.md — the model only planned it in reasoning ('Also create README') but never emitted a write", "suggestion": "Write a README.md documenting go mod tidy / go run . / go test ./..."}
+  ],
+  "requirement_coverage": 0.8333,
+  "model": "mlxlocal/mlx-community--gpt-oss-20b-MXFP4-Q8",
+  "evaluated_at": "2026-07-24T00:00:00Z"
+}

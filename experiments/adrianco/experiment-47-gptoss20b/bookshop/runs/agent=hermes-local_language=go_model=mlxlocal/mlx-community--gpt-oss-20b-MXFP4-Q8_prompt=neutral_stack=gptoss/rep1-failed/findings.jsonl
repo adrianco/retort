@@ -1,0 +1,1 @@
+{"id": "R11", "kind": "requirement_missing", "severity": "medium", "title": "No README.md with setup and run instructions", "evidence": "find -iname 'readme*' returns nothing; workspace contains only go.mod, go.sum, main.go, main_test.go — no README present", "suggestion": "Add a README.md documenting build (go build), run (go run .), and endpoint usage"}
