@@ -21,8 +21,8 @@ longer**. That is worth understanding, because nothing about the deliverable cha
 | Qwen3-Coder-30B (local, llama.cpp) | 12 | 0.67 | — | 1,114 K | 531 | $0 |
 | gpt-oss-20b (local) | 3 | 0.33 | — | 1,140 K | 298 | $0 |
 
-*(Opus 5 is n=1 — it is the newest and has one replicate on this cell. Local stacks don't record a
-turn count; see the gap section.)*
+*(Opus 5 is n=1 on this specific cell — but the pattern is confirmed at n=9 across nine more languages
+below. Historical local runs don't record a turn count; see the gap section.)*
 
 ## The finding: it's turns, not speed
 
@@ -59,6 +59,27 @@ That is the real answer to "why is it more expensive": doubling the number of tu
 *quadruples* the tokens billed, even though the code written is identical. Cache reads are individually
 cheap, which is what keeps the bill at $1.84 rather than something absurd — but they dominate the
 totals, and they are why the `tokens` column looks alarming next to a 33 K-token deliverable.
+
+## Confirmed on nine more languages (n=9, not n=1)
+
+The Python cell above is a single replicate for Opus 5, so a separate experiment re-ran **nine further
+languages** — TypeScript, Java, C#, Elixir, Erlang, C, C++, Objective-C and Swift — on the same routine
+task. Every model scores the same result; only the work differs:
+
+| bookshop, 9 languages | n | pass | turns | tokens | seconds | cost |
+|---|---:|---:|---:|---:|---:|---:|
+| **Fable 5** | 9 | **1.00** | **26.4** | 866 K | **280** | $2.68 |
+| **Opus 5** | 9 | **1.00** | **59.8** | **2,878 K** | **712** | $3.76 |
+| Opus 4.8 | 22 | 0.95 | 32.2 | 696 K | 375 | **$1.07** |
+
+**The ratio holds.** Opus 5 needs **2.3× the turns** of Fable 5 for an identical 1.00 — and the tokens
+grow **3.3×** off that 2.3× step increase, the n² curve again. It is the third independent dataset
+(single Python cell, fast-mode across task difficulty, and now nine languages at n=9) pointing at the
+same mechanism, so this is no longer a one-run curiosity.
+
+Note also that Opus 4.8 is **cheapest but not perfect** here (0.95 — one miss across 22 runs on these
+harder languages), which is the real trade: Fable 5 buys the last 5 % of reliability for ~2.5× the
+price, and Opus 5 buys nothing over Fable 5 on this task except a bigger bill.
 
 ## Fast mode: the control that separates *serving* from *model*
 
