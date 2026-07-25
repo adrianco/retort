@@ -318,6 +318,58 @@ so the final numbers stand. The single-replicate sweep was luck, not capability.
 option** and as evidence that the OpenAI open-weights lineage is viable locally. Worth a follow-up at
 n≥5 on Go, and a look at whether Python's failures are a prompt/scaffold artifact.
 
+### exp-46 — Claude Opus 5: the first model to clear the HARD task broadly
+
+Added the new frontier model across **every supported language on both tasks** (n=1):
+`language{python, go, typescript, rust, clojure, java, csharp, elixir, erlang, c, cpp, objc, swift}
+× {bookshop, brazil-bench}` = 26 cells, prompt=neutral, spec-gate ON. **Model id verified three ways
+before spending** — a bogus id 404s (so the CLI validates), `claude-opus-5` self-reports its id and
+bills, and the live agent argv carried `--model claude-opus-5` while `provenance.json` recorded it.
+
+**bookshop (routine): 13/13 — a clean sweep**, including java, where Opus 4.8 manages only 0.83.
+
+**brazil-bench (hard) — the headline. 11/12 measured cells at req-coverage 1.0** *(swift was still in
+flight at write-up; see the note below)*:
+
+| brazil language | Opus 4.8 | **Opus 5** | |
+|---|---|---|---|
+| **rust** | 0.33 | **1.0** | ← beats 4.8 |
+| **java** | 0.33 | **1.0** | ← beats 4.8 |
+| **clojure** | 0.45 | **1.0** | ← beats 4.8 |
+| go, typescript | 1.00 | 1.0 | matches |
+| csharp, elixir, erlang, c, cpp, objc | *never run* | **1.0** | new ground |
+| **python** | **1.00** | **✗ GENUINE fail** | ← loses to 4.8 |
+
+**Interpretation — a trade, not domination.** The hard task has been the standing ceiling: best local
+0/6, and 4.8 reliable in only 3 of the 6 languages it had run. Opus 5 clears **eleven**, including all
+three 4.8-blockers and six languages no model had ever attempted on brazil. But it **genuinely fails
+brazil/python**, which 4.8 passes — diagnosed GENUINE ("tests do not run / do not pass on the archived
+code"), not a tooling artifact. A single averaged score would have hidden both halves of that.
+
+**The cost/time bill is real, and it is the other half of the result.** On the routine task Opus 5 is
+**2.5–6× more expensive and 3–5× slower than 4.8 for the identical 1.00 outcome** (cpp \$6.72 vs \$1.08;
+c \$5.43 vs \$1.28; python \$1.84 vs \$0.50). bookshop cost ~\$40 / 2.2 h wall; brazil ~\$234 / 8.8 h wall
+(mean 47 min/cell). **So: keep 4.8 (or cheaper) for routine work — Opus 5 buys nothing there but a
+bigger bill. Reach for Opus 5 when the task is hard**, which is exactly where it converts failures into
+passes.
+
+**Two config artifacts caught before they became false findings** (the recurring lesson):
+1. **erlang and c "crashed"** — both were `Timeout after 3603s`, i.e. the **60-min hard wall**, not
+   failure. Opus 5 is 3–5× slower, and brazil cells average 47 min. Raised the wall to **120 min** and
+   both then **passed at 1.0** (erlang needed 53 min, c 53 min). Publishing the raw run would have
+   claimed two capability failures that don't exist. (The exp-26 lesson — *the wall was masking
+   capability* — recurring one tier up.)
+2. **A "usage limit until 3pm" that wasn't.** The run exhausted quota at ~02:00 and the driver parked
+   until the 15:00 daily reset — but a probe at 02:50 showed the quota already back (it was a short
+   rolling window). Retry cadence changed to every 20 min, recovering **~12 idle hours**.
+
+Also fixed here: `stall_minutes` was missing from the brazil workspace (a wedged cell would have burned
+the full wall ×12), and bookshop's clojure "failure" was a scorer TOOLING false-zero that rescored to
+1.00/0.97 — which is why bookshop is 13/13, not 12/13.
+
+*Note: swift/brazil was still executing when this entry was written; the table will be one cell longer
+once it lands. Every other cell is final and post-`recover`.*
+
 ---
 
 ## Historical: harness bugs & the local re-baseline saga
