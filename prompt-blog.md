@@ -213,22 +213,26 @@ rigged denominator.
 ## The adjacent lever: how *hard* it thinks, not how you ask
 
 The prompt turns out to be the smallest lever here — but there is a neighbouring
-knob that is emphatically not small, and that every experiment in this post left
-uncontrolled: **thinking level**.
+knob that every experiment in this post left uncontrolled: **thinking level**.
 
 `prompt` changes *what you ask for*. `effort` (`claude --effort
 low|medium|high|max`, now a Retort factor) changes *how much reasoning the model
-does before acting*. On an identical task, raising Opus 4.8 from its default to
-`max` nearly doubled the agentic turns and multiplied token use by five — a far
-bigger swing than any methodology in this post produced.
+does before acting*. On a fixed task, raising Opus 4.8 from `default` to `max` costs
+roughly **1.4× the turns and 2× the tokens** — while leaving reliability untouched at
+1.00, exactly like the methodologies in this post.
 
 That does not undercut the prompt findings: every run compared here used the same
-default thinking level, so the comparison *between* methodologies is sound. But it
-does reframe the conclusion. "The prompt is the smallest lever" is measured against
-model and language; it has not yet been measured against thinking level, and on the
-early evidence thinking level is the larger of the two. **exp-49** crosses four
-model versions with all five effort levels to size it properly — see
-[versions-blog.md](versions-blog.md).
+default thinking level, so the comparison *between* methodologies is sound. And the
+early read is that thinking level behaves like the prompt rather than like the model
+— it moves what you *spend*, not whether the thing works.
+
+One caution learned the hard way while measuring it: a first single-run comparison
+suggested effort was a much bigger lever (2× turns, 5× tokens) and **did not
+replicate** — two runs of one identical cell produced 33 turns and 14. Single agentic
+runs are noisy enough to manufacture a finding, which is the same reason the
+pass-proportions in this post are quoted over replicates rather than single runs.
+**exp-49** crosses four model versions with all five effort levels at n=3 to size it
+properly — see [versions-blog.md](versions-blog.md).
 
 ## Try it on your own task
 

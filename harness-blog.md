@@ -171,13 +171,17 @@ wrong conclusions in this project than any model choice.
 
 - **Thinking level** — how much reasoning the model does *before* it acts. Claude
   Code exposes it as `--effort low|medium|high|max`, and Retort now carries it as an
-  `effort` factor. It is the newest entry in this list and possibly the most
-  consequential: raising Opus 4.8 from its default to `max` on an identical task
-  **nearly doubled the agentic turns and multiplied tokens by five**, which is most of
-  the difference this project had been attributing to *newer model versions*. Every
-  result published before this factor existed ran at whatever the CLI chose — which,
-  measured, is **not** any of the named levels. That is why `default` is kept as an
-  explicit level rather than folded into `medium`: it is the historical baseline, and
+  `effort` factor, the newest entry in this list. Raising Opus 4.8 from `default` to
+  `max` on a fixed task costs about **1.4× the agentic turns and 2× the tokens** — a
+  real lever, though a first single-run measurement suggested a far larger one (2× turns,
+  5× tokens) and **failed to replicate**: two runs of that identical cell came out 33
+  turns and 14. Treat single runs of an agentic cell as noisy. Notably, reliability did
+  **not** move at all — every effort level scored 1.00 on the routine task, so on easy
+  work the knob buys cost, not correctness.
+
+  Every result published before this factor existed ran at whatever the CLI chose —
+  which, measured, is **not** any of the named levels. That is why `default` is kept as
+  an explicit level rather than folded into `medium`: it is the historical baseline, and
   mislabelling it would silently rewrite the back catalogue.
 
 The lesson threaded through the whole project: **a set-but-unverified knob in one

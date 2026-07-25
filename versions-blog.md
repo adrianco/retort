@@ -185,28 +185,38 @@ never set, never recorded, and never treated as a factor. `claude` exposes it as
 at `max` and none at `low`, and output tokens climb with the level (Fable 5: 342 → 3499 on a fixed
 prompt, ~10×).
 
-That matters because **it is a plausible alternative explanation for this entire post.** A single
-instrumented cell — same model, same task, only the knob moved:
+That matters because it is a **plausible** alternative explanation for this entire post. It is not yet
+a demonstrated one, and an early attempt to demonstrate it is a cautionary tale in its own right.
 
-| Opus 4.8, python bookshop | turns | tokens | cost |
-|---|---:|---:|---:|
-| effort = default (n=6) | 17.3 | 310 K | $0.50 |
-| **effort = max (n=1)** | **33** | **1,620 K** | **$2.55** |
+A first instrumented cell — same model, same task, only the knob moved — looked decisive: Opus 4.8 at
+`effort=max` took **33 turns and 1,620 K tokens** against a default-effort baseline of 17.3 turns /
+310 K. Nearly double the steps, five times the tokens, and 33 is essentially Opus 5's default-effort 36.
 
-Raising the thinking level on **identical weights** nearly doubled the turns and multiplied tokens by
-five — and **33 turns is essentially Opus 5's default-effort 36.** So "newer models take more steps"
-may be, wholly or partly, "newer models think more by default." Those are different claims with
-different remedies: one says *pick an older model*, the other says *turn the knob down and keep the
-newer one*.
+**Then it failed to replicate.** The controlled run (exp-49) measured the *identical* cell, the same
+day, in-batch:
 
-Two things stop that from overturning the post today. It is **n=1**, against a baseline from a different
-experiment rather than a same-batch control. And the *default* is not a named level — measured on a
-fixed prompt it sits near `high` for 4.8 and between `medium` and `high` for Fable 5 and Opus 5, so
-"newer versions default to more thinking" is not yet established, only plausible.
+| Opus 4.8 × python bookshop × `effort=max` | turns | tokens | cost | sec |
+|---|---:|---:|---:|---:|
+| first instrumented cell | **33** | 1,620 K | $2.55 | 475 |
+| exp-49, in-batch | **14** | 522 K | $1.19 | 291 |
+
+**A 2.4× spread between two runs of one configuration.** In-batch, `max` costs 1.4× the turns of
+`default` (14 vs 10) — a real effect, but a modest one, and nothing like enough to account for Opus 5's
+36. So the tempting story — *"the newer model isn't tuned to iterate more, it just thinks more by
+default"* — is **unsupported on current evidence**.
+
+What the failed replication does establish is that **single runs of this cell are noisy enough to
+manufacture a headline**, which is a warning that applies to the n=1 rows in this post's own opening
+table as much as to the claim it just killed.
+
+The other reason for caution: the *default* is not a named level — measured on a fixed prompt it sits
+near `high` for 4.8 and between `medium` and `high` for Fable 5 and Opus 5, so "newer versions default
+to more thinking" is not established either.
 
 The honest status: **the mechanism in this post (turns drive time and cost, cache reads scale ~n²) is
 well supported. The attribution of the extra turns to model tuning is not** — thinking level is an
-uncontrolled variable that could account for much of it. exp-49 crosses 4 versions × 5 effort levels at
+uncontrolled variable that could account for some of it, though the first attempt to show it accounts
+for *most* of it has already been retracted above. exp-49 crosses 4 versions × 5 effort levels at
 n=3 specifically to separate them.
 
 Two further measurement gaps to close:

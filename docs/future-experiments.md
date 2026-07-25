@@ -112,10 +112,30 @@ versions-blog's default-effort baseline for the *same model and cell*:
 | **effort = max (n=1)** | **33** | **1,620 K** | **\$2.55** |
 
 **Turning the thinking knob up nearly doubled the turns and 5×'d the tokens on identical weights** —
-and 33 turns is essentially Opus 5's default-effort 36. So *thinking level alone can reproduce most of
-the cross-version turn gap* that versions-blog attributes to newer models being "tuned to iterate more."
-That does not overturn the blog — it is n=1 against a different experiment's baseline — but it converts
-the confound from theoretical to measured, and makes the 63-run factorial the right way to settle it.
+and 33 turns is essentially Opus 5's default-effort 36.
+
+> ### ⚠️ RETRACTED by the experiment itself (2026-07-25, cells 6–10)
+>
+> **This did not replicate.** exp-49's in-batch measurement of the *identical* cell — Opus 4.8 ×
+> python × bookshop × neutral × `effort=max`, run the same day — gives:
+>
+> | same cell, same day | turns | tokens | cost | sec |
+> |---|---:|---:|---:|---:|
+> | smoke test | **33** | 1,620 K | \$2.55 | 475 |
+> | exp-49 in-batch | **14** | 522 K | \$1.19 | 291 |
+>
+> A **2.4× spread between two runs of one configuration.** In-batch, `max` is 1.4× default (14 vs 10),
+> not 1.9×, and 14 is nowhere near Opus 5's 36. The claim that "thinking level alone reproduces most of
+> the cross-version turn gap" is **not supported**.
+>
+> Two candidate causes, not yet separable: (a) **run-to-run variance at `max` is simply large**, which
+> would mean every n=1 reading in this experiment is weak and n=3 is the floor, not a comfort; or
+> (b) **the smoke test was contaminated** by running concurrently with exp-48. I asserted at the time
+> that only wall-clock was at risk and that turns/tokens/cost are properties of the model's work. That
+> may be wrong — contention can change the agent loop itself (tool-call latency, retries), not just its
+> clock. Which would make it a second, sharper argument for the one-experiment-at-a-time rule.
+>
+> The experiment remains worth running; the preliminary result that motivated it does not stand.
 
 *Two honest caveats on that row:* it is n=1, and its **wall-clock time is unusable** because the cell
 was run while exp-48 was still going — a violation of the one-experiment-at-a-time rule below, and the
