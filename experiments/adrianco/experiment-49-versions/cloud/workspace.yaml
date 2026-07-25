@@ -1,0 +1,46 @@
+# Experiment 49 (cloud half) — instrumented version comparison on ONE cell.
+#
+# versions-blog.md establishes that newer Claude versions cost ~6x and take ~4x
+# longer for an IDENTICAL passing app, and that the driver is TURNS (not per-turn
+# speed), with cost growing ~n^2 because every turn re-reads the whole conversation
+# from cache. That rests on turns/tokens/seconds/cost, which are recorded throughout.
+#
+# What it CANNOT answer: the tool-call MIX per version. Older runs (exp-6) predate
+# _agent_stdout.log capture, so the Write/Edit/Read/Bash histogram exists for exactly
+# one run (Opus 5). This experiment re-runs every version WITH transcript capture so
+# the histogram is comparable across versions.
+#
+# HYPOTHESIS: the extra turns in newer models are disproportionately Edit + Bash
+# (verify/refine cycles) rather than initial Writes -- i.e. newer models iterate on
+# their own output more. If it holds, it explains the routine-task overhead AND
+# plausibly the hard-task breadth Opus 5 uniquely has.
+#
+# SECOND QUESTION (from versions-blog): fast mode showed 11.3 turns vs standard 4.8's
+# 17.3 -- the same weights taking a third FEWER agentic steps. At n=3 vs n=6 that may
+# be variance. Here both run at n=3 in the same batch, which settles it.
+experiment:
+  name: experiment-49-versions-cloud
+  visibility: public
+factors:
+  language: { levels: [python, go] }              # design pins python
+  model:
+    levels:
+      - claude-opus-4-7
+      - claude-opus-4-8
+      - claude-opus-4-8-fast
+      - claude-fable-5
+      - claude-opus-5
+  prompt: { levels: [neutral, none] }             # design pins neutral
+responses: [code_quality, token_efficiency, test_coverage, defect_rate, maintainability, idiomatic]
+tasks:
+  - source: bundled://rest-api-crud
+playpen:
+  runner: local
+  replicates: 3
+  timeout_minutes: 60
+  stall_minutes: 25
+  max_turns: 200
+  prompts_dir: prompts
+design: { screening_resolution: 3, significance_threshold: 0.10 }
+promotion: { screening_to_trial: { p_value: 0.10 }, trial_to_production: { posterior_confidence: 0.80 } }
+evaluation: { enabled: true, model: opus-4.8 }

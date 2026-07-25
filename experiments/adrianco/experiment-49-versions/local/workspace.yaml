@@ -1,0 +1,50 @@
+# Experiment 49 (local half) — the local arms of the instrumented version comparison.
+#
+# Same cell as the cloud half (python x bookshop x neutral, n=3) so the two tables
+# line up. Separate workspace because the local stacks need the oMLX serving block
+# and the hermes-local agent.
+#
+# WHY THIS HALF EXISTS: versions-blog.md shows the "newer/bigger model, same result,
+# ~4x the work" pattern reproducing across two entirely different model families --
+# the 35B mirrors Opus 4.8's profile (238 K / 126 s vs 310 K / 122 s) and the 80B
+# mirrors Opus 5's (1,586 K / 440 s vs 1,252 K / 392 s). That is the strongest
+# evidence the driver is agent-loop TUNING rather than one vendor's architecture.
+# But the local rows carry no turn count, so they cannot be placed on the cloud's
+# axis -- the comparison is currently profile-shape only.
+#
+# The turn-recording gap is now FIXED (Hermes reports api_calls; the usage parser was
+# dropping it, now stored as num_turns). Historical local runs stay blank, so the only
+# way to get local turns is to re-run -- which is this half.
+#
+# NOTE ON SETTINGS: these are the canonical FEATURED settings for each model, not a
+# replay of the historical rows in versions-blog (which predate the full-context
+# compaction point). So the local numbers here are a fresh measurement; where they
+# differ from the blog's historical rows, THESE are the instrumented ones.
+experiment:
+  name: experiment-49-versions-local
+  visibility: public
+factors:
+  language: { levels: [python, go] }                # design pins python
+  agent: { levels: [hermes-local, claude-code] }    # design pins hermes-local
+  prompt: { levels: [neutral, none] }               # design pins neutral
+  stack: { levels: [m35, m80] }
+  model:
+    levels:
+      - mlxlocal/Qwen3.6-35B-A3B
+      - mlxlocal/mlx-community--Qwen3-Coder-Next-4bit
+responses: [code_quality, token_efficiency, test_coverage, defect_rate, maintainability, idiomatic]
+tasks:
+  - source: bundled://rest-api-crud
+playpen:
+  runner: local
+  replicates: 3
+  timeout_minutes: 60
+  stall_minutes: 25
+  max_turns: 200
+  stack_presets: stacks.yaml
+  prompts_dir: prompts
+  local_agents:
+    hermes-local: { harness: hermes }
+design: { screening_resolution: 3, significance_threshold: 0.10 }
+promotion: { screening_to_trial: { p_value: 0.10 }, trial_to_production: { posterior_confidence: 0.80 } }
+evaluation: { enabled: true, model: opus-4.8 }

@@ -1,0 +1,51 @@
+serving:
+  omlx_bin: /Applications/oMLX.app/Contents/MacOS/omlx-cli
+  # hermes is not on PATH on this host (dedicated venv) — point at it explicitly,
+  # or every hermes-local cell crashes at 0.0s "Agent CLI not found" (exp-43).
+  hermes_bin: /Users/adriancockcroft/hermes-venv/bin/hermes
+  model_dir: /Users/adriancockcroft/models
+  host: 127.0.0.1
+  port: 8080
+  settings_path: /Users/adriancockcroft/.omlx/settings.json
+  hermes_config: /Users/adriancockcroft/.hermes/config.yaml
+  serve_flags:
+  - --memory-guard
+  - balanced
+  # The two presets live in DIFFERENT places: m35 in model_dir
+  # (~/models/Qwen3.6-35B-A3B), m80 only in the HF cache
+  # (~/.cache/huggingface/hub/models--mlx-community--Qwen3-Coder-Next-4bit).
+  # Verified from `omlx-cli serve --help`: --hf-cache is ADDITIVE and enabled by
+  # DEFAULT ("Discover models from the standard HuggingFace Hub local cache"), so a
+  # single serving block reaches both and no per-preset serve_flags are needed.
+  # Stated explicitly here so a future --no-hf-cache elsewhere can't silently make
+  # m80 unresolvable. (This is also why exp-38 served the 80B with no such flag.)
+  - --hf-cache
+  - --paged-ssd-cache-dir
+  - /Users/adriancockcroft/.cache/omlx-ssd-exp49
+  - --paged-ssd-cache-max-size
+  - 20GB
+  log: /private/tmp/claude-501/-Users-adriancockcroft-code/1985cb31-023e-4e0c-808f-49285393ada8/scratchpad/omlx-exp49.log
+  warm_timeout_s: 600
+presets:
+  # Canonical featured settings per model. temperature/top_p/top_k differ BETWEEN the
+  # two models because each was tuned separately (exp-27/28 sampling work) — this is
+  # deliberate: exp-49 compares each stack AS FEATURED, not under a forced-common
+  # sampling config that neither is actually recommended at.
+  m35:
+    model: Qwen3.6-35B-A3B
+    context_length: 262144
+    context_threshold: 0.9   # full-context compaction point (featured)
+    sampling:
+      temperature: 0.6
+      top_p: 0.95
+      top_k: 20
+      repetition_penalty: 1.0
+  m80:
+    model: mlx-community--Qwen3-Coder-Next-4bit
+    context_length: 262144
+    context_threshold: 0.9   # the featured full-context point (exp-38/39)
+    sampling:
+      temperature: 0.7
+      top_p: 0.95
+      top_k: 40
+      repetition_penalty: 1.0
