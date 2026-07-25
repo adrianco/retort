@@ -1534,22 +1534,43 @@ def _archive_run_workspace(
             # Already archived (idempotent on resume of an in-progress run).
             return dest
     dest.parent.mkdir(parents=True, exist_ok=True)
-    try:
-        # Archive source + tests only. Build output and vendored dependencies
-        # are regenerable and actively harmful in the archive: they bloat the
-        # repo, embed third-party files that trip secret scanners (e.g. a
-        # password fixture inside node_modules), and contain dangling build
-        # symlinks (erlang `_build`) that otherwise abort the copy. Scoring
-        # already ran against the live playpen and the spec eval reads source,
-        # so none of this is needed here.
-        shutil.copytree(
-            src, dest,
-            ignore=_ignore_archive_noise,
-            ignore_dangling_symlinks=True,
-        )
-    except Exception as exc:  # don't let archival failure abort the experiment
-        click.echo(f"  (archive failed for {cell_name} rep{replicate}: {exc})", err=True)
-        return None
+
+    # repo-pr mode: the workspace is a git WORKTREE of a large base repo, so
+    # copytree-ing it would archive the whole repo per attempt — exactly what this
+    # mode exists to avoid. The deliverable is the DIFF, so archive
+    # `attempt.patch` (+ the logs/meta needed for diagnosis) and nothing else.
+    patch = src / "attempt.patch"
+    if patch.is_file() and (src / ".git").exists():
+        try:
+            dest.mkdir(parents=True, exist_ok=True)
+            for name in ("attempt.patch", "TASK.md", "stack.json", "scores.json",
+                         "_agent_stdout.log", "_agent_stderr.log",
+                         "_hermes_session.jsonl", ".hermes_usage.json"):
+                f = src / name
+                if f.is_file():
+                    shutil.copy2(f, dest / name)
+        except Exception as exc:  # never let archival abort the experiment
+            click.echo(f"  (repo-pr archive failed for {cell_name} rep{replicate}: {exc})",
+                       err=True)
+            return None
+    else:
+        try:
+            # Archive source + tests only. Build output and vendored dependencies
+            # are regenerable and actively harmful in the archive: they bloat the
+            # repo, embed third-party files that trip secret scanners (e.g. a
+            # password fixture inside node_modules), and contain dangling build
+            # symlinks (erlang `_build`) that otherwise abort the copy. Scoring
+            # already ran against the live playpen and the spec eval reads source,
+            # so none of this is needed here.
+            shutil.copytree(
+                src, dest,
+                ignore=_ignore_archive_noise,
+                ignore_dangling_symlinks=True,
+            )
+        except Exception as exc:  # don't let archival failure abort the experiment
+            click.echo(f"  (archive failed for {cell_name} rep{replicate}: {exc})",
+                       err=True)
+            return None
 
     meta = {
         "visibility": visibility,

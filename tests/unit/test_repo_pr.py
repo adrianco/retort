@@ -78,3 +78,28 @@ def test_taskspec_repo_pr_flag_and_loader():
     assert TaskSpec(name="x", description="", prompt="").is_repo_pr is False
     assert TaskSpec(name="x", description="", prompt="",
                     base_repo="https://h/o/r", base_ref="v1").is_repo_pr is True
+
+
+def test_archive_stores_only_the_patch_for_repo_pr(tmp_path):
+    """A repo-pr workspace is a worktree of a big repo — archiving must store
+    attempt.patch (+ logs), NOT a copy of the whole checked-out repo."""
+    from retort.cli import _archive_run_workspace
+
+    ws = tmp_path / "ws"
+    (ws / "lib").mkdir(parents=True)
+    (ws / ".git").write_text("gitdir: /elsewhere/.git/worktrees/x\n")  # worktree marker
+    (ws / "lib" / "huge_base_file.py").write_text("x = 1\n" * 5000)    # base repo bulk
+    (ws / "attempt.patch").write_text("From abc\nSubject: [PATCH] add port\n")
+    (ws / "TASK.md").write_text("task")
+    (ws / "_agent_stdout.log").write_text("log")
+
+    class _Art:
+        output_dir = ws
+        succeeded = True
+
+    dest = _archive_run_workspace(tmp_path / "runs", {"language": "go"}, 1, _Art())
+    assert dest is not None
+    names = {p.name for p in dest.iterdir()}
+    assert "attempt.patch" in names and "TASK.md" in names
+    assert "lib" not in names, "the base repo must NOT be archived"
+    assert not (dest / "lib").exists()
