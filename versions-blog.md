@@ -36,7 +36,12 @@ The tempting explanation is that newer models "think longer" per step. The data 
 
 Opus 5 takes **3.4× as many steps as Fable 5** to produce the same passing app. Time and cost follow
 the step count almost mechanically. So the honest framing is not "the model got slower" — it's **"the
-model became more willing to keep working."**
+model does more steps."**
+
+*Why "does more steps" and not "was tuned to iterate more":* the step count is measured, but its
+**cause** is not established. Every run here used the CLI's default thinking level, and raising that
+level on one model reproduces most of the gap by itself — see
+[the thinking-level caveat](#the-biggest-caveat-nobody-controlled-the-thinking-level) below.
 
 ## Why cost grows *faster* than turns: the cache-read curve
 
@@ -156,7 +161,39 @@ one we can compute. Everything cross-version in this post therefore rests on **t
 seconds / cost**, which are recorded throughout — and the tool-level claim is deliberately confined to
 the one run that supports it.
 
-Two measurement gaps to close:
+### The biggest caveat: nobody controlled the thinking level
+
+Every number in this post was produced at whatever **thinking level the CLI chose by default**. It was
+never set, never recorded, and never treated as a factor. `claude` exposes it as
+`--effort low|medium|high|max`, and a probe confirms it is real: the response carries a `thinking` block
+at `max` and none at `low`, and output tokens climb with the level (Fable 5: 342 → 3499 on a fixed
+prompt, ~10×).
+
+That matters because **it is a plausible alternative explanation for this entire post.** A single
+instrumented cell — same model, same task, only the knob moved:
+
+| Opus 4.8, python bookshop | turns | tokens | cost |
+|---|---:|---:|---:|
+| effort = default (n=6) | 17.3 | 310 K | $0.50 |
+| **effort = max (n=1)** | **33** | **1,620 K** | **$2.55** |
+
+Raising the thinking level on **identical weights** nearly doubled the turns and multiplied tokens by
+five — and **33 turns is essentially Opus 5's default-effort 36.** So "newer models take more steps"
+may be, wholly or partly, "newer models think more by default." Those are different claims with
+different remedies: one says *pick an older model*, the other says *turn the knob down and keep the
+newer one*.
+
+Two things stop that from overturning the post today. It is **n=1**, against a baseline from a different
+experiment rather than a same-batch control. And the *default* is not a named level — measured on a
+fixed prompt it sits near `high` for 4.8 and between `medium` and `high` for Fable 5 and Opus 5, so
+"newer versions default to more thinking" is not yet established, only plausible.
+
+The honest status: **the mechanism in this post (turns drive time and cost, cache reads scale ~n²) is
+well supported. The attribution of the extra turns to model tuning is not** — thinking level is an
+uncontrolled variable that could account for much of it. exp-49 crosses 4 versions × 5 effort levels at
+n=3 specifically to separate them.
+
+Two further measurement gaps to close:
 
 1. **No transcripts for older versions** → we can't say whether 4.8 also writes-then-edits, or whether
    Opus 5's extra turns are extra *edit* cycles specifically.
@@ -179,3 +216,9 @@ identical 1.00 for **$0.50 and 122 s**, against Opus 5's **$1.84 and 392 s** —
 fastest of all at 10.7 turns. Fast mode is the exception worth knowing: ~26 % quicker for ~48 % more, same result — buy it when latency matters, not when throughput does. Newer models are earning their keep somewhere else: at the hard end of the
 range, where the extra iteration converts failures into passes. Pay for the steps when the steps are
 what you need.
+
+**One caveat on that advice**, from the section above: if the extra steps turn out to be *thinking
+level* rather than *model tuning*, then the lever is the knob, not the version — you would keep the
+newer model and run it at a lower effort, rather than downgrading. Until exp-49 separates the two,
+"pick the cheapest model that clears your language" is the safe recommendation, but it may turn out to
+be the second-best one.
