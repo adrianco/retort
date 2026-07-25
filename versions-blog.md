@@ -12,7 +12,7 @@ longer**. That is worth understanding, because nothing about the deliverable cha
 | stack | n | pass | turns | tokens | seconds | cost |
 |---|---:|---:|---:|---:|---:|---:|
 | **Fable 5** | 3 | 1.00 | **10.7** | 229 K | **96** | $0.76 |
-| Opus 4.8 (fast mode) | 3 | 1.00 | 11.3 | 242 K | 90 | $0.74 |
+| Opus 4.8 — **fast mode** | 3 | 1.00 | 11.3 | 242 K | 90 | $0.74 |
 | Opus 4.7 | 6 | 1.00 | 17.2 | 613 K | 100 | $0.59 |
 | Opus 4.8 | 6 | 1.00 | 17.3 | 310 K | 122 | **$0.50** |
 | **Opus 5** | 1 | 1.00 | **36.0** | **1,252 K** | **392** | **$1.84** |
@@ -59,6 +59,35 @@ That is the real answer to "why is it more expensive": doubling the number of tu
 *quadruples* the tokens billed, even though the code written is identical. Cache reads are individually
 cheap, which is what keeps the bill at $1.84 rather than something absurd — but they dominate the
 totals, and they are why the `tokens` column looks alarming next to a 33 K-token deliverable.
+
+## Fast mode: the control that separates *serving* from *model*
+
+Fast mode is the same Opus 4.8 weights served differently, so it isolates a question the version
+comparison can't: **is the extra work coming from the model or from how it's delivered?**
+
+| Opus 4.8, Python bookshop | n | turns | tokens | seconds | cost |
+|---|---:|---:|---:|---:|---:|
+| standard | 6 | 17.3 | 310 K | 122 | **$0.50** |
+| **fast mode** | 3 | **11.3** | 242 K | **90** | $0.74 |
+
+Fast mode finishes **26 % quicker** and bills **48 % more** (it's charged at 2× the standard rate — a
+premium retort applies explicitly, since the CLI reports the standard-rate figure). That trade is the
+expected one. The *unexpected* part is the **turn count: 11.3 vs 17.3** — the same weights taking a
+third fewer agentic steps. With n=3 against n=6 that could be variance, but if it's real it means the
+serving path affects *how many steps the loop takes*, not just how fast each one returns. Worth
+resolving in exp-49, where fast mode gets the same instrumented treatment.
+
+Fast mode also shows the turn count tracking task difficulty, which is the cleanest confirmation of the
+central thesis. Same model, same serving, harder task:
+
+| Opus 4.8 fast mode | n | turns | tokens | seconds | cost |
+|---|---:|---:|---:|---:|---:|
+| bookshop (routine, all languages) | 12 | 14.7 | 370 K | 143 | $1.08 |
+| **brazil-bench (hard)** | 12 | **55.8** | **4,110 K** | **887** | **$8.72** |
+
+Same weights, same serving, **3.8× the turns → 11× the tokens → 6× the time**. Nothing about the model
+changed; only how much work the task demanded. That super-linear token growth against a merely
+3.8× step increase is the n² cache-read curve again, measured on a second axis.
 
 ## What Opus 5 is actually doing with those turns
 
@@ -122,6 +151,6 @@ counters into a properly replicated comparison.
 
 If your task is routine, **the newest model is the wrong default**. On this task Opus 4.8 delivers the
 identical 1.00 for **$0.50 and 122 s**, against Opus 5's **$1.84 and 392 s** — and Fable 5 finishes
-fastest of all at 10.7 turns. Newer models are earning their keep somewhere else: at the hard end of the
+fastest of all at 10.7 turns. Fast mode is the exception worth knowing: ~26 % quicker for ~48 % more, same result — buy it when latency matters, not when throughput does. Newer models are earning their keep somewhere else: at the hard end of the
 range, where the extra iteration converts failures into passes. Pay for the steps when the steps are
 what you need.
