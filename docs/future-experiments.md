@@ -29,7 +29,22 @@ routing table now selects Opus 5 for c/clojure/cpp/elixir/erlang.
 wall killing erlang+c, doubly-quiet pytest zeroing a green Python suite, and a "usage limit until 3pm"
 that was really a rolling window). See the entry for details.
 
-## 0b. exp-48 — fill Fable 5's per-language GAPS  — SCHEDULED (runs after exp-46)
+## 0b. exp-48 — fill Fable 5's per-language GAPS  — IN PROGRESS (bookshop half DONE)
+
+**Interim result (2026-07-25): the bookshop half is complete, 9/9, zero failures.** Fable 5 cleared
+every one of the nine gap languages at req-coverage 1.0 — so its efficiency lead was *not* an artifact
+of having only ever run four easy languages. Head-to-head on those same nine cells:
+
+| bookshop, 9 gap languages | n | pass | turns | tokens | sec | cost |
+|---|---:|---:|---:|---:|---:|---:|
+| Fable 5 | 9 | 1.00 | 26.4 | 866 K | 280 | \$2.68 |
+| Opus 5 | 9 | 1.00 | 59.8 | 2,878 K | 712 | \$3.76 |
+| Opus 4.8 | 22 | 0.95 | 32.2 | 696 K | 375 | \$1.07 |
+
+This became the third independent dataset behind [`versions-blog.md`](../versions-blog.md)'s
+turns-drive-cost thesis (Opus 5 needs 2.3× the turns for an identical 1.00; tokens grow 3.3× off that —
+the n² cache-read curve). The **brazil half is still running** — that is the half that decides whether
+Opus 5's unique 13-language hard-task coverage survives contact with Fable 5.
 
 exp-46 compared Opus 5 (13 languages) against Fable 5 — but **Fable 5 has only ever run 4 languages
 (clojure/go/python/rust) on each task**, so the headline comparison wasn't like-for-like. Per-language
@@ -68,9 +83,11 @@ Metrics: turns, tool-call histogram (Write/Edit/Read/Bash), output vs cache-read
 cycles** rather than initial Writes — i.e. newer models iterate on their own output more. If that holds,
 it explains both the routine-task overhead AND (plausibly) the hard-task breadth Opus 5 uniquely has.
 
-**Prerequisite fix:** record `turns` for Hermes runs (the local arms currently log none) — otherwise the
-local half of the comparison stays unquantified. The `_hermes_session.jsonl` export added 2026-07-24
-already captures the tool calls, so the turn count can be derived from it.
+**Prerequisite fix — DONE (2026-07-25).** The local arms logged no `turns`, which would have left half
+the comparison unquantified. Root cause: Hermes *does* report `api_calls` (one per model round-trip) in
+its usage file and `_parse_hermes_usage` was simply dropping the field; it is now recorded as
+`num_turns`, verified against an archived run (gpt-oss TypeScript = 27 turns). Historical local runs
+stay blank — which is precisely why exp-49 re-runs them rather than mining the archive.
 
 
 ## 1. Graphify tooling factor + large-existing-codebase task  — PLANNED (top priority)
