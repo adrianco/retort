@@ -138,8 +138,11 @@ Two measurement gaps to close:
 
 1. **No transcripts for older versions** → we can't say whether 4.8 also writes-then-edits, or whether
    Opus 5's extra turns are extra *edit* cycles specifically.
-2. **Local stacks record no turn count** (`turns` is empty for every Hermes run), so the local column
-   above can't be put on the same axis as the cloud one.
+2. **Local stacks recorded no turn count** — `turns` was empty for every Hermes run, so the local rows
+   above can't be put on the cloud's axis. **Now fixed:** Hermes reports `api_calls` (one per model
+   round-trip) in its usage file and the parser was dropping it; it is now recorded as `num_turns`
+   (verified on an archive: a gpt-oss TypeScript run = 27 turns). *Historical* local runs stay blank,
+   which is why exp-49 re-runs them.
 
 **A controlled rerun is scheduled** (see `docs/future-experiments.md`): the same Python bookshop cell
 across Opus 4.7 / 4.8 / Fable 5 / Opus 5 and the local 35B / 80B, with full transcript capture and turn
