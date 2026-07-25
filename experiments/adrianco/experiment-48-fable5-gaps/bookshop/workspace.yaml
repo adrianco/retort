@@ -1,0 +1,24 @@
+# Experiment 48 (bookshop) — fill Fable 5's per-language GAPS.
+# Fable 5 has only ever run 4 languages (clojure/go/python/rust) on each task, so the
+# exp-46 comparison against Opus 5 (13 languages) wasn't like-for-like. Run Fable 5 on
+# the 9 missing languages so the per-language table is complete for both models.
+experiment:
+  name: experiment-48-fable5-gaps-bookshop
+  visibility: public
+factors:
+  language: { levels: [typescript, java, csharp, elixir, erlang, c, cpp, objc, swift] }
+  model: { levels: [claude-fable-5, claude-opus-5] }   # design pins fable-5
+  prompt: { levels: [neutral, none] }                  # design pins neutral
+responses: [code_quality, token_efficiency, test_coverage, defect_rate, maintainability, idiomatic]
+tasks:
+  - source: bundled://rest-api-crud
+playpen:
+  runner: local
+  replicates: 1
+  timeout_minutes: 60
+  stall_minutes: 25
+  max_turns: 200
+  prompts_dir: prompts
+design: { screening_resolution: 3, significance_threshold: 0.10 }
+promotion: { screening_to_trial: { p_value: 0.10 }, trial_to_production: { posterior_confidence: 0.80 } }
+evaluation: { enabled: true, model: opus-4.8 }

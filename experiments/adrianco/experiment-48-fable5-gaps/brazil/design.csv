@@ -1,0 +1,10 @@
+run,language,model,prompt
+0,typescript,claude-fable-5,neutral
+1,java,claude-fable-5,neutral
+2,csharp,claude-fable-5,neutral
+3,elixir,claude-fable-5,neutral
+4,erlang,claude-fable-5,neutral
+5,c,claude-fable-5,neutral
+6,cpp,claude-fable-5,neutral
+7,objc,claude-fable-5,neutral
+8,swift,claude-fable-5,neutral

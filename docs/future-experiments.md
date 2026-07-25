@@ -41,6 +41,26 @@ solved task?). (b) *brazil-bench is the real test:* **no** model has ever reliab
 task (best local 0/6, and cloud tops out short of a clean sweep). If Opus 5 sweeps brazil across
 9 languages, that's the first model to break the hard-task ceiling — the headline result.
 
+## 0b. exp-48 — fill Fable 5's per-language GAPS  — SCHEDULED (runs after exp-46)
+
+exp-46 compared Opus 5 (13 languages) against Fable 5 — but **Fable 5 has only ever run 4 languages
+(clojure/go/python/rust) on each task**, so the headline comparison wasn't like-for-like. Per-language
+results with honest gaps are fine (user, 2026-07-25); the fix is to **fill the gaps**, not to hedge the
+table.
+
+**Design:** `Fable 5 × the 9 missing languages {typescript, java, csharp, elixir, erlang, c, cpp, objc,
+swift} × {bookshop, brazil-bench}` = **18 cells**, n=1, prompt=neutral, spec-gate ON — matching exp-46's
+shape so the per-language tables line up cell-for-cell. brazil gets the **120-min wall** (the exp-46
+lesson: 60 min silently "crashed" erlang and c mid-work).
+
+**Why it matters.** On the 4 languages both have run, Fable 5 already beats Opus 5 on success, cost AND
+speed (4/4 vs 3/4; \$8.98 vs \$18.12 per solved hard-task cell; 17 vs 25 min) — and it's ~3× cheaper
+and ~4× faster on the routine task. If that holds across the other 9, **Fable 5 is the default
+recommendation for both task sizes** and Opus 5's niche shrinks to whatever Fable 5 can't do. If it
+doesn't hold, Opus 5's breadth claim becomes real. Either way the per-language matrix (and the routing
+table that feeds metaharness) gets its missing half.
+
+
 ## 1. Graphify tooling factor + large-existing-codebase task  — PLANNED (top priority)
 
 Add a third level to the `tooling` factor (currently `none` / `beads`): **`graphify`** — a
