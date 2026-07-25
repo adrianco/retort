@@ -14,7 +14,9 @@ tasks:
 playpen:
   runner: local
   replicates: 1
-  timeout_minutes: 60
+  timeout_minutes: 120   # Opus 5 is 3-5x slower than 4.8; erlang+c hit the 60-min
+                         # hard wall mid-work (exp-26 lesson: the wall masks capability).
+                         # stall_minutes 25 still kills genuinely-stuck runs early.
   stall_minutes: 25    # kill a no-progress run early (matches prior brazil runs)
   max_turns: 200
   prompts_dir: prompts
