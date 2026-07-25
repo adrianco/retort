@@ -1,0 +1,18 @@
+[package]
+name = "brazilian-soccer-mcp"
+version = "0.1.0"
+edition = "2021"
+description = "MCP server exposing a knowledge graph over Brazilian soccer datasets"
+license = "MIT"
+
+[dependencies]
+csv = "1"
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+
+[profile.release]
+opt-level = 2
+
+[[bin]]
+name = "brazilian-soccer-mcp"
+path = "src/main.rs"

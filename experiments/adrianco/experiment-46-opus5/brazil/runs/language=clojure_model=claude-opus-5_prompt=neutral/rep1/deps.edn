@@ -1,0 +1,24 @@
+{:paths ["src" "resources"]
+
+ :deps {org.clojure/clojure   {:mvn/version "1.12.0"}
+        org.clojure/data.csv  {:mvn/version "1.1.0"}
+        org.clojure/data.json {:mvn/version "2.5.0"}}
+
+ :aliases
+ {;; Run the MCP server on stdio (this is what an MCP client launches).
+  :mcp  {:main-opts ["-m" "brazilian-soccer.server"]}
+
+  ;; Ad-hoc command line access to the same tools, for humans.
+  :cli  {:main-opts ["-m" "brazilian-soccer.cli"]}
+
+  ;; Full test suite (BDD scenarios + unit + protocol + performance).
+  ;; Declared for -M and -X alike so that either CI convention works:
+  ;;   clojure -M:test    clojure -X:test
+  :test {:extra-paths ["test"]
+         :main-opts   ["-m" "brazilian-soccer.test-runner"]
+         :exec-fn     brazilian-soccer.test-runner/run}
+
+  ;; The same suite under the other name build tools commonly look for.
+  :run-tests {:extra-paths ["test"]
+              :main-opts   ["-m" "brazilian-soccer.test-runner"]
+              :exec-fn     brazilian-soccer.test-runner/run}}}

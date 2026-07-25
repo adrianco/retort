@@ -1,0 +1,10 @@
+{
+  "replicate": 1,
+  "run_config": {
+    "language": "rust",
+    "model": "claude-opus-5",
+    "prompt": "neutral"
+  },
+  "succeeded": true,
+  "visibility": "public"
+}

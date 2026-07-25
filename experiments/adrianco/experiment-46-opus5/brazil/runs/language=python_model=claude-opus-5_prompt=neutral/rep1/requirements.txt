@@ -1,0 +1,3 @@
+# Runtime dependency. Everything else - CSV loading, the knowledge graph and
+# the query layer - is standard library.
+mcp>=1.2

@@ -1,0 +1,39 @@
+{
+  "name": "brazilian-soccer-mcp",
+  "version": "1.0.0",
+  "private": true,
+  "description": "MCP server exposing a knowledge graph over Brazilian soccer match and player datasets",
+  "license": "MIT",
+  "type": "module",
+  "bin": {
+    "brazilian-soccer-mcp": "dist/index.js"
+  },
+  "main": "dist/index.js",
+  "files": [
+    "dist",
+    "data/kaggle"
+  ],
+  "engines": {
+    "node": ">=20"
+  },
+  "scripts": {
+    "build": "tsc -p tsconfig.json",
+    "typecheck": "tsc -p tsconfig.json --noEmit",
+    "start": "node dist/index.js",
+    "dev": "tsx src/index.ts",
+    "ask": "tsx src/cli/ask.ts",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "verify": "npm run typecheck && npm run build && npm run test"
+  },
+  "dependencies": {
+    "@modelcontextprotocol/sdk": "^1.29.0",
+    "zod": "^4.4.3"
+  },
+  "devDependencies": {
+    "@types/node": "^22.10.0",
+    "tsx": "^4.19.2",
+    "typescript": "^5.9.3",
+    "vitest": "^4.1.10"
+  }
+}

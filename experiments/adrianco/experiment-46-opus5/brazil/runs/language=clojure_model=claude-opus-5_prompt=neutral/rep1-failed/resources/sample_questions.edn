@@ -1,0 +1,195 @@
+;; Sample natural-language questions from the specification, each mapped to the
+;; MCP tool call an LLM would make, plus substrings that must appear in the
+;; answer.  `brazilian-soccer.cli demo` runs them all; the acceptance test
+;; `brazilian-soccer.samples-test` asserts every one of them answers.
+[{:category "Match queries"
+  :question "Show me all Flamengo vs Fluminense matches"
+  :tool "search_matches"
+  :args {"team" "Flamengo" "opponent" "Fluminense" "limit" 100}
+  :expect ["Flamengo" "Fluminense" "Brasileirão"]}
+
+ {:category "Match queries"
+  :question "What matches did Palmeiras play in 2023?"
+  :tool "search_matches"
+  :args {"team" "Palmeiras" "season" 2023 "limit" 100}
+  :expect ["Palmeiras" "2023"]}
+
+ {:category "Match queries"
+  :question "When did Flamengo last play Corinthians, and what was the score?"
+  :tool "search_matches"
+  :args {"team" "Flamengo" "opponent" "Corinthians" "limit" 1}
+  :expect ["Flamengo" "Corinthians" "1 shown"]}
+
+ {:category "Match queries"
+  :question "Which matches were played between 2019-10-25 and 2019-10-28?"
+  :tool "search_matches"
+  :args {"date_from" "2019-10-25" "date_to" "2019-10-28" "limit" 15}
+  :expect ["2019-10-2"]}
+
+ {:category "Match queries"
+  :question "Find all Copa do Brasil finals"
+  :tool "list_finals"
+  :args {"competition" "Copa do Brasil"}
+  :expect ["Copa do Brasil finals"]}
+
+ {:category "Match queries"
+  :question "Show the 2018 Copa Libertadores final"
+  :tool "list_finals"
+  :args {"competition" "libertadores" "season" 2018}
+  :expect ["River Plate" "Boca Juniors"]}
+
+ {:category "Match queries"
+  :question "Show me all derbies in 2023"
+  :tool "find_derbies"
+  :args {"season" 2023}
+  :expect ["derby" "2023"]}
+
+ {:category "Match queries"
+  :question "Show every Gre-Nal in the Brasileirão"
+  :tool "find_derbies"
+  :args {"team" "Grêmio" "competition" "brasileirao"}
+  :expect ["Gre-Nal" "Internacional"]}
+
+ {:category "Team queries"
+  :question "What is Corinthians' home record in 2022?"
+  :tool "team_stats"
+  :args {"team" "Corinthians" "season" 2022 "competition" "brasileirao" "venue" "home"}
+  :expect ["Corinthians" "Wins:" "Win rate:"]}
+
+ {:category "Team queries"
+  :question "How did Flamengo do in the 2019 Brasileirão?"
+  :tool "team_stats"
+  :args {"team" "Flamengo" "season" 2019 "competition" "brasileirao"}
+  :expect ["Flamengo" "Points: 90"]}
+
+ {:category "Team queries"
+  :question "Compare Palmeiras and Santos head-to-head"
+  :tool "head_to_head"
+  :args {"team_a" "Palmeiras" "team_b" "Santos"}
+  :expect ["Palmeiras" "Santos" "Draws:"]}
+
+ {:category "Team queries"
+  :question "What competitions has Palmeiras played in?"
+  :tool "team_profile"
+  :args {"team" "Palmeiras"}
+  :expect ["Palmeiras" "Copa Libertadores" "Copa do Brasil" "Brasileirão Série A"]}
+
+ {:category "Team queries"
+  :question "Which team has the best home record?"
+  :tool "team_rankings"
+  :args {"venue" "home" "metric" "points_per_match" "min_matches" 100}
+  :expect ["home matches only" "pts/match"]}
+
+ {:category "Team queries"
+  :question "Which team has the best away record?"
+  :tool "team_rankings"
+  :args {"venue" "away" "metric" "points_per_match" "min_matches" 100}
+  :expect ["away matches only" "pts/match"]}
+
+ {:category "Team queries"
+  :question "Which team scored the most goals in Série A 2023?"
+  :tool "team_rankings"
+  :args {"competition" "Serie A" "season" 2023 "metric" "goals_for" "min_matches" 10}
+  :expect ["goals-for" "Brasileirão Série A, season 2023"]}
+
+ {:category "Team queries"
+  :question "Which clubs in the data are called Atlético?"
+  :tool "list_teams"
+  :args {"query" "atletico" "limit" 10}
+  :expect ["Atlético Mineiro" "Athletico Paranaense"]}
+
+ {:category "Player queries"
+  :question "Find the top Brazilian players in the dataset"
+  :tool "search_players"
+  :args {"nationality" "Brazil" "sort" "overall" "limit" 10}
+  :expect ["Neymar Jr" "Overall: 92"]}
+
+ {:category "Player queries"
+  :question "Who is Neymar?"
+  :tool "player_profile"
+  :args {"name" "Neymar"}
+  :expect ["Neymar" "Potential"]}
+
+ {:category "Player queries"
+  :question "Who are the highest-rated players at Cruzeiro?"
+  :tool "search_players"
+  :args {"club" "Cruzeiro" "sort" "overall" "limit" 5}
+  :expect ["Cruzeiro"]}
+
+ {:category "Player queries"
+  :question "Show me all forwards at Fluminense"
+  :tool "search_players"
+  :args {"club" "Fluminense" "position_group" "forward"}
+  :expect ["Fluminense"]}
+
+ {:category "Player queries"
+  :question "Which players play for Grêmio?"
+  :tool "club_squad"
+  :args {"club" "Grêmio"}
+  :expect ["Grêmio" "Average overall rating"]}
+
+ {:category "Player queries"
+  :question "Which Brazilian clubs have squads in the player data, and how good are they?"
+  :tool "club_squad"
+  :args {}
+  :expect ["avg rating" "Atlético Mineiro"]}
+
+ {:category "Player queries"
+  :question "Who are the highest-rated players at Flamengo?"
+  :tool "search_players"
+  :args {"club" "Flamengo"}
+  :expect ["no players matched" "only licenses"]}
+
+ {:category "Competition queries"
+  :question "Who won the 2019 Brasileirão?"
+  :tool "standings"
+  :args {"competition" "brasileirao" "season" 2019}
+  :expect ["Flamengo" "champion" "90"]}
+
+ {:category "Competition queries"
+  :question "Which teams were relegated in 2020?"
+  :tool "standings"
+  :args {"competition" "brasileirao" "season" 2020}
+  :expect ["relegation zone"]}
+
+ {:category "Competition queries"
+  :question "Show the 2003 Brasileirão table"
+  :tool "standings"
+  :args {"competition" "brasileirao" "season" 2003}
+  :expect ["Cruzeiro" "champion"]}
+
+ {:category "Statistical analysis"
+  :question "What's the average goals per match in the Brasileirão?"
+  :tool "competition_stats"
+  :args {"competition" "brasileirao"}
+  :expect ["per match" "Home wins:"]}
+
+ {:category "Statistical analysis"
+  :question "Compare the 2018 and 2019 Brasileirão seasons (2018)"
+  :tool "competition_stats"
+  :args {"competition" "brasileirao" "season" 2018}
+  :expect ["2018" "Goals:"]}
+
+ {:category "Statistical analysis"
+  :question "Compare the 2018 and 2019 Brasileirão seasons (2019)"
+  :tool "competition_stats"
+  :args {"competition" "brasileirao" "season" 2019}
+  :expect ["2019" "Goals:"]}
+
+ {:category "Statistical analysis"
+  :question "Show me the biggest wins in the dataset"
+  :tool "biggest_wins"
+  :args {"limit" 10}
+  :expect ["Biggest margins"]}
+
+ {:category "Statistical analysis"
+  :question "What were Santos' biggest wins in the Libertadores?"
+  :tool "biggest_wins"
+  :args {"team" "Santos" "competition" "libertadores" "limit" 5}
+  :expect ["Santos" "Copa Libertadores"]}
+
+ {:category "Statistical analysis"
+  :question "What data is loaded and where does it come from?"
+  :tool "dataset_info"
+  :args {}
+  :expect ["Brasileirao_Matches.csv" "CC BY 4.0" "de-duplicating"]}]
