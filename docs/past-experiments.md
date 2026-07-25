@@ -318,7 +318,7 @@ so the final numbers stand. The single-replicate sweep was luck, not capability.
 option** and as evidence that the OpenAI open-weights lineage is viable locally. Worth a follow-up at
 n≥5 on Go, and a look at whether Python's failures are a prompt/scaffold artifact.
 
-### exp-46 — Claude Opus 5: the first model to clear the HARD task broadly
+### exp-46 — Claude Opus 5: broad hard-task coverage, but Fable 5 is the better buy
 
 Added the new frontier model across **every supported language on both tasks** (n=1):
 `language{python, go, typescript, rust, clojure, java, csharp, elixir, erlang, c, cpp, objc, swift}
@@ -339,6 +339,25 @@ flight at write-up; see the note below)*:
 | go, typescript | 1.00 | 1.0 | matches |
 | csharp, elixir, erlang, c, cpp, objc | *never run* | **1.0** | new ground |
 | **python** | **1.00** | **✗ GENUINE fail** | ← loses to 4.8 |
+
+**⚠️ CORRECTION (added after comparing against Fable 5).** The first version of this entry called
+Opus 5 "the first model to clear the hard task broadly." That over-claimed. **On the 4 brazil languages
+all three models have actually run (clojure/go/python/rust), Fable 5 beats Opus 5 on every axis:**
+
+| brazil, like-for-like (4 langs) | n | pass | \$/run | min/run | **\$/solved** |
+|---|---|---|---|---|---|
+| **Fable 5** | 12 | **1.00** | 8.98 | 17.3 | **8.98** |
+| Opus 4.8 | 31 | 0.61 | **3.21** | **10.0** | 5.24 |
+| Opus 5 | 4 | 0.75 | 13.59 | 25.5 | 18.12 |
+
+Fable 5 is 4/4 where Opus 5 is 3/4, at **half the cost per solved task and 1.5× faster** — and it passes
+brazil/python, which Opus 5 genuinely fails. On the ROUTINE task the gap is wider still: Fable 5 1.00 at
+**\$1.05 / 2.4 min** vs Opus 5's **\$3.15 / 10.1 min**. **Opus 5's real claim is BREADTH, not
+superiority:** it is the only model with brazil data for csharp, elixir, erlang, c, cpp and objc (six
+languages, all 1.00) — but those are *untested* for Fable 5 and 4.8, not beaten. **Recommendation:
+Fable 5 for routine and hard work in the languages it covers; 4.8 when cost dominates; Opus 5 only where
+nothing else has been proven.** Obvious follow-up: **run Fable 5 on the other 9 brazil languages** to
+make the comparison fair.
 
 **Interpretation — a trade, not domination.** The hard task has been the standing ceiling: best local
 0/6, and 4.8 reliable in only 3 of the 6 languages it had run. Opus 5 clears **eleven**, including all
