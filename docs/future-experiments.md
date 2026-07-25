@@ -109,7 +109,31 @@ is *not* equivalent to any named level.
   flat across all levels and briefly looked like a silently-ignored flag. It was a **weak probe, not an
   ignored parameter** — the stream-json check disproved it.
 - *Caveat:* the probe is single-shot, non-agentic, n=1. It establishes the knob is real and observable,
-  which is all a smoke test should do — not what it does to an agent loop. That is what the run measures.
+  which is all a smoke test should do — not what it does to an agent loop.
+
+**End-to-end smoke test through the real pipeline** (one cell, `python × bookshop × opus-4.8 ×
+effort=max`): `stack.json` recorded `"effort": "max"`, and the transcript carried **16 `thinking`
+blocks across 63 assistant messages** — extended thinking was genuinely active inside the agent loop,
+not just accepted at the CLI. The factor is verified end-to-end.
+
+**And it produced a preliminary result big enough to justify the whole experiment.** Against
+versions-blog's default-effort baseline for the *same model and cell*:
+
+| Opus 4.8, python bookshop | turns | tokens | cost |
+|---|---:|---:|---:|
+| effort = default (n=6) | 17.3 | 310 K | \$0.50 |
+| **effort = max (n=1)** | **33** | **1,620 K** | **\$2.55** |
+
+**Turning the thinking knob up nearly doubled the turns and 5×'d the tokens on identical weights** —
+and 33 turns is essentially Opus 5's default-effort 36. So *thinking level alone can reproduce most of
+the cross-version turn gap* that versions-blog attributes to newer models being "tuned to iterate more."
+That does not overturn the blog — it is n=1 against a different experiment's baseline — but it converts
+the confound from theoretical to measured, and makes the 63-run factorial the right way to settle it.
+
+*Two honest caveats on that row:* it is n=1, and its **wall-clock time is unusable** because the cell
+was run while exp-48 was still going — a violation of the one-experiment-at-a-time rule below, and the
+reason that rule is now written down. Turns, tokens and cost are properties of the model's work rather
+than machine load, so those three stand; the duration does not, and is omitted above.
 
 **Revised cloud design: `{4.7, 4.8, Fable 5, Opus 5} × {default, low, medium, high, max}` = 20 cells,
 plus a `4.8-fast × default` serving control = 21 cells × n=3 = 63 runs.** Fast mode stays at the default

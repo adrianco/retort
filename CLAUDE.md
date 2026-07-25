@@ -44,6 +44,27 @@ How to apply:
 3. A parameter whose effect you cannot observe in a smoke test is not usable in the
    experiment — fix the plumbing or drop the factor.
 
+## Principle: ONE experiment at a time on this machine
+
+**Never run two experiments concurrently — not even a cloud run alongside a local one,
+and not even a "cheap" one-cell smoke test alongside a full run.**
+
+retort measures wall-clock seconds, turns and tokens as first-class responses. A second
+concurrent run contends for CPU, memory, disk and API rate limits, so it corrupts the very
+timing numbers the experiment exists to produce — and the corruption is **invisible
+afterwards**: the run completes, the numbers look plausible, and nothing in the archive
+records that something else was competing for the machine. Local runs additionally contend
+for the single oMLX server on port 8080.
+
+How to apply: before launching anything — full experiment, gate-probe, or smoke test —
+check for a live run (`pgrep -f "retort run"`, plus any driver script) and **wait**. Queue
+follow-on work in a driver script rather than starting it alongside. "It's only one cell"
+and "that one's local, this one's cloud" are both wrong.
+
+*(Written after a one-cell `--effort` smoke test was run during exp-48's brazil half. Its
+turns/tokens/cost survived — those are properties of the model's work — but its wall-clock
+time had to be thrown away.)*
+
 ## Experiment workflow
 
 - **Before** launching: write the plan (intent, design, hypothesis) into
