@@ -1,0 +1,1 @@
+/usr/bin/c++ -Wall -Wextra -g -arch arm64 -Wl,-search_paths_first -Wl,-headerpad_max_install_names CMakeFiles/book_api_server_tests.dir/tests/test_main.cpp.o CMakeFiles/book_api_server_tests.dir/tests/test_server.cpp.o -o book_api_server_tests  -lsqlite3 -lcurl

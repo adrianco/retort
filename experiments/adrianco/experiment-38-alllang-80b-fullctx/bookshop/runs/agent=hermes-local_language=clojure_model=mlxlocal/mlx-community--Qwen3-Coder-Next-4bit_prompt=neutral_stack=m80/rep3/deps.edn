@@ -1,0 +1,13 @@
+{:deps
+ {ring/ring-core        {:mvn/version "1.12.2"}
+  ring/ring-jetty-adapter {:mvn/version "1.12.2"}
+  org.clojure/java.jdbc {:mvn/version "0.7.12"}
+  org.xerial/sqlite-jdbc {:mvn/version "3.46.1.3"}
+  ring/ring-json          {:mvn/version "0.5.1"}
+  org.clojure/data.json   {:mvn/version "2.4.0"}
+  compojure/compojure     {:mvn/version "1.7.2"}}
+ :aliases
+ {:test {:extra-paths ["test"]
+         :extra-deps {org.clojure/clojure {:mvn/version "1.12.0"}}
+         :main-opts ["-m" "book-api.test-runner"]}
+  :run {:main-opts ["-m" "book-api.core"]}}}

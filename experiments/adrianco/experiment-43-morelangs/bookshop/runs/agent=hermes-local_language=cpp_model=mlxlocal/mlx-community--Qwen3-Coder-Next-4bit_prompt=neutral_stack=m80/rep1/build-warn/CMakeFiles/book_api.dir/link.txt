@@ -1,0 +1,1 @@
+/usr/bin/c++ -Wall -Wextra -g -arch arm64 -Wl,-search_paths_first -Wl,-headerpad_max_install_names CMakeFiles/book_api.dir/src/main.cpp.o CMakeFiles/book_api.dir/src/server.cpp.o CMakeFiles/book_api.dir/src/handler.cpp.o CMakeFiles/book_api.dir/src/database.cpp.o CMakeFiles/book_api.dir/src/model.cpp.o -o book_api  -lsqlite3 -lcurl

@@ -1,0 +1,11 @@
+/Users/adriancockcroft/.retort/work/retort-local-67epco6f/retort-663db353e9cc/src/BrazilianSoccer.Core/bin/Debug/net10.0/BrazilianSoccer.Core.deps.json
+/Users/adriancockcroft/.retort/work/retort-local-67epco6f/retort-663db353e9cc/src/BrazilianSoccer.Core/bin/Debug/net10.0/BrazilianSoccer.Core.dll
+/Users/adriancockcroft/.retort/work/retort-local-67epco6f/retort-663db353e9cc/src/BrazilianSoccer.Core/bin/Debug/net10.0/BrazilianSoccer.Core.pdb
+/Users/adriancockcroft/.retort/work/retort-local-67epco6f/retort-663db353e9cc/src/BrazilianSoccer.Core/obj/Debug/net10.0/BrazilianSoccer.Core.GeneratedMSBuildEditorConfig.editorconfig
+/Users/adriancockcroft/.retort/work/retort-local-67epco6f/retort-663db353e9cc/src/BrazilianSoccer.Core/obj/Debug/net10.0/BrazilianSoccer.Core.AssemblyInfoInputs.cache
+/Users/adriancockcroft/.retort/work/retort-local-67epco6f/retort-663db353e9cc/src/BrazilianSoccer.Core/obj/Debug/net10.0/BrazilianSoccer.Core.AssemblyInfo.cs
+/Users/adriancockcroft/.retort/work/retort-local-67epco6f/retort-663db353e9cc/src/BrazilianSoccer.Core/obj/Debug/net10.0/BrazilianSoccer.Core.csproj.CoreCompileInputs.cache
+/Users/adriancockcroft/.retort/work/retort-local-67epco6f/retort-663db353e9cc/src/BrazilianSoccer.Core/obj/Debug/net10.0/BrazilianSoccer.Core.dll
+/Users/adriancockcroft/.retort/work/retort-local-67epco6f/retort-663db353e9cc/src/BrazilianSoccer.Core/obj/Debug/net10.0/refint/BrazilianSoccer.Core.dll
+/Users/adriancockcroft/.retort/work/retort-local-67epco6f/retort-663db353e9cc/src/BrazilianSoccer.Core/obj/Debug/net10.0/BrazilianSoccer.Core.pdb
+/Users/adriancockcroft/.retort/work/retort-local-67epco6f/retort-663db353e9cc/src/BrazilianSoccer.Core/obj/Debug/net10.0/ref/BrazilianSoccer.Core.dll

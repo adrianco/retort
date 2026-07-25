@@ -98,15 +98,22 @@ FEATURED_STACKS = [
         # from the brazil-35b experiments (25/26). Early local experiments (16-20 etc.)
         # ran at bad configs (temp=1.0, 64/128K, wrong playpen) and are excluded on
         # purpose -- including them would report 0.28, not the tuned 0.83. The
-        # NOT LIKE '%Next%' guard keeps the 80B Qwen3-Coder-Next rows (also served under
-        # an mlxlocal/ id) out of the 35B stack -- they are their own stack below.
         # exp-35 (35B Rust at context_threshold 0.7) is a DIFFERENT stack (the featured 35B
         # is at the 0.35 default) so it is excluded -- see docs/past-experiments.md exp-35.
+        #
+        # The model clause is a POSITIVE match on the 35B's id. It used to be
+        # "mlxlocal% AND NOT %Next%", i.e. "any local model except the 80B" -- which
+        # silently adopted every NEW local model into the 35B's numbers. exp-47 landed
+        # 15 gpt-oss-20b runs and they were counted as 35B, moving published per-language
+        # figures (go 0.87->0.84, python 0.80->0.78, ts 0.33->0.38) before the extra rows
+        # gave it away. Never enumerate local stacks by exclusion; match the model.
+        # The two experiment LIKE clauses stay because exp-25/26/27 predate model
+        # recording (model IS NULL on all 60 rows) -- verified 35B-only experiments.
         "name": "Qwen3.6-35B-A3B (local, $0)",
         "short": "Qwen 35B local",
         "where": (
             "( experiment LIKE '%sampling%' "
-            "OR (model LIKE 'mlxlocal%' AND model NOT LIKE '%Next%') "
+            "OR model LIKE '%Qwen3.6-35B%' "
             "OR experiment LIKE '%brazil-35b%' ) "
             "AND experiment NOT LIKE '%experiment-35%'"
         ),

@@ -152,3 +152,47 @@ def test_splice_is_idempotent(tmp_path):
 
     changed2, _ = opt.splice(blog, conn)
     assert blog.read_text() == first   # second run is a no-op
+
+
+def test_featured_stack_predicates_are_mutually_exclusive():
+    """No run may be claimed by two featured stacks.
+
+    Regression: the 35B's predicate was "any mlxlocal model except the 80B", so it
+    silently adopted every NEW local model. exp-47's 15 gpt-oss-20b runs landed in
+    the 35B's published per-language figures, and masked the fact that the 35B
+    scores 0.00 on TypeScript (the blended number read 0.33). Enumerate local
+    stacks by matching the model, never by excluding the other ones.
+    """
+    rows = [
+        # One run per distinct local model, plus a cloud model, all same cell.
+        ("experiment-47-gptoss20b-bookshop", "rest-api-crud", "typescript",
+         "mlxlocal/mlx-community--gpt-oss-20b-MXFP4-Q8", "neutral", 1.0, 0.0, 100.0, None, 1.0, 1e6),
+        ("experiment-28-rebaseline-sampling-bookshop", "rest-api-crud", "typescript",
+         "mlxlocal/Qwen3.6-35B-A3B", "neutral", 0.0, 0.0, 100.0, None, 0.0, 1e6),
+        ("experiment-38-alllang-80b-fullctx-bookshop", "rest-api-crud", "typescript",
+         "mlxlocal/mlx-community--Qwen3-Coder-Next-4bit", "neutral", 1.0, 0.0, 100.0, None, 1.0, 1e6),
+    ]
+    conn = _db(rows)
+    claimed: dict[int, list[str]] = {}
+    for stack in opt.FEATURED_STACKS:
+        where = stack.get("where")
+        if not where:
+            where = "model IN (%s)" % ",".join(
+                "'%s'" % m for m in stack.get("models", ["\x00"])
+            )
+        for (rowid,) in conn.execute(f"SELECT rowid FROM runs WHERE {where}"):
+            claimed.setdefault(rowid, []).append(stack["short"])
+
+    overlaps = {r: s for r, s in claimed.items() if len(s) > 1}
+    assert not overlaps, f"runs claimed by multiple featured stacks: {overlaps}"
+
+
+def test_gptoss_runs_are_not_counted_as_the_35b():
+    """The specific regression, pinned: gpt-oss must not fall into the 35B stack."""
+    stack = next(s for s in opt.FEATURED_STACKS if s["short"] == "Qwen 35B local")
+    conn = _db([
+        ("experiment-47-gptoss20b-bookshop", "rest-api-crud", "go",
+         "mlxlocal/mlx-community--gpt-oss-20b-MXFP4-Q8", "neutral", 1.0, 0.0, 100.0, None, 1.0, 1e6),
+    ])
+    n = conn.execute(f"SELECT count(*) FROM runs WHERE {stack['where']}").fetchone()[0]
+    assert n == 0, "gpt-oss-20b runs are being attributed to the Qwen 35B stack"

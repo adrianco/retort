@@ -1,0 +1,31 @@
+{
+  "severity_counts": {
+    "critical": 0,
+    "high": 2,
+    "medium": 0,
+    "low": 0,
+    "info": 0
+  },
+  "penalty_score": 0.8,
+  "top_findings": [
+    {
+      "id": "R8",
+      "kind": "requirement_missing",
+      "severity": "high",
+      "title": "HTTP status codes are never appropriate — every response returns 404",
+      "evidence": "src/main.cpp:27 registers only setDefaultHandler and never addHandler, so server.cpp:169 handlers_.find() always misses and control falls to the default branch at server.cpp:174-177 which hardcodes status_code=404. handleRequest (src/handler.cpp:136) returns only a body string, so 201/400/404-semantic codes are impossible. Successful GET /books, POST /books, and even GET /health all return HTTP 404.",
+      "suggestion": "Have handleRequest return a status code alongside the body and pass it to generateResponse; return 201 on create, 400 on validation failure, 404 for missing book."
+    },
+    {
+      "id": "R2",
+      "kind": "requirement_partial",
+      "severity": "high",
+      "title": "GET /books emits malformed JSON — isbn string is unterminated",
+      "evidence": "src/handler.cpp:211 ends the list element with `<< jsonEscape(book.isbn) << \"}\"` — the closing quote of the isbn string is missing. The correct single-book path at src/handler.cpp:264 ends with `<< \"\\\"}\"`. GET /books therefore returns invalid JSON.",
+      "suggestion": "Change line 211 to close the isbn string, matching line 264."
+    }
+  ],
+  "requirement_coverage": 0.8333,
+  "model": "mlxlocal/mlx-community--Qwen3-Coder-Next-4bit",
+  "evaluated_at": "2026-07-22T19:35:57Z"
+}

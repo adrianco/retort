@@ -1,0 +1,28 @@
+[package]
+name = "book-api"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+actix-web = "4"
+actix-rt = "2"
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+serde_urlencoded = "0.7"
+sqlx = { version = "0.7", features = ["runtime-tokio-rustls", "sqlite"] }
+tokio = { version = "1", features = ["full"] }
+thiserror = "1"
+validator = { version = "0.18", features = ["derive"] }
+chrono = { version = "0.4", features = ["serde"] }
+
+[[bin]]
+name = "book-api"
+path = "src/main.rs"
+
+[[test]]
+name = "integration"
+path = "tests/integration_tests.rs"
+
+[lib]
+name = "book_api"
+path = "src/lib.rs"

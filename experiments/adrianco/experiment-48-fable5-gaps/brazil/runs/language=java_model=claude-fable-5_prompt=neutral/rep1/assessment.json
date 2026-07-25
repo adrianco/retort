@@ -1,0 +1,10 @@
+{
+  "severity_counts": {"critical": 0, "high": 0, "medium": 0, "low": 0, "info": 0},
+  "penalty_score": 1.0,
+  "top_findings": [],
+  "requirement_coverage": 1.0,
+  "model": "claude-fable-5",
+  "evaluated_at": "2026-07-25T17:13:55Z",
+  "min_severity": "high",
+  "note": "5 findings in findings.jsonl (1 low, 4 info) all fall below min_severity=high and are excluded. file-run-issues v2.0 aggregates only; no beads/GitHub issues are created despite tracker=beads."
+}

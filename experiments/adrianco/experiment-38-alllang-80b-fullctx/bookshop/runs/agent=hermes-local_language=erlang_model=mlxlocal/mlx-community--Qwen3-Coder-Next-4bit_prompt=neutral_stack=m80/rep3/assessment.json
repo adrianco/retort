@@ -1,0 +1,11 @@
+{
+  "severity_counts": {"critical": 0, "high": 2, "medium": 0, "low": 0, "info": 0},
+  "penalty_score": 0.8,
+  "top_findings": [
+    {"id": "R8-http", "kind": "requirement_partial", "severity": "high", "title": "HTTP layer uses Cowboy 1.x API against declared cowboy 2.10.0 — no endpoint serves at runtime", "evidence": "src/book_api_routes.erl:19 -behaviour(cowboy_http_handler) (absent in 2.x); :44 init/2 returns 2-tuple {ok,#{}} but 2.x requires {ok,Req,State}; :47 handle/2 never called by 2.x; :64,97 cowboy_req:body/1 and :81 cowboy_req:query_params/1 undefined in 2.x. rebar.config:2 = {cowboy,\"2.10.0\"}. grep src/ for read_body/reply/parse_qs/cowboy_handler = NONE. Compiles but crashes per request.", "suggestion": "Rewrite as a Cowboy 2.x cowboy_handler: init(Req,State) that reads body via cowboy_req:read_body/1, parses qs via cowboy_req:parse_qs/1, and calls cowboy_req:reply/4 with {ok,Req,State}."},
+    {"id": "R8-status", "kind": "requirement_partial", "severity": "high", "title": "No HTTP status codes set — 201/400/404 absent, all differentiation is in JSON body", "evidence": "src/book_api_routes.erl:47-55 handle/2 only calls cowboy_req:set_resp_header/3 + set_resp_body/2, never cowboy_req:reply/4. create/duplicate/validation-error/not_found all return the same status; error info lives only in the JSON body. grep of src/ for reply/status/201/404/400 finds only JSON body fields and gen_server {reply,...} tuples.", "suggestion": "Use cowboy_req:reply(201,...) on create, 400 on validation failure, 404 on not_found, 200 otherwise."}
+  ],
+  "requirement_coverage": 0.25,
+  "model": "mlxlocal/mlx-community--Qwen3-Coder-Next-4bit",
+  "evaluated_at": "2026-07-17T14:25:00Z"
+}

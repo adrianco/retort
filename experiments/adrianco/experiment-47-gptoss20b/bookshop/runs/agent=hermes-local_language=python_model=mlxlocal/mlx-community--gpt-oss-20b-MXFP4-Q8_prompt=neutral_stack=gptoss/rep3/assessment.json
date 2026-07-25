@@ -1,31 +1,10 @@
 {
-  "severity_counts": {
-    "critical": 0,
-    "high": 2,
-    "medium": 0,
-    "low": 0,
-    "info": 0
-  },
-  "penalty_score": 0.8,
+  "severity_counts": {"critical": 0, "high": 1, "medium": 0, "low": 0, "info": 0},
+  "penalty_score": 0.9,
   "top_findings": [
-    {
-      "id": "test-fail-1",
-      "kind": "test_failure",
-      "severity": "high",
-      "title": "All 4 tests fail: 'async def functions are not natively supported'",
-      "evidence": "tests/test_api.py:5,12,27,46 use @pytest.mark.asyncio but pytest-asyncio is not installed/declared. Reproduced pytest --cov=. run: '4 failed, 10 warnings' with 'PytestUnknownMarkWarning: Unknown pytest.mark.asyncio' and 'Failed: async def functions are not natively supported'. The .coverage numbits confirm only def/decorator lines ran \u2014 no test body executed. TOTAL coverage 33% (import-only) == scores.json test_coverage=0.33.",
-      "suggestion": "Declare pytest-asyncio (and fastapi/httpx) in requirements.txt and add asyncio_mode=auto (or a pytest.ini) so the async test bodies actually run \u2014 or rewrite tests with fastapi.testclient.TestClient (sync)."
-    },
-    {
-      "id": "R12",
-      "kind": "requirement_partial",
-      "severity": "high",
-      "title": "R12 '>=3 tests run and pass' unmet \u2014 4 tests exist, 0 pass",
-      "evidence": "tests/test_api.py defines 4 async tests; a reproduced `python -m pytest --cov=.` run reports '4 failed' (0 passed). scores.json test_coverage=0.33 is line-coverage%, parsed from the TOTAL line by _parse_coverage(), NOT a pass rate \u2014 it reflects import-only coverage. This is a REPAIR task; FEEDBACK.md explicitly flagged '4 tests exist but none pass' and it was not fixed.",
-      "suggestion": "Fix the async test harness (pytest-asyncio + asyncio_mode) so >=3 tests actually run and pass."
-    }
+    {"id": "R12", "kind": "requirement_partial", "severity": "high", "title": "4 tests exist but none actually run — repair goal unmet", "evidence": ".coverage shows tests/test_api.py executed only def/decorator lines (bodies never ran) and app/main.py endpoint bodies have 0 coverage; workspace has no pytest-asyncio/anyio/asyncio_mode and uses httpx's removed AsyncClient(app=...). test_coverage=0.33 is import-only coverage. FEEDBACK.md required the repair to make tests pass; they still do not.", "suggestion": "Add pytest-asyncio (asyncio_mode=auto) and use AsyncClient(transport=ASGITransport(app=app)); or rewrite as sync TestClient tests."}
   ],
   "requirement_coverage": 0.9167,
   "model": "mlxlocal/mlx-community--gpt-oss-20b-MXFP4-Q8",
-  "evaluated_at": "2026-07-25T01:46:28Z"
+  "evaluated_at": "2026-07-25T17:10:14Z"
 }

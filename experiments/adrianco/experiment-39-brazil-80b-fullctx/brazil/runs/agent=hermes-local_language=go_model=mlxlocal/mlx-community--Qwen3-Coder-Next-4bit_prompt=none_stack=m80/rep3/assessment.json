@@ -1,0 +1,13 @@
+{
+  "severity_counts": {"critical": 0, "high": 4, "medium": 0, "low": 0, "info": 0},
+  "penalty_score": 0.6,
+  "top_findings": [
+    {"id": "R1", "kind": "requirement_missing", "severity": "high", "title": "Not an MCP server — no MCP protocol, SDK, transport, or tool registration", "evidence": "grep for mcp|jsonrpc|stdio|AddTool|RegisterTool across *.go returns nothing; go.mod has zero deps; server/server.go:653 Run() only prints a banner and runs one hardcoded query s.Query(\"Who won the 2019 Brasileirao?\") (server.go:658). No tool definitions, no JSON-RPC/stdio loop.", "suggestion": "Add an MCP server SDK, register the query functions as MCP tools, serve over stdio/JSON-RPC."},
+    {"id": "R3", "kind": "requirement_partial", "severity": "high", "title": "Match-by-team lookup returns empty for all real data (case-mismatch bug)", "evidence": "query/match_query.go:319 normalizeTeamName lowercases the query team; loader/loader.go:725 stores names case-preserved (no ToLower; empty-store alias lookup at loader.go:743). match_query.go:66/36 compare match.HomeTeam==team with ==, so \"Palmeiras\"==\"palmeiras\" is never true. Data present in data/kaggle/.", "suggestion": "Normalize team-name case consistently between loader and query."},
+    {"id": "R6", "kind": "requirement_partial", "severity": "high", "title": "Team W/L/D + goals stats always empty (same case-mismatch bug)", "evidence": "query/match_query.go:154 GetTeamStats lowercases team (:155) then compares match.HomeTeam==team (:170-186); stored names are case-preserved so every TeamStats is all-zero.", "suggestion": "Fix the shared team-name normalization."},
+    {"id": "R11", "kind": "requirement_partial", "severity": "high", "title": "Head-to-head record always returns zeros (same case-mismatch bug)", "evidence": "server/server.go:131 answerTeamMatchQuery -> query/match_query.go:212 GetHeadToHead -> FindMatchesByTeams (:218) lowercases queried teams and fails to match case-preserved stored names -> h2h has 0 matches.", "suggestion": "Same fix as R3."}
+  ],
+  "requirement_coverage": 0.6667,
+  "model": "mlxlocal/mlx-community--Qwen3-Coder-Next-4bit",
+  "evaluated_at": "2026-07-17T21:50:17Z"
+}

@@ -4,7 +4,5 @@
   "top_findings": [],
   "requirement_coverage": 1.0,
   "model": "mlxlocal/mlx-community--gpt-oss-20b-MXFP4-Q8",
-  "evaluated_at": "2026-07-25T01:39:39Z",
-  "min_severity": "high",
-  "note": "5 findings exist in findings.jsonl (2 medium, 3 low) but none are >= high, so none count toward this assessment."
+  "evaluated_at": "2026-07-25T17:02:19Z"
 }

@@ -1,0 +1,10 @@
+{
+  "severity_counts": {"critical": 0, "high": 1, "medium": 0, "low": 0, "info": 0},
+  "penalty_score": 0.9,
+  "top_findings": [
+    {"id": "R12", "kind": "requirement_partial", "severity": "high", "title": "Only 2 tests (spec requires >=3), both trivial", "evidence": "src/main.rs:34 test_model_structs and src/main.rs:77 test_state_clone are the only #[test] fns in the whole tree (grep of *.rs finds exactly 2). Neither exercises an HTTP handler, DB query, or validation path. No tests/ integration dir. test_coverage=1.0 (scores.json) reflects these 2 vacuous tests passing.", "suggestion": "Add at least one more test and cover a real path (e.g. actix_web::test against create_book validation returning 400, or a round-trip via the diesel layer)."}
+  ],
+  "requirement_coverage": 0.9167,
+  "model": "mlxlocal/mlx-community--Qwen3-Coder-Next-4bit",
+  "evaluated_at": "2026-07-17T14:36:20Z"
+}

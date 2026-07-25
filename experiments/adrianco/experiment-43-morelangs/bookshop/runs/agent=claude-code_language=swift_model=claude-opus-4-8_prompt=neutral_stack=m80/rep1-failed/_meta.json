@@ -1,0 +1,12 @@
+{
+  "replicate": 1,
+  "run_config": {
+    "agent": "claude-code",
+    "language": "swift",
+    "model": "claude-opus-4-8",
+    "prompt": "neutral",
+    "stack": "m80"
+  },
+  "succeeded": true,
+  "visibility": "public"
+}

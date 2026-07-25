@@ -1,0 +1,13 @@
+{
+  "severity_counts": {"critical": 0, "high": 4, "medium": 0, "low": 0, "info": 0},
+  "penalty_score": 0.6,
+  "top_findings": [
+    {"id": "R1", "kind": "requirement_missing", "severity": "high", "title": "Not an MCP server — plain net/http REST API", "evidence": "main.go:1285-1292 registers REST routes via http.HandleFunc; grep -iE 'mcp|json-?rpc|stdio|RegisterTool|tools/call|initialize' main.go matches only the 'soccer-mcp' module name and one unrelated comment; go.mod has no MCP SDK; _agent_stdout.log states 'no MCP dependency'.", "suggestion": "Expose the query functions as MCP tools over an MCP server SDK (stdio/JSON-RPC) instead of, or in addition to, REST."},
+    {"id": "R2", "kind": "requirement_partial", "severity": "high", "title": "FIFA player CSV never loads — 0 players at runtime", "evidence": "loadPlayers guard 'if len(record) < 100 { continue }' at main.go:493, but every fifa_data.csv row has <=90 fields (header 89, max data row 90), so all 18,207 rows are skipped. Match CSVs do load, so R2 is partial.", "suggestion": "Change the guard to the actual FIFA column count (e.g. len(record) < 89) and align column indices to the header."},
+    {"id": "R7", "kind": "requirement_partial", "severity": "high", "title": "Player search-by-name non-functional on real data", "evidence": "GetPlayerByName (main.go:826) is correct and unit-tested, but the test injects synthetic players (main_test.go:512) and never calls LoadData; at runtime s.players is empty (R2), so /api/players?name= returns [].", "suggestion": "Fix loadPlayers (R2) so search operates on the loaded FIFA dataset; add a test that loads the real CSV."},
+    {"id": "R8", "kind": "requirement_partial", "severity": "high", "title": "Player nationality/club filtering non-functional + Brazilian-only", "evidence": "GetPlayersByClub (main.go:845) and GetBrazilianPlayers (main.go:883) return [] at runtime because s.players is empty (R2). playersHandler (main.go:1177) exposes only a 'brazilian' param; no generic nationality filter.", "suggestion": "Add a generic ?nationality= param backed by a GetPlayersByNationality function, and fix R2."}
+  ],
+  "requirement_coverage": 0.6667,
+  "model": "mlxlocal/mlx-community--Qwen3-Coder-Next-4bit",
+  "evaluated_at": "2026-07-16T03:13:02Z"
+}

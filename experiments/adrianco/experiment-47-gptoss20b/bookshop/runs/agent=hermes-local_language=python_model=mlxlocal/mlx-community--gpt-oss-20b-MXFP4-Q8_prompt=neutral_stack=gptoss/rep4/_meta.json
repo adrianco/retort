@@ -1,0 +1,12 @@
+{
+  "replicate": 4,
+  "run_config": {
+    "agent": "hermes-local",
+    "language": "python",
+    "model": "mlxlocal/mlx-community--gpt-oss-20b-MXFP4-Q8",
+    "prompt": "neutral",
+    "stack": "gptoss"
+  },
+  "succeeded": true,
+  "visibility": "public"
+}

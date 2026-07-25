@@ -1,0 +1,10 @@
+{
+  "severity_counts": {"critical": 0, "high": 1, "medium": 0, "low": 0, "info": 0},
+  "penalty_score": 0.9,
+  "top_findings": [
+    {"id": "R1", "kind": "requirement_missing", "severity": "high", "title": "No MCP protocol server — FastAPI REST implemented instead", "evidence": "server.py:12 from fastapi import FastAPI; HTTP POST endpoints (server.py:422,468,515,571,698) via uvicorn (server.py:813-815); repo-wide grep for mcp/fastmcp/modelcontextprotocol/list_tools/call_tool/stdio_server returns nothing; 'MCP' only free text (server.py:3,360,412).", "suggestion": "Re-implement using an MCP SDK (mcp/fastmcp): expose query functions as registered @tool handlers over stdio transport instead of REST endpoints."}
+  ],
+  "requirement_coverage": 0.8333,
+  "model": "mlxlocal/mlx-community--Qwen3-Coder-Next-4bit",
+  "evaluated_at": "2026-07-16T03:24:47Z"
+}

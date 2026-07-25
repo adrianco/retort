@@ -256,17 +256,23 @@ The sampling tier is done (exp-27). Remaining levers, by payoff:
 
 ## 4. gpt-oss-20b  — DONE (exp-47), see past-experiments
 
-Ran 2026-07-24 → [past-experiments.md](past-experiments.md) (exp-47). Gate-probe passed (oMLX parses
-its Harmony tool calls), then n=3 on bookshop: **go 3/3 @95s** (matches the 80B's 1.00 @345s from a
-quarter the memory — 3.6x faster), **typescript 2/3** (beats the 35B's 0.00), **python 1/3** (both
-Qwens are 1.00). **Verdict: fast and Go-solid, too uneven to displace the 80B** — keep the 80B
-featured; gpt-oss earns the "fast Go option" slot and proves the OpenAI open-weights lineage is
-viable locally.
+Ran 2026-07-24, **extended to n=5 on 2026-07-25** → [past-experiments.md](past-experiments.md)
+(exp-47). Gate-probe passed (oMLX parses its Harmony tool calls). Final: **go 0.80 @102s**,
+**typescript 0.60 @147s** (still beats the 35B's 0.00), **python 0.40 @245s** (both Qwens are 1.00).
 
-**Follow-ups worth queueing:** (a) **n>=5 on Go** to firm up the headline speed/parity claim;
-(b) probe whether **Python's 1/3 is a prompt/scaffold artifact** rather than capability (it produced
-a 0.9167 near-miss, so it's close); (c) the **llama.cpp backend** could serve it too — a
-serving-layer comparison on an identical model is a clean lever test.
+**The n>=5 follow-up queued here has now run, and it REMOVED the headline rather than confirming it.**
+At n=3 Go was 1.00 and about to be published as "matches the 80B at 3.6x the speed"; replicates 4–5
+took it to 0.80. Revised verdict: **fast but reliable at nothing** — keep the 80B featured. gpt-oss's
+value is speed plus lineage evidence (the OpenAI open-weights family is servable and drivable locally),
+not any language it can be trusted with. The three all-zero failures were reproduced by hand and are
+GENUINE model errors (two `tsc` failures incl. a duplicated app body; one self-importing `httpx` shim),
+not harness artifacts.
+
+**Follow-ups worth queueing:** ~~(a) n>=5 on Go~~ **— done, see above;**
+(b) probe whether **Python's 0.40 is a prompt/scaffold artifact** rather than capability — at n=5 it
+produced *two* 0.9167 near-misses, so it is close, and its one hard failure was a self-inflicted
+`httpx` shim rather than an inability to write the API; (c) the **llama.cpp backend** could serve it
+too — a serving-layer comparison on an identical model is a clean lever test.
 
 ## 5. More languages — C / C++ / Objective-C / Swift  — DONE (exp-43), see past-experiments
 

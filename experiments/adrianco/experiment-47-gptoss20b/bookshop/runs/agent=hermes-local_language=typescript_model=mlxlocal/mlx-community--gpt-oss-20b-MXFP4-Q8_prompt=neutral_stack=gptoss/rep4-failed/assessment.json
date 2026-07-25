@@ -1,0 +1,10 @@
+{
+  "severity_counts": {"critical": 0, "high": 1, "medium": 0, "low": 0, "info": 0},
+  "penalty_score": 0.9,
+  "top_findings": [
+    {"id": "R11", "kind": "requirement_missing", "severity": "high", "title": "No README.md with setup and run instructions", "evidence": "find . -iname 'readme*' returns nothing; only src/, tests/, package.json, tsconfig.json, jest.config.js present", "suggestion": "Add a README.md documenting install (npm install), build (npm run build), run (npm start), and test (npm test) steps"}
+  ],
+  "requirement_coverage": 0.9167,
+  "model": "mlxlocal/mlx-community--gpt-oss-20b-MXFP4-Q8",
+  "evaluated_at": "2026-07-25T16:08:45Z"
+}

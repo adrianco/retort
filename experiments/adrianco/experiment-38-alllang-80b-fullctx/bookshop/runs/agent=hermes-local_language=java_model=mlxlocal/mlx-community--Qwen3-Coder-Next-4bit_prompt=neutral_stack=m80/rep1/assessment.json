@@ -1,0 +1,11 @@
+{
+  "severity_counts": {"critical": 0, "high": 2, "medium": 0, "low": 0, "info": 0},
+  "penalty_score": 0.8,
+  "top_findings": [
+    {"id": "R4", "kind": "requirement_partial", "severity": "high", "title": "Not-found path returns HTTP 500, not 404", "evidence": "src/main/java/com/bookapi/service/ResourceNotFoundException.java:3 is a plain RuntimeException with no @ResponseStatus; no @ControllerAdvice/@ExceptionHandler in src/main. BookController.getBookById (BookController.java:60) throws it, so Spring returns 500. R4 requires '404 if absent'.", "suggestion": "Add @ResponseStatus(HttpStatus.NOT_FOUND) to ResourceNotFoundException or a @RestControllerAdvice mapping it to 404."},
+    {"id": "test-notfound", "kind": "test_failure", "severity": "high", "title": "Three not-found tests fail (expect 404, get 500)", "evidence": "BookControllerTest.testGetBookByIdNotFound:158, testUpdateBookNotFound:189, testDeleteBookNotFound:222 andExpect(status().isNotFound()) but get 500. Consistent with test_coverage=0.6667.", "suggestion": "Fix the 404 mapping (see R4)."}
+  ],
+  "requirement_coverage": 0.75,
+  "model": "mlxlocal/mlx-community--Qwen3-Coder-Next-4bit",
+  "evaluated_at": "2026-07-17T14:37:31Z"
+}

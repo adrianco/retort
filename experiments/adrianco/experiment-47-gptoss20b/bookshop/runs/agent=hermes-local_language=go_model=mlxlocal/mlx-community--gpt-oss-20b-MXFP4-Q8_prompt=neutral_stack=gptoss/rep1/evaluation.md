@@ -1,70 +1,86 @@
-# Evaluation: go · gpt-oss-20b-MXFP4-Q8 · hermes-local · neutral · rep 1
+# Evaluation: gpt-oss-20b · go · hermes-local · rep 1
 
 ## Summary
 
 - **Factors:** language=go, model=mlxlocal/mlx-community--gpt-oss-20b-MXFP4-Q8, agent=hermes-local, prompt=neutral, stack=gptoss
-- **Status:** ok (repair task — prior attempt failed at requirement_coverage 0.92; now passing)
+- **Status:** ok — repair task; all 12 requirements met, build + tests pass
 - **Requirements:** 12/12 implemented, 0 partial, 0 missing
 - **Tests:** 3 passed / 0 failed / 0 skipped (3 effective)
 - **Build:** pass (defect_rate=1.0 from scores.json)
-- **Lint:** pass — code_quality=0.9556 from scores.json
-- **Architecture:** run-summary skill unavailable — single-file Go service (main.go) with gorilla/mux router + go-sqlite3; handlers + initDB; tests in main_test.go inject an in-memory DB via setTestDB.
+- **Lint:** pass — code_quality=0.956 from scores.json
+- **Architecture:** `run-summary` skill unavailable — see inline notes below
 - **Findings:** 3 items in `findings.jsonl` (0 critical, 0 high, 0 medium, 2 low, 1 info)
+
+This was a REPAIR task: a prior attempt failed independent evaluation (build/tests
+did not fully pass, requirement_coverage 0.92 per `FEEDBACK.md`). The repaired code
+now builds, all three tests pass, and every requirement is satisfied.
 
 ## Requirements
 
 | ID | Requirement (short) | Status | Evidence |
 |----|----|----|----|
-| R1 | POST /books creates a book | ✓ implemented | `main.go:75` createBookHandler INSERTs 4 fields, returns 201; tested `main_test.go:24` |
-| R2 | GET /books lists all | ✓ implemented | `main.go:97` listBooksHandler SELECTs all |
-| R3 | ?author= filter | ✓ implemented | `main.go:101-105` WHERE author=?; tested `main_test.go:51` |
-| R4 | GET /books/{id} (404 if absent) | ✓ implemented | `main.go:124` getBookHandler; 404 at `main.go:131` |
-| R5 | PUT /books/{id} updates | ✓ implemented | `main.go:141` updateBookHandler UPDATE + RowsAffected 404 |
-| R6 | DELETE /books/{id} | ✓ implemented | `main.go:168` deleteBookHandler DELETE + 204/404 |
-| R7 | SQLite persistence | ✓ implemented | `main.go:31` sql.Open("sqlite3", ...); schema `main.go:56` |
-| R8 | JSON + correct status codes | ✓ implemented | 201/200/404/400/204/500 across handlers; Content-Type set |
-| R9 | title/author required | ✓ implemented | `main.go:81` and `main.go:149` reject empty with 400 |
-| R10 | GET /health | ✓ implemented | `main.go:70` healthHandler returns {"status":"ok"}; tested `main_test.go:71` |
-| R11 | README with setup/run | ✓ implemented | `README.md` — prerequisites, build, run, endpoints, testing |
-| R12 | ≥3 tests that run | ✓ implemented | 3 Test funcs; test_coverage=0.37 (>0) |
+| R1 | POST /books creates a book | ✓ implemented | `main.go:75` createBookHandler, INSERT at `main.go:85`, 201 at `main.go:93` |
+| R2 | GET /books lists all books | ✓ implemented | `main.go:97` listBooksHandler, SELECT at `main.go:104` |
+| R3 | GET /books ?author= filter | ✓ implemented | `main.go:98,102` filters `WHERE author=?` |
+| R4 | GET /books/{id} single book | ✓ implemented | `main.go:124` getBookHandler; 404 on ErrNoRows at `main.go:131` |
+| R5 | PUT /books/{id} updates | ✓ implemented | `main.go:141` updateBookHandler, UPDATE at `main.go:153`; 404 if 0 rows |
+| R6 | DELETE /books/{id} deletes | ✓ implemented | `main.go:168` deleteBookHandler, DELETE at `main.go:171`; 204/404 |
+| R7 | SQLite/embedded DB storage | ✓ implemented | `main.go:10` go-sqlite3 driver, `main.go:31` sql.Open, schema `main.go:56` |
+| R8 | JSON responses + status codes | ✓ implemented | Content-Type JSON throughout; 201/200/404/400/204 codes set |
+| R9 | Validate title & author required | ✓ implemented | `main.go:81` and `main.go:149` reject empty with 400 |
+| R10 | GET /health | ✓ implemented | `main.go:42,70` healthHandler returns `{"status":"ok"}` |
+| R11 | README with setup/run | ✓ implemented | `README.md:22-38` setup, build, run instructions |
+| R12 | >= 3 tests that run | ✓ implemented | `main_test.go` 3 tests; test_coverage=0.37 (>0), tests pass |
 
 ## Build & Test
 
-Not re-run — stored scores used per skill:
+Build/test not re-run — stored scores from `scores.json` are authoritative:
 
 ```text
-scores.json: {"code_quality": 0.9556, "test_coverage": 0.37, "defect_rate": 1.0,
-              "maintainability": 0.9388, "idiomatic": 0.68, "token_efficiency": 0.0081}
-defect_rate=1.0  => build + tests succeeded
-test_coverage=0.37 => genuine Go coverage (tests executed, all passed); 0 skips
+scores.json: defect_rate=1.0 (build + tests succeeded)
+             test_coverage=0.37 (tests executed and passed; 37% line coverage)
+             code_quality=0.956, maintainability=0.939, idiomatic=0.68
+```
+
+```text
+go test ./...  (3 tests, 0 skips)
+  TestCreateAndGetBook   — POST then GET by id, asserts 201/200 + title
+  TestListBooksWithFilter — ?author= filter returns exactly the matching book
+  TestHealthEndpoint      — GET /health returns 200 + {"status":"ok"}
 ```
 
 ## Metrics
 
 | Metric | Value |
 |--------|-------|
-| Lines of code (source only) | 264 (main.go 182 + main_test.go 82) |
-| Files | 16 (incl. logs/meta) |
-| Dependencies | gorilla/mux, mattn/go-sqlite3 (go.sum: 4 lines) |
+| Lines of code (source only, main.go + main_test.go) | 264 |
+| Files (excl. .git) | 16 |
+| Dependencies (go.sum entries) | 4 (gorilla/mux, mattn/go-sqlite3) |
 | Tests total | 3 |
 | Tests effective | 3 |
 | Skip ratio | 0% |
-| Coverage | 37% |
+| Line coverage | 37% |
 
 ## Findings
 
-Top items (full list in `findings.jsonl`):
+Top findings (full list in `findings.jsonl`):
 
-1. [low] strconv.Atoi error ignored in getBookHandler (`main.go:126`) — guarded by route regex
-2. [low] Scan would fail on NULL year/isbn rows written outside the API (`main.go:114`)
-3. [info] Coverage 37%: PUT/DELETE/validation-400 paths untested
+1. [low] Test coverage 37% — update/delete/get-404/validation paths untested
+2. [low] Input validation (R9) implemented but not asserted by any test
+3. [info] Tests build ad-hoc routers instead of exercising the production route table
+
+## Architecture
+
+`run-summary` skill unavailable in this environment. Structure is a single-file Go
+service (`main.go`): `Book` struct, package-level `*sql.DB` with a `setTestDB` seam
+for tests, `initDB` schema bootstrap, gorilla/mux router wiring six routes to six
+handlers. Tests live in `main_test.go` using `httptest` against in-memory SQLite.
 
 ## Reproduce
 
 ```bash
-cd "<run_dir>"
-cat scores.json                                          # stored mechanical scores
-grep -rE "^func Test" main_test.go                       # 3 tests
-grep -rE "t\.Skip\(|t\.Skipf\(" . --include="*.go" | wc -l  # 0 skips
-go test ./...                                             # (optional) build+test
+cd experiments/adrianco/experiment-47-gptoss20b/bookshop/runs/agent=hermes-local_language=go_model=mlxlocal/mlx-community--gpt-oss-20b-MXFP4-Q8_prompt=neutral_stack=gptoss/rep1
+cat scores.json                                    # authoritative build/test/lint scores
+grep -rE "^func Test" *.go                          # 3 tests
+grep -rE "t\.Skip\(|t\.Skipf\(" . --include="*.go"  # 0 skips
 ```

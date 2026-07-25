@@ -1,0 +1,10 @@
+{
+  "severity_counts": {"critical": 0, "high": 1, "medium": 0, "low": 0, "info": 0},
+  "penalty_score": 0.9,
+  "top_findings": [
+    {"id": "R11", "kind": "doc_missing", "severity": "high", "title": "No README.md with setup and run instructions", "evidence": "run_dir has no README* file (ls README* -> no matches; find -iname readme* -> none); deliverable in TASK.md:19 and REQUIREMENTS.json R11 unmet", "suggestion": "Add a README.md documenting install (pip install flask sqlalchemy pydantic), how to run (python main.py), and how to run tests (pytest)"}
+  ],
+  "requirement_coverage": 0.8333,
+  "model": "mlxlocal/mlx-community--gpt-oss-20b-MXFP4-Q8",
+  "evaluated_at": "2026-07-25T16:22:56Z"
+}

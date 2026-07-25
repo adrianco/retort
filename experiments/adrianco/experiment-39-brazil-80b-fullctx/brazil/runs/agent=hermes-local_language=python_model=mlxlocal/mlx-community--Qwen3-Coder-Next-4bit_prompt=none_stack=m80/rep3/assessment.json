@@ -1,0 +1,39 @@
+{
+  "severity_counts": {
+    "critical": 0,
+    "high": 3,
+    "medium": 0,
+    "low": 0,
+    "info": 0
+  },
+  "penalty_score": 0.7,
+  "top_findings": [
+    {
+      "id": "R1",
+      "kind": "requirement_missing",
+      "severity": "high",
+      "title": "No MCP server layer \u2014 the central deliverable is absent",
+      "evidence": "grep -niE 'import mcp|from mcp|fastmcp|Server\\(|@tool|@mcp|register_tool|list_tools|call_tool|stdio_server' across all 8 *.py returns nothing; requirements.txt:2 lists 'mcp>=1.0.0' but it is never imported; no server entrypoint (no def main / mcp.run); every module is a plain query-engine class. test_brazilian_soccer.py:10-15 imports the engine classes directly rather than through any MCP interface.",
+      "suggestion": "Add a server module that instantiates FastMCP (or mcp.server.Server), registers each query-engine method as a @tool, and exposes a stdio entrypoint."
+    },
+    {
+      "id": "R9",
+      "kind": "requirement_partial",
+      "severity": "high",
+      "title": "Season standings computed from only the 20 most-recent matches",
+      "evidence": "competition_queries.py:28 get_competition_standings calls self.match_engine.find_matches(competition=..., season=...) with no limit; find_matches (match_queries.py:23) defaults limit=20 and match_queries.py:73 does sort_values('datetime', ascending=False).head(limit), truncating a ~38-match Brasileirao season to 20 rows. get_champion (competition_queries.py:110-113) reads standings[0] off this truncated table, so points/positions and the champion are wrong.",
+      "suggestion": "Pass an unbounded limit (e.g. limit=None handled to skip .head) from all season-aggregation call sites."
+    },
+    {
+      "id": "R6",
+      "kind": "requirement_partial",
+      "severity": "high",
+      "title": "Team W/L/D and goals aggregated over only 20 matches",
+      "evidence": "team_queries.py:29 get_team_statistics calls find_matches(team1=..., competition=..., season=...) with no limit; the default limit=20 (match_queries.py:23,73) caps the sample, so wins/draws/losses/goals_for/goals_against/points (team_queries.py:80-95) reflect only the 20 most-recent matches, not the full season.",
+      "suggestion": "Compute team statistics over the full filtered match set, not the 20-row default window."
+    }
+  ],
+  "requirement_coverage": 0.5833,
+  "model": "mlxlocal/mlx-community--Qwen3-Coder-Next-4bit",
+  "evaluated_at": "2026-07-17T00:00:00Z"
+}

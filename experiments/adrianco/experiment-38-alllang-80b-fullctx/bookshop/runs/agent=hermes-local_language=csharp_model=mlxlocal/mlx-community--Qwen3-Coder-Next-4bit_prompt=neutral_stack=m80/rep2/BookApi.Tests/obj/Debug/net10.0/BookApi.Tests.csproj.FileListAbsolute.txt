@@ -1,0 +1,7 @@
+/Users/adriancockcroft/.retort/work/retort-local-81pql6lf/retort-2c5945cf4054/BookApi.Tests/obj/Debug/net10.0/BookApi.Tests.csproj.AssemblyReference.cache
+/Users/adriancockcroft/.retort/work/retort-local-81pql6lf/retort-2c5945cf4054/BookApi.Tests/obj/Debug/net10.0/BookApi.Tests.GeneratedMSBuildEditorConfig.editorconfig
+/Users/adriancockcroft/.retort/work/retort-local-81pql6lf/retort-2c5945cf4054/BookApi.Tests/obj/Debug/net10.0/BookApi.Tests.AssemblyInfoInputs.cache
+/Users/adriancockcroft/.retort/work/retort-local-81pql6lf/retort-2c5945cf4054/BookApi.Tests/obj/Debug/net10.0/BookApi.Tests.AssemblyInfo.cs
+/Users/adriancockcroft/.retort/work/retort-local-81pql6lf/retort-2c5945cf4054/BookApi.Tests/obj/Debug/net10.0/BookApi.Tests.csproj.CoreCompileInputs.cache
+/Users/adriancockcroft/.retort/work/retort-local-81pql6lf/retort-2c5945cf4054/BookApi.Tests/bin/Debug/net10.0/.msCoverageSourceRootsMapping_BookApi.Tests
+/Users/adriancockcroft/.retort/work/retort-local-81pql6lf/retort-2c5945cf4054/BookApi.Tests/bin/Debug/net10.0/CoverletSourceRootsMapping_BookApi.Tests

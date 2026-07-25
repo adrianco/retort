@@ -1,0 +1,1 @@
+{"id": "R11", "kind": "requirement_missing", "severity": "high", "title": "No README.md with setup and run instructions", "evidence": "find . -iname 'readme*' returns nothing; only src/, tests/, package.json, tsconfig.json, jest.config.js present", "suggestion": "Add a README.md documenting install (npm install), build (npm run build), run (npm start), and test (npm test) steps"}

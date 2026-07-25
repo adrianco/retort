@@ -1,0 +1,23 @@
+{
+  "severity_counts": {
+    "critical": 0,
+    "high": 1,
+    "medium": 0,
+    "low": 0,
+    "info": 0
+  },
+  "penalty_score": 0.9,
+  "top_findings": [
+    {
+      "id": "R1",
+      "kind": "requirement_missing",
+      "severity": "high",
+      "title": "Not an actual MCP-protocol server despite the name",
+      "evidence": "soccer_mcp/server.py:10-113 \u2014 SoccerMCPServer is a plain in-process Python class. Grep across the tree for MCP SDK usage (import mcp / from mcp / fastmcp / mcp.server / stdio_server / list_tools / call_tool / types.Tool) returns NONE; the only 'mcp' tokens are the local package name soccer_mcp and the class name. Dispatch is a local handlers dict (server.py:40-76) behind execute_query(name, **kwargs) (server.py:78-113). No server entrypoint, no stdio/transport, no tool schemas \u2014 soccer_mcp/__init__.py exposes only the class; the sole __main__ is in tests/test_soccer_mcp.py:334.",
+      "suggestion": "Wrap the existing handlers dict in an MCP SDK server (e.g. `from mcp.server import Server` or fastmcp), register each query as a tool with an input schema, and add a stdio entrypoint (python -m soccer_mcp). The query layer is already complete; only the protocol shell is missing."
+    }
+  ],
+  "requirement_coverage": 0.9167,
+  "model": "mlxlocal/mlx-community--Qwen3-Coder-Next-4bit",
+  "evaluated_at": "2026-07-16T03:18:27Z"
+}

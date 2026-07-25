@@ -1,0 +1,31 @@
+{
+  "severity_counts": {
+    "critical": 0,
+    "high": 2,
+    "medium": 0,
+    "low": 0,
+    "info": 0
+  },
+  "penalty_score": 0.8,
+  "top_findings": [
+    {
+      "id": "R8",
+      "kind": "requirement_missing",
+      "severity": "high",
+      "title": "GET /books emits malformed JSON \u2014 isbn string unterminated in list path (FEEDBACK regression NOT fixed)",
+      "evidence": "src/handler.cpp:228 `<< jsonEscape(book.isbn) << \"}\";` closes each list element with `}` instead of `\\\"}` \u2014 the isbn value opens with a quote (`\\\"isbn\\\": \\\"`) but never closes it, so every element is `...\"isbn\": \"VALUE}` (invalid JSON). The single-book paths use the correct `\\\"}`: POST src/handler.cpp:210, PUT src/handler.cpp:258, GET-by-id src/handler.cpp:281. FEEDBACK.md:22 explicitly named this exact bug ('GET /books emits malformed JSON \u2014 isbn string is unterminated'); the repair did not fix the list path.",
+      "suggestion": "Change line 228 to `<< jsonEscape(book.isbn) << \"\\\"}\";` to match the single-book serializers."
+    },
+    {
+      "id": "R9",
+      "kind": "requirement_partial",
+      "severity": "high",
+      "title": "Validation errors return HTTP 200 instead of 400 \u2014 create without title/author not rejected with correct status",
+      "evidence": "Validation runs and blocks persistence (src/handler.cpp:189-200: BookValidator::validate fails, returns `{\"errors\": [{\"field\":..,\"message\":..}]}` without calling db_.createBook). But the server's status inference success-branch matches any body containing `\"message\":` (src/server.cpp:182), and the error body contains `\"message\":` \u2014 so status_code is set to 200, never 400 (src/server.cpp:174-193). R9's how_to_verify requires 'rejected (400)'. Validation logic exists (src/model.cpp:4-30) but the HTTP status is wrong.",
+      "suggestion": "In the default handler, detect the `{\"errors\":` shape (or have the handler signal a status) and map it to 400 BEFORE the generic `\"message\":`\u2192200 check in src/server.cpp:178-193."
+    }
+  ],
+  "requirement_coverage": 0.8333,
+  "model": "mlxlocal/mlx-community--Qwen3-Coder-Next-4bit",
+  "evaluated_at": "2026-07-22T22:36:37Z"
+}

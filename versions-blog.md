@@ -19,7 +19,7 @@ longer**. That is worth understanding, because nothing about the deliverable cha
 | Qwen3.6-35B (local, Hermes+oMLX) | 3 | 1.00 | — | 238 K | 126 | $0 |
 | Qwen3-Coder-Next 80B (local, ctx 0.9) | 3 | 1.00 | — | 1,586 K | 440 | $0 |
 | Qwen3-Coder-30B (local, llama.cpp) | 12 | 0.67 | — | 1,114 K | 531 | $0 |
-| gpt-oss-20b (local) | 3 | 0.33 | — | 1,140 K | 298 | $0 |
+| gpt-oss-20b (local) | 5 | 0.40 | — | 876 K | 245 | $0 |
 
 *(Opus 5 is n=1 on this specific cell — but the pattern is confirmed at n=9 across nine more languages
 below. Historical local runs don't record a turn count; see the gap section.)*
@@ -144,7 +144,8 @@ families. That suggests the driver is **how the model was tuned to behave in an 
 anything specific to one vendor's architecture.
 
 Two local stacks also spend heavily *without* succeeding — Qwen3-Coder-30B (1,114 K tokens, 0.67) and
-gpt-oss-20b (1,140 K, 0.33) — a useful reminder that high token counts signal *effort*, not competence.
+gpt-oss-20b (876 K, 0.40 at n=5) — a useful reminder that high token counts signal *effort*, not
+competence.
 
 ## What we can't yet answer honestly
 

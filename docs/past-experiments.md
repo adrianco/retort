@@ -295,28 +295,54 @@ and Devstral (unparseable Mistral format) it is fully servable AND drivable by H
 probe: is a non-Qwen local model competitive? `language{python, go, typescript} × n=3` on bookshop,
 ctx 131072 @ threshold 0.9, sampling matched to the 35B/80B baselines.
 
-**Result (post-`recover`, n=3) — compared with the local incumbents:**
+**Result (post-`recover`, extended to n=5) — compared with the local incumbents at their featured
+config (80B = exp-38, ctx 0.9):**
 
-| language | gpt-oss-20b (12 GB) | Qwen 80B (42 GB, n=3) | Qwen 35B (n=3) |
+| language | gpt-oss-20b (12 GB), n=5 | Qwen 80B (42 GB, n=3) | Qwen 35B (n=3) |
 |---|---|---|---|
-| **go** | **3/3** — mean **95 s** | 1.00 — 345 s | 1.00 — 259 s |
-| **typescript** | 2/3 — 206 s | 1.00 — 1026 s | **0.00** (fails) |
-| **python** | **1/3** — 298 s | 1.00 — 440 s | 1.00 — 126 s |
+| **go** | **0.80** (4/5) — mean **102 s** | 1.00 — 345 s | 1.00 — 259 s |
+| **typescript** | 0.60 (3/5) — 147 s | 1.00 — 1026 s | **0.00** (fails) |
+| **python** | **0.40** (2/5) — 245 s | 1.00 — 440 s | 1.00 — 126 s |
 
-**Headline: genuinely fast and Go-solid, but too uneven to displace the 80B.** On **Go it matches the
-flagship at ~3.6× the speed** from a quarter the memory — the standout number. It also **beats the 35B
-on TypeScript** (0.67 vs 0.00), a language the 35B can't do at all. But **Python is only 1/3**, where
-both Qwen models are perfect, so it is *not* a drop-in local default.
+**Headline: genuinely fast, but not reliable anywhere — it does not displace the 80B.** It is **3–7×
+quicker** than the flagship from a quarter the memory, and it **beats the 35B on TypeScript** (0.60 vs
+0.00), a language the 35B cannot do at all. But it is **perfect at nothing**, and Python at 0.40 is
+disqualifying for a default. The right description is *fast and uneven*, not *fast and Go-solid*.
 
-**Method note — why n=1 would have published a falsehood.** The first replicate swept **3/3 at
-req-coverage 1.0**, which read as "a 20B matches the 80B." Replicates 2–3 demolished that: python fell
-to 1/3 (one gate failure, one 0.9167 near-miss) and typescript to 2/3. `retort diagnose` classified the
-three failures **2 TOOLING / 1 GENUINE**, but rescoring did **not** lift the TOOLING ones to passes —
-so the final numbers stand. The single-replicate sweep was luck, not capability.
+**Method note — replicates killed the headline twice.** This experiment is the clearest case yet for
+n≥5:
 
-**Verdict:** keep the 80B as the featured local stack. gpt-oss-20b earns a place as the **fast Go
-option** and as evidence that the OpenAI open-weights lineage is viable locally. Worth a follow-up at
-n≥5 on Go, and a look at whether Python's failures are a prompt/scaffold artifact.
+| language | after n=1 | after n=3 | **final, n=5** |
+|---|---|---|---|
+| go | 1.00 | 1.00 | **0.80** |
+| typescript | 1.00 | 0.67 | **0.60** |
+| python | 1.00 | 0.33 | **0.40** |
+
+The first replicate swept **3/3 at req-coverage 1.0** — "a 20B matches the 80B." n=3 demolished that
+for python and typescript. And **n=5 then demolished the surviving claim**: Go held 1.00 through three
+replicates and was about to be published as "matches the flagship at 3.6× the speed," which is exactly
+the sentence the fourth and fifth replicates falsified. A single extra replicate was the difference
+between a headline capability claim and a 0.80.
+
+**The three all-zero failures are GENUINE — verified by reproduction, not assumed.** All-zeros on local
+runs is this project's signature false-failure (four published conclusions have been harness artifacts),
+so `rescore` was run first — it recovered 2 of 5 failures, and the remaining 3 were then reproduced by
+hand rather than trusted:
+- **typescript rep3** — `tsc` errors: duplicate identifier `db`, and `db` never exported from `./db`.
+- **typescript rep5** — the model appended a *second copy* of the app into `index.ts`: two
+  `export default app`, plus a call to an undefined `initDb`. Its agent log ends
+  `⚠️ No reply: the model returned empty content after retries`.
+- **python rep2** — the model wrote a local `httpx/` package to shim `AsyncClient(app=...)`. The shim
+  imports *itself* (its `sys.path` juggling cannot work — it is already in `sys.modules`), so
+  collection dies with `module 'httpx' has no attribute 'AsyncClient'`. A self-inflicted import cycle.
+
+All three left real source trees and `"succeeded": true` metadata, which is precisely why they needed
+checking; the zeros are the model's, not the harness's.
+
+**Verdict:** keep the 80B as the featured local stack. gpt-oss-20b's value is **speed and lineage
+evidence** (the OpenAI open-weights family is servable and drivable locally via Harmony tool-call
+parsing) rather than any language it can be trusted with. The n≥5 follow-up that was queued here has now
+run — this *is* it — and it removed the Go claim rather than confirming it.
 
 ### exp-46 — Claude Opus 5: 26/26 across every language and both tasks — at 3–7x the price
 

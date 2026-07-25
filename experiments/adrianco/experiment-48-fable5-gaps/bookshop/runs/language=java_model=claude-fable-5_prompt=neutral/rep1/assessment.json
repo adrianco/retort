@@ -1,0 +1,10 @@
+{
+  "severity_counts": {"critical": 0, "high": 0, "medium": 0, "low": 0, "info": 0},
+  "penalty_score": 1.0,
+  "top_findings": [],
+  "requirement_coverage": 1.0,
+  "model": "claude-fable-5",
+  "evaluated_at": "2026-07-25T15:40:16Z",
+  "min_severity": "high",
+  "note": "2 info-level findings in findings.jsonl were below min_severity=high and excluded; no defects at or above high."
+}

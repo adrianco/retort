@@ -1,0 +1,10 @@
+{
+  "severity_counts": {"critical": 0, "high": 1, "medium": 0, "low": 0, "info": 0},
+  "penalty_score": 0.9,
+  "top_findings": [
+    {"id": "R1", "kind": "requirement_missing", "severity": "high", "title": "No MCP server — plain query library, not the MCP protocol", "evidence": "mcp_server.py has no import mcp/fastmcp, no @tool/@resource registration, no JSON-RPC or stdio transport, no async handlers. main() (mcp_server.py:652-688) only prints canned example queries; test_mcp_server.py:14 imports the class directly. The only mcp tokens are the class name BrazilianSoccerMCP (mcp_server.py:18) and the filename.", "suggestion": "Wrap the query methods as MCP tools using an MCP SDK and expose a stdio/JSON-RPC entrypoint."}
+  ],
+  "requirement_coverage": 0.9167,
+  "model": "mlxlocal/mlx-community--Qwen3-Coder-Next-4bit",
+  "evaluated_at": "2026-07-17T22:49:18Z"
+}

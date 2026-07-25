@@ -1,0 +1,23 @@
+{
+  "severity_counts": {
+    "critical": 1,
+    "high": 0,
+    "medium": 0,
+    "low": 0,
+    "info": 0
+  },
+  "penalty_score": 0.75,
+  "top_findings": [
+    {
+      "id": "R1",
+      "kind": "requirement_missing",
+      "severity": "critical",
+      "title": "Not an MCP-protocol server \u2014 implemented as a Flask REST API",
+      "evidence": "brazilian_soccer_mcp/server.py:42 `from flask import Flask, jsonify, request`; endpoints are HTTP routes (@app.route '/query','/team/<name>','/player/<name>','/standings' at server.py:129,252,265,281). grep -rniE 'from mcp|import mcp|fastmcp|@mcp\\.|list_tools|call_tool|stdio_server|Tool\\(' across brazilian_soccer_mcp/ and tests/ returns no MCP SDK usage (only the package name brazilian_soccer_mcp). README.md:50 lists `pip install ... mcp` but no module ever imports it. REQUIREMENTS R1 requires an MCP server entrypoint + registered tools/resources (server SDK usage, tool definitions).",
+      "suggestion": "Replace/\u200bwrap the Flask app with an MCP server (e.g. `from mcp.server import Server` / FastMCP), register each query handler as an MCP tool via @mcp.tool / list_tools+call_tool, and expose over stdio."
+    }
+  ],
+  "requirement_coverage": 0.9167,
+  "model": "mlxlocal/mlx-community--Qwen3-Coder-Next-4bit",
+  "evaluated_at": "2026-07-15T00:00:00Z"
+}

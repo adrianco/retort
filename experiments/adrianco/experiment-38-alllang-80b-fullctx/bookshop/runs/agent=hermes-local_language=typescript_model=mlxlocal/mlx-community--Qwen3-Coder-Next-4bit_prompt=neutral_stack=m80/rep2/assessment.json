@@ -1,0 +1,31 @@
+{
+  "severity_counts": {
+    "critical": 0,
+    "high": 2,
+    "medium": 0,
+    "low": 0,
+    "info": 0
+  },
+  "penalty_score": 0.8,
+  "top_findings": [
+    {
+      "id": "build-fail",
+      "kind": "build_failure",
+      "severity": "high",
+      "title": "server.ts does not compile: express() not callable (TS2349)",
+      "evidence": "src/server.ts:1,4 `import * as express from 'express'` then `const app = express()` \u2014 under this tsconfig (esModuleInterop:true) the namespace import is not callable, raising TS2349. Agent self-reported this in _agent_stdout.log and left it unfixed; `npm run build`/`npm start` fail.",
+      "suggestion": "Use a default import: `import express from 'express'` (and `import type { Request, Response, NextFunction } from 'express'`)."
+    },
+    {
+      "id": "test-import-paths",
+      "kind": "test_failure",
+      "severity": "high",
+      "title": "Nested test files use wrong relative import depth (../src instead of ../../src)",
+      "evidence": "tests/unit/validation.test.ts:1 imports '../src/middleware/validation' \u2192 resolves to tests/src/... (nonexistent); tests/integration/api.test.ts:2-3 import '../src/server' and '../src/database/database' \u2192 tests/src/... (nonexistent). Both suites (28 of 38 `it` blocks) fail to load; only tests/database.test.ts (10 tests) runs. Matches partial test_coverage=0.2645 in scores.json.",
+      "suggestion": "Change to '../../src/...' in files under tests/unit/ and tests/integration/, or add a jest moduleNameMapper/rootDir so paths resolve."
+    }
+  ],
+  "requirement_coverage": 1.0,
+  "model": "mlxlocal/mlx-community--Qwen3-Coder-Next-4bit",
+  "evaluated_at": "2026-07-17T04:28:44Z"
+}
