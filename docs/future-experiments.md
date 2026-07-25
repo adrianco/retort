@@ -241,6 +241,15 @@ incompletes (no build system / broken Vapor build).
 > The "external solver" in `metaharness_runner.py` is really "a metaharness-generated harness for a
 > host." Do this reconciliation WITH ruvnet.
 >
+> **Path B local backend — PLUMBING VERIFIED END-TO-END (2026-07-25).** Smoke-tested
+> `LocalModelRunner._one_attempt` against a real local model (gpt-oss-20b via oMLX+Hermes, spec gate
+> stubbed since it needs cloud tokens): **provision → Hermes execution → retort scorers all worked**,
+> producing go.mod/main.go/main_test.go in 187 s. The cell itself scored 0.00 — verified GENUINE, not a
+> harness artifact: the 20B emitted `main.go:12: missing import path`, so the code doesn't compile
+> (`go build` reproduces it). Also confirmed `_hermes_session.jsonl` is written on a fresh run, so
+> tool-consultation is verifiable for local metaharness cells too. **What remains before a real grid:**
+> wire the spec gate (needs quota) and run the first factor sweep.
+>
 > **Path B — a LOCAL backend (no OpenRouter, no external solver) — IN PROGRESS (2026-07-22, user-directed).**
 > Aligned with the above (Hermes is native). NOTE: the `LocalModelRunner` built here is a valid *generic
 > local-orchestration* harness (base-ReAct / self-consistency / routed / scaffold as a stand-in) — a
