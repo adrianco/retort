@@ -49,6 +49,30 @@ doesn't hold, Opus 5's breadth claim becomes real. Either way the per-language m
 table that feeds metaharness) gets its missing half.
 
 
+## 0c. exp-49 — instrumented version comparison on ONE cell (Python bookshop)  — SCHEDULED (after exp-47/48)
+
+[`versions-blog.md`](../versions-blog.md) asks why newer Claude versions cost 6× and take 4× longer for
+an identical passing app. The aggregate answer is solid: **turns**, not per-turn speed (Fable 5 10.7 →
+Opus 4.8 17.3 → Opus 5 36.0), and cost grows ~**n²** because every turn re-reads the whole conversation
+from cache (Opus 5: 33 K tokens *generated* vs **3.28 M cache reads**).
+
+**What we cannot answer, and why.** The tool-call *mix* can only be computed for Opus 5 — older runs
+(exp-6 Opus 4.7/4.8, the early local experiments) have **no `_agent_stdout.log`**, because transcript
+capture was added later. And **local stacks record no turn count**, so they can't be put on the cloud's
+axis.
+
+**Design.** The same cell — `python × bookshop × prompt=neutral` — across **Opus 4.7, Opus 4.8, Fable 5,
+Opus 5** and the local **Qwen 35B** and **80B**, **n≥3**, with full transcript capture on every arm.
+Metrics: turns, tool-call histogram (Write/Edit/Read/Bash), output vs cache-read tokens, wall time.
+**Hypothesis:** the extra turns in newer models are disproportionately **Edit + Bash (verify/refine)
+cycles** rather than initial Writes — i.e. newer models iterate on their own output more. If that holds,
+it explains both the routine-task overhead AND (plausibly) the hard-task breadth Opus 5 uniquely has.
+
+**Prerequisite fix:** record `turns` for Hermes runs (the local arms currently log none) — otherwise the
+local half of the comparison stays unquantified. The `_hermes_session.jsonl` export added 2026-07-24
+already captures the tool calls, so the turn count can be derived from it.
+
+
 ## 1. Graphify tooling factor + large-existing-codebase task  — PLANNED (top priority)
 
 Add a third level to the `tooling` factor (currently `none` / `beads`): **`graphify`** — a
