@@ -1,0 +1,1 @@
+/usr/bin/c++ -Wall -Wextra -g -arch arm64 -Wl,-search_paths_first -Wl,-headerpad_max_install_names CMakeFiles/test_mcp_protocol.dir/tests/test_mcp_protocol.cpp.o -o test_mcp_protocol  libsoccer_core.a

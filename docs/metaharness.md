@@ -144,7 +144,23 @@ Field semantics — these are the part a consumer must not guess at:
 | `models` | **All model id spellings** that map to this stack. Match against any of them — the same model appears under multiple ids across experiments (e.g. `claude-opus-4-8` and `opus-4.8`). |
 | `cost` | Mean USD per run for that cell. **`0.0` for local stacks** by explicit override — local marginal cost is zero, so cost alone will always prefer local where it qualifies. |
 | `pass` | Measured pass-proportion (`requirement_coverage == 1.0` fraction) |
-| `n` | Replicate count behind `pass`. **Read this.** Several cells are `n=1`; a 1.00 at n=1 is much weaker evidence than a 1.00 at n=9, and exp-47 is a worked example of an n=3 result that did not survive n=5. |
+| `n` | Replicate count behind `pass` **and `cost`**. **Read this** — see the known limitation below. A 1.00 at n=1 is much weaker evidence than a 1.00 at n=9, and exp-47 is a worked example of an n=3 result that did not survive n=5. |
+
+> ### ⚠️ Known limitation: the selection is cheapest-qualifying, and does **not** weight by `n`
+>
+> `per_language_routing` picks the lowest mean `cost` among stacks clearing their bar. With `n=1` cells
+> in the mix, **one unusually cheap run can win a route on noise.**
+>
+> Live example from the current feed — `brazil-soccer-mcp` / `clojure` routes to **Opus 5 at \$2.55
+> (n=1)**. That is a genuine run, but it took 5.7 minutes against Opus 5's 43.8-minute average for this
+> task; it is a tail outlier. Fable 5 clears the same cell at **n=3, mean ~\$9.50** — weaker on the
+> metric being sorted, far stronger as evidence. A consumer optimising purely on `cost` would pick the
+> lucky run.
+>
+> This is deliberately **not** fixed by requiring `n≥3`: most per-language cells are n=1 today, so that
+> rule would return `null` almost everywhere and be less useful, not more. The honest fix is more
+> replicates. Until then, **a consumer should treat `cost` at `n=1` as a point estimate with no error
+> bar** and prefer a higher-`n` alternative when the costs are within noise of each other.
 
 Two tasks only — `rest-api-crud` (routine) and `brazil-soccer-mcp` (hard) — because those are the two
 task sizes with enough coverage to route on.

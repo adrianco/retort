@@ -1,0 +1,7 @@
+/Users/adriancockcroft/.retort/work/retort-local-67epco6f/retort-3d42ce3cad6f/build-warn/CMakeFiles/soccer_core.dir
+/Users/adriancockcroft/.retort/work/retort-local-67epco6f/retort-3d42ce3cad6f/build-warn/CMakeFiles/soccer_mcp_server.dir
+/Users/adriancockcroft/.retort/work/retort-local-67epco6f/retort-3d42ce3cad6f/build-warn/CMakeFiles/test_unit.dir
+/Users/adriancockcroft/.retort/work/retort-local-67epco6f/retort-3d42ce3cad6f/build-warn/CMakeFiles/test_mcp_protocol.dir
+/Users/adriancockcroft/.retort/work/retort-local-67epco6f/retort-3d42ce3cad6f/build-warn/CMakeFiles/test.dir
+/Users/adriancockcroft/.retort/work/retort-local-67epco6f/retort-3d42ce3cad6f/build-warn/CMakeFiles/edit_cache.dir
+/Users/adriancockcroft/.retort/work/retort-local-67epco6f/retort-3d42ce3cad6f/build-warn/CMakeFiles/rebuild_cache.dir

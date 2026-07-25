@@ -18,53 +18,35 @@ push; verify every tuning parameter takes effect with a smoke test first; after 
 ## 0. exp-46 — Opus 5: all languages × both tasks  — DONE, see past-experiments
 
 Ran 2026-07-24/25 → [past-experiments.md](past-experiments.md). **Result: 26/26 — every one of the 13
-languages on BOTH tasks at req-coverage 1.0.** The first model to clear the hard task in every language
-tried (4.8 manages 0.59 there; nothing else exceeds six languages). **But it buys coverage, not
-efficiency:** \$2.91/solved on routine (vs 4.8's \$0.99 for the same 1.00) and \$20.00/solved on the hard
-task (vs Fable 5's \$8.98). Recommendation: cheapest model that clears your language; Opus 5 only where
-nothing cheaper is proven. Added to FEATURED_STACKS; optimal-blog + model-blog refreshed; the hard-task
-routing table now selects Opus 5 for c/clojure/cpp/elixir/erlang.
+languages on BOTH tasks at req-coverage 1.0.**
+
+**⚠️ Its headline was withdrawn by exp-48 (below).** This entry originally claimed Opus 5 was the first
+and only model to clear the hard task in every language. Fable 5 had merely never been *run* on 9 of
+the 13; when exp-48 ran them it cleared all 9, reaching **13/13 at half the cost and 2.4× the speed**.
+Opus 5's 26/26 is real; its *exclusivity*, and the price premium justified by it, are not. The hard-task
+routing table selected Opus 5 for c/clojure/cpp/elixir/erlang on that basis and now selects Fable 5.
 
 **Three harness artifacts were caught and fixed before they became false capability claims** (the 60-min
 wall killing erlang+c, doubly-quiet pytest zeroing a green Python suite, and a "usage limit until 3pm"
 that was really a rolling window). See the entry for details.
 
-## 0b. exp-48 — fill Fable 5's per-language GAPS  — IN PROGRESS (bookshop half DONE)
+## 0b. exp-48 — fill Fable 5's per-language GAPS  — DONE, see past-experiments
 
-**Interim result (2026-07-25): the bookshop half is complete, 9/9, zero failures.** Fable 5 cleared
-every one of the nine gap languages at req-coverage 1.0 — so its efficiency lead was *not* an artifact
-of having only ever run four easy languages. Head-to-head on those same nine cells:
+Ran 2026-07-25 → [past-experiments.md](past-experiments.md). **Result: 18/18 — Fable 5 cleared all nine
+gap languages on BOTH tasks.** On the hard task it now stands at **13/13, exactly matching Opus 5**, at
+**$10.47 / 18.2 min against Opus 5's $21.67 / 43.8 min**. Languages only Opus 5 clears: **none**.
 
-| bookshop, 9 gap languages | n | pass | turns | tokens | sec | cost |
-|---|---:|---:|---:|---:|---:|---:|
-| Fable 5 | 9 | 1.00 | 26.4 | 866 K | 280 | \$2.68 |
-| Opus 5 | 9 | 1.00 | 59.8 | 2,878 K | 712 | \$3.76 |
-| Opus 4.8 | 22 | 0.95 | 32.2 | 696 K | 375 | \$1.07 |
+**This experiment overturned exp-46's headline** rather than confirming it. Opus 5's "only model to
+clear the hard task everywhere" claim rested on Fable 5 never having been *run* on 9 of the 13
+languages — an unrun cell reading as an unpassable one. The hard-task routing table now selects Fable 5
+where it selected Opus 5.
 
-This became the third independent dataset behind [`versions-blog.md`](../versions-blog.md)'s
-turns-drive-cost thesis (Opus 5 needs 2.3× the turns for an identical 1.00; tokens grow 3.3× off that —
-the n² cache-read curve). The **brazil half is still running** — that is the half that decides whether
-Opus 5's unique 13-language hard-task coverage survives contact with Fable 5.
+The bookshop half also became the third independent dataset behind
+[`versions-blog.md`](../versions-blog.md)'s turns-drive-cost thesis: on the same nine cells Opus 5 needs
+**2.3× the turns** of Fable 5 for an identical 1.00, with tokens growing 3.3× off that — the n²
+cache-read curve.
 
-exp-46 compared Opus 5 (13 languages) against Fable 5 — but **Fable 5 has only ever run 4 languages
-(clojure/go/python/rust) on each task**, so the headline comparison wasn't like-for-like. Per-language
-results with honest gaps are fine (user, 2026-07-25); the fix is to **fill the gaps**, not to hedge the
-table.
-
-**Design:** `Fable 5 × the 9 missing languages {typescript, java, csharp, elixir, erlang, c, cpp, objc,
-swift} × {bookshop, brazil-bench}` = **18 cells**, n=1, prompt=neutral, spec-gate ON — matching exp-46's
-shape so the per-language tables line up cell-for-cell. brazil gets the **120-min wall** (the exp-46
-lesson: 60 min silently "crashed" erlang and c mid-work).
-
-**Why it matters.** On the 4 languages both have run, Fable 5 already beats Opus 5 on success, cost AND
-speed (4/4 vs 3/4; \$8.98 vs \$18.12 per solved hard-task cell; 17 vs 25 min) — and it's ~3× cheaper
-and ~4× faster on the routine task. If that holds across the other 9, **Fable 5 is the default
-recommendation for both task sizes** and Opus 5's niche shrinks to whatever Fable 5 can't do. If it
-doesn't hold, Opus 5's breadth claim becomes real. Either way the per-language matrix (and the routing
-table that feeds metaharness) gets its missing half.
-
-
-## 0c. exp-49 — instrumented version comparison on ONE cell (Python bookshop)  — SCHEDULED (after exp-47/48)
+## 0c. exp-49 — instrumented version comparison + THINKING LEVEL  — READY TO RUN (exp-47/48 both done)
 
 [`versions-blog.md`](../versions-blog.md) asks why newer Claude versions cost 6× and take 4× longer for
 an identical passing app. The aggregate answer is solid: **turns**, not per-turn speed (Fable 5 10.7 →
@@ -80,8 +62,13 @@ axis.
 Opus 5** and the local **Qwen 35B** and **80B**, **n≥3**, with full transcript capture on every arm.
 Metrics: turns, tool-call histogram (Write/Edit/Read/Bash), output vs cache-read tokens, wall time.
 **Hypothesis:** the extra turns in newer models are disproportionately **Edit + Bash (verify/refine)
-cycles** rather than initial Writes — i.e. newer models iterate on their own output more. If that holds,
-it explains both the routine-task overhead AND (plausibly) the hard-task breadth Opus 5 uniquely has.
+cycles** rather than initial Writes — i.e. newer models iterate on their own output more.
+
+*Note (post-exp-48):* the second half of that hypothesis — that the extra iteration is what *buys*
+Opus 5 its hard-task breadth — **no longer has anything to explain.** Fable 5 reaches the same 13/13 on
+the hard task with 2.3× fewer turns, so the extra turns are not the price of breadth. Whatever they
+buy, it is not coverage. That makes the thinking-level arm below the more interesting half of this
+experiment.
 
 ### THINKING LEVEL — added as a factor (user request, 2026-07-25)
 

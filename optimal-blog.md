@@ -72,7 +72,7 @@ number to actually decide on. (Hard reliability is single-task, measured on Pyth
 | Stack | Reliability (routine · hard) | Cost (routine · hard) | Time (routine · hard) |
 |---|---:|---:|---:|
 | **Claude Opus 5** | 1.00 · 1.00 | $3.15 · $21.67 | 607 s · 2630 s |
-| **Claude Fable 5** | 1.00 · 1.00 | $1.75 · $9.13 | 202 s · 1027 s |
+| **Claude Fable 5** | 1.00 · 1.00 | $1.75 · $10.47 | 202 s · 1090 s |
 | **Claude Sonnet 5** | 1.00 · 0.93 | $1.10 · $7.64 | 237 s · 1252 s |
 | **Claude Opus 4.8** | 0.98 · 0.59 | $0.99 · $3.27 | 294 s · 608 s |
 | **Claude Opus 4.7** | 1.00 · 0.40 | $0.97 · $2.95 | 190 s · 500 s |
@@ -89,9 +89,14 @@ per-stack bullets). Rust local is unqualified (80B 0.33, near-misses).
 
 **Pick by task size — the two columns tell different stories:**
 
-* **Fable 5** is the *only* stack that clears the hard task **every time (1.00)**. When a
-  hard, multi-capability job has to be right unattended, this is the one — you pay for it
-  (~$9 and ~17 min a run), and the certainty is what you're buying.
+* **Fable 5** clears the hard task **every time (1.00), in all thirteen languages**. When a
+  hard, multi-capability job has to be right unattended, this is the one — ~$10.47 and ~18 min
+  a run, and the certainty is what you're buying.
+* **Opus 5** also clears the hard task 1.00 in all thirteen, at **~$21.67 and ~44 min** — twice
+  the money and 2.4× the time for the same outcome. It held this slot briefly on the strength of
+  being the only stack measured across all 13 languages; once Fable 5 was actually run on the
+  nine it had been missing, that distinction vanished. **There is no language here where Opus 5
+  is the necessary choice.**
 * **Sonnet 5** lands **0.93 on hard** at ~15% less than Fable and comparable time — the
   cost-aware hard-task pick when roughly 1-in-14 misses is acceptable.
 * **Opus 4.8** is the cheapest *hard-capable* cloud stack, but hard reliability is only
@@ -223,10 +228,24 @@ last is qualitative, from the prompt experiments):
 | **C#** | **Opus 4.8 (~$0.65)**‡ | **Fable 5** | Cloud: *neutral* |
 | **Elixir** | **Opus 4.8 (~$0.85)** | **Fable 5** | Cloud: *neutral* |
 | **Erlang** | **Opus 4.8 (~$1.35)** | **Fable 5** | Cloud: *neutral* |
+| **C** ᴱ | **Opus 4.8 (~$1.28, n=1)** | **Fable 5** | Cloud: *neutral* |
+| **C++** ᴱ | **Opus 4.8 (~$1.08, n=1)** | **Fable 5** | Cloud: *neutral* |
+| **Objective-C** ᴱ | **Opus 4.8 (~$1.52, n=1)** | **Fable 5** | Cloud: *neutral* |
+| **Swift** ᴱ | **Opus 4.8 (n=1)** | **Fable 5** | Cloud: *neutral* |
 
 † On our routine Java runs Opus 4.8 dipped to 0.83 while 4.7 held 1.00 — small n; review
 Java output whichever you use. ‡ C# Opus 4.8 is n=1; Sonnet 5 (~$1.57, n=3) is the
-better-sampled fallback.
+better-sampled fallback. ᴱ C / C++ / Objective-C / Swift are the newer exploratory
+languages (exp-43); their routine picks are n=1, so treat them as "known to work once,"
+not as reliability estimates.
+
+**Why Fable 5 in every hard-task cell, and not Opus 5?** Both clear all thirteen languages at
+1.00. Fable 5 does it for **$10.47 / 18.2 min** per cell against Opus 5's **$21.67 / 43.8 min**
+— 2.1× cheaper and 2.7× faster on the identical nine-language subset, using 2.3× fewer agentic
+turns. **There is no language in this dataset where Opus 5 is the necessary choice.** (Opus 5
+briefly held this column on the strength of being the only model measured across all 13; that
+was a gap in *coverage of the comparison*, not a capability difference — see
+[exp-48](docs/past-experiments.md).)
 
 **Prompt / testing method — it matters only in proportion to how weak the model is.** The
 table above (Python routine) makes the rule concrete: **the prompt is a lever on a weak

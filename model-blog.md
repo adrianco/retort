@@ -20,8 +20,8 @@ Here is the full board, every model measured on the two tasks — **pass-proport
 
 | Model | Serving | Brazil MCP (hard) | REST-API (easy) | Cost/run (hard) |
 |---|---|---:|---:|---:|
-| **Claude Opus 5** *(newest)* ¹⁰ | cloud | **1.00** (13) | **1.00** (13) | $21.67 |
-| Claude Fable 5 ³ | cloud | **1.00** (14) | **1.00** (21) | $9.13 |
+| **Claude Fable 5** ³ | cloud | **1.00** (21) | **1.00** (21) | **$10.47** |
+| Claude Opus 5 *(newest)* ¹⁰ | cloud | **1.00** (13) | **1.00** (13) | $21.67 |
 | Claude Opus 4.8 fast ² | cloud | **1.00** (12) | **1.00** (12) | $8.72 |
 | Claude Sonnet 5 ⁴ | cloud | 0.93 (15) | **1.00** (15) | $7.64 |
 | Claude Opus 4.8 | cloud | 0.57 (42) | 0.98 (46) | $3.16 |
@@ -50,7 +50,7 @@ Here is the full board, every model measured on the two tasks — **pass-proport
 ⁷ **Qwen3-Coder-Next-80B-A3B** — now the **featured local stack**, once its compaction threshold was raised to full context (`lcm context_threshold: 0.9`). At that setting it runs **Python 1.00, Go 1.00, and TypeScript 1.00** (n=3 each) — TypeScript was only 0.33 at lower thresholds, so *full context, not a new model,* is what unlocked it. **Rust is 0.33** (genuine near-misses, → cloud) and the five niche languages (Clojure/C#/Elixir/Java/Erlang) stay ~0.00. It's slower than the 35B (~600 s routine). The earlier "bigger ≠ better" reading was a config artifact of over-early compaction, now fixed.
 ¹¹ **gpt-oss-20b** (exp-47) — the first **non-Qwen** local lineage that works end to end: oMLX parses its Harmony tool calls into proper OpenAI `tool_calls`, so unlike Laguna (architecture wall) and Devstral (unparseable Mistral format) it is both servable and drivable by Hermes. From a quarter the 80B's memory it is **3–7× quicker** — but at n=5 it is **reliable at nothing**: Go 0.80, TypeScript 0.60, Python 0.40. It is also this project's best argument for replicates: Go was **1.00 through three replicates** and was about to be published as "matches the 80B at 3.6× the speed" when replicates 4–5 took it to 0.80. All three of its zero-scoring runs were reproduced by hand and are genuine model errors — two `tsc` failures (one where the model appended a *second copy* of the app into `index.ts`) and a Python run where it wrote an `httpx` shim that imports itself.
 
-¹⁰ **Claude Opus 5** (exp-46) — run across **all thirteen languages on both tasks**, 26/26. The only model that has cleared the hard task in every language tried. It buys *coverage*, not efficiency: ~$21.67 per hard-task cell against Fable 5's ~$9.13 for the same 1.00, and it takes roughly 2.3× the agentic turns of Fable 5 for an identical result on routine work (see [versions-blog.md](versions-blog.md)). Its hard-task breadth is being directly contested by **exp-48**, which is filling in the nine languages Fable 5 had never been run on — at the time of writing Fable 5 has matched it on the six completed so far.
+¹⁰ **Claude Opus 5** (exp-46) — run across **all thirteen languages on both tasks**, 26/26. It was briefly the only model known to clear the hard task everywhere; **exp-48 removed that distinction.** Fable 5 had never been *run* on 9 of the 13 languages, and when it was, it cleared all 9 — reaching the same **13/13** at **$10.47 / 18.2 min** against Opus 5's **$21.67 / 43.8 min**. On the identical nine-language subset: **2.1× cheaper, 2.7× faster, same 1.00**. Languages only Opus 5 clears: **none**. It also takes ~2.3× the agentic turns of Fable 5 for an identical routine result (see [versions-blog.md](versions-blog.md)). On current evidence Opus 5 is the most expensive route to a result Fable 5 also reaches.
 
 ⁸ **Devstral-24B** (exp-23), a *smaller but agent-tuned* Mistral coder — served via **llama.cpp** (oMLX can't parse its Mistral tool-call format). The lowest local result: 0.17, with **7 of 12 runs never terminating**. Big asterisk: Devstral is tuned for its native OpenHands scaffolding, not Hermes — so this is Devstral on the wrong harness, not its ceiling. Neither *bigger* (80B) nor *agent-tuned-different* (Devstral) beat the general 35B.
 ⁹ **The hard task, local.** Both local models are now measured on brazil-bench and both do poorly: the 80B scores **0.00 (0/6)** and the 35B **0.25**. The 80B gets *closer on average* (consistently ~10–11 of 12 capabilities) but never lands all 12. Crucially the 80B's 0.00 is now **verified config-invariant** — re-run at full context (`context_threshold: 0.9`) it is still 0/6, identical to the lower threshold: full context lifts the *easy* languages, not the hard-task ceiling. Hard tasks stay a cloud-frontier niche (Fable 5 = 1.00).
@@ -62,14 +62,25 @@ Two things worth pulling out of the board before the deep dives:
 - **On the cloud frontier, newer is more reliable — and the older/cheaper models are coin-flips on hard work.** Opus 4.6 and Sonnet 4.6 got the hard task fully right only ~half the time; each generation buys reliability and charges time and money for it. But at the very top, extra spend buys nothing: Sonnet 5, fast mode, and Fable 5 all match Opus 4.8's 1.00/1.00 at higher prices, because where 4.8 is already perfect there's no reliability left to buy.
 - **On a laptop, the whole stack around the model matters more than the model.** The climb from 0.08 to a reliable Python/Go/TypeScript 1.00 came from context size, an MLX serving layer that parses the model's tool calls, a model one size up, an agent that doesn't throw away its own context, and — the final unlock — raising that agent's compaction threshold to full context. None of it a new capability; all of it configuration. What it still doesn't move is the last hard limit: Rust, the niche languages, and the hard task.
 
-## Newest: Opus 5 clears *everything* — and that is the only reason to pay for it
+## Newest: Opus 5 clears everything — and so, it turns out, does the cheaper model
 
 The newest frontier model, **Claude Opus 5**, was run across **all thirteen supported languages on both
 tasks** — 26 cells, one replicate each. It got **26 out of 26**: every language on the routine task, and
-every language on the *hard* one (the Brazilian-soccer MCP server). **No other model has cleared the hard
-task in more than six languages**, and Opus 4.8 only manages **0.59** there — it is reliable on
-Python/Go/TypeScript and a coin-flip on Rust (0.33), Java (0.33) and Clojure (0.45). Opus 5 turns all of
-those into 1.00, and adds first-ever hard-task passes for C#, Elixir, Erlang, C, C++, Objective-C and Swift.
+every language on the *hard* one (the Brazilian-soccer MCP server). Opus 4.8 manages only **0.57** there
+— reliable on Python/Go/TypeScript, a coin-flip on Rust (0.33), Java (0.33) and Clojure (0.45).
+
+> **⚠️ This section originally read "no other model has cleared the hard task in more than six
+> languages," and concluded that unique breadth was the one thing worth paying for. That was wrong, and
+> the way it was wrong is worth more than the result.**
+>
+> Fable 5 hadn't failed those languages — it had never been **run** on them. It had only ever been
+> tested on 4 of the 13. An unrun cell and an unpassable cell look identical in a results table, and I
+> read the blank as a limit. **[exp-48](docs/past-experiments.md) ran them: Fable 5 cleared all nine,
+> reaching the same 13/13 on the hard task — at \$10.47 and 18.2 min against Opus 5's \$21.67 and 43.8
+> min.** On the identical nine-language subset it is **2.1× cheaper and 2.7× faster for the same 1.00**.
+>
+> **Languages only Opus 5 can do: none.** The premium bought nothing but the appearance of exclusivity,
+> and that appearance was an artifact of which questions had been asked.
 
 **But look at the price of that coverage.** Per *solved* cell:
 

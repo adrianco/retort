@@ -287,6 +287,48 @@ whole question.
 value stays the **large-repo** arm (funkygibbon-port / the-goodies ~30K lines), where navigation is
 the actual bottleneck.
 
+### exp-48 — Fable 5 fills its gaps, and Opus 5's headline does not survive it
+
+exp-46 crowned Opus 5 "the only model that clears the hard task in every language." That comparison was
+**not like-for-like**: Fable 5 had only ever run 4 of the 13 languages (clojure/go/python/rust) on each
+task, so its silence on the other 9 was mistaken for absence of capability. This experiment filled the
+gap — `Fable 5 × the 9 missing languages × {bookshop, brazil-bench}` = 18 cells, n=1, prompt=neutral,
+spec-gate ON, with the **120-minute wall** exp-46 learned it needed.
+
+**Result: 18/18. Fable 5 cleared every gap language on BOTH tasks.** On the hard task it now stands at
+**13/13 — exactly matching Opus 5's coverage.**
+
+| brazil-bench, all 13 languages | n | pass | mean cost | mean time |
+|---|---:|---:|---:|---:|
+| **Claude Fable 5** | 21 | **1.00** | **\$10.47** | **18.2 min** |
+| Claude Opus 5 | 13 | 1.00 | \$21.67 | 43.8 min |
+| Claude Sonnet 5 | 15 | 0.93 | \$7.64 | 20.9 min |
+| Claude Opus 4.8 | 42 | 0.57 | \$3.16 | 9.9 min |
+
+Restricted to the **same 9 gap languages**, so the mixes are identical: Fable 5 \$12.47 / 19.3 min /
+61.9 turns against Opus 5 \$25.70 / 52 min — **2.1× cheaper and 2.7× faster for an identical 1.00.**
+
+**Languages only Opus 5 clears: NONE.**
+
+**What this overturns.** exp-46's recommendation was "Opus 5 where nothing cheaper is proven," resting
+on breadth no other model had. That justification is gone: Fable 5 is proven everywhere Opus 5 is, at
+half the price and less than half the wall-clock. Opus 5's remaining distinction on this evidence is
+that it is the most expensive way to obtain a result Fable 5 also obtains. **The hard-task routing
+table, which selected Opus 5 for c/clojure/cpp/elixir/erlang, now selects Fable 5.**
+
+**Method note — the failure mode this experiment was designed against.** The original comparison was not
+wrong because a number was miscomputed; it was wrong because **an unrun cell reads exactly like a cell
+that can't be run.** Fable 5's 4-language footprint made Opus 5 look uniquely broad, when the truth was
+that nobody had asked Fable 5 the question. That is a systematic hazard for a project that adds models
+incrementally, and the mitigation is the one applied here: when a headline claims uniqueness, fill the
+comparison set before publishing it rather than after. The per-language matrix in optimal-blog exists
+for this reason — an all-language average silently compares different language mixes.
+
+*(Caveats kept honest: n=1 per cell, so these are coverage results, not reliability estimates — a 1.00
+at n=1 is much weaker than Opus 4.8's 0.57 at n=42, and exp-47 is this repo's worked example of an n=3
+result that did not survive n=5. What exp-48 establishes is that **Fable 5 can do these languages**, not
+that it does them every time.)*
+
 ### exp-47 — gpt-oss-20b (OpenAI open weights): fast, uneven, not a replacement
 
 First run of the **gpt-oss-20b** candidate (MXFP4 4-bit, ~12 GB) after its gate-probe passed —
@@ -354,8 +396,21 @@ bills, and the live agent argv carried `--model claude-opus-5` while `provenance
 
 **bookshop (routine): 13/13 — a clean sweep**, including java, where Opus 4.8 manages only 0.83.
 
-**brazil-bench (hard) — the headline. 13/13 at req-coverage 1.0** **Opus 5 is the first model to clear the hard task in
-every language tried** — and after the harness fixes below it has **no regressions at all**:
+**brazil-bench (hard). 13/13 at req-coverage 1.0** — and after the harness fixes below, no regressions:
+
+> ### ⚠️ CORRECTION 3 — the "first/only model to clear the hard task everywhere" headline is WITHDRAWN.
+>
+> This entry originally read *"Opus 5 is the first model to clear the hard task in every language
+> tried"*, and the recommendation "Opus 5 only where nothing cheaper is proven" was built on it.
+> **[exp-48](#exp-48--fable-5-fills-its-gaps-and-opus-5s-headline-does-not-survive-it) falsified it.**
+> Fable 5 had simply never been *run* on 9 of the 13 languages; when it was, it cleared **all 9**,
+> reaching **13/13 on brazil at \$10.47 / 18.2 min against Opus 5's \$21.67 / 43.8 min.** Languages
+> only Opus 5 clears: **none**.
+>
+> The error was not arithmetic — it was treating an **unrun cell as an unpassable one**. Opus 5's
+> uniqueness was an artifact of who had been asked. Everything below about Opus 5's *own* results
+> stands (26/26 is real); what does not stand is the claim that the coverage was exclusive, or the
+> price premium that claim justified.
 
 | brazil language | Opus 4.8 | **Opus 5** | |
 |---|---|---|---|

@@ -131,9 +131,15 @@ shell invocations (installs, test runs). Only two reads — it isn't exploring, 
 own output**. More than half the tool calls come *after* the first version of the code exists. That is
 consistent with a model tuned to verify and refine rather than to emit once and stop.
 
-Whether that iteration is what *buys* Opus 5 its unmatched breadth elsewhere — it is the only model
-that clears the [hard task](docs/past-experiments.md) in all 13 languages — is the interesting open
-question. On an easy task the extra cycles are pure overhead. On a hard one they may be the mechanism.
+Whether that iteration *buys* anything was the interesting open question. **It now looks like it
+doesn't.** Opus 5 was briefly the only model known to clear the [hard task](docs/past-experiments.md) in
+all 13 languages, which made "the extra turns are the price of breadth" a plausible story. Then
+Fable 5 was run on the nine languages it had never been tried on, cleared all nine, and reached the
+**same 13/13 with 2.3× fewer turns** — at half the cost and 2.4× the speed.
+
+So the extra cycles are not the mechanism behind breadth; both models get there, one of them the long
+way round. On an easy task the extra turns are overhead, and on the hard task they are *also* overhead —
+they just weren't visible as such until there was something to compare against.
 
 ## The local models tell the same story
 
@@ -213,9 +219,14 @@ counters into a properly replicated comparison.
 
 If your task is routine, **the newest model is the wrong default**. On this task Opus 4.8 delivers the
 identical 1.00 for **$0.50 and 122 s**, against Opus 5's **$1.84 and 392 s** — and Fable 5 finishes
-fastest of all at 10.7 turns. Fast mode is the exception worth knowing: ~26 % quicker for ~48 % more, same result — buy it when latency matters, not when throughput does. Newer models are earning their keep somewhere else: at the hard end of the
-range, where the extra iteration converts failures into passes. Pay for the steps when the steps are
-what you need.
+fastest of all at 10.7 turns. Fast mode is the exception worth knowing: ~26 % quicker for ~48 % more, same result — buy it when latency matters, not when throughput does.
+
+**And the "but it earns its keep on hard work" defence has now been tested and failed.** That was the
+obvious reply to everything above: the extra steps must be buying reliability where things get
+difficult. On the hard task Fable 5 matches Opus 5's coverage across all 13 languages using **2.3× fewer
+turns**, for half the money and 2.4× the speed. There is no task size in this dataset where the extra
+steps buy a result you couldn't get more cheaply. Pay for the steps when you have evidence the steps are
+what you need — and on this evidence, you don't yet.
 
 **One caveat on that advice**, from the section above: if the extra steps turn out to be *thinking
 level* rather than *model tuning*, then the lever is the knob, not the version — you would keep the
