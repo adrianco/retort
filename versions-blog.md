@@ -24,6 +24,16 @@ longer**. That is worth understanding, because nothing about the deliverable cha
 *(Opus 5 is n=1 on this specific cell — but the pattern is confirmed at n=9 across nine more languages
 below. Historical local runs don't record a turn count; see the gap section.)*
 
+> **Provenance caveat on this table.** These rows do **not** all come from one batch. The Opus 4.7 /
+> 4.8 / fast-mode / Fable 5 rows come from exp-6, exp-7 and exp-10, which declared no `prompt` factor at
+> all; the Opus 5 row is from exp-46 at `prompt=neutral`. In content those are near-identical — retort's
+> `neutral` level exists precisely as the *null* methodology control ("No particular testing or
+> development methodology is prescribed") — so this is not a methodology confound. But the batches also
+> differ in **harness version**: the older rows predate the turn-recording fix, the timeout change and
+> several scorer corrections. **exp-49 re-runs every one of these arms at default effort in a single
+> batch** for exactly this reason, so the effort comparison rests on an in-batch control rather than on
+> cross-experiment drift.
+
 ## The finding: it's turns, not speed
 
 The tempting explanation is that newer models "think longer" per step. The data says otherwise —
