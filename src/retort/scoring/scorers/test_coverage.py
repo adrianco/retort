@@ -404,6 +404,17 @@ class TestCoverageScorer:
             rate = _parse_test_pass_rate(combined, language)
             if rate is not None:
                 return rate
+            # EXIT-CODE fallback — the universal signal (as used for the native and
+            # Swift paths). A runner exits 0 iff its tests ran and passed, so a
+            # green suite must not be scored 0 just because we couldn't parse a
+            # summary line. This is not hypothetical: an agent's pyproject that
+            # sets `addopts = "-q"` combines with the scorer's own `-q` to make
+            # pytest doubly-quiet, printing progress dots and NO "N passed"
+            # summary — which false-failed a brazil-bench Python run whose 239
+            # tests all passed (exp-46). pytest exits 5 on "no tests collected",
+            # so rc==0 really does mean tests ran and passed.
+            if getattr(result, "returncode", None) == 0:
+                return 1.0
         return None
 
     def _typescript_coverage(self, output_dir: Path) -> float | None:

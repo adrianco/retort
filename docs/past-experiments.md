@@ -328,7 +328,7 @@ bills, and the live agent argv carried `--model claude-opus-5` while `provenance
 
 **bookshop (routine): 13/13 — a clean sweep**, including java, where Opus 4.8 manages only 0.83.
 
-**brazil-bench (hard) — the headline. 11/12 measured cells at req-coverage 1.0** *(swift was still in
+**brazil-bench (hard) — the headline. 12/12 measured cells at req-coverage 1.0** *(swift was still in
 flight at write-up; see the note below)*:
 
 | brazil language | Opus 4.8 | **Opus 5** | |
@@ -338,7 +338,19 @@ flight at write-up; see the note below)*:
 | **clojure** | 0.45 | **1.0** | ← beats 4.8 |
 | go, typescript | 1.00 | 1.0 | matches |
 | csharp, elixir, erlang, c, cpp, objc | *never run* | **1.0** | new ground |
-| **python** | **1.00** | **✗ GENUINE fail** | ← loses to 4.8 |
+| **python** | 1.00 | **1.0** *(was a false failure — see below)* | matches |
+
+**⚠️ CORRECTION 2 — brazil/python was a HARNESS false-failure, not a regression.** Digging into the
+one apparent Opus 5 loss found the opposite of a model problem: the agent produced a complete MCP
+server and **all 239 of its tests pass**. The scorer reported `test_coverage=0` because the project's
+`pyproject.toml` sets `addopts = "-q"`, which combines with the scorer's own `-q` to make pytest
+**doubly quiet** — it prints progress dots and *no* `N passed` summary line, so the pass-rate parser
+found nothing and the mechanical gate failed a green suite. (`retort diagnose` compounded this by
+labelling it GENUINE: it re-runs against the *archived* tree, where the same parse fails.) **Fix:** the
+plain-test fallback now uses the **exit code** as the universal signal — the same principle already
+applied to the C/C++/ObjC and Swift paths — since pytest exits 5 on "no tests collected", so rc==0
+genuinely means tests ran and passed. Rescored: **python → test_coverage 1.00, brazil is 12/12**.
+This bug would silently zero ANY Python project that configures quiet pytest output.
 
 **⚠️ CORRECTION (added after comparing against Fable 5).** The first version of this entry called
 Opus 5 "the first model to clear the hard task broadly." That over-claimed. **On the 4 brazil languages

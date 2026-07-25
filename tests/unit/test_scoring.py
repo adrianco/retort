@@ -1149,3 +1149,31 @@ def test_no_regression_actually_runs_python_suite(tmp_path):
     # now make it fail — the gate must catch it (proves it really ran)
     (tmp_path / "test_ok.py").write_text("def test_ok():\n    assert 1 + 1 == 3\n")
     assert NoRegressionScorer().score(art, stack) == 0.0
+
+
+def test_quiet_pytest_project_is_not_false_failed(tmp_path):
+    """Regression (exp-46 brazil/python): a project whose pyproject sets
+    `addopts = "-q"` combines with the scorer's own -q to make pytest doubly
+    quiet — progress dots, NO "N passed" summary. Parsing finds nothing, so the
+    suite was scored 0 despite 239 passing tests. The exit code is the truth
+    (pytest exits 5 on 'no tests collected', so rc==0 means tests ran + passed)."""
+    from retort.scoring.scorers.test_coverage import TestCoverageScorer
+    (tmp_path / "pyproject.toml").write_text(
+        '[project]\nname = "q"\nversion = "0.1"\n\n'
+        '[tool.pytest.ini_options]\naddopts = "-q"\n')
+    (tmp_path / "tests").mkdir()
+    (tmp_path / "tests" / "test_ok.py").write_text(
+        "def test_a():\n    assert True\n\ndef test_b():\n    assert 1 + 1 == 2\n")
+    art = RunArtifacts(output_dir=tmp_path, stdout="", exit_code=0, duration_seconds=1.0)
+    cov = TestCoverageScorer().score(art, StackConfig(language="python", agent="x", framework="x"))
+    assert cov > 0.0, "a passing quiet-pytest project must not score 0"
+
+    # The exit-code fallback itself must NOT rescue a genuinely failing suite:
+    # _tests_pass_rate is the path that changed, so assert it directly (the full
+    # scorer can still report real line-coverage for a failing suite when
+    # pytest-cov is available — coverage measures execution, not success).
+    (tmp_path / "tests" / "test_ok.py").write_text("def test_a():\n    assert False\n")
+    from retort.scoring.scorers._venv import ensure_python_env
+    env, _ = ensure_python_env(tmp_path)
+    assert TestCoverageScorer()._tests_pass_rate(tmp_path, "python", env=env) in (None, 0.0), \
+        "a failing suite must not be rescued by the exit-code fallback"
