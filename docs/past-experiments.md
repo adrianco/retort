@@ -318,7 +318,7 @@ so the final numbers stand. The single-replicate sweep was luck, not capability.
 option** and as evidence that the OpenAI open-weights lineage is viable locally. Worth a follow-up at
 n≥5 on Go, and a look at whether Python's failures are a prompt/scaffold artifact.
 
-### exp-46 — Claude Opus 5: broad hard-task coverage, but Fable 5 is the better buy
+### exp-46 — Claude Opus 5: 26/26 across every language and both tasks — at 3–7x the price
 
 Added the new frontier model across **every supported language on both tasks** (n=1):
 `language{python, go, typescript, rust, clojure, java, csharp, elixir, erlang, c, cpp, objc, swift}
@@ -328,8 +328,8 @@ bills, and the live agent argv carried `--model claude-opus-5` while `provenance
 
 **bookshop (routine): 13/13 — a clean sweep**, including java, where Opus 4.8 manages only 0.83.
 
-**brazil-bench (hard) — the headline. 12/12 measured cells at req-coverage 1.0** *(swift was still in
-flight at write-up; see the note below)*:
+**brazil-bench (hard) — the headline. 13/13 at req-coverage 1.0** **Opus 5 is the first model to clear the hard task in
+every language tried** — and after the harness fixes below it has **no regressions at all**:
 
 | brazil language | Opus 4.8 | **Opus 5** | |
 |---|---|---|---|
@@ -338,7 +338,7 @@ flight at write-up; see the note below)*:
 | **clojure** | 0.45 | **1.0** | ← beats 4.8 |
 | go, typescript | 1.00 | 1.0 | matches |
 | csharp, elixir, erlang, c, cpp, objc | *never run* | **1.0** | new ground |
-| **python** | 1.00 | **1.0** *(was a false failure — see below)* | matches |
+| **python** | 1.00 | **1.0** *(was a harness false-failure — see Correction 2)* | matches |
 
 **⚠️ CORRECTION 2 — brazil/python was a HARNESS false-failure, not a regression.** Digging into the
 one apparent Opus 5 loss found the opposite of a model problem: the agent produced a complete MCP
@@ -398,8 +398,8 @@ Also fixed here: `stall_minutes` was missing from the brazil workspace (a wedged
 the full wall ×12), and bookshop's clojure "failure" was a scorer TOOLING false-zero that rescored to
 1.00/0.97 — which is why bookshop is 13/13, not 12/13.
 
-*Note: swift/brazil was still executing when this entry was written; the table will be one cell longer
-once it lands. Every other cell is final and post-`recover`.*
+**FINAL (all 26 cells, post-recover/reevaluate): bookshop 13/13, brazil 13/13 — a perfect sweep.**
+Cost/speed per solved cell: bookshop \$2.91 / 10.1 min, brazil \$20.00 / 43.8 min.
 
 ---
 
