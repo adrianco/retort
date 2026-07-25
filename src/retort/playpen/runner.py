@@ -82,6 +82,20 @@ class TaskSpec:
     # substantially bigger than the workspace's typical run — production
     # workloads frequently need 200+ turns.
     max_turns: int | None = None
+    # --- repo-pr mode (large existing repo; the deliverable is a DIFF) ---------
+    # A task whose work happens inside a big existing repo (e.g. the ~30K-line
+    # the-goodies port) sets base_repo + base_ref. The runner then checks the repo
+    # out as a `git worktree` (sharing one cached clone's object store) instead of
+    # copytree-ing it per attempt, and the archived artifact is a
+    # `git format-patch` of the agent's commit — never a copy of the repo. See
+    # tasks/funkygibbon-port/README.md for the full design.
+    base_repo: str | None = None   # clone URL
+    base_ref: str = ""             # pinned tag/branch/sha (e.g. "v0.2.2")
+
+    @property
+    def is_repo_pr(self) -> bool:
+        """True when this task works inside a checked-out base repo (diff mode)."""
+        return bool(self.base_repo)
 
 
 @dataclass

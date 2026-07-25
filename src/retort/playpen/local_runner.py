@@ -293,6 +293,10 @@ class LocalRunner:
             prefix="retort-local-", dir=_playpen_root()
         ))
         self._envs: dict[str, _EnvInfo] = {}
+        # repo-pr mode: env_id -> the cached base clone whose worktree this
+        # playpen is, so execute() can capture the patch and teardown can
+        # remove the worktree.
+        self._repo_pr: dict[str, Path] = {}
         # When set, invoke evaluate-run skill after each successful run.
         self.eval_model = eval_model
         # When set, compute run cost from hardware model instead of agent-reported cost.
@@ -323,6 +327,23 @@ class LocalRunner:
         env_dir = self.work_dir / env_id
         env_dir.mkdir(parents=True, exist_ok=True)
 
+        # repo-pr mode: check the pinned base repo out as a git WORKTREE instead of
+        # copying it. Shares one cached clone's object store (no per-attempt copy of
+        # a 30K-line repo) and keeps real history so the deliverable can be a
+        # `git format-patch`. Falls through to the normal path if git/clone fails,
+        # so a task is never wedged by it.
+        if task.is_repo_pr:
+            from retort.playpen import repo_pr
+            base = repo_pr.ensure_base_clone(task.base_repo, task.base_ref)
+            if base is not None and repo_pr.add_worktree(
+                    base, env_dir, task.base_ref, f"retort/{env_id}"):
+                self._repo_pr[env_id] = base
+                logger.info("repo-pr: worktree for %s at %s (%s@%s)",
+                            env_id, env_dir, task.base_repo, task.base_ref or "HEAD")
+            else:
+                logger.warning("repo-pr: worktree unavailable — falling back to a "
+                               "plain workspace for %s", env_id)
+
         # Copy supporting files from the task's support_dir, if any. Used
         # for tasks where the prompt references external files (e.g.
         # brazil-bench needs the kaggle CSVs from the source repo). Done
@@ -342,6 +363,8 @@ class LocalRunner:
         (env_dir / "stack.json").write_text(json.dumps(stack_data))
 
         # Init git repo — many agents expect it. Skip if the support
+        # files already brought one, or (repo-pr) the worktree provides a
+        # `.git` FILE pointing at the cached clone.
         # files already brought a .git dir along.
         if not (env_dir / ".git").exists():
             org_context = stack.extra.get("org_context", "none")
@@ -474,6 +497,14 @@ class LocalRunner:
             )
             cost_usd = _parse_float(metadata.get("total_cost_usd"), 0.0)
 
+            # repo-pr mode: the DELIVERABLE is a diff, so commit the agent's work
+            # and write attempt.patch into the workspace (which becomes the archive).
+            # The base repo itself is never copied into the archive.
+            if env_id in self._repo_pr:
+                from retort.playpen import repo_pr
+                patch = repo_pr.capture_patch(info.workspace, info.task.base_ref)
+                metadata["repo_pr_patch"] = patch.name if patch else "none"
+
             # Hermes logs no tool calls to stdout — export its session transcript
             # so tool-consultation IS verifiable for local runs (see agent_consulted).
             if self._resolve_harness(stack) == "hermes":
@@ -553,6 +584,15 @@ class LocalRunner:
 
     def cleanup_all(self) -> None:
         """Remove the entire work directory after all scoring is done."""
+        # repo-pr: detach the worktrees from their cached clone FIRST, so git's
+        # worktree registry doesn't keep stale entries pointing at deleted paths
+        # (`git worktree list` would show them as prunable forever). Done here, not
+        # in teardown(), because scoring reads the workspace after teardown.
+        if self._repo_pr:
+            from retort.playpen import repo_pr
+            for env_id, base in list(self._repo_pr.items()):
+                repo_pr.remove_worktree(base, self.work_dir / env_id)
+            self._repo_pr.clear()
         if self.work_dir.exists():
             shutil.rmtree(self.work_dir, ignore_errors=True)
 

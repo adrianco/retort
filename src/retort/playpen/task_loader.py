@@ -202,6 +202,17 @@ def _load_from_dir(task_dir: Path) -> TaskSpec:
     seed_dir = task_dir / "seed"
     support_dir = seed_dir if seed_dir.is_dir() else None
 
+    # repo-pr mode: the task works inside a large existing repo, checked out as a
+    # git worktree, and the deliverable is a patch (see runner.TaskSpec.base_repo).
+    #   base_repo: https://github.com/owner/repo
+    #   base_ref:  v0.2.2
+    base = data.get("base_repo") or {}
+    if isinstance(base, str):          # shorthand: base_repo: <url>
+        base_repo, base_ref = base, str(data.get("base_ref", ""))
+    else:                              # mapping: base_repo: {url:…, ref:…}
+        base_repo = base.get("url")
+        base_ref = str(base.get("ref", data.get("base_ref", "")))
+
     return TaskSpec(
         name=data["name"],
         description=data.get("description", ""),
@@ -210,6 +221,8 @@ def _load_from_dir(task_dir: Path) -> TaskSpec:
         timeout_minutes=data.get("timeout_minutes", 30),
         max_turns=data.get("max_turns"),
         support_dir=support_dir,
+        base_repo=base_repo,
+        base_ref=base_ref,
     )
 
 
