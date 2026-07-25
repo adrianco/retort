@@ -22,34 +22,50 @@ See [`experiments/README.md`](experiments/README.md) for the layout and the step
 
 ## Features
 
-- **Factorial / fractional-factorial designs** over `language × model × tooling` (and any factors you add — context length, sampling, agent, prompt), generated automatically — run the full grid or a fraction.
+- **Factorial / fractional-factorial designs** over `language × model × tooling` (and any factors you add — context length, sampling, agent, prompt, **thinking level**), generated automatically — run the full grid or a fraction. Factor names are free-form; see [the factor table](#the-factors-you-can-vary).
 - **Isolated playpens** — each run gets a fresh local workspace; the agent implements the task, then the code is built and tested in place. Agents supported: **`claude-code`**, **`hermes`** (local models via oMLX), **`gemini`**, **`opencode`**, and **`omp`**.
-- **Scoring that checks the spec, not the vibes.** Nine built-in scorers (code quality, test coverage, test quality, defect rate, maintainability, idiomaticity, token efficiency, findings, bead usage) **plus a conformance gate**:
+- **Scoring that checks the spec, not the vibes.** Ten built-in scorers (code quality, test coverage, test quality, defect rate, maintainability, idiomaticity, token efficiency, findings, bead usage, **no-regression**) **plus a conformance gate**:
   - *Mechanical gate* — if the tests don't run, the run **fails** (no proof = no pass).
   - *Spec gate* — a **second-opinion LLM eval** (judge defaults to the **latest** Claude) checks the code against a **pinned requirement checklist** and records `requirement_coverage`; a run passes only if it implements the *whole* spec. A default inline **self-repair second chance** re-seeds a failing cell with its own code + the evaluation feedback before recording it (half credit).
 - **`retort recover`** — the one-step post-run cleanup: `diagnose` (classify each failure **TOOLING** vs **GENUINE**) → `rescore --only-failed` (recover scorer false-failures) → `reevaluate` (refresh `requirement_coverage`). So you never hand-investigate a failure.
 - **Cross-experiment master database** — `retort aggregate` rolls every experiment into one `master.db` / `master.csv`; **`retort report optimal`** generates the living per-language recommendation from it.
 - **ANOVA + effects**, **live `retort monitor`**, resumable sharded runs, `cost_limit_usd`.
 
-This repo *is* the result of running it: ~40 experiments across two tasks and nine languages (Go, Python, TypeScript, Rust, Clojure, Java, C#, Erlang, Elixir), the Claude frontier (Opus 4.6/4.7/4.8, Sonnet 5, Fable 5, fast mode), local MLX stacks (Qwen 30B/35B/80B via Hermes+oMLX), a Gemini cross-agent scaffold, and prompt / sampling / context / self-repair studies.
+This repo *is* the result of running it: ~49 experiments across two tasks and **thirteen** languages (Go, Python, TypeScript, Rust, Clojure, Java, C#, Erlang, Elixir, C, C++, Objective-C, Swift), the Claude frontier (Opus 4.6/4.7/4.8, **Opus 5**, Sonnet 5, Fable 5, fast mode), local MLX stacks (Qwen 30B/35B/80B and gpt-oss-20b via Hermes+oMLX), a Gemini cross-agent scaffold, and prompt / sampling / context / self-repair studies.
+
+### The factors you can vary
+
+Factor names are free-form — anything you put in `factors:` reaches the runner and is recorded in `stack.json` and `master.db`. These are the ones the code reads by name:
+
+| Factor | Levels | What it does |
+|---|---|---|
+| `language` | 13 shipped (see the toolchain table) | Picks the build/test/lint commands the scorer runs |
+| `model` | any id; aliases incl. `opus-4.6/4.7/4.8`, `opus-5`, `sonnet-5`, `fable-5`, `haiku-4.5`, `opus-4.8-fast` | The model. A `-fast` suffix enables Claude Code fast mode and doubles recorded cost (its real rate) |
+| `effort` | `default`, `low`, `medium`, `high`, `max` | **Thinking level** (`claude --effort`). `default` means *pass no flag* — the historical baseline, and measurably **not** the same as any named level. `claude-code` only |
+| `prompt` | `none`, or any `prompts/<level>.md` | Prompt/methodology injection (BDD/TDD/ATDD studies) |
+| `agent` | `claude-code`, `gemini`, `omp`, `opencode`, + your `playpen.local_agents` keys | Which CLI drives the run |
+| `stack` | preset names from `playpen.stack_presets` | Serving preset — model weights, context length, sampling, compaction threshold. **Not** the `model` factor |
+| `tooling` | `none`, `beads`, `graphify` | Extra tools the agent gets. `beads` is scored by `bead_usage_score`; `graphify` builds a code knowledge-graph before the run |
+
+> ⚠️ **Any tuning parameter must be verified to take effect before a full run, not just set.** Nearly every wrong conclusion this project published came from a parameter that was set-but-unverified (temperature silently 1.0; context silently halved; a playpen path where the agent's file tool was refused, producing false zeros). See the principle in [`CLAUDE.md`](CLAUDE.md).
 
 ---
 
 ## What the data says
 
-Full, always-current results live in three companion documents — each the **single home** for its topic. This README summarizes and links; it does not re-host tables that go stale.
+Full, always-current results live in five companion documents — each the **single home** for its topic. This README summarizes and links; it does not re-host tables that go stale.
 
 - ⭐ **[optimal-blog.md](optimal-blog.md)** — *what to run today*: the leading stacks, the per-language / per-task-size recommendation, and the exact configuration each needs (generated from `master.db` by `retort report optimal`). No history — stacks appear when they lead and are removed when they don't.
 - 📝 **[model-blog.md](model-blog.md)** — the narrative: reliability-vs-cost, fast mode, the local-model arc, and the measurement bugs found along the way.
 - 🎯 **[prompt-blog.md](prompt-blog.md)** — whether the prescribed test methodology (BDD / TDD / ATDD vs none) moves reliability.
-- 🔬 **[versions-blog.md](versions-blog.md)** — one task, every model version: why newer Claude releases cost 6× and take 4× longer for the *same* passing app (turns, not per-turn speed — and cache reads that scale with the square of the step count).
+- 🔬 **[versions-blog.md](versions-blog.md)** — one task, every model version: why newer Claude releases cost 6× and take 4× longer for the *same* passing app (turns, not per-turn speed — and cache reads that scale with the square of the step count). Includes the open question of how much of that is **thinking level**, which no experiment controlled until now.
 - 🧩 **[harness-blog.md](harness-blog.md)** — a newcomer's map of the *stack under the model*: what oMLX / llama.cpp / Hermes / GGUF / MLX / `omp` are, where they came from, what competes with what and why there are so many — plus what the metaharness factors mean and what they'd test.
 
 The headline metric is **pass-proportion**: over N replicates of a stack, the fraction whose runs *fully implement the spec* (`requirement_coverage == 1.0`). Read it as **the probability a single unattended run comes out completely correct**. A single sub-1.0 run is a fail.
 
 **The current picture (latest experiments):**
 
-- **Cloud reliability is a cost decision, and it's task-dependent.** On the *hard* task only **Fable 5** clears it every time (1.00); **Sonnet 5** is 0.93 at less cost; **Opus 4.8** is a ~0.59 coin-flip (but ~1.00 and cheap on routine work); **Opus 4.7** is a fine routine stack (1.00) but weak on hard (0.40). On easy work almost anything reaches ~1.00, so the cheapest reliable model wins.
+- **Cloud reliability is a cost decision, and it's task-dependent.** On the *hard* task **Opus 5** is the broadest — 13/13 languages, the only model to clear it everywhere — with **Fable 5** also at 1.00 and roughly half the price per solved cell; **Sonnet 5** is 0.93 for less again; **Opus 4.8** is a ~0.59 coin-flip (but ~1.00 and cheap on routine work); **Opus 4.7** is a fine routine stack (1.00) but weak on hard (0.40). On easy work almost anything reaches ~1.00, so the cheapest reliable model wins — **newer is broader, not better, and you pay for the breadth.**
 - **A local laptop stack is free and now covers three languages.** **Qwen3-Coder-Next 80B** (MLX + Hermes + oMLX on a 64 GB Mac, at `context_threshold: 0.9`) runs **Python, Go and TypeScript at 1.00** for $0 — TypeScript unlocked by raising the compaction point (a config lever, not a capability wall). **Rust (0.33) and the niche languages** (Clojure/C#/Elixir/Java/Erlang, ~0.00) still go to cloud, and no local stack reliably clears the hard task (**0/6**, config-invariant — verified at both ctx 0.7 and 0.9). The **35B** is the faster Python/Go alternative (0.85 each).
 - **The prompt/methodology is a lever only in proportion to model weakness** — it tanks ATDD on a weak stack (Sonnet/Go, the 35B) but is a flat no-op on strong ones (the 80B: neutral/BDD/TDD/ATDD all 1.00; and cloud). See the prompt blog.
 
@@ -71,7 +87,7 @@ The point of a designed experiment is that you can *decompose* the variance — 
 
 Queued experiments are in **[docs/future-experiments.md](docs/future-experiments.md)** (a prioritized queue); finished runs and rejected candidates move to **[docs/past-experiments.md](docs/past-experiments.md)** (in experiment order). Every scored run is combined into **[`master.csv`](master.csv)** / `master.db` (rebuild with `retort aggregate --out master.db --csv master.csv`). Per-run source, tests, scores, and spec-eval output are committed under each `experiments/**/runs/`. Stack maturity (production / trial / screening / candidate per stack) is in [`maturity-report.txt`](maturity-report.txt) — regenerate with `retort maturity --db master.db --metric requirement_coverage`.
 
-> **Experimental side-branch — [`retort_metaharness/`](retort_metaharness/)** (console script `retort-metaharness`): a methodology layer that makes the *agentic-orchestration harness* (routing / self-consistency / memory / evolved genome / scaffold) a first-class DoE factor, so the ANOVA can separate a harness effect from the raw model. It composes Retort's engine but is **cloud-only (OpenRouter) and needs an external harness solver**, so it stays a documented side-branch until a screening run shows the harness variance is real — see the staged plan in [future-experiments §6](docs/future-experiments.md#6-methodology-harness-orchestration-factor-retort-metaharness).
+> **Experimental side-branch — metaharness** (console script `retort-metaharness`): a methodology layer that makes the *agentic-orchestration harness* (routing / self-consistency / memory / evolved genome / scaffold) a first-class DoE factor, so the ANOVA can separate a harness effect from the raw model. It **no longer requires OpenRouter** — a `--runner local` backend composes Retort's own Hermes + oMLX pipeline, so the harness factor can be screened on-device for $0 (the OpenRouter path is retained). Retort can also **feed its measured results back into metaharness's routing** via `retort report optimal --routing-json`, so the choice of model per language/task is grounded in what actually passed rather than in a heuristic. **Full interface spec, JSON contract, and what is still unbuilt: [`docs/metaharness.md`](docs/metaharness.md).**
 
 **Why some runs fail — and how the gate stays honest.** The strict "tests must run" gate is deliberate, but a *failure* has to be the model's, not the harness's. Every new language/stack surfaced measurement bugs (Elixir's deprecated `mix do deps.get, test`; Go acceptance tests scoring 0% without `-coverpkg`; fast-mode cost under-reported 2×; a rerun harness that overwrote good runs with instant $0 failures). All are fixed and regression-tested, and **`retort diagnose`** now makes the tooling-vs-genuine call automatically — the same class of scorer false-failure that `retort recover` cleans up after every run. The tell is always the same: a *genuine* failure burns model time; a *harness* failure fails instantly for $0.
 
@@ -185,7 +201,7 @@ Every command is `retort <command> [options]`; add `--help` for the authoritativ
 | Command | What it does |
 |---|---|
 | `analyze` | **Type-II ANOVA** per response on a CSV; `--predict` estimates unrun cells + 95% CI. |
-| `report optimal` | Generate the **optimal-blog** tables (leading stacks + per-language matrix) from `master.db`. `--health`, `--write <blog.md>`. |
+| `report optimal` | Generate the **optimal-blog** tables (leading stacks + per-language matrix) from `master.db`. `--health`, `--write <blog.md>`, **`--routing-json <out>`** (machine-readable per-language routing for metaharness — see [docs/metaharness.md](docs/metaharness.md)). |
 | `report effects` | Main + interaction effects for a design matrix. |
 | `report pareto` | **Pareto-optimal stacks** across objectives (quality vs cost vs speed). |
 | `maturity` | Score each stack's maturity → production/trial/screening/candidate. |
@@ -219,6 +235,8 @@ The `gemini` harness needs the [Gemini CLI](https://github.com/google-gemini/gem
 
 ## Status: 1.0 beta
 
-Feature-complete for single-agent experiments with the `LocalRunner`. **Implemented:** `LocalRunner`, all nine scorers + the conformance spec gate, factorial/fractional design generation (incl. `prompt`, `sampling`, `context` as factors), ANOVA + effects, SQLite storage + cross-experiment `aggregate` / `reevaluate` (with a judge-tooling health-check), `rescore` / `diagnose` / `recover` for failure recovery, self-repair second chance + `--repair-from`, resumable sharded runs, `retort monitor`, `cost_limit_usd`, `intake` for augmenting a design with a new factor level, a local **Hermes + oMLX** stack, and **Gemini** / **opencode** / **omp** harnesses. **Not yet:** `DockerRunner` (skeleton), the `scheduler` paths.
+Feature-complete for single-agent experiments with the `LocalRunner`. **Implemented:** `LocalRunner`, all ten scorers + the conformance spec gate, factorial/fractional design generation (incl. `prompt`, `sampling`, `context`, `effort` as factors), ANOVA + effects, SQLite storage + cross-experiment `aggregate` / `reevaluate` (with a judge-tooling health-check), `rescore` / `diagnose` / `recover` for failure recovery, self-repair second chance + `--repair-from`, resumable sharded runs, `retort monitor`, `cost_limit_usd`, `intake` for augmenting a design with a new factor level, a local **Hermes + oMLX** stack, **Gemini** / **opencode** / **omp** harnesses, **`tooling: graphify`** (pre-run code knowledge-graph), **repo-PR mode** (a task declaring `base_repo` runs in a `git worktree` off a cached clone and captures the attempt as a patch instead of copying a large repo per run), and the **metaharness routing feed**.
+
+**Not yet:** `DockerRunner` (skeleton), the `scheduler` paths, a `tooling: metaharness` level (the routing feed has no consumer yet — see [docs/metaharness.md](docs/metaharness.md)), and a `CloudRunner` (the `cloud` runner name in the schema falls through to Docker).
 
 See [`docs/`](docs/) for the full configuration reference, concepts, extending guide, quickstart, and local-model setup.

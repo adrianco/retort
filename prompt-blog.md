@@ -210,6 +210,26 @@ so no methodology is favoured by the gate itself. The methodology's effect shows
 up (if it shows up at all) in the pass-proportion and quality numbers, not in a
 rigged denominator.
 
+## The adjacent lever: how *hard* it thinks, not how you ask
+
+The prompt turns out to be the smallest lever here — but there is a neighbouring
+knob that is emphatically not small, and that every experiment in this post left
+uncontrolled: **thinking level**.
+
+`prompt` changes *what you ask for*. `effort` (`claude --effort
+low|medium|high|max`, now a Retort factor) changes *how much reasoning the model
+does before acting*. On an identical task, raising Opus 4.8 from its default to
+`max` nearly doubled the agentic turns and multiplied token use by five — a far
+bigger swing than any methodology in this post produced.
+
+That does not undercut the prompt findings: every run compared here used the same
+default thinking level, so the comparison *between* methodologies is sound. But it
+does reframe the conclusion. "The prompt is the smallest lever" is measured against
+model and language; it has not yet been measured against thinking level, and on the
+early evidence thinking level is the larger of the two. **exp-49** crosses four
+model versions with all five effort levels to size it properly — see
+[versions-blog.md](versions-blog.md).
+
 ## Try it on your own task
 
 `prompt` is just another factor in retort — named strategies in

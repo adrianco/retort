@@ -132,7 +132,7 @@ own output**. More than half the tool calls come *after* the first version of th
 consistent with a model tuned to verify and refine rather than to emit once and stop.
 
 Whether that iteration is what *buys* Opus 5 its unmatched breadth elsewhere — it is the only model
-that clears the [hard task](past-experiments.md) in all 13 languages — is the interesting open
+that clears the [hard task](docs/past-experiments.md) in all 13 languages — is the interesting open
 question. On an easy task the extra cycles are pure overhead. On a hard one they may be the mechanism.
 
 ## The local models tell the same story

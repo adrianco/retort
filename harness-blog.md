@@ -169,10 +169,25 @@ wrong conclusions in this project than any model choice.
   derail the multi-turn tool loop into stalls. These are recorded per run and held
   fixed on purpose.
 
+- **Thinking level** — how much reasoning the model does *before* it acts. Claude
+  Code exposes it as `--effort low|medium|high|max`, and Retort now carries it as an
+  `effort` factor. It is the newest entry in this list and possibly the most
+  consequential: raising Opus 4.8 from its default to `max` on an identical task
+  **nearly doubled the agentic turns and multiplied tokens by five**, which is most of
+  the difference this project had been attributing to *newer model versions*. Every
+  result published before this factor existed ran at whatever the CLI chose — which,
+  measured, is **not** any of the named levels. That is why `default` is kept as an
+  explicit level rather than folded into `medium`: it is the historical baseline, and
+  mislabelling it would silently rewrite the back catalogue.
+
 The lesson threaded through the whole project: **a set-but-unverified knob in one
 of these quiet layers produces confident, wrong results.** Retort's provenance
 records the *effective* value of each, because the config file's value and the
-value the model actually ran at have diverged more than once.
+value the model actually ran at have diverged more than once. The corollary is that
+a knob nobody *records* is worse still — thinking level was an uncontrolled variable
+across every experiment here until it was made a factor, and
+[versions-blog.md](versions-blog.md) now says so in place of the conclusion it had
+drawn without it.
 
 ---
 
@@ -256,13 +271,56 @@ the model-only grid structurally can't:
   lever only in proportion to how weak the model is**; the metaharness generalizes
   that from *prompt* to *full orchestration*.)
 
-The honest caveats: it's **cloud-only** (OpenRouter, metered — the
-`self-consistency × frontier × replicates` corner gets expensive) and the real
-orchestration logic lives in an **external solver** the adapter shells out to, so
-without that solver only a \$0 stub runs. That's why it's a documented
-side-branch rather than a headline result — it stays one until a first screening
-run shows the harness variance is real enough to promote. The staged plan lives in
+### It runs on your own hardware now
+
+The original caveat was that this was **cloud-only** — OpenRouter, metered, with the
+`self-consistency × frontier × replicates` corner getting expensive fast. That has
+changed. A **`--runner local`** backend composes Retort's own Hermes + oMLX pipeline
+in-process, so the harness factor can be screened **on-device for \$0**:
+
+```bash
+retort-metaharness run --runner local --stacks stacks.yaml --task rest-api-crud
+```
+
+It implements the orchestration levels it *can* locally — `base-ReAct` (one attempt),
+`self-consistency-N` (N attempts, keep the best), and `routed` (draft on the 35B,
+escalate to the 80B) — and the two that genuinely have no local equivalent,
+`+agenticow-memory` and `+darwin-evolved-genome`, **degrade to base-ReAct and say so
+in the result**. That last detail matters more than it sounds: a harness level that
+quietly behaved like another level would show up in the ANOVA as "orchestration
+doesn't matter," which is a false null — the most expensive kind of wrong answer.
+
+The OpenRouter path is still there for the frontier models; it just isn't the only way in.
+
+### The interesting part: feeding it *measured* results
+
+Metaharness picks a model per problem. Today it picks using **language/task
+heuristics**. Retort's whole output is a measurement of exactly that — which stack
+actually passes, per language, per task size, at what cost. So the natural move is to
+hand metaharness the results instead of the heuristic:
+
+```bash
+retort report optimal --routing-json routing.json
+```
+
+That emits, for each language and each of the two task sizes, **the cheapest stack whose
+measured pass-proportion clears its bar** — or an explicit `null` where nothing measured
+qualifies (which is *not* the same as "unmeasured," and a consumer must not treat it as
+"use the default"). The intent is that metaharness routes on evidence, and that the
+adapter goes back upstream to the metaharness project rather than living here.
+
+**Status, stated plainly:** the producer is implemented and tested; **nothing consumes it
+yet.** There is no `tooling: metaharness` level in the code — `tooling` handles `beads`
+and `graphify` only — and the schema still needs agreeing with the metaharness maintainer.
+So the honest summary is *a correct, tested feed with no consumer.* The full interface
+spec, the JSON contract field-by-field, and the three things still unbuilt are in
+[`docs/metaharness.md`](docs/metaharness.md); the staged plan is in
 [`docs/future-experiments.md`](docs/future-experiments.md).
+
+One more caveat worth keeping: the real orchestration logic for the *OpenRouter* path
+lives in an **external solver** the adapter shells out to. Without it that path runs a \$0
+stub — which is deliberately labelled a fixture, not a benchmark, so nobody quotes its
+numbers as a model result.
 
 ---
 

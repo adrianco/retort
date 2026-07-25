@@ -6,7 +6,7 @@
 
 Every few weeks a new frontier model tops the leaderboards, and the implicit advice is "upgrade." Sites like **[llm-stats.com](https://llm-stats.com/)** rank models well across many benchmarks — but they answer a question most engineering teams aren't actually asking. They hold the *stack* constant: one prompt, one harness, a fixed benchmark. They don't tell you whether the newest model is worth 4× the cost **in Rust**, how *reliably* each model gets a Go MCP server completely right, or how long any of it takes.
 
-Those are the variables that decide a real project. So I built **[retort](https://github.com/adrianco/retort)** to measure them properly — with statistical Design of Experiments, the same technique you'd use to tune a manufacturing process. Vary the factors you care about (here: programming **language** × **model version** × **tooling** — and, newly, the **coding agent**, the **prompt methodology**, and **local self-hosted models**), run a factorial grid on a real task, score every cell, and let the analysis tell you which factors actually matter. And because retort accumulates results across a shared database, each new model just gets *added* to what's already known — the point of the project is to measure how each new release behaves without re-running everything. It now spans two tasks, nine languages, the Claude Sonnet/Opus lines (plus a fast-mode variant and the tier-above Fable 5), and **local models running for free on a laptop**. **Newest first:** the most recent work re-baselined that on-device local stack — an M5 laptop, $0 per token — on the newest local model (Qwen3-Coder-Next 80B) at full context, and found it now runs Python, Go *and* TypeScript completely reliably (**1.00 each**) — the first time a free laptop stack matches the cloud frontier on those three languages. A follow-up confirmed the *hard* task stays out of local reach regardless of that setting. That's the lead section immediately below the headline board; the rest of the local-model arc and the cloud-model detail (Sonnet 5 and the rest) follow.
+Those are the variables that decide a real project. So I built **[retort](https://github.com/adrianco/retort)** to measure them properly — with statistical Design of Experiments, the same technique you'd use to tune a manufacturing process. Vary the factors you care about (here: programming **language** × **model version** × **tooling** — and, newly, the **coding agent**, the **prompt methodology**, and **local self-hosted models**), run a factorial grid on a real task, score every cell, and let the analysis tell you which factors actually matter. And because retort accumulates results across a shared database, each new model just gets *added* to what's already known — the point of the project is to measure how each new release behaves without re-running everything. It now spans two tasks, **thirteen** languages, the Claude Sonnet/Opus lines (plus a fast-mode variant, the tier-above Fable 5, and the newest Opus 5), and **local models running for free on a laptop**. **Newest first:** the most recent work re-baselined that on-device local stack — an M5 laptop, $0 per token — on the newest local model (Qwen3-Coder-Next 80B) at full context, and found it now runs Python, Go *and* TypeScript completely reliably (**1.00 each**) — the first time a free laptop stack matches the cloud frontier on those three languages. A follow-up confirmed the *hard* task stays out of local reach regardless of that setting. That's the lead section immediately below the headline board; the rest of the local-model arc and the cloud-model detail (Sonnet 5 and the rest) follow.
 
 ## The metric that matters: how often is it *completely* right?
 
@@ -18,18 +18,28 @@ Read it as **the probability that a single run comes out completely correct.** 3
 
 Here is the full board, every model measured on the two tasks — **pass-proportion = the probability a single run comes out completely correct** — with the newest additions (local, on-device, $0) in bold at the bottom:
 
-| Model | Serving | Brazil MCP (hard) | REST-API (easy) | Cost/run |
+| Model | Serving | Brazil MCP (hard) | REST-API (easy) | Cost/run (hard) |
 |---|---|---:|---:|---:|
-| Claude Opus 4.8 | cloud | **1.00** | **1.00** | $5.54 |
-| Claude Opus 4.7 | cloud | 0.85 | **1.00** | $4.92 |
-| Claude Sonnet 5 *(newest cloud)* ⁴ | cloud | 0.93 | **1.00** | $7.64 |
-| Claude Fable 5 ³ | cloud | **1.00** | **1.00** | $8.98 |
-| Claude Opus 4.8 fast ² | cloud | **1.00** | **1.00** | $8.72 |
-| Claude Sonnet 4.6 | cloud | 0.50 | 0.63 | $1.10 |
-| Claude Opus 4.6 | cloud | 0.47 | 0.59 | $1.30 |
+| **Claude Opus 5** *(newest)* ¹⁰ | cloud | **1.00** (13) | **1.00** (13) | $21.67 |
+| Claude Fable 5 ³ | cloud | **1.00** (14) | **1.00** (21) | $9.13 |
+| Claude Opus 4.8 fast ² | cloud | **1.00** (12) | **1.00** (12) | $8.72 |
+| Claude Sonnet 5 ⁴ | cloud | 0.93 (15) | **1.00** (15) | $7.64 |
+| Claude Opus 4.8 | cloud | 0.57 (42) | 0.98 (46) | $3.16 |
+| Claude Opus 4.7 | cloud | 0.40 (42) | **1.00** (42) | $2.95 |
+| Claude Opus 4.6 | cloud | 0.50 (8) | 0.59 | $1.67 |
+
+> **Read the replicate counts (in brackets), and mind the language mix.** These are all-language
+> averages, and the models have *not* all been run on the same languages. Opus 4.8 and 4.7 have been
+> pushed across all thirteen — including the ones nothing handles well — while Opus 5 and Fable 5 have
+> 13–14 hard-task cells each. A model tested only on the languages it is good at will look better than
+> one tested everywhere. **The per-language matrix in [optimal-blog.md](optimal-blog.md) is the
+> like-for-like comparison; this board is a summary.** This is also why Opus 4.8's hard-task number
+> reads 0.57 here where an earlier version of this board said 1.00 — that figure came from a
+> three-language subset (Python/Go/TypeScript), which is where 4.8 *is* reliable.
 | **Qwen3-Coder-Next-80B-A3B** *(best local, ctx 0.9)* ⁷ | **local · $0** | **0.00** ⁹ | **1.00** | **$0** |
 | **Qwen3.6-35B-A3B** *(faster local: Python/Go)* ⁵ | **local · $0** | **0.25** | **0.85** | **$0** |
 | **Qwen3-Coder-30B-A3B** ⁶ | **local · $0** | — | **0.33** | **$0** |
+| **gpt-oss-20b** *(OpenAI open weights)* ¹¹ | **local · $0** | — | 0.60 (15) | **$0** |
 | **Devstral-24B** *(agent-tuned, wrong harness)* ⁸ | **local · $0** | — | 0.17 | **$0** |
 
 ² Fast mode (`/fast`), 4 languages. Cost at fast mode's **2× per-token rate** ([announcement](https://www.anthropic.com/news/claude-opus-4-8)) — see [Fast mode](#fast-mode-speed-you-pay-double-for).
@@ -38,6 +48,10 @@ Here is the full board, every model measured on the two tasks — **pass-proport
 ⁵ **Qwen3.6-35B-A3B**, served with MLX/oMLX and driven by the Hermes agent on an **M5 / 64 GB laptop**. At correct sampling (temp 0.6, not the old 1.0) and a true 256K context it does **Python and Go at 0.85 each** — the *faster* local pick for those two — but scores **0.00 on TypeScript and Rust** even fully tuned, so its niche is Python/Go only. On the hard task (brazil) it manages **0.25** — it occasionally nails all 12 capabilities, not reliably. Full story in the local-model sections below.
 ⁶ **Qwen3-Coder-30B-A3B** via llama.cpp — **0.08** at a 32 K context, **0.33** at 128 K: context is the first-order lever for a local model.
 ⁷ **Qwen3-Coder-Next-80B-A3B** — now the **featured local stack**, once its compaction threshold was raised to full context (`lcm context_threshold: 0.9`). At that setting it runs **Python 1.00, Go 1.00, and TypeScript 1.00** (n=3 each) — TypeScript was only 0.33 at lower thresholds, so *full context, not a new model,* is what unlocked it. **Rust is 0.33** (genuine near-misses, → cloud) and the five niche languages (Clojure/C#/Elixir/Java/Erlang) stay ~0.00. It's slower than the 35B (~600 s routine). The earlier "bigger ≠ better" reading was a config artifact of over-early compaction, now fixed.
+¹¹ **gpt-oss-20b** (exp-47) — the first **non-Qwen** local lineage that works end to end: oMLX parses its Harmony tool calls into proper OpenAI `tool_calls`, so unlike Laguna (architecture wall) and Devstral (unparseable Mistral format) it is both servable and drivable by Hermes. From a quarter the 80B's memory it is **3–7× quicker** — but at n=5 it is **reliable at nothing**: Go 0.80, TypeScript 0.60, Python 0.40. It is also this project's best argument for replicates: Go was **1.00 through three replicates** and was about to be published as "matches the 80B at 3.6× the speed" when replicates 4–5 took it to 0.80. All three of its zero-scoring runs were reproduced by hand and are genuine model errors — two `tsc` failures (one where the model appended a *second copy* of the app into `index.ts`) and a Python run where it wrote an `httpx` shim that imports itself.
+
+¹⁰ **Claude Opus 5** (exp-46) — run across **all thirteen languages on both tasks**, 26/26. The only model that has cleared the hard task in every language tried. It buys *coverage*, not efficiency: ~$21.67 per hard-task cell against Fable 5's ~$9.13 for the same 1.00, and it takes roughly 2.3× the agentic turns of Fable 5 for an identical result on routine work (see [versions-blog.md](versions-blog.md)). Its hard-task breadth is being directly contested by **exp-48**, which is filling in the nine languages Fable 5 had never been run on — at the time of writing Fable 5 has matched it on the six completed so far.
+
 ⁸ **Devstral-24B** (exp-23), a *smaller but agent-tuned* Mistral coder — served via **llama.cpp** (oMLX can't parse its Mistral tool-call format). The lowest local result: 0.17, with **7 of 12 runs never terminating**. Big asterisk: Devstral is tuned for its native OpenHands scaffolding, not Hermes — so this is Devstral on the wrong harness, not its ceiling. Neither *bigger* (80B) nor *agent-tuned-different* (Devstral) beat the general 35B.
 ⁹ **The hard task, local.** Both local models are now measured on brazil-bench and both do poorly: the 80B scores **0.00 (0/6)** and the 35B **0.25**. The 80B gets *closer on average* (consistently ~10–11 of 12 capabilities) but never lands all 12. Crucially the 80B's 0.00 is now **verified config-invariant** — re-run at full context (`context_threshold: 0.9`) it is still 0/6, identical to the lower threshold: full context lifts the *easy* languages, not the hard-task ceiling. Hard tasks stay a cloud-frontier niche (Fable 5 = 1.00).
 
