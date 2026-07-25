@@ -18,6 +18,29 @@
 # SECOND QUESTION (from versions-blog): fast mode showed 11.3 turns vs standard 4.8's
 # 17.3 -- the same weights taking a third FEWER agentic steps. At n=3 vs n=6 that may
 # be variance. Here both run at n=3 in the same batch, which settles it.
+#
+# THIRD QUESTION -- and a CONFOUND in versions-blog. Every result this project has
+# published ran at the CLI's DEFAULT thinking level, never recorded as a factor. If
+# newer versions simply think more by default, then "newer models take more turns"
+# is partly "newer models think more" -- a different claim with a different remedy
+# (turn the knob down) than "the model was tuned to iterate more".
+#
+# SMOKE TEST (CLAUDE.md: verify the parameter takes effect, don't just set it).
+# Run 2026-07-25 before this design was written:
+#   * All four versions ACCEPT --effort low|medium|high|max.
+#   * It demonstrably TAKES EFFECT: with --output-format stream-json the response
+#     carries a `thinking` content block at max and none at low, on 4.7/4.8/5 alike;
+#     model output tokens rise with the level (Fable 5 342 -> 3499, ~10x; 4.8
+#     453 -> 1417). An early weaker probe on a trivial arithmetic prompt showed 4.7
+#     flat across levels and briefly looked like a silently-ignored parameter -- it
+#     was too weak a probe, NOT an ignored flag. Recorded so it isn't re-litigated.
+#   * DEFAULT IS NOT A NAMED LEVEL. On a fixed prompt the default landed near high
+#     for 4.8 (688 vs 672 out-tok) and between medium and high for Fable 5 / Opus 5,
+#     while 4.7's default emitted a thinking block though its own low/medium/high
+#     did not. So `default` is carried as its own level rather than folded into one.
+# Caveat: that probe is single-shot, non-agentic, n=1. It establishes the knob is
+# REAL and observable -- which is all a smoke test should -- not what it does to an
+# agent loop. That is exactly what this experiment measures.
 experiment:
   name: experiment-49-versions-cloud
   visibility: public
@@ -31,6 +54,10 @@ factors:
       - claude-fable-5
       - claude-opus-5
   prompt: { levels: [neutral, none] }             # design pins neutral
+  # THINKING LEVEL — new factor (user request, 2026-07-25). Every experiment to
+  # date ran at the CLI default, so `default` is kept as an explicit level: it is
+  # the historical baseline and is NOT equivalent to any named level (see below).
+  effort: { levels: [default, low, medium, high, max] }
 responses: [code_quality, token_efficiency, test_coverage, defect_rate, maintainability, idiomatic]
 tasks:
   - source: bundled://rest-api-crud

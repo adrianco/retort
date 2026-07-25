@@ -245,6 +245,37 @@ def _model_cli_args(model_level: str) -> list[str]:
     return ["--model", resolved, *extra]
 
 
+#: Effort levels the `claude` CLI accepts for `--effort` (its "thinking level").
+#: `default` is NOT one of them — it is retort's name for *passing no flag at all*,
+#: which is what every run before exp-49 did. Keeping it as an explicit level means
+#: the historical baseline is a addressable cell rather than an absence.
+EFFORT_LEVELS = ("default", "low", "medium", "high", "max")
+
+
+def _effort_cli_args(effort_level: str) -> list[str]:
+    """``claude`` CLI args selecting the thinking/reasoning effort factor.
+
+    Empty or ``default`` → no flag, i.e. whatever the CLI chooses for that model.
+    That is deliberately distinct from ``medium``: a probe across versions showed
+    the default does NOT correspond to any single named level (Opus 4.7's default
+    emitted a thinking block while its own ``low``/``medium``/``high`` emitted
+    none), so collapsing "default" into a named level would silently mislabel
+    every run recorded before this factor existed.
+
+    Verified to take effect, not merely accepted (CLAUDE.md): with
+    ``--output-format stream-json`` the response carries a ``thinking`` content
+    block at ``max`` and none at ``low`` on Opus 4.7/4.8/5, and model output
+    tokens rise monotonically with the level (Fable 5: 342 → 3499, ~10x).
+    """
+    if not effort_level or effort_level == "default":
+        return []
+    if effort_level not in EFFORT_LEVELS:
+        raise ValueError(
+            f"unknown effort level {effort_level!r}; expected one of {', '.join(EFFORT_LEVELS)}"
+        )
+    return ["--effort", effort_level]
+
+
 class LocalRunner:
     """Executes experiment runs in local temp directories.
 
@@ -711,6 +742,9 @@ class LocalRunner:
 
             # Resolve model alias → versioned ID (+ fast-mode setting if any).
             cmd.extend(_model_cli_args(stack.extra.get("model", "")))
+            # Thinking level. Absent factor ⇒ no flag ⇒ the CLI default, which is
+            # what every experiment before exp-49 ran at.
+            cmd.extend(_effort_cli_args(stack.extra.get("effort", "")))
 
             return cmd
 

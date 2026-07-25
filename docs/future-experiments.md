@@ -83,6 +83,44 @@ Metrics: turns, tool-call histogram (Write/Edit/Read/Bash), output vs cache-read
 cycles** rather than initial Writes — i.e. newer models iterate on their own output more. If that holds,
 it explains both the routine-task overhead AND (plausibly) the hard-task breadth Opus 5 uniquely has.
 
+### THINKING LEVEL — added as a factor (user request, 2026-07-25)
+
+Every result this project has ever published ran at the **CLI's default thinking level**, and it was
+never recorded as a factor. That is a **confound sitting directly on versions-blog's central claim**: if
+newer versions simply think more by default, then "newer models take more turns" is partly "newer models
+think more" — a different finding with a different remedy (turn the knob down) than "the model was tuned
+to iterate on its own output."
+
+`claude --effort <low|medium|high|max>` is the knob. **Plumbed into retort** as an `effort` factor
+(`_effort_cli_args` in `playpen/local_runner.py`, 4 unit tests); it flows into `stack.json` via
+`stack.extra`, so it lands in master.db like any other factor. `default` is kept as an explicit
+**level meaning "pass no flag"** — the historical baseline — because the smoke test showed the default
+is *not* equivalent to any named level.
+
+**Smoke test (CLAUDE.md — verify the parameter takes effect, don't just set it), run 2026-07-25:**
+- All four versions accept `--effort`.
+- It **takes effect**: with `--output-format stream-json` the response carries a `thinking` content
+  block at `max` and none at `low` on 4.7/4.8/5 alike, and model output tokens rise with the level
+  (Fable 5 342 → 3499, ~10×; Opus 4.8 453 → 1417).
+- **The default is not a named level.** It landed near `high` for 4.8 (688 vs 672 out-tok) and between
+  `medium` and `high` for Fable 5 / Opus 5, while 4.7's default emitted a thinking block though its own
+  `low`/`medium`/`high` did not.
+- *Recorded so it isn't re-litigated:* an initial weaker probe (trivial arithmetic prompt) showed 4.7
+  flat across all levels and briefly looked like a silently-ignored flag. It was a **weak probe, not an
+  ignored parameter** — the stream-json check disproved it.
+- *Caveat:* the probe is single-shot, non-agentic, n=1. It establishes the knob is real and observable,
+  which is all a smoke test should do — not what it does to an agent loop. That is what the run measures.
+
+**Revised cloud design: `{4.7, 4.8, Fable 5, Opus 5} × {default, low, medium, high, max}` = 20 cells,
+plus a `4.8-fast × default` serving control = 21 cells × n=3 = 63 runs.** Fast mode stays at the default
+level so it remains comparable to the historical fast-mode rows. The local half (6 runs) is unchanged —
+`--effort` is a Claude CLI flag with no local equivalent.
+
+**What it can now settle:** (a) does effort explain the cross-version turn/cost differences, or is it
+independent of them; (b) is there a cheaper operating point — e.g. Opus 5 at `low` matching Fable 5's
+cost while keeping its coverage; (c) whether pass-proportion on a routine task is even sensitive to
+thinking level, which the 1.00-everywhere results suggest it may not be.
+
 **Prerequisite fix — DONE (2026-07-25).** The local arms logged no `turns`, which would have left half
 the comparison unquantified. Root cause: Hermes *does* report `api_calls` (one per model round-trip) in
 its usage file and `_parse_hermes_usage` was simply dropping the field; it is now recorded as

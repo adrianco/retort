@@ -1080,6 +1080,47 @@ def test_model_cli_args_non_fast_has_no_settings():
     assert _model_cli_args("") == []
 
 
+def test_effort_cli_args_named_levels_emit_flag():
+    from retort.playpen.local_runner import EFFORT_LEVELS, _effort_cli_args
+    for level in ("low", "medium", "high", "max"):
+        assert _effort_cli_args(level) == ["--effort", level]
+    assert set(EFFORT_LEVELS) == {"default", "low", "medium", "high", "max"}
+
+
+def test_effort_cli_args_default_passes_no_flag():
+    """'default' means *omit* --effort — the CLI's own choice, which is what every
+    run before exp-49 used. Collapsing it into a named level would mislabel history."""
+    from retort.playpen.local_runner import _effort_cli_args
+    assert _effort_cli_args("default") == []
+    assert _effort_cli_args("") == []
+
+
+def test_effort_cli_args_rejects_unknown_level():
+    """A typo'd level must fail loudly, not silently run at the default — a
+    silently-ignored tuning parameter is this project's most expensive bug class."""
+    import pytest as _pytest
+    from retort.playpen.local_runner import _effort_cli_args
+    with _pytest.raises(ValueError, match="unknown effort level"):
+        _effort_cli_args("maximum")
+
+
+def test_build_agent_command_includes_effort_flag():
+    """The effort factor reaches the actual claude invocation."""
+    from retort.playpen.local_runner import LocalRunner
+    runner = LocalRunner()
+    task = TaskSpec(name="t", description="d", prompt="build it")
+    stack = StackConfig(
+        language="python", agent="claude-code", framework="fastapi",
+        extra={"model": "claude-opus-5", "effort": "high", "prompt": "none"},
+    )
+    cmd = runner._build_agent_command(stack, task, Path("/tmp"))
+    assert "--effort" in cmd
+    assert cmd[cmd.index("--effort") + 1] == "high"
+
+    stack.extra["effort"] = "default"
+    assert "--effort" not in runner._build_agent_command(stack, task, Path("/tmp"))
+
+
 def test_usage_limit_detection_and_artifact_flag():
     """Usage/rate-limit signatures are recognised; ordinary failures are not."""
     from retort.playpen.local_runner import _USAGE_LIMIT_RE
