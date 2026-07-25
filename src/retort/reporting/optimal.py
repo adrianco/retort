@@ -168,6 +168,10 @@ KNOWN_NONFEATURED = {
     "claude-opus-4-8-fast": "Opus 4.8 fast serving variant (not featured)",
     "mlxlocal/Qwen3.6-35B-A3B": "counted under the Qwen 35B local stack (slug/mlxlocal match)",
     "mlxlocal/mlx-community--Qwen3-Coder-Next-4bit": "counted under the Qwen 80B local stack (exp-29)",
+    "mlxlocal/mlx-community--gpt-oss-20b-MXFP4-Q8":
+        "gpt-oss-20b (exp-47): evaluated, deliberately NOT featured — go 3/3 at 95s "
+        "(80B parity, 3.6x faster) but python 1/3, so it is the 'fast Go option', "
+        "not a recommendable default. Revisit if a follow-up firms up Go at n>=5.",
 }
 
 
