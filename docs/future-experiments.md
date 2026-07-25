@@ -167,34 +167,19 @@ The sampling tier is done (exp-27). Remaining levers, by payoff:
   inference levers move real coding reliability, and how badly perplexity mispredicts it.* No public
   benchmark answers this.
 
-## 4. gpt-oss-20b — the one remaining fits-64GB new-model candidate  — LOW priority
+## 4. gpt-oss-20b  — DONE (exp-47), see past-experiments
 
-The only untried model that both fits and isn't a Qwen3.5 VLM. Fits comfortably; **Harmony**
-tool-format (oMLX has a `harmony` reasoning parser, tool-parse unverified — needs a gate-probe).
-20B is unlikely to beat the 35B, so low priority — but it's a different lineage (OpenAI open
-weights) and the only clean new-model probe left. To try a Mistral-family or Devstral coder instead,
-the stack manager would need a llama.cpp / vLLM serving backend (they parse the Mistral tool format
-oMLX can't).
+Ran 2026-07-24 → [past-experiments.md](past-experiments.md) (exp-47). Gate-probe passed (oMLX parses
+its Harmony tool calls), then n=3 on bookshop: **go 3/3 @95s** (matches the 80B's 1.00 @345s from a
+quarter the memory — 3.6x faster), **typescript 2/3** (beats the 35B's 0.00), **python 1/3** (both
+Qwens are 1.00). **Verdict: fast and Go-solid, too uneven to displace the 80B** — keep the 80B
+featured; gpt-oss earns the "fast Go option" slot and proves the OpenAI open-weights lineage is
+viable locally.
 
-**GATE-PROBE PASSED (2026-07-24) — the candidate is UNBLOCKED and ready to run.** Downloaded
-`mlx-community/gpt-oss-20b-MXFP4-Q8` (~12 GB, 3 shards; the first fetch stalled and was restarted).
-Served it on a separate oMLX instance (port 8081, `--hf-cache`, so the main server was untouched) and
-probed the **Harmony tool-format** question directly:
-`finish_reason: tool_calls` with a well-formed call — `{"name":"list_files","arguments":"{\"path\":\".\"}"}`.
-So **oMLX parses gpt-oss's tool calls into proper OpenAI `tool_calls`** — unlike Laguna (arch wall)
-and Devstral (Mistral format oMLX can't parse), this one is fully servable AND drivable by Hermes.
-**Next:** one bookshop replica vs the 35B/80B as an initial comparison (a 20B is unlikely to beat the
-35B, so this is a lineage probe — OpenAI open weights — not a expected win). NOTE: the main oMLX
-discovers models at startup, so it needs a reload to see gpt-oss.
-
-**Earlier (2026-07-22):** ✅ **arch is supported** — oMLX's mlx-lm ships `mlx_lm/models/gpt_oss.py`,
-so unlike Laguna there's no arch wall. Downloading `mlx-community/gpt-oss-20b-MXFP4-Q8` (~12 GB, native
-MXFP4) to the HF cache. **Next — the gate-probe (do this BEFORE any full run, à la exp-42 Laguna):**
-serve it in oMLX, drive one bookshop cell via Hermes, and confirm the agent's **tool calls actually
-parse** (Harmony format through oMLX + Hermes). If tool-parse works → run one bookshop replica vs the
-35B/80B as an initial comparison; if it doesn't → document as blocked (like Laguna/Devstral) and reject
-from the candidate list. NOTE the tool-consultation-logging follow-up (exp-45): verifying tool-parse on
-a Hermes run may need the same session-log parsing.
+**Follow-ups worth queueing:** (a) **n>=5 on Go** to firm up the headline speed/parity claim;
+(b) probe whether **Python's 1/3 is a prompt/scaffold artifact** rather than capability (it produced
+a 0.9167 near-miss, so it's close); (c) the **llama.cpp backend** could serve it too — a
+serving-layer comparison on an identical model is a clean lever test.
 
 ## 5. More languages — C / C++ / Objective-C / Swift  — DONE (exp-43), see past-experiments
 
