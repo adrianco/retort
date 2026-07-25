@@ -15,31 +15,19 @@ push; verify every tuning parameter takes effect with a smoke test first; after 
 
 ---
 
-## 0. exp-46 — Opus 5: all languages × both tasks  — RUNNING (2026-07-24, top priority)
+## 0. exp-46 — Opus 5: all languages × both tasks  — DONE, see past-experiments
 
-A new frontier model shipped (**Claude Opus 5**). Add it to the results and measure
-**tokens, time and cost** across every supported language on **both** tasks. Per
-incremental-experiments: run ONLY the new model's cells; compare against `master.db`.
+Ran 2026-07-24/25 → [past-experiments.md](past-experiments.md). **Result: 26/26 — every one of the 13
+languages on BOTH tasks at req-coverage 1.0.** The first model to clear the hard task in every language
+tried (4.8 manages 0.59 there; nothing else exceeds six languages). **But it buys coverage, not
+efficiency:** \$2.91/solved on routine (vs 4.8's \$0.99 for the same 1.00) and \$20.00/solved on the hard
+task (vs Fable 5's \$8.98). Recommendation: cheapest model that clears your language; Opus 5 only where
+nothing cheaper is proven. Added to FEATURED_STACKS; optimal-blog + model-blog refreshed; the hard-task
+routing table now selects Opus 5 for c/clojure/cpp/elixir/erlang.
 
-**Model-id VERIFIED before spending** (the CLAUDE.md rule): `claude -p --model claude-opus-5`
-self-reports `claude-opus-5` and bills real tokens/cost, while a bogus id (`claude-opus-99-fake`)
-returns **404** — so the CLI validates ids and acceptance proves real routing, not a silent
-fallback to the default model. Aliases added: `opus-5` / `opus5` → `claude-opus-5` (the bare
-`opus` alias deliberately still pins 4.7, so old configs don't silently repoint). Cost comes
-from the CLI's own `total_cost_usd`, so no price table is needed.
-
-**Design (n=1 — the user expects ~always-succeed, so one replicate is enough for a first read):**
-- **bookshop** (`rest-api-crud`): **13 languages** — python, go, typescript, rust, clojure, java,
-  csharp, elixir, erlang, c, cpp, objc, swift (the full set master.db covers for this task).
-- **brazil-bench** (hard): **all 13 languages too** (user, 2026-07-24) — the same set. The systems
-  tier (c/cpp/objc/swift) has **never** run the hard task, so those 4 cells are entirely new data.
-- = **26 cells**, `prompt=neutral`, spec-gate ON, agent = claude-code (follows the model id).
-
-**Hypotheses.** (a) *bookshop:* Opus 5 clears ~all 13 at req-coverage 1.00 — the interesting
-numbers there are **cost and duration** vs Opus 4.8 (is the new generation cheaper/faster per
-solved task?). (b) *brazil-bench is the real test:* **no** model has ever reliably cleared the hard
-task (best local 0/6, and cloud tops out short of a clean sweep). If Opus 5 sweeps brazil across
-9 languages, that's the first model to break the hard-task ceiling — the headline result.
+**Three harness artifacts were caught and fixed before they became false capability claims** (the 60-min
+wall killing erlang+c, doubly-quiet pytest zeroing a green Python suite, and a "usage limit until 3pm"
+that was really a rolling window). See the entry for details.
 
 ## 0b. exp-48 — fill Fable 5's per-language GAPS  — SCHEDULED (runs after exp-46)
 

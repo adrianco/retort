@@ -48,7 +48,41 @@ Two things worth pulling out of the board before the deep dives:
 - **On the cloud frontier, newer is more reliable — and the older/cheaper models are coin-flips on hard work.** Opus 4.6 and Sonnet 4.6 got the hard task fully right only ~half the time; each generation buys reliability and charges time and money for it. But at the very top, extra spend buys nothing: Sonnet 5, fast mode, and Fable 5 all match Opus 4.8's 1.00/1.00 at higher prices, because where 4.8 is already perfect there's no reliability left to buy.
 - **On a laptop, the whole stack around the model matters more than the model.** The climb from 0.08 to a reliable Python/Go/TypeScript 1.00 came from context size, an MLX serving layer that parses the model's tool calls, a model one size up, an agent that doesn't throw away its own context, and — the final unlock — raising that agent's compaction threshold to full context. None of it a new capability; all of it configuration. What it still doesn't move is the last hard limit: Rust, the niche languages, and the hard task.
 
-## Newest: a free laptop stack now matches the cloud on Python, Go *and* TypeScript
+## Newest: Opus 5 clears *everything* — and that is the only reason to pay for it
+
+The newest frontier model, **Claude Opus 5**, was run across **all thirteen supported languages on both
+tasks** — 26 cells, one replicate each. It got **26 out of 26**: every language on the routine task, and
+every language on the *hard* one (the Brazilian-soccer MCP server). **No other model has cleared the hard
+task in more than six languages**, and Opus 4.8 only manages **0.59** there — it is reliable on
+Python/Go/TypeScript and a coin-flip on Rust (0.33), Java (0.33) and Clojure (0.45). Opus 5 turns all of
+those into 1.00, and adds first-ever hard-task passes for C#, Elixir, Erlang, C, C++, Objective-C and Swift.
+
+**But look at the price of that coverage.** Per *solved* cell:
+
+| | Opus 5 | Fable 5 | Opus 4.8 |
+|---|---|---|---|
+| routine task | \$2.91 · 10.1 min | **\$1.09 · 2.4 min** | \$0.99 · 4.9 min |
+| hard task | \$20.00 · 43.8 min | **\$8.98 · 17.3 min** *(4 langs)* | \$5.53 · 10.1 min *(0.59 pass)* |
+
+On routine work Opus 5 is **three times the price of Opus 4.8 for an identical 1.00** — there is no
+reason to reach for it. Even on the hard task it costs roughly **twice** what Fable 5 does per solved
+cell, in the languages where both have been measured. So the honest recommendation is narrow: **use the
+cheapest model that clears your language, and reach for Opus 5 only where nothing cheaper has been
+proven** — which today means the hard task outside Python/Go/TypeScript. (Fable 5 has only been run on
+four to five languages so far; a follow-up is filling those gaps, and if its lead holds it becomes the
+default for both task sizes.)
+
+**The measurement story matters more than the model story here.** The raw run initially showed Opus 5
+*failing* Python, Erlang and C on the hard task. All three were harness artifacts: Erlang and C were
+killed mid-work by a 60-minute timeout (Opus 5 is 3–5× slower than 4.8, and those cells needed ~53
+minutes), and the Python "failure" was a project whose 239 tests all passed but whose `pyproject.toml`
+set `addopts = "-q"` — which combined with the scorer's own `-q` to suppress pytest's summary line
+entirely, so the pass-rate parser saw nothing and the mechanical gate failed a green suite. Raising the
+wall and making the **exit code** the universal pass signal turned three "capability failures" into
+three passes. Nothing about the model changed; only the measurement did. That is the fourth time in this
+project that a config artifact has masqueraded as a model result.
+
+## A free laptop stack matches the cloud on Python, Go *and* TypeScript
 
 The most recent work re-baselined the local stack on the newest local model — **Qwen3-Coder-Next 80B**, an 80B mixture-of-experts — and turned up the result that reorders the whole local story. Run across the easy-task languages at **full context** (the agent's `lcm` compaction threshold raised to 0.9, so it keeps its entire working history instead of compacting partway through a build), it posts **Python 1.00, Go 1.00, TypeScript 1.00** — three of three replicates each. That is the first time a free, on-device stack matches the cloud frontier's reliability on those three languages.
 
