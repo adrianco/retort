@@ -87,6 +87,20 @@ per-language truth, including the languages they fail, is in the matrix below. *
 task local models are now measured and both do poorly** — 35B **0.25**, 80B **0.00** (see the
 per-stack bullets). Rust local is unqualified (80B 0.33, near-misses).
 
+> ### ⚠️ The local hard-task result is under re-test
+>
+> Both local stacks score poorly on the hard task (35B **0.25**, 80B **0.00**), and the 80B's 0/6 was
+> published as a *config-invariant capability wall*. **Every one of those runs was executed with the
+> Hermes agent capped at 30 turns** — a value retort never set and never reconciled with the 200 its
+> own workspaces declared (found and fixed 2026-07-25). A truncated run and an incapable model score
+> identically, and 3 of exp-39's 12 brazil runs stopped at exactly 90 api_calls (3 × the 30-turn cap),
+> two with near-zero coverage.
+>
+> That is suggestive, not conclusive — the other nine runs stopped well short of any cap. **exp-50
+> re-runs it with the cap honest.** Until then, treat "no local stack clears the hard task" as
+> *measured under a cap that may have decided the answer*. The routine-task results are unaffected:
+> those runs finish in 19–30 turns, comfortably inside the old limit.
+
 **Pick by task size — the two columns tell different stories:**
 
 * **Fable 5** clears the hard task **every time (1.00), in all thirteen languages**. When a

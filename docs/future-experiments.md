@@ -69,6 +69,59 @@ runs landed in master.db with `effort` missing and no error. `unknown_factors()`
 needs the machine to itself. And the obvious follow-up: **effort on the HARD task**, where the knob may
 actually earn its cost. Nothing here tests that.
 
+## 0d. exp-50 — was the local hard-task "capability wall" a 30-turn CAP?  — PLANNED (run next)
+
+**The claim under test.** [optimal-blog](../optimal-blog.md) and the README both state that no local
+stack clears the hard task, and that the 80B's **0/6 on brazil is "config-invariant"** — verified at
+`context_threshold` 0.7 *and* 0.9, and therefore a genuine capability ceiling. It is one of this
+project's load-bearing conclusions: it is why "hard tasks → cloud" is the standing recommendation.
+
+**Why it is in doubt.** Every one of those runs was executed with Hermes capped at **`max_turns: 30`**
+— a value retort never set and never reconciled with the `max_turns: 200` its own workspaces declared
+(fixed 2026-07-25; found by exp-49's local pre-flight). `provenance.json` recorded both numbers side by
+side without flagging the contradiction. A truncated run and an incapable model produce identical
+scores.
+
+**The evidence that prompted this.** Archived `.hermes_usage.json` from exp-39/31 (80B × brazil):
+
+| api_calls | test_coverage |
+|---:|---:|
+| **90** | 0.000 |
+| **90** | 0.045 |
+| **90** | 0.850 |
+| 84 | 0.435 |
+| 82 | 0.640 |
+| 79 | 0.760 |
+| 78 | 0.104 |
+| 78 | 0.394 |
+| 59 | 0.675 |
+| 53 | 0.800 |
+| 45 | 0.870 |
+| 32 | 0.660 |
+
+**Three runs stop at exactly 90** — 3 api_calls per turn × the 30-turn cap — and two of those three have
+near-zero coverage. Nothing else clusters on a round number. That is the shape of a wall being hit.
+
+**Honest counter-evidence, so this is not run as a foregone conclusion:** `api_calls` is *not* turns
+(the 3× mapping is inferred, not confirmed), the other nine runs stop well below any cap, and one run at
+90 still reached 0.85 coverage. It is also possible the 80B genuinely plateaus around 11/12 capabilities
+as exp-39 concluded. **This experiment is as likely to confirm the wall as to remove it** — which is why
+it is worth running rather than quietly rewriting the docs.
+
+**Design.** `Qwen3-Coder-Next 80B × brazil-bench × {python, go} × n=3` at `context_threshold: 0.9`,
+prompt=neutral, spec-gate ON — i.e. **exp-39 re-run unchanged except that the turn cap is now honestly
+200**. Same stack, same task, same scoring: the only altered variable is the one that was never
+controlled. 120-minute wall (a run allowed 200 turns needs the time to use them).
+
+**Pre-flight:** confirm from a live run that Hermes' config carries `max_turns: 200` (done for the 35B;
+repeat for the 80B preset), and that `num_turns` is recorded so the result can be read directly rather
+than inferred from `api_calls` — the whole ambiguity above exists because turns weren't recorded then.
+
+**Reading the result.** If the 80B now clears brazil in any language, the "local can't do hard tasks"
+recommendation is wrong and both blogs need correcting. If it still scores 0/6 **with runs visibly
+terminating below 200 turns**, the capability wall is confirmed on much stronger evidence than before —
+and that is a genuinely useful outcome, because the current claim rests on runs that were capped.
+
 ## 1. Graphify tooling factor + large-existing-codebase task  — PLANNED (top priority)
 
 Add a third level to the `tooling` factor (currently `none` / `beads`): **`graphify`** — a
