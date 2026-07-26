@@ -347,9 +347,47 @@ of the new factor would have been impossible, and nothing would have said so. Fi
 includes `effort`/`agent`/`stack`, and `unknown_factors()` reports any factor key present in the data
 with no column, which `aggregate` prints as a warning. Three regression tests.
 
+**The local half (6 runs) — and the local stacks finally get onto the turn axis.** Historical Hermes
+runs recorded no turn count at all, so [versions-blog](../versions-blog.md) could only compare local to
+cloud by *profile shape* (tokens and seconds). Measured directly:
+
+| stack | n | turns | tokens | seconds | coverage |
+|---|---:|---:|---:|---:|---:|
+| Qwen3.6-35B (local) | 3 | **12.0** (10, 8, 18) | 288 K | 183 | 0.98 |
+| Qwen3-Coder-Next 80B (local) | 3 | **24.7** (44, 17, 13) | 595 K | 205 | 0.95 |
+
+Against the cloud arms at default effort the whole board orders as: **Opus 4.8 9.3 < Opus 4.7 10.3 <
+35B 12.0 < Fable 5 13.0 < 80B 24.7 < Opus 5 31.0.** Two readings:
+
+- **A 35B open-weights model on a laptop takes the same ~12 turns as the cloud frontier.** The
+  "three generations flat at ~10 turns" cluster is not a Claude phenomenon; it spans vendors and a 20×
+  size difference.
+- **versions-blog's inference holds.** It claimed the 80B "mirrors Opus 5's profile" from tokens and
+  seconds alone, before turns were recorded. On the turn axis: 24.7 vs 31.0 — close, and both far above
+  everything else. The inference was sound.
+
+Note the 80B's **variance is large** (44, 17, 13 — a 3.4× spread), much larger than the 35B's or any
+cloud arm's. n=3 is thin for a stack that noisy, and a single 80B run is close to meaningless.
+
+**Two harness faults surfaced in the local half, both caught by guards rather than published:**
+
+1. **The 30-turn cap** (fixed before this half ran — see the commit). One of the three 80B runs took
+   **44 turns**, so the old cap would have truncated it *on the routine task*. This is direct evidence
+   that the cap was binding on real work, not merely arithmetically possible.
+2. **oMLX 0.5.0rc1's memory enforcer refused to load the 80B.** Its `balanced` tier ceiling (~42.7 GB)
+   is *below the model's own size* (43.85 GB), and the projection including a 262144-token KV cache is
+   ~51.6 GB. All three m80 cells wrote nothing and failed in 8–10 s; the **no-write guard aborted the
+   run** rather than recording false zeros, and the instant-failure-for-$0 signature matched the
+   documented tell exactly. Fixed with an explicit `--memory-guard-gb 54` (under the kernel's ~56 GB
+   Metal wired cap). **exp-38/39 ran this same model under plain `balanced`, which cannot have passed
+   this enforcer — so it arrived or tightened in 0.5.0rc1, making the serving-layer *version* an
+   uncontrolled stack variable in a project premised on the stack mattering.**
+
 *Caveats:* one run (fast-mode rep3) persisted partial telemetry, so the **fast-mode control is n=2**.
 All results are one language (Python) on the routine task — thinking level may well earn its cost on
-harder work, which this experiment does not test. That is the obvious follow-up.
+harder work, which this experiment does not test. That is the obvious follow-up. The local arms carry
+no `effort` factor (it is a Claude CLI flag with no Hermes equivalent), so they sit at their own
+defaults and are comparable to the cloud arms' `default` column only.
 
 ### exp-48 — Fable 5 fills its gaps, and Opus 5's headline does not survive it
 

@@ -1,0 +1,23 @@
+{
+  "severity_counts": {
+    "critical": 0,
+    "high": 1,
+    "medium": 0,
+    "low": 0,
+    "info": 0
+  },
+  "penalty_score": 0.9,
+  "top_findings": [
+    {
+      "id": "deps-1",
+      "kind": "build_failure",
+      "severity": "high",
+      "title": "requirements.txt omits Flask \u2014 documented setup fails in a clean env",
+      "evidence": "requirements.txt lists only `pytest==7.4.3`; app.py:5 `from flask import Flask, ...`. README.md:22-30 instructs `pip install -r requirements.txt` then `python app.py`, which raises ModuleNotFoundError: flask on a fresh install. (Scored run passed only because flask was already present: test_coverage=0.94.)",
+      "suggestion": "Add `Flask>=3.0` (and pin it) to requirements.txt so the documented run instructions work reproducibly."
+    }
+  ],
+  "requirement_coverage": 1.0,
+  "model": "mlxlocal/mlx-community--Qwen3-Coder-Next-4bit",
+  "evaluated_at": "2026-07-26T02:48:13Z"
+}

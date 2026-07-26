@@ -65,9 +65,18 @@ whose cost swings **$0.75 → $6.75**.
 Also exposed and fixed: `retort aggregate` was dropping any factor not in a hardcoded list, so all 63
 runs landed in master.db with `effort` missing and no error. `unknown_factors()` now reports it.
 
-**Remaining:** the **local half** (6 runs, Qwen 35B + 80B) still to run after an oMLX smoke test — it
-needs the machine to itself. And the obvious follow-up: **effort on the HARD task**, where the knob may
-actually earn its cost. Nothing here tests that.
+**Local half: DONE too (6/6).** It put the local stacks on the turn axis for the first time —
+**35B 12.0 turns, 80B 24.7** — giving the full ordering **Opus 4.8 9.3 · Opus 4.7 10.3 · 35B 12.0 ·
+Fable 5 13.0 · 80B 24.7 · Opus 5 31.0**. A 35B open-weights model on a laptop sits in the same cluster
+as three Claude generations, which makes agent-loop *tuning* a better explanation than scale.
+
+Its pre-flight also found the **30-turn Hermes cap** (fixed) and an oMLX 0.5.0rc1 **memory enforcer**
+whose `balanced` ceiling is below the 80B's own size — all three m80 cells wrote nothing until an
+explicit `--memory-guard-gb 54` was set. Both were caught by guards, not published.
+
+**Follow-up worth queueing:** **effort on the HARD task**, where the knob may actually earn its cost.
+Nothing in exp-49 tests that — it is one language on the routine task, where every arm scored 1.00 and
+so nothing *could* distinguish the levels on reliability.
 
 ## 0d. exp-50 — was the local hard-task "capability wall" a 30-turn CAP?  — PLANNED (run next)
 

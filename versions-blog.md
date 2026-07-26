@@ -16,13 +16,14 @@ longer**. That is worth understanding, because nothing about the deliverable cha
 | Opus 4.7 | 6 | 1.00 | 17.2 | 613 K | 100 | $0.59 |
 | Opus 4.8 | 6 | 1.00 | 17.3 | 310 K | 122 | **$0.50** |
 | **Opus 5** | 1 | 1.00 | **36.0** | **1,252 K** | **392** | **$1.84** |
-| Qwen3.6-35B (local, Hermes+oMLX) | 3 | 1.00 | — | 238 K | 126 | $0 |
-| Qwen3-Coder-Next 80B (local, ctx 0.9) | 3 | 1.00 | — | 1,586 K | 440 | $0 |
+| Qwen3.6-35B (local, Hermes+oMLX) | 3 | 1.00 | **12.0** ᴺ | 238 K | 126 | $0 |
+| Qwen3-Coder-Next 80B (local, ctx 0.9) | 3 | 1.00 | **24.7** ᴺ | 1,586 K | 440 | $0 |
 | Qwen3-Coder-30B (local, llama.cpp) | 12 | 0.67 | — | 1,114 K | 531 | $0 |
 | gpt-oss-20b (local) | 5 | 0.40 | — | 876 K | 245 | $0 |
 
 *(Opus 5 is n=1 on this specific cell — but the pattern is confirmed at n=9 across nine more languages
-below. Historical local runs don't record a turn count; see the gap section.)*
+below. **ᴺ The local turn counts come from exp-49's fresh in-batch runs**, not from the historical rows
+beside them, which recorded no turns at all.)*
 
 > **Provenance caveat on this table.** These rows do **not** all come from one batch. The Opus 4.7 /
 > 4.8 / fast-mode / Fable 5 rows come from exp-6, exp-7 and exp-10, which declared no `prompt` factor at
@@ -264,18 +265,37 @@ Two further measurement gaps to close:
 
 1. **No transcripts for older versions** → we can't say whether 4.8 also writes-then-edits, or whether
    Opus 5's extra turns are extra *edit* cycles specifically.
-2. **Local stacks recorded no turn count** — `turns` was empty for every Hermes run, so the local rows
-   above can't be put on the cloud's axis. **Now fixed:** Hermes reports `api_calls` (one per model
-   round-trip) in its usage file and the parser was dropping it; it is now recorded as `num_turns`
-   (verified on an archive: a gpt-oss TypeScript run = 27 turns). *Historical* local runs stay blank,
-   which is why exp-49 re-runs them.
+2. ~~**Local stacks recorded no turn count.**~~ **CLOSED.** Hermes reports `api_calls` in its usage file
+   and the parser was dropping it; it is now recorded as `num_turns`, and exp-49's local half supplies
+   fresh in-batch turn counts for both local stacks (above). *Historical* local runs stay blank — they
+   cannot be recovered, only re-run.
 
-**The controlled rerun has now run** — that is exp-49, above. Its cloud half (63 runs) replaced the
-cross-batch version table with an in-batch one and, in doing so, corrected it. **Its local half — the
-Qwen 35B and 80B arms, 6 runs — is still outstanding**, which is why the local rows in the opening
-table still carry no turn count. Until those run, the local stacks cannot be placed on the cloud's
-axis, and the claim that the pattern "reproduces across two model families" rests on profile shape
-(tokens and seconds) rather than on turns.
+   Closing this gap also uncovered a harness fault that had been silently shaping local results:
+   **Hermes was capped at 30 turns** by a setting retort never reconciled with the 200 its own
+   workspaces declared. One of the three 80B runs here took **44 turns** — so the cap was truncating
+   real work on the *routine* task, and every earlier local run was measured through it. Fixed;
+   [exp-50](docs/future-experiments.md) re-tests the local hard-task result, which was measured
+   entirely under the cap.
+
+**The controlled rerun has now run in full** — that is exp-49. Its cloud half (63 runs) replaced the
+cross-batch version table with an in-batch one and corrected it; its local half (6 runs) put the local
+stacks on the cloud's turn axis for the first time:
+
+| stack, python bookshop | n | turns | replicates |
+|---|---:|---:|---|
+| Qwen3.6-35B (local) | 3 | **12.0** | 10, 8, 18 |
+| Qwen3-Coder-Next 80B (local) | 3 | **24.7** | 44, 17, 13 |
+
+**The claim that the pattern reproduces across model families survives the harder test.** It was
+originally inferred from profile *shape* — tokens and seconds — because no local turn count existed. On
+the turn axis the ordering is **Opus 4.8 9.3 · Opus 4.7 10.3 · 35B 12.0 · Fable 5 13.0 · 80B 24.7 ·
+Opus 5 31.0**: a 35B open-weights model on a laptop sits in the same ~10–13 turn cluster as three Claude
+generations, and the 80B sits with Opus 5 well above it. That is a 20× parameter range and two vendors
+producing the same two-group split, which is stronger evidence for *agent-loop tuning* over
+architecture or scale than this post originally had.
+
+One caution: the 80B's replicates span **44, 17, 13** — a 3.4× spread, far noisier than any cloud arm.
+Its 24.7 is a thin mean, and a single 80B run tells you very little.
 
 ## The practical takeaway
 
