@@ -68,3 +68,52 @@ def test_llamacpp_launch_cmd_local_gguf(tmp_path: Path):
     # a .gguf path -> -m (local file), not -hf
     assert "-m" in cmd and "/models/foo.gguf" in cmd
     assert "-hf" not in cmd
+
+
+def test_hermes_max_turns_is_written_from_the_workspace(tmp_path):
+    """Hermes' turn cap must agree with the workspace's `playpen.max_turns`.
+
+    Regression: Hermes takes max_turns from its config file (it has no CLI flag),
+    so it ran at whatever the file said — 30 — while workspaces declared 200.
+    provenance.json recorded both values without flagging the disagreement, and a
+    local run needing >30 turns was truncated and scored as a model failure.
+    """
+    import yaml as _yaml
+    from retort.playpen.stack_reload import OmlxStackManager
+
+    hermes_cfg = tmp_path / "hermes.yaml"
+    hermes_cfg.write_text(_yaml.safe_dump({
+        "model": "old-model", "context_length": 131072, "max_turns": 30,
+        "providers": {"mlxlocal": {"default_model": "old-model", "models": {}}},
+    }))
+    registry = tmp_path / "stacks.yaml"
+    registry.write_text(_yaml.safe_dump({
+        "serving": {"hermes_config": str(hermes_cfg)},
+        "presets": {"m35": {"model": "Qwen3.6-35B-A3B", "context_length": 262144}},
+    }))
+
+    mgr = OmlxStackManager(registry)
+    mgr.agent_max_turns = 200
+    mgr._ensure_hermes_model("Qwen3.6-35B-A3B", 262144, mgr.agent_max_turns)
+
+    cfg = _yaml.safe_load(hermes_cfg.read_text())
+    assert cfg["max_turns"] == 200, "hermes would silently cap runs at its own value"
+    assert cfg["context_length"] == 262144
+    assert cfg["model"] == "Qwen3.6-35B-A3B"
+
+
+def test_hermes_max_turns_left_alone_when_unset(tmp_path):
+    """agent_max_turns=None ⇒ don't touch the file's existing value."""
+    import yaml as _yaml
+    from retort.playpen.stack_reload import OmlxStackManager
+
+    hermes_cfg = tmp_path / "hermes.yaml"
+    hermes_cfg.write_text(_yaml.safe_dump({"model": "m", "max_turns": 45}))
+    registry = tmp_path / "stacks.yaml"
+    registry.write_text(_yaml.safe_dump({
+        "serving": {"hermes_config": str(hermes_cfg)},
+        "presets": {"p": {"model": "m"}},
+    }))
+    mgr = OmlxStackManager(registry)
+    mgr._ensure_hermes_model("m", None, None)
+    assert _yaml.safe_load(hermes_cfg.read_text())["max_turns"] == 45

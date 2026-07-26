@@ -120,6 +120,12 @@ class _BaseStackManager:
         if not self.presets:
             raise ValueError(f"no presets in stack registry {registry_path}")
         self._loaded_sig: tuple | None = None
+        # Workspace `playpen.max_turns`, written into the Hermes config on each
+        # reload. Hermes has no --max-turns CLI flag, so the config file is the
+        # only way to make its cap agree with the one the experiment declared.
+        # Left None ⇒ leave whatever the file says (and it said 30, silently
+        # truncating local runs — see _ensure_hermes_model).
+        self.agent_max_turns: int | None = None
 
     # -- public API ---------------------------------------------------------
 
@@ -180,13 +186,26 @@ class _BaseStackManager:
         # Detached so it outlives this call; the port-kill above reclaims it next reload.
         subprocess.Popen(cmd, stdout=log_f, stderr=log_f, start_new_session=True)
 
-    def _ensure_hermes_model(self, model: str, context_length: int | None) -> None:
+    def _ensure_hermes_model(
+        self, model: str, context_length: int | None, max_turns: int | None = None
+    ) -> None:
         """Point Hermes at this preset's model, WITHOUT losing its context length.
 
         The per-model ``context_length`` is load-bearing: without it Hermes probes
         its fallback tiers (256K -> 128K -> 64K…) and lands on 128K, and lcm then
         compacts at ~85% of *that*. Never rebuild the ``models`` map (that silently
         dropped the setting when switching models); always write context length back.
+
+        ``max_turns`` is equally load-bearing and was NOT managed here until
+        2026-07-25. Hermes takes its turn cap from this config file (it has no CLI
+        flag), so it ran at whatever the file happened to say — 30 — while retort's
+        workspace declared 200 and `provenance.json` dutifully recorded *both*
+        without anyone noticing they disagreed. A local run needing more than 30
+        turns was silently truncated and scored as a failure, indistinguishable
+        from a model that could not do the task. Three of exp-39's twelve brazil
+        runs stopped at exactly 90 api_calls (3 per turn x 30), two with near-zero
+        coverage — which is why the local hard-task "capability wall" needs
+        re-testing with the cap lifted.
         """
         cfg_path = self.serving.get("hermes_config")
         if not cfg_path:
@@ -198,6 +217,9 @@ class _BaseStackManager:
         changed = False
         if cfg.get("model") != model:
             cfg["model"] = model
+            changed = True
+        if max_turns and cfg.get("max_turns") != max_turns:
+            cfg["max_turns"] = max_turns
             changed = True
         if context_length and cfg.get("context_length") != context_length:
             cfg["context_length"] = context_length
@@ -262,7 +284,9 @@ class OmlxStackManager(_BaseStackManager):
 
     def _apply(self, preset: dict) -> None:
         self._write_sampling(preset.get("sampling", {}) or {})
-        self._ensure_hermes_model(preset["model"], preset.get("context_length"))
+        self._ensure_hermes_model(
+            preset["model"], preset.get("context_length"), self.agent_max_turns
+        )
         self._restart_server()
         self._wait_ready(preset["model"])
         self._warm(preset["model"])
@@ -306,7 +330,9 @@ class LlamaCppStackManager(_BaseStackManager):
     def _apply(self, preset: dict) -> None:
         # llama-server takes sampling as launch-time defaults, so there is no
         # separate settings write — it's folded into the restart.
-        self._ensure_hermes_model(preset["model"], preset.get("context_length"))
+        self._ensure_hermes_model(
+            preset["model"], preset.get("context_length"), self.agent_max_turns
+        )
         self._restart_server(preset)
         self._wait_ready(preset["model"])
         self._warm(preset["model"])

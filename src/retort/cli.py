@@ -722,6 +722,12 @@ def run_experiments(
             registry_path = config_dir / workspace_config.playpen.stack_presets
             # backend (oMLX / llama.cpp) is chosen by serving.backend in the registry
             stack_manager = make_stack_manager(registry_path)
+            # Make Hermes' turn cap agree with the one this workspace declares.
+            # Hermes reads max_turns from its config file (no CLI flag), so
+            # without this it runs at whatever the file last said — which was 30,
+            # while workspaces declared 200. Runs needing more were silently
+            # truncated and scored as model failures.
+            stack_manager.agent_max_turns = workspace_config.playpen.max_turns
 
         # Local-agent binary preflight. A configured local agent whose CLI can't
         # be resolved crashes EVERY cell that uses it at 0.0s ("Agent CLI not
