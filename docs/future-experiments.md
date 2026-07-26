@@ -46,118 +46,28 @@ The bookshop half also became the third independent dataset behind
 **2.3× the turns** of Fable 5 for an identical 1.00, with tokens growing 3.3× off that — the n²
 cache-read curve.
 
-## 0c. exp-49 — instrumented version comparison + THINKING LEVEL  — READY TO RUN (exp-47/48 both done)
+## 0c. exp-49 — thinking level as a factor  — DONE (cloud half), see past-experiments
 
-[`versions-blog.md`](../versions-blog.md) asks why newer Claude versions cost 6× and take 4× longer for
-an identical passing app. The aggregate answer is solid: **turns**, not per-turn speed (Fable 5 10.7 →
-Opus 4.8 17.3 → Opus 5 36.0), and cost grows ~**n²** because every turn re-reads the whole conversation
-from cache (Opus 5: 33 K tokens *generated* vs **3.28 M cache reads**).
+Ran 2026-07-25 → [past-experiments.md](past-experiments.md). **63/63, zero failures, every run 1.00.**
 
-**What we cannot answer, and why.** The tool-call *mix* can only be computed for Opus 5 — older runs
-(exp-6 Opus 4.7/4.8, the early local experiments) have **no `_agent_stdout.log`**, because transcript
-capture was added later. And **local stacks record no turn count**, so they can't be put on the cloud's
-axis.
+**Effort is a 4× cost lever that buys nothing on routine work:** low → max is 2.1× turns, 3.6× tokens,
+**4.1× cost**, 6.2× wall-clock, for an identical pass-proportion. `low` beats even the CLI default
+(~25% cheaper, ~45% faster, same 1.00).
 
-**Design.** The same cell — `python × bookshop × prompt=neutral` — across **Opus 4.7, Opus 4.8, Fable 5,
-Opus 5** and the local **Qwen 35B** and **80B**, **n≥3**, with full transcript capture on every arm.
-Metrics: turns, tool-call histogram (Write/Edit/Read/Bash), output vs cache-read tokens, wall time.
-**Hypothesis:** the extra turns in newer models are disproportionately **Edit + Bash (verify/refine)
-cycles** rather than initial Writes — i.e. newer models iterate on their own output more.
+**It does NOT explain the version gap** — the preliminary claim that motivated the experiment was
+retracted by the experiment itself. In-batch, Opus 4.7 / 4.8 / Fable 5 all sit at ~9–13 turns and only
+**Opus 5** moves (31.0, ~2.7×). versions-blog's smooth "progression" was largely exp-6's inflated
+17.2/17.3, which do not replicate (0.54–0.60×) while exp-7/10/46's figures do (0.86–1.02×).
 
-*Note (post-exp-48):* the second half of that hypothesis — that the extra iteration is what *buys*
-Opus 5 its hard-task breadth — **no longer has anything to explain.** Fable 5 reaches the same 13/13 on
-the hard task with 2.3× fewer turns, so the extra turns are not the price of breadth. Whatever they
-buy, it is not coverage. That makes the thinking-level arm below the more interesting half of this
-experiment.
+**Effort × version interact:** low→max is 1.5–1.9× turns for the older models but **2.8× for Opus 5**,
+whose cost swings **$0.75 → $6.75**.
 
-### THINKING LEVEL — added as a factor (user request, 2026-07-25)
+Also exposed and fixed: `retort aggregate` was dropping any factor not in a hardcoded list, so all 63
+runs landed in master.db with `effort` missing and no error. `unknown_factors()` now reports it.
 
-Every result this project has ever published ran at the **CLI's default thinking level**, and it was
-never recorded as a factor. That is a **confound sitting directly on versions-blog's central claim**: if
-newer versions simply think more by default, then "newer models take more turns" is partly "newer models
-think more" — a different finding with a different remedy (turn the knob down) than "the model was tuned
-to iterate on its own output."
-
-`claude --effort <low|medium|high|max>` is the knob. **Plumbed into retort** as an `effort` factor
-(`_effort_cli_args` in `playpen/local_runner.py`, 4 unit tests); it flows into `stack.json` via
-`stack.extra`, so it lands in master.db like any other factor. `default` is kept as an explicit
-**level meaning "pass no flag"** — the historical baseline — because the smoke test showed the default
-is *not* equivalent to any named level.
-
-**Smoke test (CLAUDE.md — verify the parameter takes effect, don't just set it), run 2026-07-25:**
-- All four versions accept `--effort`.
-- It **takes effect**: with `--output-format stream-json` the response carries a `thinking` content
-  block at `max` and none at `low` on 4.7/4.8/5 alike, and model output tokens rise with the level
-  (Fable 5 342 → 3499, ~10×; Opus 4.8 453 → 1417).
-- **The default is not a named level.** It landed near `high` for 4.8 (688 vs 672 out-tok) and between
-  `medium` and `high` for Fable 5 / Opus 5, while 4.7's default emitted a thinking block though its own
-  `low`/`medium`/`high` did not.
-- *Recorded so it isn't re-litigated:* an initial weaker probe (trivial arithmetic prompt) showed 4.7
-  flat across all levels and briefly looked like a silently-ignored flag. It was a **weak probe, not an
-  ignored parameter** — the stream-json check disproved it.
-- *Caveat:* the probe is single-shot, non-agentic, n=1. It establishes the knob is real and observable,
-  which is all a smoke test should do — not what it does to an agent loop.
-
-**End-to-end smoke test through the real pipeline** (one cell, `python × bookshop × opus-4.8 ×
-effort=max`): `stack.json` recorded `"effort": "max"`, and the transcript carried **16 `thinking`
-blocks across 63 assistant messages** — extended thinking was genuinely active inside the agent loop,
-not just accepted at the CLI. The factor is verified end-to-end.
-
-**And it produced a preliminary result big enough to justify the whole experiment.** Against
-versions-blog's default-effort baseline for the *same model and cell*:
-
-| Opus 4.8, python bookshop | turns | tokens | cost |
-|---|---:|---:|---:|
-| effort = default (n=6) | 17.3 | 310 K | \$0.50 |
-| **effort = max (n=1)** | **33** | **1,620 K** | **\$2.55** |
-
-**Turning the thinking knob up nearly doubled the turns and 5×'d the tokens on identical weights** —
-and 33 turns is essentially Opus 5's default-effort 36.
-
-> ### ⚠️ RETRACTED by the experiment itself (2026-07-25, cells 6–10)
->
-> **This did not replicate.** exp-49's in-batch measurement of the *identical* cell — Opus 4.8 ×
-> python × bookshop × neutral × `effort=max`, run the same day — gives:
->
-> | same cell, same day | turns | tokens | cost | sec |
-> |---|---:|---:|---:|---:|
-> | smoke test | **33** | 1,620 K | \$2.55 | 475 |
-> | exp-49 in-batch | **14** | 522 K | \$1.19 | 291 |
->
-> A **2.4× spread between two runs of one configuration.** In-batch, `max` is 1.4× default (14 vs 10),
-> not 1.9×, and 14 is nowhere near Opus 5's 36. The claim that "thinking level alone reproduces most of
-> the cross-version turn gap" is **not supported**.
->
-> Two candidate causes, not yet separable: (a) **run-to-run variance at `max` is simply large**, which
-> would mean every n=1 reading in this experiment is weak and n=3 is the floor, not a comfort; or
-> (b) **the smoke test was contaminated** by running concurrently with exp-48. I asserted at the time
-> that only wall-clock was at risk and that turns/tokens/cost are properties of the model's work. That
-> may be wrong — contention can change the agent loop itself (tool-call latency, retries), not just its
-> clock. Which would make it a second, sharper argument for the one-experiment-at-a-time rule.
->
-> The experiment remains worth running; the preliminary result that motivated it does not stand.
-
-*Two honest caveats on that row:* it is n=1, and its **wall-clock time is unusable** because the cell
-was run while exp-48 was still going — a violation of the one-experiment-at-a-time rule below, and the
-reason that rule is now written down. Turns, tokens and cost are properties of the model's work rather
-than machine load, so those three stand; the duration does not, and is omitted above.
-
-**Revised cloud design: `{4.7, 4.8, Fable 5, Opus 5} × {default, low, medium, high, max}` = 20 cells,
-plus a `4.8-fast × default` serving control = 21 cells × n=3 = 63 runs.** Fast mode stays at the default
-level so it remains comparable to the historical fast-mode rows. The local half (6 runs) is unchanged —
-`--effort` is a Claude CLI flag with no local equivalent.
-
-**What it can now settle:** (a) does effort explain the cross-version turn/cost differences, or is it
-independent of them; (b) is there a cheaper operating point — e.g. Opus 5 at `low` matching Fable 5's
-cost while keeping its coverage; (c) whether pass-proportion on a routine task is even sensitive to
-thinking level, which the 1.00-everywhere results suggest it may not be.
-
-**Prerequisite fix — DONE (2026-07-25).** The local arms logged no `turns`, which would have left half
-the comparison unquantified. Root cause: Hermes *does* report `api_calls` (one per model round-trip) in
-its usage file and `_parse_hermes_usage` was simply dropping the field; it is now recorded as
-`num_turns`, verified against an archived run (gpt-oss TypeScript = 27 turns). Historical local runs
-stay blank — which is precisely why exp-49 re-runs them rather than mining the archive.
-
+**Remaining:** the **local half** (6 runs, Qwen 35B + 80B) still to run after an oMLX smoke test — it
+needs the machine to itself. And the obvious follow-up: **effort on the HARD task**, where the knob may
+actually earn its cost. Nothing here tests that.
 
 ## 1. Graphify tooling factor + large-existing-codebase task  — PLANNED (top priority)
 

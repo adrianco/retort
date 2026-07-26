@@ -1,0 +1,2 @@
+{"id": "P1", "kind": "enhancement", "severity": "info", "title": "PUT supports partial updates beyond the spec", "evidence": "app.py:133 validate_payload(data, partial=True) validates only provided fields", "suggestion": "None — a reasonable enhancement over the minimal spec"}
+{"id": "P2", "kind": "enhancement", "severity": "info", "title": "Clean error handling for malformed/missing JSON and 404/405", "evidence": "app.py:92-94 rejects non-JSON bodies; app.py:156-162 register 404/405 JSON error handlers", "suggestion": "None — robust beyond the required validation"}

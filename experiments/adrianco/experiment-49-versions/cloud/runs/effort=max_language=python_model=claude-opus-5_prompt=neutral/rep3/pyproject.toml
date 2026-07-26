@@ -1,0 +1,5 @@
+[tool.pytest.ini_options]
+# Make the `bookapi` package importable when pytest is run from the repo root.
+pythonpath = ["."]
+testpaths = ["tests"]
+addopts = "-q"

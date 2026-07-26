@@ -1,0 +1,2 @@
+{"id": "info-1", "kind": "enhancement", "severity": "info", "title": "No pagination on GET /books", "evidence": "app.py:129 list_books returns the full collection with no ?limit/?offset", "suggestion": "Not required by TASK.md; note only if large collections are expected"}
+{"id": "info-2", "kind": "enhancement", "severity": "info", "title": "ISBN uniqueness not enforced", "evidence": "app.py:33 books table has no UNIQUE constraint on isbn", "suggestion": "Optional; spec does not require uniqueness"}

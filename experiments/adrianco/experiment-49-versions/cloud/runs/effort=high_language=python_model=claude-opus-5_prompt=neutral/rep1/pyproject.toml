@@ -1,0 +1,23 @@
+[build-system]
+requires = ["setuptools>=61"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "bookapi"
+version = "1.0.0"
+description = "A dependency-free REST API for managing a book collection"
+requires-python = ">=3.9"
+dependencies = []
+
+[project.optional-dependencies]
+dev = ["pytest>=7"]
+
+[project.scripts]
+bookapi = "bookapi.server:main"
+
+[tool.setuptools]
+packages = ["bookapi"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+addopts = "-q"

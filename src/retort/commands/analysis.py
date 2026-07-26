@@ -152,11 +152,20 @@ def aggregate(experiments_dir: str, out_path: str, csv_path: str | None) -> None
     scratch each run — re-run it after a re-evaluation pass to pick up new
     metrics like requirement_coverage.
     """
-    from retort.analysis.aggregate import build_master_db, write_csv
+    from retort.analysis.aggregate import build_master_db, unknown_factors, write_csv
 
     root = cli.Path(experiments_dir)
     n = build_master_db(root, cli.Path(out_path))
     click.echo(f"Aggregated {n} runs from {root}/experiment-*/retort.db -> {out_path}")
+    missing = unknown_factors()
+    if missing:
+        click.echo(
+            f"\n⚠️  DROPPED FACTOR(S): {', '.join(sorted(missing))}\n"
+            f"    These appear in run configs but have no column in {out_path}, so "
+            f"cross-experiment\n    analysis of them is impossible. Add them to "
+            f"FACTORS in retort/analysis/aggregate.py and re-run.",
+            err=True,
+        )
     if csv_path:
         write_csv(root, cli.Path(csv_path))
         click.echo(f"Wrote CSV -> {csv_path}")

@@ -1,0 +1,2 @@
+{"id": "year-range", "kind": "enhancement", "severity": "info", "title": "No range/sanity validation on 'year'", "evidence": "app.py:64-70 accepts any int for year (e.g. -5 or 90000); spec only requires it be an integer", "suggestion": "Optionally bound year to a plausible range; not required by the spec"}
+{"id": "isbn-format", "kind": "enhancement", "severity": "info", "title": "ISBN accepted as any non-empty string", "evidence": "app.py:72-76 does no ISBN format/checksum validation", "suggestion": "Optional: validate ISBN-10/13 format; beyond spec"}

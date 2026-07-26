@@ -1,0 +1,10 @@
+{
+  "severity_counts": {"critical": 0, "high": 0, "medium": 0, "low": 0, "info": 0},
+  "penalty_score": 1.0,
+  "top_findings": [],
+  "requirement_coverage": 1.0,
+  "model": "claude-opus-5",
+  "evaluated_at": "2026-07-26T01:45:42Z",
+  "min_severity": "high",
+  "note": "4 info-level findings in findings.jsonl were below min_severity=high and excluded; no critical/high/medium/low findings. All 12 pinned requirements implemented."
+}

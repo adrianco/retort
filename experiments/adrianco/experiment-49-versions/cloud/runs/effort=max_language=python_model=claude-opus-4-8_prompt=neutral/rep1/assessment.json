@@ -1,0 +1,9 @@
+{
+  "severity_counts": {"critical": 0, "high": 0, "medium": 0, "low": 0, "info": 0},
+  "penalty_score": 1.0,
+  "top_findings": [],
+  "requirement_coverage": 1.0,
+  "model": "claude-opus-4-8",
+  "evaluated_at": "2026-07-25T20:48:50Z",
+  "note": "min_severity=high; 2 findings (1 low, 1 info) present in findings.jsonl fall below threshold and are excluded from counts."
+}

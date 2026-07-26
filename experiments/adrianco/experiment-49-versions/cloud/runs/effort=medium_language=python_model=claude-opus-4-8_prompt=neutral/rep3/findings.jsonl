@@ -1,0 +1,1 @@
+{"id": "health-db", "kind": "enhancement", "severity": "info", "title": "Health check does not verify DB connectivity", "evidence": "app.py:93-95 /health returns {\"status\":\"ok\"} unconditionally without touching the database", "suggestion": "Optionally run a trivial SQLite query so /health reflects DB availability"}

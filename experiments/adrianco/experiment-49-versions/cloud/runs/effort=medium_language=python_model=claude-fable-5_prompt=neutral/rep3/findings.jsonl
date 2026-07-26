@@ -1,0 +1,2 @@
+{"id": "E1", "kind": "enhancement", "severity": "info", "title": "Author filter is exact-match only", "evidence": "app.py:110 uses `WHERE author = ?` — no case-insensitive or substring matching", "suggestion": "Not required by spec; consider LIKE for usability if desired"}
+{"id": "E2", "kind": "enhancement", "severity": "info", "title": "No pagination on GET /books", "evidence": "app.py:105 list_books returns the full collection unconditionally", "suggestion": "Not required by spec; add ?limit/?offset only if scaling matters"}

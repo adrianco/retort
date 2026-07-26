@@ -1,0 +1,2 @@
+{"id": "P1", "kind": "enhancement", "severity": "info", "title": "Neutral prompt satisfied: tests demonstrate requirements", "evidence": "test_app.py — 12 tests exercise create/list/filter/get/update/delete/validation/health", "suggestion": "None; prompt instruction met"}
+{"id": "obs-1", "kind": "enhancement", "severity": "info", "title": "Validation covers partial updates and type checks beyond spec", "evidence": "app.py:50-64 validate(partial=True) also type-checks year/isbn", "suggestion": "None; enhancement beyond the required title/author check"}

@@ -287,6 +287,70 @@ whole question.
 value stays the **large-repo** arm (funkygibbon-port / the-goodies ~30K lines), where navigation is
 the actual bottleneck.
 
+### exp-49 — thinking level: a 4× cost lever that buys nothing on routine work
+
+The first experiment to treat **thinking level** (`claude --effort`) as a factor. Every result this
+project had published ran at whatever the CLI chose by default, unrecorded — a confound sitting on
+[versions-blog](../versions-blog.md)'s central claim that newer models take more turns. Design:
+`{Opus 4.7, 4.8, Fable 5, Opus 5} × {default, low, medium, high, max}` + a `4.8-fast` serving control,
+all on `python × bookshop × neutral`, **n=3 → 63 runs. 63/63 completed, 0 failures.**
+
+**Headline 1 — effort is a large cost lever and a zero reliability lever.**
+
+| effort | turns | tokens | cost | seconds | **pass** | n |
+|---|---:|---:|---:|---:|---:|---:|
+| **low** | **10.3** | **277 K** | **\$0.71** | **75** | **1.00** | 12 |
+| medium | 12.4 | 340 K | \$0.84 | 95 | **1.00** | 12 |
+| *default (CLI's own choice)* | 15.3 | 430 K | \$0.94 | 135 | **1.00** | 15 |
+| high | 17.4 | 571 K | \$1.08 | 180 | **1.00** | 12 |
+| max | 21.7 | 995 K | \$2.90 | 462 | **1.00** | 12 |
+
+low → max costs **2.1× the turns, 3.6× the tokens, 4.1× the money and 6.2× the wall-clock** — for an
+**identical 1.00**. Every one of the 62 telemetry-bearing runs passed, at every level, on every model.
+**On routine work the thinking knob is pure expense.** Even against the CLI default, `low` is ~25%
+cheaper and ~45% faster with no measured reliability cost — and the default is *not* the cheapest
+setting, it sits between `medium` and `high`.
+
+**Headline 2 — the version "progression" was mostly an artifact of one old experiment.**
+versions-blog described a smooth climb: Fable 5 10.7 → Opus 4.8 17.3 → Opus 5 36.0 turns. Measured
+**in-batch at default effort**, three generations are indistinguishable and only Opus 5 moves:
+
+| model | in-batch turns (n=3) | published | ratio | source of the published figure |
+|---|---:|---:|---:|---|
+| Opus 4.8-fast | 11.5 | 11.3 | **1.02×** | exp-7 |
+| Fable 5 | 13.0 | 10.7 | 1.21× | exp-10 |
+| Opus 5 | 31.0 | 36.0 | **0.86×** | exp-46 |
+| **Opus 4.7** | **10.3** | 17.2 | **0.60×** | **exp-6** |
+| **Opus 4.8** | **9.3** | 17.3 | **0.54×** | **exp-6** |
+
+Three of five replicate within ~15%. **The two that do not are both from exp-6**, the oldest source —
+so this is not general noise but something specific to that experiment's harness era. Corrected, the
+finding is sharper than the original: **Opus 4.7, 4.8 and Fable 5 all sit around 9–13 turns; Opus 5
+alone takes ~2.7×.** The "gradual climb across versions" was exp-6's inflated middle.
+
+**Headline 3 — effort and version interact; Opus 5 amplifies the knob.** low → max multiplies turns by
+1.9× (4.7), 1.5× (4.8) and 1.7× (Fable 5) — but **2.8× for Opus 5** (15.7 → 43.7), and its cost goes
+**\$0.75 → \$6.75, a 9× swing**, with wall-clock 114 s → 1110 s. The most expensive model is also the
+one most sensitive to the most expensive setting.
+
+**A retraction this experiment forced on itself.** The preliminary smoke cell that motivated the whole
+run measured Opus 4.8 × max at **33 turns / 1.62 M tokens**, which was published as "thinking level
+alone reproduces most of the cross-version turn gap." In-batch the same cell came in at **14, 18 and 14
+turns (mean 15.3)**. The claim was wrong and is retracted in all four documents that carried it. Note
+the smoke cell was run *concurrently with exp-48* — a violation of the one-experiment-at-a-time rule —
+and its 33 sits far outside the in-batch range, which is suggestive but not proof of contamination.
+
+**A harness bug this experiment exposed.** `retort aggregate` promoted a **hardcoded** list of factors
+into `master.db`, so all 63 runs aggregated with `effort` **silently dropped** — recorded in the
+experiment's own `retort.db`, absent from `master.db`, no error raised. Every cross-experiment analysis
+of the new factor would have been impossible, and nothing would have said so. Fixed: `FACTORS` now
+includes `effort`/`agent`/`stack`, and `unknown_factors()` reports any factor key present in the data
+with no column, which `aggregate` prints as a warning. Three regression tests.
+
+*Caveats:* one run (fast-mode rep3) persisted partial telemetry, so the **fast-mode control is n=2**.
+All results are one language (Python) on the routine task — thinking level may well earn its cost on
+harder work, which this experiment does not test. That is the obvious follow-up.
+
 ### exp-48 — Fable 5 fills its gaps, and Opus 5's headline does not survive it
 
 exp-46 crowned Opus 5 "the only model that clears the hard task in every language." That comparison was

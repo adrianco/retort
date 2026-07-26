@@ -1,0 +1,2 @@
+{"id": "R1", "kind": "enhancement", "severity": "info", "title": "Health check does not probe DB connectivity", "evidence": "app.py:114-116 /health returns {\"status\": \"ok\"} statically without touching the database", "suggestion": "Optionally run a SELECT 1 so /health reflects DB availability"}
+{"id": "R3", "kind": "enhancement", "severity": "info", "title": "?author= filter is exact-match only", "evidence": "app.py:137-139 uses WHERE author = ? (no LIKE / case-insensitivity)", "suggestion": "Acceptable per spec; a partial/case-insensitive match would be a nicety"}

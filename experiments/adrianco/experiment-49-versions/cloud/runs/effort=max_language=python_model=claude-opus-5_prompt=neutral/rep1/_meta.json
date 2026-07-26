@@ -1,0 +1,11 @@
+{
+  "replicate": 1,
+  "run_config": {
+    "effort": "max",
+    "language": "python",
+    "model": "claude-opus-5",
+    "prompt": "neutral"
+  },
+  "succeeded": true,
+  "visibility": "public"
+}

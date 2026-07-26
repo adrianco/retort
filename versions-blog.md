@@ -213,11 +213,52 @@ The other reason for caution: the *default* is not a named level — measured on
 near `high` for 4.8 and between `medium` and `high` for Fable 5 and Opus 5, so "newer versions default
 to more thinking" is not established either.
 
-The honest status: **the mechanism in this post (turns drive time and cost, cache reads scale ~n²) is
-well supported. The attribution of the extra turns to model tuning is not** — thinking level is an
-uncontrolled variable that could account for some of it, though the first attempt to show it accounts
-for *most* of it has already been retracted above. exp-49 crosses 4 versions × 5 effort levels at
-n=3 specifically to separate them.
+### ✅ Resolved: exp-49 ran, and it corrects this post twice
+
+The 63-run factorial (4 versions × 5 effort levels × n=3, plus a fast-mode control) is complete —
+**63/63, zero failures, every run 1.00.** Two of this post's claims survive; two do not.
+
+**1. Thinking level is a big cost lever — and buys nothing here.**
+
+| effort | turns | tokens | cost | seconds | **pass** |
+|---|---:|---:|---:|---:|---:|
+| **low** | **10.3** | **277 K** | **$0.71** | **75** | **1.00** |
+| medium | 12.4 | 340 K | $0.84 | 95 | **1.00** |
+| *default (what every earlier experiment used)* | 15.3 | 430 K | $0.94 | 135 | **1.00** |
+| high | 17.4 | 571 K | $1.08 | 180 | **1.00** |
+| max | 21.7 | 995 K | $2.90 | 462 | **1.00** |
+
+low → max is **2.1× the turns, 3.6× the tokens, 4.1× the cost, 6.2× the wall-clock — for an identical
+1.00.** The CLI default isn't even the cheap end: `low` is ~25% cheaper and ~45% faster than it, with no
+measured reliability cost. On routine work, **turn the knob down.**
+
+**2. But thinking level does NOT explain the version differences — and the version table above is
+partly wrong.** Measured in-batch at default effort, three generations are indistinguishable:
+
+| model | in-batch (n=3) | this post says | ratio | source of the published figure |
+|---|---:|---:|---:|---|
+| Opus 4.8-fast | 11.5 | 11.3 | **1.02×** | exp-7 |
+| Fable 5 | 13.0 | 10.7 | 1.21× | exp-10 |
+| Opus 5 | 31.0 | 36.0 | **0.86×** | exp-46 |
+| **Opus 4.7** | **10.3** | 17.2 | **0.60×** | **exp-6** |
+| **Opus 4.8** | **9.3** | 17.3 | **0.54×** | **exp-6** |
+
+Three of five replicate. **The two that don't are both from exp-6** — so the smooth "each generation
+takes more steps" progression this post is built around was substantially **one old experiment's
+inflated middle**. The corrected finding is narrower but cleaner: **Opus 4.7, 4.8 and Fable 5 all sit
+around 9–13 turns, and Opus 5 alone takes ~2.7× that.** It is not a trend across versions; it is one
+model behaving differently.
+
+**3. Effort and version interact.** low → max multiplies turns by 1.5–1.9× on the older models but
+**2.8× on Opus 5**, whose cost swings **$0.75 → $6.75** and wall-clock 114 s → 1110 s. The priciest
+model is also the most sensitive to the priciest setting.
+
+**What still stands:** the mechanism. Turns drive time and cost, and cache reads scale ~n² because every
+turn re-reads the conversation. That is unaffected — what changed is *which* models take more turns, and
+the discovery that you can move turns substantially with a flag.
+
+*Everything above is Python on the routine task. Thinking level may well pay for itself on hard work;
+that is the next experiment, and nothing here tests it.*
 
 Two further measurement gaps to close:
 
@@ -229,11 +270,12 @@ Two further measurement gaps to close:
    (verified on an archive: a gpt-oss TypeScript run = 27 turns). *Historical* local runs stay blank,
    which is why exp-49 re-runs them.
 
-**A controlled rerun is scheduled** (see `docs/future-experiments.md`): the same Python bookshop cell
-across Opus 4.7 / 4.8 / Fable 5 / Opus 5 and the local 35B / 80B, with full transcript capture and turn
-recording on every arm, n≥3. That converts the central claim of this post — *newer models take more
-steps, and cost scales with the square of steps* — from one well-instrumented run plus aggregate
-counters into a properly replicated comparison.
+**The controlled rerun has now run** — that is exp-49, above. Its cloud half (63 runs) replaced the
+cross-batch version table with an in-batch one and, in doing so, corrected it. **Its local half — the
+Qwen 35B and 80B arms, 6 runs — is still outstanding**, which is why the local rows in the opening
+table still carry no turn count. Until those run, the local stacks cannot be placed on the cloud's
+axis, and the claim that the pattern "reproduces across two model families" rests on profile shape
+(tokens and seconds) rather than on turns.
 
 ## The practical takeaway
 

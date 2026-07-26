@@ -88,3 +88,43 @@ def test_build_master_db_is_rebuildable(tmp_path: Path):
     con.close()
     assert count == 1
     assert "experiment" in cols and "task" in cols and "requirement_coverage" in cols
+
+
+def test_effort_survives_aggregation(tmp_path: Path):
+    """`effort` (thinking level) must reach master.db as its own column.
+
+    Regression: FACTORS was a hardcoded list predating the factor, so all 63 runs
+    of exp-49 aggregated with `effort` SILENTLY DROPPED — recorded in the
+    experiment's own retort.db, absent from master.db, and no error raised.
+    """
+    _make_experiment(
+        tmp_path / "experiment-49", "bundled://rest-api-crud",
+        [{"replicate": 1, "status": "completed",
+          "config": {"language": "python", "model": "claude-opus-5",
+                     "prompt": "neutral", "effort": "max"},
+          "metrics": {"code_quality": 1.0}}],
+    )
+    out = tmp_path / "master.db"
+    build_master_db(tmp_path, out)
+    con = sqlite3.connect(out)
+    cols = [r[1] for r in con.execute("PRAGMA table_info(runs)")]
+    assert "effort" in cols, "effort would be dropped from master.db"
+    assert con.execute("SELECT effort FROM runs").fetchone()[0] == "max"
+    con.close()
+
+
+def test_unknown_factors_reports_a_dropped_factor(tmp_path: Path):
+    """A factor with no column must be REPORTED rather than silently discarded."""
+    from retort.analysis import aggregate as agg
+
+    _make_experiment(
+        tmp_path / "experiment-99", "bundled://rest-api-crud",
+        [{"replicate": 1, "status": "completed",
+          "config": {"language": "go", "model": "opus", "quantization": "4bit"},
+          "metrics": {"code_quality": 0.9}}],
+    )
+    agg._SEEN_FACTOR_KEYS.clear()
+    build_master_db(tmp_path, tmp_path / "master.db")
+    assert "quantization" in agg.unknown_factors()
+    # ...and keys that are legitimately not factors are not reported
+    assert "framework" not in agg.unknown_factors()

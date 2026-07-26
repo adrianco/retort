@@ -34,13 +34,41 @@ TELEMETRY = {
     # A `second_try` pass counts at HALF credit toward pass-proportion.
     "_second_try": "second_try",
 }
-FACTORS = ["language", "model", "tooling", "prompt"]
+# Design factors promoted to their own column in the master table.
+#
+# THIS LIST MUST BE EXTENDED WHEN A NEW FACTOR SHIPS. It was
+# ["language", "model", "tooling", "prompt"] when exp-49 introduced `effort`
+# (thinking level), so all 63 of its runs aggregated with the factor SILENTLY
+# DROPPED — the experiment's own retort.db had it, master.db did not, and no
+# error was raised. `unknown_factors()` below exists so that cannot recur
+# quietly: it reports any factor key present in the data but missing here.
+FACTORS = ["language", "model", "tooling", "prompt", "effort", "agent", "stack"]
 # `owner` = the experiments/<owner>/ segment: who ran the experiment. Carried into
 # the master table so contributed studies are attributable and can be filtered
 # (e.g. compare only your own runs, or audit a contributor's before merging).
 TEXT_COLS = [
     "experiment", "owner", "task", "status", "started_at", "finished_at",
 ] + FACTORS
+
+
+# Keys that appear in a run_config but are NOT design factors, so their absence
+# from FACTORS is expected and must not be reported as a dropped factor.
+_NON_FACTOR_KEYS = {"framework", "replicate", "task", "prompt_injection"}
+
+# Populated during collection; read by unknown_factors() afterwards.
+_SEEN_FACTOR_KEYS: set[str] = set()
+
+
+def unknown_factors() -> set[str]:
+    """Factor keys seen in the data but with no column in the master table.
+
+    A non-empty result means aggregation is SILENTLY DISCARDING a factor: the
+    per-experiment retort.db records it, master.db does not, and every
+    cross-experiment analysis of that factor is impossible without anyone being
+    told. That is exactly what happened to `effort` across all 63 runs of
+    exp-49. Callers surface this as a warning.
+    """
+    return _SEEN_FACTOR_KEYS - set(FACTORS) - _NON_FACTOR_KEYS
 
 
 def task_for(exp_dir: Path) -> str:
@@ -119,6 +147,7 @@ def collect_runs(experiments_dir: Path) -> list[dict]:
                 "replicate": r["replicate"], "started_at": r["started_at"],
                 "finished_at": r["finished_at"],
             }
+            _SEEN_FACTOR_KEYS.update(k for k in cfg if k not in _NON_FACTOR_KEYS)
             for f in FACTORS:
                 row[f] = cfg.get(f)
             for m in METRICS:

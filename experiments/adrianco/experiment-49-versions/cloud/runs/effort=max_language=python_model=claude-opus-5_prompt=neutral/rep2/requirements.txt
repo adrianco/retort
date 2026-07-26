@@ -1,0 +1,5 @@
+# Runtime dependency (the database is SQLite, from the Python standard library).
+Flask>=2.2,<4
+
+# Test dependency.
+pytest>=7.0

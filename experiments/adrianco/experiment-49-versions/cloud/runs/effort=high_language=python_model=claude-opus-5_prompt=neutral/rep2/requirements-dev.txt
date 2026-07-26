@@ -1,0 +1,4 @@
+# Test dependencies (httpx powers FastAPI's TestClient).
+-r requirements.txt
+pytest>=7.4
+httpx>=0.27
