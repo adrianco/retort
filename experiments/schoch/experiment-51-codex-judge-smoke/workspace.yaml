@@ -1,0 +1,50 @@
+experiment:
+  name: codex-judge-smoke
+  visibility: private
+
+# One cell validates Codex as both the coding harness and the evaluation judge.
+factors:
+  language:
+    # Retort's design generator requires at least two language levels. The
+    # checked-in design.csv selects just the Python cell for this smoke run.
+    levels: [python, go]
+  agent:
+    levels: [codex, codex-default]
+  framework:
+    levels: [fastapi, stdlib]
+
+responses:
+  - code_quality
+  - build_time
+  - token_efficiency
+  - test_coverage
+  - defect_rate
+  - maintainability
+
+tasks:
+  - source: bundled://rest-api-crud
+
+playpen:
+  runner: local
+  replicates: 1
+  timeout_minutes: 20
+  stall_minutes: 5
+  local_agents:
+    codex:
+      harness: codex
+      model: gpt-5.6-terra
+    codex-default:
+      harness: codex
+
+design:
+  screening_resolution: 3
+  significance_threshold: 0.10
+
+evaluation:
+  enabled: true
+  judge:
+    harness: codex
+    model: gpt-5.6-terra
+    timeout_minutes: 10
+  min_severity_to_file: high
+  issue_tracker: beads

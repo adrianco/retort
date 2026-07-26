@@ -1,7 +1,7 @@
 ---
 name: evaluate-run
 description: Evaluate a single retort experiment run. Score the generated code against the task's TASK.md requirements, run its build and tests, compute metrics, and emit a structured evaluation report plus a machine-readable findings file.
-type: anthropic-skill
+type: harness-agnostic
 version: "1.0"
 ---
 

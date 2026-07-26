@@ -18,6 +18,7 @@ from typing import TYPE_CHECKING
 import pluggy
 
 if TYPE_CHECKING:
+    from retort.evaluation.judges import JudgeRunner
     from retort.playpen.runner import PlaypenRunner
     from retort.scoring.registry import Scorer
 
@@ -47,6 +48,10 @@ class RetortHookSpec:
         The name is used to select the runner via config or CLI
         (e.g. ``runner: my_custom_runner`` in workspace.yaml).
         """
+
+    @hookspec
+    def retort_register_judges(self) -> dict[str, JudgeRunner]:
+        """Return evaluation judge harness adapters keyed by harness name."""
 
 
 def _create_plugin_manager() -> pluggy.PluginManager:
@@ -98,6 +103,19 @@ def discover_runners(
         if batch:
             runners.update(batch)
     return runners
+
+
+def discover_judges(pm: pluggy.PluginManager | None = None) -> dict[str, "JudgeRunner"]:
+    """Discover plugin-provided evaluation judge harnesses."""
+    if pm is None:
+        pm = get_plugin_manager()
+
+    judges: dict[str, JudgeRunner] = {}
+    results = pm.hook.retort_register_judges()
+    for batch in results:
+        if batch:
+            judges.update(batch)
+    return judges
 
 
 def list_plugins(pm: pluggy.PluginManager | None = None) -> list[dict[str, str]]:

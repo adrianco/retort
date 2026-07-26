@@ -562,6 +562,7 @@ class TestLocalRunnerGeminiHarness:
 
         assert _parse_gemini_usage("not json") == (0, {})
 
+
     def test_design_thinking_off_omits_omp_flag(self, tmp_path):
         from retort.playpen.local_runner import LocalRunner
 
@@ -869,6 +870,54 @@ class TestLocalRunnerGeminiHarness:
         _, metadata = _parse_agent_usage("omp", stdout)
         assert "openrouter_generation_ids" not in metadata
         assert "upstream_provider" not in metadata
+
+
+class TestLocalRunnerCodexHarness:
+    def _profile(self, **kwargs):
+        from retort.config.schema import LocalAgentConfig
+
+        return LocalAgentConfig(harness="codex", **kwargs)
+
+    def test_builds_codex_command_with_profile_model(self, tmp_path):
+        from retort.playpen.local_runner import LocalRunner
+
+        runner = LocalRunner(
+            work_dir=tmp_path,
+            local_agents={"codex": self._profile(model="gpt-5.6-terra")},
+        )
+        stack = StackConfig(language="python", agent="codex", framework="fastapi")
+        task = TaskSpec(name="plain", description="d", prompt="hi")
+
+        cmd = runner._build_agent_command(stack, task, tmp_path)
+
+        assert cmd[:6] == [
+            "codex", "exec", "--json", "--ephemeral", "--sandbox",
+            "workspace-write",
+        ]
+        assert cmd[cmd.index("--cd") + 1] == str(tmp_path)
+        assert cmd[cmd.index("--model") + 1] == "gpt-5.6-terra"
+        assert "You are working in python." in cmd[-1]
+
+    def test_parse_codex_usage_uses_final_cumulative_event(self):
+        from retort.playpen.local_runner import _parse_agent_usage
+
+        stdout = (
+            '{"type":"event_msg","payload":{"type":"token_count","info":'
+            '{"total_token_usage":{"input_tokens":12,"cached_input_tokens":3,'
+            '"output_tokens":4,"reasoning_output_tokens":2,"total_tokens":18}}}}\n'
+            '{"type":"event_msg","payload":{"type":"token_count","info":'
+            '{"total_token_usage":{"input_tokens":30,"cached_input_tokens":10,'
+            '"output_tokens":8,"reasoning_output_tokens":5,"total_tokens":43}}}}\n'
+        )
+
+        token_count, metadata = _parse_agent_usage("codex", stdout)
+
+        assert token_count == 43
+        assert metadata["input_tokens"] == "30"
+        assert metadata["cache_read_input_tokens"] == "10"
+        assert metadata["output_tokens"] == "13"
+        assert metadata["reasoning_output_tokens"] == "5"
+        assert "total_cost_usd" not in metadata
 
 
 class TestLocalInferenceCost:

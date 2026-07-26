@@ -1,0 +1,62 @@
+# Experiment 52 -- Brazil Bench MCP server: local Qwen versus Codex Instant.
+#
+# The checked-in design is intentionally small: Python only, one replicate per
+# harness.  Brazil Bench supplies its own BDD-oriented task guide, so there is
+# no additional methodology prompt.
+#
+# Prerequisite: declare the `strix` OMP provider documented in README.md before
+# running.  The Qwen model is already served on strix.local:8080; Retort must
+# not manage or restart that remote server.
+experiment:
+  name: experiment-52-brazil-qwen35-codex-instant
+  visibility: private
+
+factors:
+  language:
+    # The design registry requires two declared levels; design.csv pins this
+    # smoke comparison to Python for both harnesses.
+    levels: [python, go]
+  agent:
+    levels: [qwen35-strix, codex-instant]
+
+responses:
+  - code_quality
+  - token_efficiency
+  - test_coverage
+  - defect_rate
+  - maintainability
+  - idiomatic
+
+tasks:
+  - source: github://brazil-bench/benchmark-template/brazilian-soccer-mcp-guide.md
+
+playpen:
+  runner: local
+  replicates: 1
+  timeout_minutes: 60
+  stall_minutes: 25
+  max_turns: 200
+  local_agents:
+    qwen35-strix:
+      harness: omp
+      model: "strix//home/schoch/.cache/huggingface/hub/models--unsloth--Qwen3.5-27B-MTP-GGUF/snapshots/88fb5663d646bc78e1140648e8d8cb7d3e849908/Qwen3.5-27B-UD-Q8_K_XL.gguf"
+    codex-instant:
+      harness: codex
+      model: gpt-5.6-luna
+
+design:
+  screening_resolution: 3
+  significance_threshold: 0.10
+
+promotion:
+  screening_to_trial: { p_value: 0.10 }
+  trial_to_production: { posterior_confidence: 0.80 }
+
+evaluation:
+  enabled: true
+  judge:
+    harness: codex
+    model: gpt-5.6-terra
+    timeout_minutes: 10
+  min_severity_to_file: high
+  issue_tracker: beads

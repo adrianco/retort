@@ -723,7 +723,11 @@ class LocalRunner:
         harness = self._resolve_harness(stack)
         if harness == "claude-code":
             prompt_level = stack.extra.get("prompt", "none")
-            prompt_injection = self._load_prompt_file(prompt_level) if prompt_level != "none" else ""
+            prompt_injection = (
+                self._load_prompt_file(prompt_level)
+                if prompt_level != "none"
+                else ""
+            )
             prompt = _build_agent_prompt(stack, prompt_injection)
 
             # Per-task max_turns wins over workspace-wide setting if set.
@@ -862,7 +866,31 @@ class LocalRunner:
             cmd.append(_build_agent_prompt(stack, prompt_injection))
             return cmd
 
-        # Unreachable: _resolve_harness returns claude-code / omp / gemini / opencode.
+        if harness == "codex":
+            # Codex's non-interactive JSONL mode emits token_count events.  Keep
+            # the agent inside the per-run workspace and do not retain a session
+            # in the user's Codex history for every Retort replicate.
+            cmd = [
+                "codex", "exec", "--json", "--ephemeral",
+                "--sandbox", "workspace-write",
+            ]
+            if workspace is not None:
+                cmd.extend(["--cd", str(workspace)])
+
+            model = self._model_for(stack)
+            if model and model != "none":
+                cmd.extend(["--model", model])
+
+            prompt_level = stack.extra.get("prompt", "none")
+            prompt_injection = (
+                self._load_prompt_file(prompt_level)
+                if prompt_level != "none"
+                else ""
+            )
+            cmd.append(_build_agent_prompt(stack, prompt_injection))
+            return cmd
+
+        # Unreachable: _resolve_harness returns a built-in harness.
         raise ValueError(
             f"No command builder for harness {harness!r} "
             f"(agent={stack.agent!r}, model={self._model_for(stack)!r})."
@@ -896,7 +924,7 @@ class LocalRunner:
         profile = self.local_agents.get(stack.agent)
         if profile is not None:
             return profile.harness
-        if stack.agent in ("claude-code", "gemini", "omp", "opencode"):
+        if stack.agent in ("claude-code", "gemini", "omp", "opencode", "codex"):
             return stack.agent
         return _harness_for_model(self._model_for(stack))
 
@@ -1094,6 +1122,8 @@ def _parse_agent_usage(
         return _parse_opencode_usage(stdout_text)
     if agent == "gemini":
         return _parse_gemini_usage(stdout_text)
+    if agent == "codex":
+        return _parse_codex_usage(stdout_text)
     if agent == "hermes":
         # Hermes writes telemetry to a --usage-file in the playpen, not stdout.
         return _parse_hermes_usage(workspace)
@@ -1332,6 +1362,62 @@ def _parse_omp_usage(stdout_text: str) -> tuple[int, dict[str, str]]:
     if upstreams:
         metadata["upstream_provider"] = ",".join(upstreams)
     return total_tokens_sum, metadata
+
+
+def _parse_codex_usage(stdout_text: str) -> tuple[int, dict[str, str]]:
+    """Parse the final cumulative usage event from ``codex exec --json``.
+
+    Codex emits JSONL envelopes such as ``event_msg`` / ``token_count``.  The
+    token counts are cumulative for the session, so the last valid event is the
+    run total. Subscription authentication does not expose a per-run USD cost;
+    deliberately leave that metric absent instead of fabricating one.
+    """
+    usage: dict | None = None
+    turns = 0
+    for line in stdout_text.splitlines():
+        try:
+            event = json.loads(line)
+        except ValueError:
+            continue
+        payload = event.get("payload") if isinstance(event, dict) else None
+        if not isinstance(payload, dict):
+            continue
+        if payload.get("type") == "token_count":
+            info = payload.get("info")
+            if isinstance(info, dict):
+                candidate = info.get("total_token_usage")
+                if isinstance(candidate, dict):
+                    usage = candidate
+        elif payload.get("type") in {"turn.completed", "turn_complete"}:
+            turns += 1
+
+    if usage is None:
+        return 0, {}
+
+    def _int(name: str) -> int:
+        try:
+            return int(usage.get(name) or 0)
+        except (TypeError, ValueError):
+            return 0
+
+    input_tokens = _int("input_tokens")
+    cached_tokens = _int("cached_input_tokens")
+    output_tokens = _int("output_tokens")
+    reasoning_tokens = _int("reasoning_output_tokens")
+    total_tokens = (
+        _int("total_tokens")
+        or input_tokens + output_tokens + reasoning_tokens
+    )
+    metadata = {
+        "input_tokens": str(input_tokens),
+        "output_tokens": str(output_tokens + reasoning_tokens),
+        "reasoning_output_tokens": str(reasoning_tokens),
+        "cache_read_input_tokens": str(cached_tokens),
+        "cache_creation_input_tokens": "0",
+    }
+    if turns:
+        metadata["num_turns"] = str(turns)
+    return total_tokens, metadata
 
 
 # Gemini API pricing, USD per 1M tokens (input, output), base context tier.
