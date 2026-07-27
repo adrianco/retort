@@ -1380,3 +1380,56 @@ def test_hermes_usage_records_turns(tmp_path):
     tokens, meta = _parse_hermes_usage(tmp_path)
     assert tokens == 775514
     assert meta["num_turns"] == "28"
+
+
+def test_effective_stack_is_recorded_per_run(tmp_path):
+    """Each run must archive the stack it ACTUALLY ran on, post-reload.
+
+    Regression: the experiment-level provenance.json is written once, before any
+    cell, while the serving stack reloads per cell — so its agent_config recorded
+    whatever the previous experiment left behind (an exp-49 smoke run recorded
+    exp-47's gpt-oss/131072 while actually running the 35B at 262144).
+    """
+    import json as _json
+    import yaml as _yaml
+    from retort.playpen.local_runner import LocalRunner
+
+    hermes_cfg = tmp_path / "hermes.yaml"
+    hermes_cfg.write_text(_yaml.safe_dump(
+        {"model": "Qwen3.6-35B-A3B", "context_length": 262144, "max_turns": 200}
+    ))
+
+    class _Mgr:
+        serving = {"hermes_config": str(hermes_cfg)}
+        presets = {"m35": {"model": "Qwen3.6-35B-A3B", "context_length": 262144,
+                           "context_threshold": 0.9, "sampling": {"temperature": 0.6}}}
+
+    runner = LocalRunner(stack_manager=_Mgr())
+    ws = tmp_path / "ws"
+    ws.mkdir()
+    runner._write_effective_stack(ws, "m35")
+
+    data = _json.loads((ws / "_effective_stack.json").read_text())
+    assert data["preset"] == "m35"
+    assert data["hermes"]["max_turns"] == 200          # the cap that was silently 30
+    assert data["hermes"]["context_length"] == 262144
+    assert data["preset_config"]["context_threshold"] == 0.9
+
+
+def test_effective_stack_file_does_not_count_as_agent_progress():
+    """It is retort's own bookkeeping — counting it would defeat the no-write guard."""
+    from retort.playpen.local_runner import _PROGRESS_SKIP_FILES
+    assert "_effective_stack.json" in _PROGRESS_SKIP_FILES
+
+
+def test_write_effective_stack_never_raises(tmp_path):
+    """Bookkeeping must not be able to abort a run."""
+    from retort.playpen.local_runner import LocalRunner
+
+    class _Broken:
+        @property
+        def serving(self):
+            raise RuntimeError("boom")
+
+    runner = LocalRunner(stack_manager=_Broken())
+    runner._write_effective_stack(tmp_path, "m80")   # must not raise

@@ -37,6 +37,11 @@ _PROGRESS_SKIP_DIRS = {".git", "data", "__pycache__", "node_modules", "target", 
 _PROGRESS_SKIP_FILES = {
     "_agent_stdout.log", "_agent_stderr.log", ".hermes_usage.json",
     "_hermes_session.jsonl",
+    # Written by retort AFTER the stack reload, before the agent starts. Must be
+    # skipped or it counts as "the agent wrote something" — which would defeat
+    # both the stall detector and the no-write guard (the guard that caught
+    # exp-49's three empty 80B cells instead of recording them as false zeros).
+    "_effective_stack.json",
     "TASK.md", "stack.json", "README.md", "prompts.txt",
 }
 
@@ -336,6 +341,44 @@ class LocalRunner:
         # None means prompt injection is disabled (factor absent or always "none").
         self.prompts_dir = prompts_dir
 
+    def _write_effective_stack(self, workspace: Path, preset: str | None) -> None:
+        """Record the stack as it stands AFTER the reload, per run.
+
+        The experiment-level ``provenance.json`` is written once, before any cell
+        runs — and the serving stack is reloaded *per cell*, after that. So its
+        ``agent_config`` block records whatever the PREVIOUS experiment happened
+        to leave behind: an exp-49 smoke run recorded exp-47's gpt-oss model and
+        131072 context while actually running the 35B at 262144. For a multi-stack
+        experiment one pre-run snapshot can never be right for every cell.
+
+        This writes the effective config into the run's own workspace, so each
+        archived run carries the stack it actually executed on. Best-effort: a
+        failure here must never abort a run (the whole point is bookkeeping).
+        """
+        try:
+            data: dict = {"preset": preset}
+            cfg_path = (self.stack_manager.serving or {}).get("hermes_config")
+            if cfg_path and Path(cfg_path).exists():
+                import yaml as _yaml
+
+                cfg = _yaml.safe_load(Path(cfg_path).read_text()) or {}
+                data["hermes"] = {
+                    k: cfg.get(k)
+                    for k in ("model", "context_length", "max_turns")
+                }
+            presets = getattr(self.stack_manager, "presets", {}) or {}
+            if preset in presets:
+                p = presets[preset]
+                data["preset_config"] = {
+                    "model": p.get("model"),
+                    "context_length": p.get("context_length"),
+                    "context_threshold": p.get("context_threshold"),
+                    "sampling": p.get("sampling"),
+                }
+            (workspace / "_effective_stack.json").write_text(json.dumps(data, indent=1))
+        except Exception:  # noqa: BLE001 — bookkeeping must not break a run
+            logger.debug("could not record effective stack", exc_info=True)
+
     def _resolve_model(self, stack: StackConfig) -> str:
         """Effective model id for this run, for recording in stack.json.
 
@@ -456,6 +499,7 @@ class LocalRunner:
                     stderr=f"Stack reload failed for preset {preset!r}: {exc}",
                     exit_code=1,
                 )
+            self._write_effective_stack(info.workspace, preset)
 
         try:
             cmd = self._build_agent_command(stack, task, info.workspace)
