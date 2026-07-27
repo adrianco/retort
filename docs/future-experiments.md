@@ -91,7 +91,32 @@ project's load-bearing conclusions: it is why "hard tasks → cloud" is the stan
 side without flagging the contradiction. A truncated run and an incapable model produce identical
 scores.
 
-**The evidence that prompted this.** Archived `.hermes_usage.json` from exp-39/31 (80B × brazil):
+> ### ⚠️ CORRECTION (2026-07-27, mid-run): the turn-cap premise above is WRONG.
+>
+> The table below was read as **3 api_calls per turn**, making 90 api_calls = the 30-turn cap. exp-50
+> records `api_calls` **and** `_turns` for the same runs, and they are **1:1** (python 51 = 51, go
+> 56 = 56). So exp-39's runs did **32–90 turns** — *above* the supposed 30 cap, which was therefore
+> never enforced on them. The other candidate fails too: **no historical run hit the 60-minute wall**
+> (longest 3016 s = 50 min).
+>
+> **Neither constraint truncated exp-39.** Its runs ran to completion and simply fell short —
+> req-coverage 0.9167, 0.9167, 0.8333, 0.8333, 0.75, 0.6667, 0.6667, 0.5833 — which is precisely what
+> exp-39 concluded: ~11 of 12 capabilities, never all 12.
+>
+> exp-50's passes remain a real and important result — the 80B *can* fully implement the hard task,
+> which "0/6" said it never does — but the cause is **not** "a cap was lifted." Live candidates:
+> (a) a newer serving/agent stack (oMLX 0.5.0rc1's memory enforcer did not previously exist, so the
+> serving layer demonstrably moved), or (b) **variance around a threshold the model already sat on** —
+> 0.9167 → 1.00 is a single requirement. The remaining replicates separate "reliably passes now" from
+> "hovers and sometimes clears."
+>
+> The `max_turns` plumbing fix stands on its own merits (retort should not disagree with its own
+> declared config), it just isn't what this experiment turns out to be testing. Kept visible rather
+> than rewritten, because the error — inventing a 3× mapping and then finding a pattern in it — is
+> the instructive part.
+
+**The evidence that prompted this — MISREAD, see the correction above.** Archived
+`.hermes_usage.json` from exp-39/31 (80B × brazil):
 
 | api_calls | test_coverage |
 |---:|---:|

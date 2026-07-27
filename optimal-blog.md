@@ -87,19 +87,25 @@ per-language truth, including the languages they fail, is in the matrix below. *
 task local models are now measured and both do poorly** — 35B **0.25**, 80B **0.00** (see the
 per-stack bullets). Rust local is unqualified (80B 0.33, near-misses).
 
-> ### ⚠️ The local hard-task result is under re-test
+> ### ⚠️ The local hard-task result is being overturned — re-test in progress
 >
-> Both local stacks score poorly on the hard task (35B **0.25**, 80B **0.00**), and the 80B's 0/6 was
-> published as a *config-invariant capability wall*. **Every one of those runs was executed with the
-> Hermes agent capped at 30 turns** — a value retort never set and never reconciled with the 200 its
-> own workspaces declared (found and fixed 2026-07-25). A truncated run and an incapable model score
-> identically, and 3 of exp-39's 12 brazil runs stopped at exactly 90 api_calls (3 × the 30-turn cap),
-> two with near-zero coverage.
+> This document says the 80B scores **0.00** on the hard task, published as a *config-invariant
+> capability wall*, and that is why "hard tasks → cloud" is the standing advice.
 >
-> That is suggestive, not conclusive — the other nine runs stopped well short of any cap. **exp-50
-> re-runs it with the cap honest.** Until then, treat "no local stack clears the hard task" as
-> *measured under a cap that may have decided the answer*. The routine-task results are unaffected:
-> those runs finish in 19–30 turns, comfortably inside the old limit.
+> **exp-50 has now produced two full passes** (req-coverage **1.00** on both python and go) on the same
+> model, task and context threshold. exp-31 and exp-39 recorded **0/6** across those same two
+> languages. So the 80B demonstrably *can* implement the hard task completely.
+>
+> **What changed is not yet established.** The re-test was launched on the theory that a 30-turn agent
+> cap had been truncating those runs; on inspection that theory is **wrong** — the historical runs took
+> 32–90 turns and none hit the 60-minute wall, so nothing truncated them. They simply landed at 0.58–0.92
+> req-coverage: ~11 of 12 capabilities. The remaining candidates are a **newer serving/agent stack**
+> (oMLX moved to 0.5.0rc1) or **variance around a threshold the model already sat on** — 0.92 → 1.00 is
+> one requirement.
+>
+> Until exp-50's remaining replicates land, read the 0.00 in the tables below as **stale and probably
+> wrong**, and the hard-task recommendation as unresolved for local stacks. Routine-task results are
+> unaffected.
 
 **Pick by task size — the two columns tell different stories:**
 
