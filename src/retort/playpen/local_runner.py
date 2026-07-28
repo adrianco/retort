@@ -1442,6 +1442,7 @@ def _parse_codex_usage(stdout_text: str, model: str = "") -> tuple[int, dict[str
     """
     usage: dict | None = None
     turns = 0
+    items = 0
     for line in stdout_text.splitlines():
         try:
             event = json.loads(line)
@@ -1452,6 +1453,8 @@ def _parse_codex_usage(stdout_text: str, model: str = "") -> tuple[int, dict[str
         # Tolerate a `payload` envelope in case a future version adds one back.
         node = event.get("payload") if isinstance(event.get("payload"), dict) else event
         etype = node.get("type")
+        if etype == "item.completed":
+            items += 1
         if etype in {"turn.completed", "turn_complete"}:
             turns += 1
             candidate = node.get("usage")
@@ -1486,8 +1489,19 @@ def _parse_codex_usage(stdout_text: str, model: str = "") -> tuple[int, dict[str
         "cache_read_input_tokens": str(cached_tokens),
         "cache_creation_input_tokens": str(cache_write),
     }
+    # DELIBERATELY NO num_turns. Codex fires ONE `turn.completed` per `codex exec`
+    # invocation no matter how many steps the agent took — the verification run
+    # wrote a file across 4 item events and still reported a single turn. Claude
+    # Code's `num_turns` counts agent-loop round trips, so the two are different
+    # quantities sharing a name. Recording codex as "1 turn" would put it at the
+    # bottom of the turn axis that versions-blog is built on and make it look
+    # radically more efficient than every other stack, which is exactly the kind
+    # of silent incomparability this project keeps having to un-publish.
+    # `codex_items` is recorded instead as an honest, differently-named proxy.
+    if items:
+        metadata["codex_items"] = str(items)
     if turns:
-        metadata["num_turns"] = str(turns)
+        metadata["codex_exec_turns"] = str(turns)
 
     # A ChatGPT subscription exposes no per-run price, but "no price" must not
     # become "$0" — that is an unmeasured cost masquerading as a free one. Every

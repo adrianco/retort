@@ -1512,7 +1512,8 @@ def test_codex_usage_parses_the_real_cli_format():
     ])
     total, meta = _parse_codex_usage(real, "gpt-5.6-luna")
 
-    assert meta["num_turns"] == "1"
+    assert "num_turns" not in meta   # codex turns are NOT Claude turns
+    assert meta["codex_items"] == "1"
     assert meta["input_tokens"] == "30425"
     assert meta["cache_read_input_tokens"] == "24064"
     # output already includes reasoning — must not be summed
