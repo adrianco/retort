@@ -441,10 +441,29 @@ class TestCoverageScorer:
             # scorer executes the project's tests anyway, so package scripts are
             # not an additional trust boundary.
             try:
-                subprocess.run(
+                proc = subprocess.run(
                     ["npm", "install"],
                     cwd=output_dir, capture_output=True, timeout=180,
                 )
+                # npm install is ALL-OR-NOTHING: one failing native build aborts
+                # the whole install, so no package lands — not even the pure-JS
+                # test runner. exp-53 hit this when better-sqlite3 would not
+                # compile under Node 26: `tsx` was never installed, `npm test`
+                # died with "tsx: command not found", and the scorer recorded a
+                # flat 0 for a project that was never actually tested. Both
+                # TypeScript replicates failed identically, which reads as a
+                # capability result and is not one.
+                #
+                # Retry without scripts so the JS toolchain at least exists. Any
+                # native module stays unbuilt, so a suite that genuinely needs it
+                # now fails with a REAL error in the test output ("Could not
+                # locate the bindings file") instead of a missing binary — a
+                # diagnosable failure rather than an opaque zero.
+                if proc.returncode != 0 and not (output_dir / "node_modules").exists():
+                    subprocess.run(
+                        ["npm", "install", "--ignore-scripts"],
+                        cwd=output_dir, capture_output=True, timeout=180,
+                    )
             except (subprocess.TimeoutExpired, FileNotFoundError):
                 pass
         elif not _native_bindings_ok(output_dir):
