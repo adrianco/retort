@@ -128,3 +128,73 @@ def test_unknown_factors_reports_a_dropped_factor(tmp_path: Path):
     assert "quantization" in agg.unknown_factors()
     # ...and keys that are legitimately not factors are not reported
     assert "framework" not in agg.unknown_factors()
+
+
+def test_experiment_label_is_qualified_by_owner(tmp_path: Path):
+    """Labels must be '<githubid>/experiment-NN' — numbers collide across owners.
+
+    Regression: PR #45 landed schoch/experiment-50/51/52 while
+    adrianco/experiment-50 already existed. A bare 'experiment-50' label would
+    silently merge two unrelated experiments into one group.
+    """
+    for owner in ("alice", "bob"):
+        _make_experiment(
+            tmp_path / "experiments" / owner / "experiment-50", "bundled://rest-api-crud",
+            [{"replicate": 1, "status": "completed",
+              "config": {"language": "go", "model": "opus"},
+              "metrics": {"code_quality": 0.9}}],
+        )
+    out = tmp_path / "master.db"
+    build_master_db(tmp_path, out)
+    con = sqlite3.connect(out)
+    labels = sorted(r[0] for r in con.execute("SELECT DISTINCT experiment FROM runs"))
+    con.close()
+    assert labels == ["alice/experiment-50", "bob/experiment-50"], labels
+
+
+def test_judge_is_recorded_per_experiment(tmp_path: Path):
+    """requirement_coverage is a judge's opinion — record WHICH judge.
+
+    Since PR #45 the judge is configurable, so two experiments graded by
+    different models would otherwise be averaged into one pass-proportion with
+    nothing to indicate it.
+    """
+    from retort.analysis.aggregate import judge_for
+
+    legacy = tmp_path / "legacy"
+    legacy.mkdir()
+    (legacy / "workspace.yaml").write_text(
+        "evaluation:\n  enabled: true\n  model: opus-4.8\n"
+    )
+    assert judge_for(legacy) == "claude-code:opus-4.8"
+
+    codex = tmp_path / "codex"
+    codex.mkdir()
+    (codex / "workspace.yaml").write_text(
+        "evaluation:\n  enabled: true\n  judge:\n    harness: codex\n    model: gpt-5.6-terra\n"
+    )
+    assert judge_for(codex) == "codex:gpt-5.6-terra"
+
+    none = tmp_path / "none"
+    none.mkdir()
+    (none / "workspace.yaml").write_text("tasks:\n  - source: x\n")
+    assert judge_for(none) == ""
+
+
+def test_judge_column_reaches_master_db(tmp_path: Path):
+    exp = tmp_path / "experiments" / "alice" / "experiment-1"
+    _make_experiment(exp, "bundled://rest-api-crud",
+                     [{"replicate": 1, "status": "completed",
+                       "config": {"language": "go", "model": "opus"},
+                       "metrics": {"code_quality": 0.9}}])
+    (exp / "workspace.yaml").write_text(
+        "tasks:\n  - source: bundled://rest-api-crud\n"
+        "evaluation:\n  model: opus-4.8\n"
+    )
+    out = tmp_path / "master.db"
+    build_master_db(tmp_path, out)
+    con = sqlite3.connect(out)
+    cols = [r[1] for r in con.execute("PRAGMA table_info(runs)")]
+    assert "judge" in cols
+    assert con.execute("SELECT judge FROM runs").fetchone()[0] == "claude-code:opus-4.8"
+    con.close()

@@ -47,7 +47,7 @@ FACTORS = ["language", "model", "tooling", "prompt", "effort", "agent", "stack"]
 # the master table so contributed studies are attributable and can be filtered
 # (e.g. compare only your own runs, or audit a contributor's before merging).
 TEXT_COLS = [
-    "experiment", "owner", "task", "status", "started_at", "finished_at",
+    "experiment", "owner", "task", "judge", "status", "started_at", "finished_at",
 ] + FACTORS
 
 
@@ -69,6 +69,44 @@ def unknown_factors() -> set[str]:
     exp-49. Callers surface this as a warning.
     """
     return _SEEN_FACTOR_KEYS - set(FACTORS) - _NON_FACTOR_KEYS
+
+
+def judge_for(exp_dir: Path) -> str:
+    """Which judge graded this experiment, as ``harness:model`` (or "" if unknown).
+
+    `requirement_coverage` — the number every headline in this repo rests on — is
+    an LLM's opinion. It is only comparable across experiments if the SAME judge
+    produced it. Since PR #45 the judge is configurable (`evaluation.judge`, with
+    Claude and Codex runners), so an unrecorded judge would let two experiments
+    graded by different models be averaged into one pass-proportion with nothing
+    to indicate it. That is the same silent-variable failure as `effort` being
+    dropped from FACTORS, and Hermes running at a turn cap nobody recorded.
+
+    Read from the experiment's own workspace.yaml because the judge is configured
+    per experiment, not per run.
+    """
+    wf = exp_dir / "workspace.yaml"
+    if not wf.exists():
+        wf = exp_dir.parent / "workspace.yaml"   # task sub-workspace layout
+    if not wf.exists():
+        return ""
+    try:
+        import yaml as _yaml
+
+        cfg = _yaml.safe_load(wf.read_text()) or {}
+    except Exception:  # noqa: BLE001 — a malformed config must not break aggregation
+        return ""
+    ev = cfg.get("evaluation") or {}
+    if not isinstance(ev, dict):
+        return ""
+    judge = ev.get("judge")
+    if isinstance(judge, dict):
+        harness = judge.get("harness") or judge.get("profile") or "?"
+        return f"{harness}:{judge.get('model') or '?'}"
+    # Legacy: evaluation.model is a Claude model driven by claude-code.
+    if ev.get("model"):
+        return f"claude-code:{ev['model']}"
+    return ""
 
 
 def task_for(exp_dir: Path) -> str:
@@ -102,6 +140,16 @@ def _owner_of(db: Path, root: Path) -> str:
         i = parts.index("experiments")
         if i + 1 < len(parts) and not parts[i + 1].startswith("experiment-"):
             return parts[i + 1]
+    # The caller may have pointed the root AT an owner dir
+    # (--experiments-dir experiments/adrianco), in which case the relative path
+    # holds no "experiments" segment and the owner is the root's own name. Fall
+    # back to the ABSOLUTE path so attribution survives either invocation —
+    # without this, aggregating that way silently produced unqualified labels.
+    abs_parts = db.resolve().parts
+    if "experiments" in abs_parts:
+        i = abs_parts.index("experiments")
+        if i + 1 < len(abs_parts) and not abs_parts[i + 1].startswith("experiment-"):
+            return abs_parts[i + 1]
     return ""
 
 
@@ -129,7 +177,19 @@ def collect_runs(experiments_dir: Path) -> list[dict]:
         exp = parent.name if parent.name.startswith("experiment-") \
             else f"{parent.parent.name}-{parent.name}"
         owner = _owner_of(db, experiments_dir)
+        # QUALIFY THE LABEL BY OWNER: "<githubid>/experiment-NN-slug".
+        #
+        # Experiment NUMBERS are only unique within a contributor's namespace —
+        # experiments/<owner>/ prevents path collisions but not numbering ones.
+        # PR #45 landed schoch/experiment-50/51/52 while adrianco/experiment-50
+        # already existed, so a bare "experiment-50" in master.db would silently
+        # merge two unrelated experiments into one group and average across them.
+        # The owner is already known here; putting it in the label makes every
+        # cross-experiment query and every blog table unambiguous.
+        if owner and not exp.startswith(f"{owner}/"):
+            exp = f"{owner}/{exp}"
         task = task_for(parent)
+        judge = judge_for(parent)
         con = sqlite3.connect(f"file:{db}?mode=ro", uri=True)
         con.row_factory = sqlite3.Row
         try:
@@ -143,7 +203,8 @@ def collect_runs(experiments_dir: Path) -> list[dict]:
         for r in runs:
             cfg = json.loads(r["run_config_json"] or "{}")
             row: dict = {
-                "experiment": exp, "owner": owner, "task": task, "status": r["status"],
+                "experiment": exp, "owner": owner, "task": task, "judge": judge,
+                "status": r["status"],
                 "replicate": r["replicate"], "started_at": r["started_at"],
                 "finished_at": r["finished_at"],
             }

@@ -689,7 +689,20 @@ def run_experiments(
             f"false zeros. Free space first (clear ~/.cache/omlx-ssd, ~/.retort/work, and "
             f"thin local snapshots: `tmutil thinlocalsnapshots / 100000000000 4`), then re-run."
         )
-    if _free_gb < 40:
+    if _free_gb < 15:
+        # The hard floor was 15 GB until PR #45 lowered it to 5 for a constrained
+        # VM. That is a reasonable need, but 5–15 GB is precisely where a run
+        # completes and scores FALSE ZEROS rather than failing outright — the
+        # failure mode this project keeps having to un-publish. So the band that
+        # used to abort now warns in its own right, naming the risk.
+        click.echo(
+            f"⚠️  Disk preflight: only {_free_gb:.0f} GB free at {_probe}. This is BELOW the "
+            f"level that used to abort a run. A run can still complete here and score false "
+            f"zeros when the playpen or serving cache fills mid-way — treat any all-zero "
+            f"cell from this run as suspect and check disk before believing it.",
+            err=True,
+        )
+    elif _free_gb < 40:
         click.echo(
             f"⚠️  Disk preflight: {_free_gb:.0f} GB free at {_probe} — low; a long run may "
             f"fill it (the oMLX paged-SSD cache grows to its cap). Consider clearing caches.",

@@ -899,6 +899,14 @@ class TestLocalRunnerCodexHarness:
         assert "You are working in python." in cmd[-1]
 
     def test_parse_codex_usage_uses_final_cumulative_event(self):
+        """The legacy `payload`/`token_count` envelope is still tolerated.
+
+        NOTE: this originally asserted ``output_tokens == "13"`` (8 + 5), i.e.
+        that reasoning tokens are ADDITIONAL to output. They are not — OpenAI's
+        docs state reasoning tokens "are billed as output tokens" and the usage
+        object nests ``reasoning_tokens`` inside ``output_tokens``. Summing them
+        overstates the billable output, so the expectation is corrected to 8.
+        """
         from retort.playpen.local_runner import _parse_agent_usage
 
         stdout = (
@@ -915,9 +923,8 @@ class TestLocalRunnerCodexHarness:
         assert token_count == 43
         assert metadata["input_tokens"] == "30"
         assert metadata["cache_read_input_tokens"] == "10"
-        assert metadata["output_tokens"] == "13"
+        assert metadata["output_tokens"] == "8"       # reasoning already inside
         assert metadata["reasoning_output_tokens"] == "5"
-        assert "total_cost_usd" not in metadata
 
 
 class TestLocalInferenceCost:
@@ -1482,3 +1489,47 @@ def test_write_effective_stack_never_raises(tmp_path):
 
     runner = LocalRunner(stack_manager=_Broken())
     runner._write_effective_stack(tmp_path, "m80")   # must not raise
+
+
+def test_codex_usage_parses_the_real_cli_format():
+    """VERIFIED against codex-cli 0.145.0 output.
+
+    Regression: the original parser expected a `payload` wrapper and a
+    `token_count` event. The CLI emits neither — usage rides on a top-level
+    `turn.completed`. Against real output it returned 0 tokens and 0 turns, so
+    every Codex run would have recorded as free and effortless and then won every
+    cheapest-qualifying ranking.
+    """
+    from retort.playpen.local_runner import _parse_codex_usage
+
+    real = "\n".join([
+        '{"type": "thread.started", "thread_id": "abc"}',
+        '{"type": "turn.started"}',
+        '{"type": "item.completed", "item": {"id": "item_0", "type": "agent_message"}}',
+        '{"type": "turn.completed", "usage": {"input_tokens": 30425,'
+        ' "cached_input_tokens": 24064, "cache_write_input_tokens": 0,'
+        ' "output_tokens": 103, "reasoning_output_tokens": 40}}',
+    ])
+    total, meta = _parse_codex_usage(real, "gpt-5.6-luna")
+
+    assert meta["num_turns"] == "1"
+    assert meta["input_tokens"] == "30425"
+    assert meta["cache_read_input_tokens"] == "24064"
+    # output already includes reasoning — must not be summed
+    assert meta["output_tokens"] == "103"
+    # total must not double-count reasoning (30425 + 103, not + 40 again)
+    assert total == 30528
+    # cost computed at list price, NOT left as $0
+    assert float(meta["total_cost_usd"]) > 0
+    assert meta["cost_basis"] == "list-price-per-token"
+
+
+def test_codex_usage_unknown_model_leaves_cost_absent():
+    """Better a missing cost than a fabricated one that wins rankings."""
+    from retort.playpen.local_runner import _parse_codex_usage
+
+    line = ('{"type": "turn.completed", "usage": {"input_tokens": 100,'
+            ' "cached_input_tokens": 0, "output_tokens": 10,'
+            ' "reasoning_output_tokens": 0}}')
+    _, meta = _parse_codex_usage(line, "some-unreleased-model")
+    assert "total_cost_usd" not in meta

@@ -568,7 +568,8 @@ class LocalRunner:
             # (the exp-7/8 bug). _resolve_harness derives it from the model, so
             # there is one source of truth for both.
             token_count, metadata = _parse_agent_usage(
-                self._resolve_harness(stack), stdout_text, info.workspace
+                self._resolve_harness(stack), stdout_text, info.workspace,
+                self._resolve_model(stack),
             )
             cost_usd = _parse_float(metadata.get("total_cost_usd"), 0.0)
 
@@ -1155,7 +1156,7 @@ def _persist_agent_output(workspace: Path, stdout: str, stderr: str) -> None:
 
 
 def _parse_agent_usage(
-    agent: str, stdout_text: str, workspace: Path | None = None
+    agent: str, stdout_text: str, workspace: Path | None = None, model: str = ""
 ) -> tuple[int, dict[str, str]]:
     """Parse token/cost metadata from known local-agent output formats."""
     if agent == "claude-code":
@@ -1167,7 +1168,7 @@ def _parse_agent_usage(
     if agent == "gemini":
         return _parse_gemini_usage(stdout_text)
     if agent == "codex":
-        return _parse_codex_usage(stdout_text)
+        return _parse_codex_usage(stdout_text, model)
     if agent == "hermes":
         # Hermes writes telemetry to a --usage-file in the playpen, not stdout.
         return _parse_hermes_usage(workspace)
@@ -1408,13 +1409,36 @@ def _parse_omp_usage(stdout_text: str) -> tuple[int, dict[str, str]]:
     return total_tokens_sum, metadata
 
 
-def _parse_codex_usage(stdout_text: str) -> tuple[int, dict[str, str]]:
-    """Parse the final cumulative usage event from ``codex exec --json``.
+def _parse_codex_usage(stdout_text: str, model: str = "") -> tuple[int, dict[str, str]]:
+    """Parse usage from ``codex exec --json``.
 
-    Codex emits JSONL envelopes such as ``event_msg`` / ``token_count``.  The
-    token counts are cumulative for the session, so the last valid event is the
-    run total. Subscription authentication does not expose a per-run USD cost;
-    deliberately leave that metric absent instead of fabricating one.
+    VERIFIED against codex-cli 0.145.0 (2026-07-28) by running the real command
+    and reading its JSONL, because the first implementation was written to a
+    different, assumed shape and silently produced zeros. What it actually emits:
+
+        {"type": "thread.started", "thread_id": "..."}
+        {"type": "turn.started"}
+        {"type": "item.completed", "item": {...}}
+        {"type": "turn.completed", "usage": {"input_tokens": 30425,
+             "cached_input_tokens": 24064, "cache_write_input_tokens": 0,
+             "output_tokens": 103, "reasoning_output_tokens": 40}}
+
+    Two things the earlier version got wrong: there is **no ``payload``
+    wrapper** (``type`` is top level), and there is **no ``token_count``
+    event** — usage rides on ``turn.completed``. Against real output that
+    parser returned ``usage=None, turns=0``, so every Codex run would have
+    recorded 0 tokens, 0 turns and \\$0 — free and effortless, and therefore the
+    winner of every cheapest-qualifying ranking in the reporting layer.
+
+    TOKEN SEMANTICS (OpenAI's, which these fields follow):
+      * ``input_tokens`` INCLUDES ``cached_input_tokens``; the cached part bills
+        at a ~10x lower rate. On the verification run 79% of input was cached.
+      * ``output_tokens`` INCLUDES ``reasoning_output_tokens``.
+    Adding either pair together double-counts — ~490% high on the probe run,
+    and worse on agentic runs where cache reads dominate.
+
+    Usage on ``turn.completed`` is cumulative for the session, so the last event
+    is the run total.
     """
     usage: dict | None = None
     turns = 0
@@ -1423,17 +1447,20 @@ def _parse_codex_usage(stdout_text: str) -> tuple[int, dict[str, str]]:
             event = json.loads(line)
         except ValueError:
             continue
-        payload = event.get("payload") if isinstance(event, dict) else None
-        if not isinstance(payload, dict):
+        if not isinstance(event, dict):
             continue
-        if payload.get("type") == "token_count":
-            info = payload.get("info")
-            if isinstance(info, dict):
-                candidate = info.get("total_token_usage")
-                if isinstance(candidate, dict):
-                    usage = candidate
-        elif payload.get("type") in {"turn.completed", "turn_complete"}:
+        # Tolerate a `payload` envelope in case a future version adds one back.
+        node = event.get("payload") if isinstance(event.get("payload"), dict) else event
+        etype = node.get("type")
+        if etype in {"turn.completed", "turn_complete"}:
             turns += 1
+            candidate = node.get("usage")
+            if isinstance(candidate, dict):
+                usage = candidate
+        elif etype == "token_count":
+            info = node.get("info")
+            if isinstance(info, dict) and isinstance(info.get("total_token_usage"), dict):
+                usage = info["total_token_usage"]
 
     if usage is None:
         return 0, {}
@@ -1444,23 +1471,42 @@ def _parse_codex_usage(stdout_text: str) -> tuple[int, dict[str, str]]:
         except (TypeError, ValueError):
             return 0
 
-    input_tokens = _int("input_tokens")
+    input_tokens = _int("input_tokens")          # includes cached
     cached_tokens = _int("cached_input_tokens")
-    output_tokens = _int("output_tokens")
+    cache_write = _int("cache_write_input_tokens")
+    output_tokens = _int("output_tokens")        # includes reasoning
     reasoning_tokens = _int("reasoning_output_tokens")
-    total_tokens = (
-        _int("total_tokens")
-        or input_tokens + output_tokens + reasoning_tokens
-    )
+    # NOT input + output + reasoning: that double-counts reasoning.
+    total_tokens = _int("total_tokens") or (input_tokens + output_tokens)
+
     metadata = {
         "input_tokens": str(input_tokens),
-        "output_tokens": str(output_tokens + reasoning_tokens),
+        "output_tokens": str(output_tokens),
         "reasoning_output_tokens": str(reasoning_tokens),
         "cache_read_input_tokens": str(cached_tokens),
-        "cache_creation_input_tokens": "0",
+        "cache_creation_input_tokens": str(cache_write),
     }
     if turns:
         metadata["num_turns"] = str(turns)
+
+    # A ChatGPT subscription exposes no per-run price, but "no price" must not
+    # become "$0" — that is an unmeasured cost masquerading as a free one. Every
+    # other metered stack in this repo is recorded at LIST PRICE per token
+    # (Claude's CLI reports exactly that, and it is not billed on a Max plan
+    # either), so compute the same basis here. Unknown model => leave it absent
+    # rather than guess.
+    from retort.pricing import estimate_openai_cost_usd
+
+    cost = estimate_openai_cost_usd(
+        model,
+        input_tokens=input_tokens,
+        output_tokens=output_tokens,
+        cached_input_tokens=cached_tokens,
+    )
+    if cost is not None:
+        metadata["total_cost_usd"] = str(cost)
+        metadata["cost_basis"] = "list-price-per-token"
+
     return total_tokens, metadata
 
 

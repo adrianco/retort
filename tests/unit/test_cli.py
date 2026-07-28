@@ -634,7 +634,7 @@ class TestEvaluateCommand:
 
         called = []
 
-        def _fake_eval(run_dir, eval_config, visibility, *, force=False):
+        def _fake_eval(run_dir, eval_config, visibility, *, force=False, local_agents=None):
             called.append(run_dir)
 
         monkeypatch.setattr("retort.cli._run_auto_evaluation", _fake_eval)
