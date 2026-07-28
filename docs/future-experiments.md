@@ -156,6 +156,35 @@ recommendation is wrong and both blogs need correcting. If it still scores 0/6 *
 terminating below 200 turns**, the capability wall is confirmed on much stronger evidence than before —
 and that is a genuinely useful outcome, because the current claim rests on runs that were capped.
 
+## 0e. exp-54 — does a Codex judge agree with the Opus judge?  — PLANNED (runs after exp-53)
+
+**Why this matters more than it looks.** `requirement_coverage` is an LLM's opinion, and every
+headline in this repo is that opinion thresholded at 1.0. PR #45 made the judge configurable, so it
+is now a *variable* — and a variable nobody has measured. If a Codex judge and an Opus judge disagree
+about whether the same artifact implements the spec, then pass-proportions from differently-judged
+experiments cannot be pooled, and `master.db`'s new `judge` column becomes load-bearing rather than
+bookkeeping.
+
+**Design — the judge is the ONLY variable.** Re-judge **exp-53's own archived runs** (9 codex-written
+bookshop projects, already scored by `claude-code:opus-4.8`) with `codex:gpt-5.6-terra`, and compare
+`requirement_coverage` run-for-run. Same artifacts, same pinned checklist, same prompt: any difference
+is the judge.
+
+Deliberately NOT a fresh set of runs — generating new code would confound judge disagreement with
+run-to-run variance, and this project has spent the week learning how large that variance is.
+
+**What to report:** per-run agreement (identical / differs-but-same-verdict / different verdict), the
+direction of any bias (does one judge mark harder?), and — the number that actually decides
+pooling — how many runs would *change pass/fail* under the other judge.
+
+**Standing decision (user, 2026-07-28): opus-4.8 remains the scoring judge** for everything published
+here. exp-54 measures the alternative rather than adopting it.
+
+**Note on the judge's own independence:** exp-53's code was *written* by a Codex model. Having a Codex
+model also judge it is a same-vendor loop, and if the two agree that is weaker evidence than it looks.
+The Opus judge remains the independent one for codex-authored work — worth stating plainly in the
+write-up whichever way the numbers fall.
+
 ## 1. Graphify tooling factor + large-existing-codebase task  — PLANNED (top priority)
 
 Add a third level to the `tooling` factor (currently `none` / `beads`): **`graphify`** — a
