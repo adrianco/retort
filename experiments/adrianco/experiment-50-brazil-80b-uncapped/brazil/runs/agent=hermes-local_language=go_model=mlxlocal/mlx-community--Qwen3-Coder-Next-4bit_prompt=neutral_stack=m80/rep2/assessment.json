@@ -1,0 +1,10 @@
+{
+  "severity_counts": {"critical": 0, "high": 1, "medium": 0, "low": 0, "info": 0},
+  "penalty_score": 0.9,
+  "top_findings": [
+    {"id": "R1", "kind": "requirement_missing", "severity": "high", "title": "No MCP server — code is a plain Go library, not an MCP protocol server", "evidence": "server/*.go declare package server (server.go:1, data.go:2); no package main/func main anywhere; go.mod has no MCP SDK; mcp|jsonrpc|stdio|RegisterTool|CallTool|ListTools match only comments (server.go:8,10,15; data.go:1).", "suggestion": "Add a package main entrypoint registering each capability as an MCP tool over a JSON-RPC/stdio transport."}
+  ],
+  "requirement_coverage": 0.8333,
+  "model": "mlxlocal/mlx-community--Qwen3-Coder-Next-4bit",
+  "evaluated_at": "2026-07-28T22:42:52Z"
+}

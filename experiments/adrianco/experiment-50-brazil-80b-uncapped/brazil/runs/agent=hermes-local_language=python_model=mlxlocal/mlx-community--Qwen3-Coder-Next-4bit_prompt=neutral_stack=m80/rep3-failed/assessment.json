@@ -1,0 +1,23 @@
+{
+  "severity_counts": {
+    "critical": 0,
+    "high": 1,
+    "medium": 0,
+    "low": 0,
+    "info": 0
+  },
+  "penalty_score": 0.9,
+  "top_findings": [
+    {
+      "id": "R1",
+      "kind": "requirement_partial",
+      "severity": "high",
+      "title": "MCP server registration is broken and has no working entrypoint",
+      "evidence": "mcp_server.py:831-832 runs `mcp_server.tool()(tool)` at module import against `Server` from mcp.server (the low-level SDK Server); that class has no `.tool()` method \u2014 only `list_tools()`/`call_tool()`/`run()` decorators (confirmed in installed mcp/server/lowlevel/server.py:440,498,646), so the import raises AttributeError. `handle_tool` (mcp_server.py:770) is never wired via @call_tool, get_tools() is never wired via @list_tools, and there is no stdio entrypoint / mcp_server.run() / __main__. Tool definitions (get_tools, mcp_server.py:670) and a dispatch handler exist, but the server cannot run.",
+      "suggestion": "Register with `@mcp_server.list_tools()` returning get_tools() and `@mcp_server.call_tool()` delegating to handle_tool, then add an async main using mcp.server.stdio.stdio_server() + mcp_server.run(); guard with `if __name__ == \"__main__\"`."
+    }
+  ],
+  "requirement_coverage": 0.9167,
+  "model": "mlxlocal/mlx-community--Qwen3-Coder-Next-4bit",
+  "evaluated_at": "2026-07-27T23:34:29Z"
+}

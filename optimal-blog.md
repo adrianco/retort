@@ -71,12 +71,12 @@ number to actually decide on. (Hard reliability is single-task, measured on Pyth
 <!-- GEN:leading-stacks START -->
 | Stack | Reliability (routine · hard) | Cost (routine · hard) | Time (routine · hard) |
 |---|---:|---:|---:|
-| **Claude Opus 5** | 1.00 · 1.00 | $3.15 · $21.67 | 607 s · 2630 s |
-| **Claude Fable 5** | 1.00 · 1.00 | $1.75 · $10.47 | 202 s · 1090 s |
+| **Claude Opus 5** | 1.00 · 1.00 | $2.68 · $21.67 | 500 s · 2630 s |
+| **Claude Fable 5** | 1.00 · 1.00 | $1.58 · $10.47 | 166 s · 1090 s |
 | **Claude Sonnet 5** | 1.00 · 0.93 | $1.10 · $7.64 | 237 s · 1252 s |
-| **Claude Opus 4.8** | 0.98 · 0.59 | $0.99 · $3.27 | 294 s · 608 s |
-| **Claude Opus 4.7** | 1.00 · 0.40 | $0.97 · $2.95 | 190 s · 500 s |
-| **Qwen3.6-35B-A3B (local, $0)** | 0.85 · 0.25 | $0.00 · $0.00 | 365 s · 1542 s |
+| **Claude Opus 4.8** | 0.98 · 0.59 | $0.93 · $3.27 | 258 s · 608 s |
+| **Claude Opus 4.7** | 1.00 · 0.40 | $0.92 · $2.95 | 165 s · 500 s |
+| **Qwen3.6-35B-A3B (local, $0)** | 0.86 · 0.25 | $0.00 · $0.00 | 355 s · 1542 s |
 | **Qwen3-Coder-Next 80B (local, $0, ctx 0.9)** | 1.00 · 0.00 | $0.00 · $0.00 | 604 s · 2014 s |
 <!-- GEN:leading-stacks END -->
 
@@ -87,25 +87,22 @@ per-language truth, including the languages they fail, is in the matrix below. *
 task local models are now measured and both do poorly** — 35B **0.25**, 80B **0.00** (see the
 per-stack bullets). Rust local is unqualified (80B 0.33, near-misses).
 
-> ### ⚠️ The local hard-task result is being overturned — re-test in progress
+> ### ⚠️ Local + hard task: the wall holds unattended, but a repair loop gets through
 >
-> This document says the 80B scores **0.00** on the hard task, published as a *config-invariant
-> capability wall*, and that is why "hard tasks → cloud" is the standing advice.
+> The 0.00 below is the **unattended, first-attempt** number and it stands — [exp-50](docs/past-experiments.md)
+> re-ran it and got **0/6 on first attempts**, matching exp-39 exactly.
 >
-> **exp-50 has now produced two full passes** (req-coverage **1.00** on both python and go) on the same
-> model, task and context threshold. exp-31 and exp-39 recorded **0/6** across those same two
-> languages. So the 80B demonstrably *can* implement the hard task completely.
+> What exp-50 adds: with retort's **self-repair second chance** — the cell re-seeded with its own code
+> plus the evaluation's critique — the 80B reached full req-coverage on **3 of 6** runs. Every pass was
+> a second attempt; none was unattended. At half credit for a second-try pass that is a
+> pass-proportion of **0.25** against a published 0.00.
 >
-> **What changed is not yet established.** The re-test was launched on the theory that a 30-turn agent
-> cap had been truncating those runs; on inspection that theory is **wrong** — the historical runs took
-> 32–90 turns and none hit the 60-minute wall, so nothing truncated them. They simply landed at 0.58–0.92
-> req-coverage: ~11 of 12 capabilities. The remaining candidates are a **newer serving/agent stack**
-> (oMLX moved to 0.5.0rc1) or **variance around a threshold the model already sat on** — 0.92 → 1.00 is
-> one requirement.
+> Read it as: **the 80B reliably gets ~11 of 12 capabilities and cannot close the last one alone, but
+> closes it about half the time when told what is missing.** "Hard tasks → cloud" remains right for
+> unattended use; a local stack *with a repair loop* is a different and more promising proposition.
 >
-> Until exp-50's remaining replicates land, read the 0.00 in the tables below as **stale and probably
-> wrong**, and the hard-task recommendation as unresolved for local stacks. Routine-task results are
-> unaffected.
+> (The re-test was launched on a theory — a 30-turn agent cap — that turned out to be wrong: the old
+> runs took 32–90 turns and nothing truncated them. Kept visible in the write-up.)
 
 **Pick by task size — the two columns tell different stories:**
 
@@ -215,7 +212,7 @@ scores 0.00 on Rust/TypeScript; the 80B local is strong on Python but drops on G
 | **go** | 1.00 (1) | 1.00 (3) | 1.00 (3) | 1.00 (7) | 1.00 (6) | 0.85 (27) | 1.00 (3) |
 | **java** | 1.00 (1) | 1.00 (1) | — | 0.83 (6) | 1.00 (6) | — | 0.00 (3) |
 | **objc** | 1.00 (1) | 1.00 (1) | — | 1.00 (1) | — | — | — |
-| **python** | 1.00 (1) | 1.00 (3) | 1.00 (3) | 1.00 (7) | 1.00 (6) | 0.85 (27) | 1.00 (3) |
+| **python** | 1.00 (16) | 1.00 (18) | 1.00 (3) | 1.00 (22) | 1.00 (21) | 0.87 (30) | 1.00 (3) |
 | **rust** | 1.00 (1) | 1.00 (3) | 1.00 (3) | 1.00 (6) | 1.00 (6) | 0.00 (2) | 0.33 (3) |
 | **swift** | 1.00 (1) | 1.00 (1) | — | 1.00 (1) | — | — | — |
 | **typescript** | 1.00 (1) | 1.00 (1) | 1.00 (3) | 1.00 (7) | 1.00 (6) | 0.00 (3) | 1.00 (3) |
@@ -410,7 +407,7 @@ stacks table above is generated the same way.
 | **go** | Qwen3.6-35B-A3B (local, $0) ($0) | 0.85 | 27 |
 | **java** | Claude Opus 4.7 ($0.92) | 1.00 | 6 |
 | **objc** | Claude Opus 4.8 ($1.52) | 1.00 | 1 |
-| **python** | Qwen3.6-35B-A3B (local, $0) ($0) | 0.85 | 27 |
+| **python** | Qwen3.6-35B-A3B (local, $0) ($0) | 0.87 | 30 |
 | **rust** | Claude Opus 4.8 ($0.71) | 1.00 | 6 |
 | **swift** | Claude Opus 4.8 ($1.25) | 1.00 | 1 |
 | **typescript** | Qwen3-Coder-Next 80B (local, $0, ctx 0.9) ($0) | 1.00 | 3 |

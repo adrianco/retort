@@ -1,0 +1,58 @@
+# Experiment 50 — was the local hard-task "capability wall" really a 30-turn CAP?
+#
+# THE CLAIM UNDER TEST. exp-31 and exp-39 both measured the 80B at 0/6 on
+# brazil-bench and concluded a config-invariant CAPABILITY ceiling (tested at
+# context_threshold 0.7 AND 0.9). That conclusion is why "hard tasks -> cloud" is
+# the standing recommendation in optimal-blog and the README.
+#
+# WHY IT IS IN DOUBT. Every one of those runs executed with the Hermes agent
+# capped at max_turns: 30 -- a value retort never set and never reconciled with
+# the max_turns: 200 its own workspaces declared. provenance.json recorded both
+# numbers side by side without flagging the contradiction. A truncated run and an
+# incapable model produce identical scores. Fixed 2026-07-25.
+#
+# THE EVIDENCE. Archived .hermes_usage.json from exp-39/31 shows 3 of 12 brazil
+# runs stopping at EXACTLY 90 api_calls (3 per turn x the 30-turn cap), two of
+# them at near-zero coverage. And exp-49 then measured an 80B run taking 44 turns
+# on the ROUTINE task -- so the cap was demonstrably binding on real work, not
+# merely arithmetically possible.
+#
+# HONEST COUNTER-EVIDENCE (so this is not run as a foregone conclusion): api_calls
+# is not turns (the 3x mapping is inferred, not confirmed); nine of the twelve runs
+# stopped well below any cap; one run that hit 90 still reached 0.85 coverage; and
+# exp-39's own reading -- that the 80B plateaus around 11/12 capabilities -- may
+# simply be right. This experiment is as likely to CONFIRM the wall as remove it.
+#
+# DESIGN: exp-39 re-run unchanged except that the turn cap is now honest.
+# Same model, same task, same threshold, same scoring. One altered variable.
+experiment:
+  name: experiment-50-brazil-80b-uncapped
+  visibility: public
+factors:
+  language: { levels: [python, go] }
+  agent: { levels: [hermes-local, claude-code] }   # design pins hermes-local
+  prompt: { levels: [neutral, none] }              # design pins neutral
+  stack: { levels: [m80, m35] }                    # design pins m80
+  model:
+    levels:
+      - mlxlocal/mlx-community--Qwen3-Coder-Next-4bit
+      - mlxlocal/Qwen3.6-35B-A3B
+responses: [code_quality, token_efficiency, test_coverage, defect_rate, maintainability, idiomatic]
+tasks:
+  - source: github://brazil-bench/benchmark-template/brazilian-soccer-mcp-guide.md
+playpen:
+  runner: local
+  replicates: 3
+  # 120 min, double exp-39's 60. A run now ALLOWED 200 turns needs the wall to use
+  # them — capping turns at 30 was also implicitly capping time, so re-running at
+  # the old 60-minute wall would just swap one truncation for another.
+  timeout_minutes: 120
+  stall_minutes: 25
+  max_turns: 200
+  stack_presets: stacks.yaml
+  prompts_dir: prompts
+  local_agents:
+    hermes-local: { harness: hermes, model: mlxlocal/mlx-community--Qwen3-Coder-Next-4bit }
+design: { screening_resolution: 3, significance_threshold: 0.10 }
+promotion: { screening_to_trial: { p_value: 0.10 }, trial_to_production: { posterior_confidence: 0.80 } }
+evaluation: { enabled: true, model: opus-4.8 }

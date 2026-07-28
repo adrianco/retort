@@ -1,0 +1,10 @@
+{
+  "severity_counts": {"critical": 0, "high": 1, "medium": 0, "low": 0, "info": 0},
+  "penalty_score": 0.9,
+  "top_findings": [
+    {"id": "R1", "kind": "requirement_missing", "severity": "high", "title": "No MCP server implemented — the spec's central requirement is unmet", "evidence": "go.mod declares zero dependencies (no MCP SDK); grep for jsonrpc|stdio|tools/list|tools/call|initialize|protocol across all .go files finds nothing; cmd/main.go:24 blocks on <-make(chan struct{}) after only printing counts (main.go:22-23 concede 'MCP server would be started here'); server.go's Server/ExecuteQuery is dead code with no caller outside server.go.", "suggestion": "Add an MCP server SDK dependency, wire an MCP stdio/JSON-RPC transport in main.go, and register the existing query handlers as MCP tools with schemas."}
+  ],
+  "requirement_coverage": 0.9167,
+  "model": "mlxlocal/mlx-community--Qwen3-Coder-Next-4bit",
+  "evaluated_at": "2026-07-27T20:34:29Z"
+}

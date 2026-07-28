@@ -1,0 +1,10 @@
+{
+  "severity_counts": {"critical": 0, "high": 1, "medium": 0, "low": 0, "info": 0},
+  "penalty_score": 0.9,
+  "top_findings": [
+    {"id": "R1", "kind": "requirement_partial", "severity": "high", "title": "MCP server layer is implemented but undeclared as a dependency and untested", "evidence": "mcp_server.py:15-20,41,166-299,302-395,400-418 implements a real MCP server (Server SDK, @server.list_tools with 11 Tool definitions, @server.call_tool dispatcher, stdio_server main() entrypoint) — the prior 'broken registration/no entrypoint' failure is fixed. BUT requirements.txt omits 'mcp', so import mcp_server raises ModuleNotFoundError on a clean install per the declared deps; and no test imports mcp_server (test_soccer.py:14-15 imports only data_loader/query_engine), so all 11 tools, call_tool and main() are 0% covered (test_coverage=0.62).", "suggestion": "Add 'mcp' to requirements.txt and add at least one test that imports mcp_server, calls list_tools(), and dispatches call_tool() for a couple of tools."}
+  ],
+  "requirement_coverage": 0.9167,
+  "model": "mlxlocal/mlx-community--Qwen3-Coder-Next-4bit",
+  "evaluated_at": "2026-07-28T22:50:46Z"
+}

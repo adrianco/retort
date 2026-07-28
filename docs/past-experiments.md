@@ -287,6 +287,44 @@ whole question.
 value stays the **large-repo** arm (funkygibbon-port / the-goodies ~30K lines), where navigation is
 the actual bottleneck.
 
+### exp-50 — the local hard-task wall is real for unattended runs, and breachable with feedback
+
+Re-ran exp-39 unchanged except for the turn cap: `Qwen3-Coder-Next 80B × brazil-bench ×
+{python, go} × n=3`, ctx 0.9, 120-min wall. 6/6 completed.
+
+| language | rep1 | rep2 | rep3 |
+|---|---|---|---|
+| python | **1.00** (51 turns) | **1.00** (34) | 0.9167 (27) |
+| go | **1.00** (56 turns) | 0.8333 (57) | 0.8333 (28) |
+
+**3 of 6 runs fully implemented the hard task** — against exp-31/39's **0 of 12**. The 80B *can* do
+brazil-bench, which the published "config-invariant capability wall" said it never does.
+
+**But every single pass came on the self-repair SECOND attempt.** All six runs carry
+`_second_try=1.0`: each failed its first unattended pass and was re-seeded with its own code plus the
+evaluation feedback. **First-attempt, unattended: 0/6 — exactly exp-39's result.** Since retort counts a
+second-try pass at half credit, the pass-proportion is **0.25**, not 0.50.
+
+So the correct reading is narrow and more interesting than either extreme: **the 80B reliably reaches
+~11 of 12 capabilities and cannot close the last one on its own, but given its own output and a
+specific critique it closes it about half the time.** That is a claim about feedback loops, not raw
+capability, and it connects directly to exp-41's self-repair work. "Hard tasks → cloud" stands for
+unattended use; a local stack with a repair loop is a genuinely different proposition.
+
+**⚠️ THE PREMISE OF THIS EXPERIMENT WAS WRONG, and the write-up is kept honest about it.** It was
+launched on the theory that a 30-turn Hermes cap had been truncating exp-39. That theory came from
+reading archived `api_calls` as **3 per turn**, making "90 api_calls" look like 3 × the cap. exp-50
+records `api_calls` **and** `_turns` for the same runs and they are **1:1** (python 51 = 51, go 56 =
+56). So exp-39's runs took 32–90 turns — *above* the supposed cap — and none hit the 60-minute wall
+(longest 3016 s). **Nothing truncated exp-39; it fell short on merit.** The remaining explanation for
+exp-50's passes is the serving stack having moved (oMLX 0.5.0rc1) or ordinary variance around a
+threshold the model already sat on. The `max_turns` plumbing fix stands on its own — retort should not
+silently disagree with its own declared config — it just isn't what this experiment measured.
+
+*Method note:* this is the fourth time in this project that a single early run pointed one way and the
+replicates pointed another. The first two cells here were both 1.00 and read as a clean overturn; at
+n=6 the honest number is 0.25.
+
 ### exp-49 — thinking level: a 4× cost lever that buys nothing on routine work
 
 The first experiment to treat **thinking level** (`claude --effort`) as a factor. Every result this

@@ -1,0 +1,10 @@
+{
+  "severity_counts": {"critical": 0, "high": 1, "medium": 0, "low": 0, "info": 0},
+  "penalty_score": 0.9,
+  "top_findings": [
+    {"id": "R1", "kind": "requirement_missing", "severity": "high", "title": "No MCP protocol server — a FastAPI REST API stands in for it", "evidence": "src/api.py:4 from fastapi import FastAPI; src/main.py:10 uvicorn.run(app,...); grep for import mcp/from mcp/fastmcp/Server(/list_tools/call_tool/@mcp/@app.tool across src+tests returns zero; requirements.txt has no MCP SDK.", "suggestion": "Implement query functions as MCP tools via the mcp Python SDK (Server + list_tools/call_tool or fastmcp) served over stdio/SSE, not FastAPI/uvicorn HTTP."}
+  ],
+  "requirement_coverage": 0.9167,
+  "model": "mlxlocal/mlx-community--Qwen3-Coder-Next-4bit",
+  "evaluated_at": "2026-07-27T19:45:36Z"
+}

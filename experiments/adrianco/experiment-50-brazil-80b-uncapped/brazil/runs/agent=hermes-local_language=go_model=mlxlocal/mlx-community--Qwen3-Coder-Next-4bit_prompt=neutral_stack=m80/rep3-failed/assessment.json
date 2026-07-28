@@ -1,0 +1,11 @@
+{
+  "severity_counts": {"critical": 0, "high": 2, "medium": 0, "low": 0, "info": 0},
+  "penalty_score": 0.8,
+  "top_findings": [
+    {"id": "R1", "kind": "requirement_missing", "severity": "high", "title": "No MCP protocol implementation — plain Go library, not an MCP server", "evidence": "grep for jsonrpc|stdio|RegisterTool|modelcontextprotocol|tools/list|tools/call across *.go = 0 hits (only the module name and a struct literally named MCPServer match 'mcp'). go.mod declares zero dependencies. server/server.go:12 MCPServer is a plain struct; main.go:37-48 constructs it and calls its methods directly. No transport, no tool registration, no tool schemas.", "suggestion": "Add a JSON-RPC-over-stdio transport and register the query methods as MCP tools with input schemas, or hand-roll initialize/tools/list/tools/call handlers."},
+    {"id": "R6", "kind": "requirement_partial", "severity": "high", "title": "Team statistics compute goals for/against incorrectly for away matches", "evidence": "server/server.go:88-90 unconditionally does stats.GoalsFor += m.HomeGoals; stats.GoalsAgainst += m.AwayGoals for every match, so away goals-for/against are swapped. W/L/D counts (92-108) branch correctly. Siblings CalculateStandings (215-218) and GetHeadToHead (150-152) swap correctly, confirming a bug. TestGetTeamStatistics (main_test.go:150-186) never asserts goals.", "suggestion": "When isAway, add m.AwayGoals to GoalsFor and m.HomeGoals to GoalsAgainst (mirror CalculateStandings), and add a test asserting away-match goals."}
+  ],
+  "requirement_coverage": 0.8333,
+  "model": "mlxlocal/mlx-community--Qwen3-Coder-Next-4bit",
+  "evaluated_at": "2026-07-28T00:16:28Z"
+}

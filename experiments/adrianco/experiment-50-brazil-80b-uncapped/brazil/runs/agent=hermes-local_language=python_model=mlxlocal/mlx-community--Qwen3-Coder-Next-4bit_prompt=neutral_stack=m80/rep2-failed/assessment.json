@@ -1,0 +1,10 @@
+{
+  "severity_counts": {"critical": 0, "high": 1, "medium": 0, "low": 0, "info": 0},
+  "penalty_score": 0.9,
+  "top_findings": [
+    {"id": "R1", "kind": "requirement_missing", "severity": "high", "title": "No MCP protocol server — homegrown dispatch class, no SDK/entrypoint", "evidence": "brazilian_soccer_mcp/server.py:31 BrazilianSoccerMCP.handle_request dispatches dotted string methods via if/elif; grep for MCP SDK/jsonrpc/stdio/list_tools/call_tool/Server( across all .py returns zero hits; no console_scripts entrypoint; only __main__ is in tests/test_brazilian_soccer_mcp.py:391; README.md:39-45 documents plain library usage.", "suggestion": "Use the MCP Python SDK (fastmcp/mcp.server): register queries as @tool, expose a stdio/JSON-RPC transport, add a __main__ entrypoint."}
+  ],
+  "requirement_coverage": 0.9167,
+  "model": "mlxlocal/mlx-community--Qwen3-Coder-Next-4bit",
+  "evaluated_at": "2026-07-27T21:41:11Z"
+}

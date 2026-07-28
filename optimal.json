@@ -1,0 +1,271 @@
+{
+  "source": "retort report optimal (master.db)",
+  "objective": "cheapest featured stack per language/task that clears its pass-bar",
+  "routes": {
+    "rest-api-crud": {
+      "c": {
+        "stack": "Claude Opus 4.8",
+        "models": [
+          "claude-opus-4-8",
+          "opus-4.8"
+        ],
+        "effort": "default",
+        "cost": 1.2778485000000002,
+        "pass": 1.0,
+        "n": 1
+      },
+      "clojure": {
+        "stack": "Claude Opus 4.7",
+        "models": [
+          "claude-opus-4-7"
+        ],
+        "effort": "default",
+        "cost": 1.0640909583333333,
+        "pass": 1.0,
+        "n": 6
+      },
+      "cpp": {
+        "stack": "Claude Opus 4.8",
+        "models": [
+          "claude-opus-4-8",
+          "opus-4.8"
+        ],
+        "effort": "default",
+        "cost": 1.0755649999999999,
+        "pass": 1.0,
+        "n": 1
+      },
+      "csharp": {
+        "stack": "Claude Opus 4.8",
+        "models": [
+          "claude-opus-4-8",
+          "opus-4.8"
+        ],
+        "effort": "default",
+        "cost": 0.6548685,
+        "pass": 1.0,
+        "n": 1
+      },
+      "elixir": {
+        "stack": "Claude Opus 4.8",
+        "models": [
+          "claude-opus-4-8",
+          "opus-4.8"
+        ],
+        "effort": "default",
+        "cost": 0.8489111666666668,
+        "pass": 1.0,
+        "n": 3
+      },
+      "erlang": {
+        "stack": "Claude Opus 4.8",
+        "models": [
+          "claude-opus-4-8",
+          "opus-4.8"
+        ],
+        "effort": "default",
+        "cost": 1.3538590833333333,
+        "pass": 1.0,
+        "n": 3
+      },
+      "go": {
+        "stack": "Qwen3.6-35B-A3B (local, $0)",
+        "models": [],
+        "effort": "default",
+        "cost": 0.0,
+        "pass": 0.8518518518518519,
+        "n": 27
+      },
+      "java": {
+        "stack": "Claude Opus 4.7",
+        "models": [
+          "claude-opus-4-7"
+        ],
+        "effort": "default",
+        "cost": 0.9160888749999999,
+        "pass": 1.0,
+        "n": 6
+      },
+      "objc": {
+        "stack": "Claude Opus 4.8",
+        "models": [
+          "claude-opus-4-8",
+          "opus-4.8"
+        ],
+        "effort": "default",
+        "cost": 1.5154185000000004,
+        "pass": 1.0,
+        "n": 1
+      },
+      "python": {
+        "stack": "Qwen3.6-35B-A3B (local, $0)",
+        "models": [],
+        "effort": "default",
+        "cost": 0.0,
+        "pass": 0.8666666666666667,
+        "n": 30
+      },
+      "rust": {
+        "stack": "Claude Opus 4.8",
+        "models": [
+          "claude-opus-4-8",
+          "opus-4.8"
+        ],
+        "effort": "default",
+        "cost": 0.7134874583333334,
+        "pass": 1.0,
+        "n": 6
+      },
+      "swift": {
+        "stack": "Claude Opus 4.8",
+        "models": [
+          "claude-opus-4-8",
+          "opus-4.8"
+        ],
+        "effort": "default",
+        "cost": 1.2517565000000002,
+        "pass": 1.0,
+        "n": 1
+      },
+      "typescript": {
+        "stack": "Qwen3-Coder-Next 80B (local, $0, ctx 0.9)",
+        "models": [],
+        "effort": "default",
+        "cost": 0.0,
+        "pass": 1.0,
+        "n": 3
+      }
+    },
+    "brazil-soccer-mcp": {
+      "c": {
+        "stack": "Claude Fable 5",
+        "models": [
+          "claude-fable-5"
+        ],
+        "effort": "default",
+        "cost": 10.587464999999998,
+        "pass": 1.0,
+        "n": 1
+      },
+      "clojure": {
+        "stack": "Claude Opus 5",
+        "models": [
+          "claude-opus-5"
+        ],
+        "effort": "default",
+        "cost": 2.5517610000000004,
+        "pass": 1.0,
+        "n": 1
+      },
+      "cpp": {
+        "stack": "Claude Opus 5",
+        "models": [
+          "claude-opus-5"
+        ],
+        "effort": "default",
+        "cost": 17.496295500000002,
+        "pass": 1.0,
+        "n": 1
+      },
+      "csharp": {
+        "stack": "Claude Sonnet 5",
+        "models": [
+          "sonnet-5"
+        ],
+        "effort": "default",
+        "cost": 9.964222999999999,
+        "pass": 1.0,
+        "n": 3
+      },
+      "elixir": {
+        "stack": "Claude Fable 5",
+        "models": [
+          "claude-fable-5"
+        ],
+        "effort": "default",
+        "cost": 13.207735000000003,
+        "pass": 1.0,
+        "n": 1
+      },
+      "erlang": {
+        "stack": "Claude Fable 5",
+        "models": [
+          "claude-fable-5"
+        ],
+        "effort": "default",
+        "cost": 12.062622000000001,
+        "pass": 1.0,
+        "n": 1
+      },
+      "go": {
+        "stack": "Claude Opus 4.8",
+        "models": [
+          "claude-opus-4-8",
+          "opus-4.8"
+        ],
+        "effort": "default",
+        "cost": 5.303661833333332,
+        "pass": 1.0,
+        "n": 6
+      },
+      "java": {
+        "stack": "Claude Fable 5",
+        "models": [
+          "claude-fable-5"
+        ],
+        "effort": "default",
+        "cost": 12.011324000000002,
+        "pass": 1.0,
+        "n": 1
+      },
+      "objc": {
+        "stack": "Claude Fable 5",
+        "models": [
+          "claude-fable-5"
+        ],
+        "effort": "default",
+        "cost": 13.297392999999994,
+        "pass": 1.0,
+        "n": 1
+      },
+      "python": {
+        "stack": "Qwen3.6-35B-A3B (local, $0)",
+        "models": [],
+        "effort": "default",
+        "cost": 0.0,
+        "pass": 0.5,
+        "n": 6
+      },
+      "rust": {
+        "stack": "Claude Fable 5",
+        "models": [
+          "claude-fable-5"
+        ],
+        "effort": "default",
+        "cost": 9.629584833333332,
+        "pass": 1.0,
+        "n": 3
+      },
+      "swift": {
+        "stack": "Claude Fable 5",
+        "models": [
+          "claude-fable-5"
+        ],
+        "effort": "default",
+        "cost": 9.243886,
+        "pass": 1.0,
+        "n": 1
+      },
+      "typescript": {
+        "stack": "Claude Opus 4.7",
+        "models": [
+          "claude-opus-4-7"
+        ],
+        "effort": "default",
+        "cost": 4.141262416666668,
+        "pass": 1.0,
+        "n": 3
+      }
+    }
+  }
+}

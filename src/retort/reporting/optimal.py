@@ -320,23 +320,63 @@ def per_language_routing(conn, task=ROUTINE_TASK):
     for lang in routine_languages(conn):
         candidates = []
         for s in FEATURED_STACKS:
-            m = metrics(conn, stack_where(s), task, language=lang)
-            if m["n"] and m["pass"] >= s["pass_bar"]:
-                cost = s.get("cost_override", m["cost"] if m["cost"] is not None else 1e9)
-                candidates.append((cost, s, m))
+            # A stack is (model × THINKING LEVEL), not a model alone. exp-49
+            # measured `low` at ~25% less cost than the CLI default for an
+            # identical 1.00 on the routine task, so collapsing over effort
+            # would recommend a needlessly expensive operating point. Each
+            # effort level a stack has actually been measured at competes
+            # separately; `default` covers every run made before the factor
+            # existed, which is most of the corpus.
+            for eff in efforts_for(conn, s, task, lang):
+                where = stack_where(s)
+                if eff is not None:
+                    where = f"({where}) AND effort = '{eff}'"
+                m = metrics(conn, where, task, language=lang)
+                if m["n"] and m["pass"] >= s["pass_bar"]:
+                    cost = s.get(
+                        "cost_override", m["cost"] if m["cost"] is not None else 1e9
+                    )
+                    candidates.append((cost, s, m, eff))
         if not candidates:
             routing[lang] = None
             continue
-        candidates.sort(key=lambda c: c[0])
-        cost, s, m = candidates[0]
+        # Cheapest qualifying; ties broken toward the better-replicated cell so a
+        # lucky n=1 outlier doesn't beat a well-measured alternative on noise.
+        candidates.sort(key=lambda c: (c[0], -c[2]["n"]))
+        cost, s, m, eff = candidates[0]
         routing[lang] = {
             "stack": s["name"],
             "models": list(s.get("models", [])),
+            "effort": eff or "default",
             "cost": 0.0 if s.get("cost_override") == 0.0 else m["cost"],
             "pass": m["pass"],
             "n": m["n"],
         }
     return routing
+
+
+def efforts_for(conn, stack, task, language):
+    """Thinking levels this stack has actually been MEASURED at for this cell.
+
+    Returns ``[None]`` (meaning "don't filter on effort") when the cell has only
+    ever run at one level — which is true for almost everything, since `effort`
+    only became a factor in exp-49. Reporting a level we never varied would imply
+    a comparison that was never made.
+    """
+    try:
+        rows = q(
+            conn,
+            f"SELECT DISTINCT COALESCE(effort,'default') FROM runs "
+            f"WHERE ({stack_where(stack)}) AND task = ? AND language = ? AND {BASE_FILTER}",
+            (task, language),
+        )
+    except sqlite3.OperationalError:
+        # No `effort` column (an older master.db, or a test fixture that predates
+        # the factor) — behave exactly as before it existed.
+        return [None]
+    # Index rather than key: callers may or may not have set a row_factory.
+    levels = sorted({r[0] for r in rows if r[0]})
+    return levels if len(levels) > 1 else [None]
 
 
 def per_language_table(conn):

@@ -1,0 +1,10 @@
+{
+  "severity_counts": {"critical": 0, "high": 1, "medium": 0, "low": 0, "info": 0},
+  "penalty_score": 0.9,
+  "top_findings": [
+    {"id": "test-hardcoded-path", "kind": "test_failure", "severity": "high", "title": "All tests hardcode ephemeral absolute data paths instead of ./data/kaggle", "evidence": "internal/store/store_test.go:9 and internal/server/server_test.go:11 pass /Users/adriancockcroft/.retort/work/retort-local-0xabe5kx/retort-*/data/kaggle to store.LoadData (32 occurrences); the archive ships data at ./data/kaggle. On any other machine or after work-dir cleanup, LoadData errors and t.Fatalf fails every test — R12 verification only holds on the original run's temp dir.", "suggestion": "Load from a relative path (e.g. filepath.Join(\"..\",\"..\",\"data\",\"kaggle\")) or a testdata dir shipped with the code so tests are reproducible."}
+  ],
+  "requirement_coverage": 1.0,
+  "model": "mlxlocal/mlx-community--Qwen3-Coder-Next-4bit",
+  "evaluated_at": "2026-07-28T22:38:13Z"
+}

@@ -1,0 +1,9 @@
+fastapi==0.109.0
+uvicorn==0.27.1
+python-multipart==0.0.9
+pandas==2.1.4
+pydantic==2.5.6
+python-dotenv==1.0.0
+pytest==7.4.4
+httpx==0.26.0
+mcp==1.1.2
