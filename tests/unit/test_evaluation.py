@@ -17,7 +17,7 @@ from retort.cli import (
     main as cli,
 )
 from retort.config.loader import load_workspace
-from retort.config.schema import EvaluationConfig, WorkspaceConfig
+from retort.config.schema import EvaluationConfig, JudgeConfig, LocalAgentConfig, WorkspaceConfig
 
 
 # ---------------------------------------------------------------------------
@@ -57,6 +57,30 @@ def test_evaluation_block_overrides_defaults():
     assert cfg.evaluation.model == "sonnet"
     assert cfg.evaluation.min_severity_to_file == "critical"
     assert cfg.evaluation.issue_tracker == "both"
+
+
+def test_evaluation_accepts_inline_judge_config():
+    cfg = EvaluationConfig(
+        judge=JudgeConfig(harness="codex", model="gpt-5.6-terra")
+    )
+
+    assert cfg.judge is not None
+    assert cfg.judge.harness == "codex"
+    assert cfg.judge.model == "gpt-5.6-terra"
+
+
+def test_evaluation_accepts_profile_judge_config():
+    cfg = EvaluationConfig(judge=JudgeConfig(profile="codex-judge"))
+
+    assert cfg.judge is not None
+    assert cfg.judge.profile == "codex-judge"
+
+
+def test_judge_config_requires_exactly_one_selector():
+    with pytest.raises(ValueError):
+        JudgeConfig()
+    with pytest.raises(ValueError):
+        JudgeConfig(profile="codex", harness="codex")
 
 
 def test_evaluation_rejects_invalid_severity():
@@ -142,8 +166,7 @@ def test_auto_evaluation_skips_when_current(tmp_path: Path):
 
 
 def test_auto_evaluation_private_forces_beads_tracker(tmp_path: Path):
-    # When both skills exist the code chains them into a single prompt via
-    # _invoke_claude_skill_prompt (one claude cold-start instead of two).
+    # Both skills are chained into one harness-neutral judge invocation.
     exp = tmp_path / "experiment"
     exp.mkdir()
     skills = exp / "skills"
@@ -160,15 +183,15 @@ def test_auto_evaluation_private_forces_beads_tracker(tmp_path: Path):
 
     prompts: list[str] = []
 
-    def fake_prompt(prompt, model, timeout=600):
+    def fake_prompt(judge, run_dir, prompt):
         prompts.append(prompt)
         return 0, ""
 
-    with patch("retort.cli._invoke_claude_skill_prompt", side_effect=fake_prompt):
+    with patch("retort.cli._invoke_judge_prompt", side_effect=fake_prompt):
         _run_auto_evaluation(run, cfg, visibility="private")
 
     # A single chained prompt should reference both skills and use beads tracker.
-    assert prompts, "expected _invoke_claude_skill_prompt to be called"
+    assert prompts, "expected judge invocation"
     combined = prompts[0]
     assert "evaluate-run" in combined
     assert "file-run-issues" in combined
@@ -190,11 +213,11 @@ def test_auto_evaluation_public_respects_configured_tracker(tmp_path: Path):
     cfg = EvaluationConfig(enabled=True, issue_tracker="both")
     prompts: list[str] = []
 
-    def fake_prompt(prompt, model, timeout=600):
+    def fake_prompt(judge, run_dir, prompt):
         prompts.append(prompt)
         return 0, ""
 
-    with patch("retort.cli._invoke_claude_skill_prompt", side_effect=fake_prompt):
+    with patch("retort.cli._invoke_judge_prompt", side_effect=fake_prompt):
         _run_auto_evaluation(run, cfg, visibility="public")
 
     assert prompts, "expected _invoke_claude_skill_prompt to be called"
@@ -269,12 +292,12 @@ def test_evaluate_command_invokes_skill(tmp_path: Path):
 
     prompts: list[str] = []
 
-    def fake_prompt(prompt, model, timeout=600):
+    def fake_prompt(judge, run_dir, prompt):
         prompts.append(prompt)
         return 0, ""
 
     runner = CliRunner()
-    with patch("retort.cli._invoke_claude_skill_prompt", side_effect=fake_prompt):
+    with patch("retort.cli._invoke_judge_prompt", side_effect=fake_prompt):
         result = runner.invoke(
             cli,
             ["evaluate", str(run), "--config", str(ws / "workspace.yaml")],
@@ -282,6 +305,29 @@ def test_evaluate_command_invokes_skill(tmp_path: Path):
     assert result.exit_code == 0, result.output
     assert prompts, "expected skill invocation"
     assert "evaluate-run" in prompts[0]
+
+
+def test_auto_evaluation_uses_configured_codex_judge(tmp_path: Path):
+    exp = tmp_path / "experiment"
+    (exp / "skills" / "evaluate-run").mkdir(parents=True)
+    (exp / "skills" / "evaluate-run" / "SKILL.md").write_text("# skill")
+    run = exp / "runs" / "cell=x" / "rep1"
+    run.mkdir(parents=True)
+    (run / "source.py").write_text("x=1")
+    cfg = EvaluationConfig(
+        judge=JudgeConfig(harness="codex", model="gpt-5.6-terra")
+    )
+    seen = []
+
+    def fake_prompt(judge, run_dir, prompt):
+        seen.append(judge)
+        return 0, ""
+
+    with patch("retort.cli._invoke_judge_prompt", side_effect=fake_prompt):
+        _run_auto_evaluation(run, cfg, visibility="private")
+
+    assert seen[0].harness == "codex"
+    assert seen[0].model == "gpt-5.6-terra"
 
 
 def test_report_compare_invokes_compare_skill(tmp_path: Path):

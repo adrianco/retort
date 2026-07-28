@@ -96,7 +96,13 @@ def evaluate(
     visibility = workspace_config.experiment.visibility
 
     def _eval_one(run_dir: Path) -> None:
-        cli._run_auto_evaluation(run_dir, eval_cfg, visibility, force=force)
+        cli._run_auto_evaluation(
+            run_dir,
+            eval_cfg,
+            visibility,
+            force=force,
+            local_agents=workspace_config.playpen.local_agents,
+        )
 
     if workers <= 1 or len(targets) == 1:
         for t in targets:
@@ -228,7 +234,12 @@ def reevaluate(experiment_dir, config, eval_model, workers, languages, force):
 
     def _eval(item):
         rep, run_config, replicate = item
-        passed, cov = cli._spec_conformance_passes(rep, eval_cfg, visibility)
+        passed, cov = cli._spec_conformance_passes(
+            rep,
+            eval_cfg,
+            visibility,
+            local_agents=workspace_config.playpen.local_agents,
+        )
         return (rep, run_config, replicate, passed, cov)
 
     # Persist each result the moment its eval finishes (in the main thread, so
@@ -698,5 +709,3 @@ def recover(ctx, experiment_dir, run_reeval, eval_model, workers):
     click.echo(
         "\n→ done. Run `retort aggregate --out master.db` to publish the corrected numbers."
     )
-
-

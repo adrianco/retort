@@ -8,6 +8,7 @@ import re
 import shutil
 import subprocess
 import sys
+import time
 from pathlib import Path
 
 import click
@@ -681,7 +682,7 @@ def run_experiments(
     )
     _probe = _playpen_root if os.path.isdir(_playpen_root) else os.path.expanduser("~")
     _free_gb = _shutil.disk_usage(_probe).free / 2**30
-    if _free_gb < 15:
+    if _free_gb < 5:
         raise click.ClickException(
             f"Low disk: only {_free_gb:.0f} GB free at {_probe}. An experiment writes "
             f"large per-cell playpens and a growing serving cache; a near-full disk scores "
@@ -746,7 +747,7 @@ def run_experiments(
                 _harness = getattr(_spec, "harness", None) or _name
                 if _harness == "hermes":
                     return _serving.get("hermes_bin", "hermes")
-                return _harness  # omp / gemini / opencode resolve by their own name
+                return _harness  # omp / gemini / opencode / codex use their CLI name
 
             _missing: list[tuple[str, str]] = []
             for _an, _spec in _local_agents.items():
@@ -1007,6 +1008,7 @@ def run_experiments(
                                 archived,
                                 workspace_config.evaluation,
                                 workspace_config.experiment.visibility,
+                                local_agents=workspace_config.playpen.local_agents,
                             )
                             # Only an explicit False (two real short opinions)
                             # fails the run; None (eval couldn't run) does not.
@@ -1067,7 +1069,8 @@ def run_experiments(
                                     try:
                                         v2, rc2 = _spec_conformance_passes(
                                             arch2, workspace_config.evaluation,
-                                            workspace_config.experiment.visibility)
+                                            workspace_config.experiment.visibility,
+                                            local_agents=workspace_config.playpen.local_agents)
                                         sf2 = v2 is False
                                     except Exception as exc:
                                         click.echo(f"  (2nd-chance gate crashed: {exc})", err=True)
@@ -1697,6 +1700,74 @@ def _invoke_claude_skill(
         return 1, f"skill invocation failed: {exc}"
 
 
+def _persist_judge_attempt(
+    run_dir: Path,
+    judge,
+    *,
+    exit_code: int,
+    stdout: str,
+    stderr: str,
+    duration_seconds: float,
+) -> None:
+    """Persist one judge attempt without overwriting prior spec opinions."""
+    try:
+        log_dir = run_dir / "_judge"
+        log_dir.mkdir(exist_ok=True)
+        attempt = len(list(log_dir.glob("attempt-*.json"))) + 1
+        stem = log_dir / f"attempt-{attempt:03d}"
+        stem.with_suffix(".stdout.log").write_text(stdout)
+        stem.with_suffix(".stderr.log").write_text(stderr)
+        stem.with_suffix(".json").write_text(json.dumps({
+            "harness": judge.harness,
+            "model": judge.model,
+            "exit_code": exit_code,
+            "duration_seconds": duration_seconds,
+            "evaluated_at": time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime()),
+        }, indent=2))
+    except OSError:
+        pass
+
+
+def _invoke_judge_prompt(judge, run_dir: Path, prompt: str) -> tuple[int, str]:
+    """Run a selected evaluation judge against one archived workspace."""
+    from retort.evaluation.judges import judge_runner
+
+    cmd = judge_runner(judge).build_command(judge, run_dir, prompt)
+    started = time.monotonic()
+    stdout = ""
+    stderr = ""
+    try:
+        proc = subprocess.run(
+            cmd,
+            cwd=run_dir,
+            capture_output=True,
+            text=True,
+            timeout=judge.timeout_seconds,
+            check=False,
+        )
+        stdout = proc.stdout or ""
+        stderr = proc.stderr or ""
+        exit_code = proc.returncode
+    except FileNotFoundError:
+        exit_code = 127
+        stderr = f"judge CLI {judge.harness!r} not found on PATH"
+    except subprocess.TimeoutExpired:
+        exit_code = 124
+        stderr = f"judge timed out after {judge.timeout_seconds}s"
+    except Exception as exc:
+        exit_code = 1
+        stderr = f"judge invocation failed: {exc}"
+    _persist_judge_attempt(
+        run_dir,
+        judge,
+        exit_code=exit_code,
+        stdout=stdout,
+        stderr=stderr,
+        duration_seconds=time.monotonic() - started,
+    )
+    return exit_code, stdout + stderr
+
+
 def _declutter_for_eval(run_dir: Path) -> int:
     """Strip build output from an archived run before the judge reads it.
 
@@ -1751,8 +1822,9 @@ def _run_auto_evaluation(
     *,
     force: bool = False,
     extra_prompt: str = "",
+    local_agents=None,
 ) -> None:
-    """Invoke evaluate-run + file-run-issues in a single claude call per run.
+    """Invoke evaluate-run + file-run-issues through the selected judge.
 
     Both skills are chained into one prompt so the subprocess starts once,
     reads context once, and writes all outputs in a single session. Never
@@ -1760,6 +1832,12 @@ def _run_auto_evaluation(
     Private experiments are clamped to the beads tracker.
     """
     if not eval_config.enabled:
+        return
+    from retort.evaluation.judges import JudgeConfigurationError, resolve_judge
+    try:
+        judge = resolve_judge(eval_config, local_agents or {})
+    except JudgeConfigurationError as exc:
+        click.echo(f"  (evaluate: invalid judge: {exc})", err=True)
         return
     if not run_dir.is_dir():
         click.echo(f"  (evaluate: {run_dir} missing, skipping)", err=True)
@@ -1780,7 +1858,10 @@ def _run_auto_evaluation(
 
     file_skill = _find_skill("file-run-issues", start=run_dir)
 
-    click.echo(f"  evaluating {run_dir.name} (model={eval_config.model})...")
+    click.echo(
+        f"  evaluating {run_dir.name} "
+        f"(judge={judge.harness}, model={judge.model})..."
+    )
 
     if file_skill is not None:
         # Chain both skills into one subprocess: one cold-start, one context load.
@@ -1790,15 +1871,16 @@ def _run_auto_evaluation(
             f"run_dir={run_dir} tracker={tracker} "
             f"min_severity={eval_config.min_severity_to_file}."
         ) + (extra_prompt or "")
-        rc, output = _invoke_claude_skill_prompt(prompt, eval_config.model)
+        rc, output = _invoke_judge_prompt(judge, run_dir, prompt)
     elif extra_prompt:
-        rc, output = _invoke_claude_skill_prompt(
+        rc, output = _invoke_judge_prompt(
+            judge,
+            run_dir,
             f"Follow skill at {eval_skill} for run_dir={run_dir}.{extra_prompt}",
-            eval_config.model,
         )
     else:
-        rc, output = _invoke_claude_skill(
-            eval_skill, {"run_dir": str(run_dir)}, eval_config.model
+        rc, output = _invoke_judge_prompt(
+            judge, run_dir, f"Follow skill at {eval_skill} for run_dir={run_dir}"
         )
 
     if rc != 0:
@@ -1880,7 +1962,9 @@ def _build_challenge(shortfalls: list[dict], coverage: float | None) -> str:
     )
 
 
-def _spec_conformance_passes(run_dir, eval_config, visibility) -> tuple[bool | None, float | None]:
+def _spec_conformance_passes(
+    run_dir, eval_config, visibility, *, local_agents=None
+) -> tuple[bool | None, float | None]:
     """Second-opinion spec gate. Returns ``(verdict, coverage)``:
 
     * ``True``  — a real eval found requirement_coverage == 1.0 (pass).
@@ -1933,7 +2017,12 @@ def _spec_conformance_passes(run_dir, eval_config, visibility) -> tuple[bool | N
             # point of a second opinion.
             _declutter_for_eval(run_dir)
         _run_auto_evaluation(
-            run_dir, eval_config, visibility, force=True, extra_prompt=challenge
+            run_dir,
+            eval_config,
+            visibility,
+            force=True,
+            extra_prompt=challenge,
+            local_agents=local_agents,
         )
         cov = _read_requirement_coverage(run_dir)
         if cov is None:
@@ -2670,7 +2759,7 @@ def _discover_active_runs(db_path: Path) -> list[dict]:
     # `claude`: a local-model cell runs `omp`/`hermes`/`gemini`/`opencode`, so
     # keying only on `claude` showed nothing while a local model was working and
     # only lit up during the (claude) spec-gate eval.
-    _AGENT_BINS = ("claude", "omp", "hermes", "gemini", "opencode")
+    _AGENT_BINS = ("claude", "omp", "hermes", "gemini", "opencode", "codex")
 
     def _run(args: list[str]) -> subprocess.CompletedProcess | None:
         try:

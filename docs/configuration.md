@@ -38,6 +38,35 @@ Profiles with `harness: omp` invoke the `omp` CLI with
 the `thinking` factor to pass `--thinking`. Levels `off`, `none`, `default`,
 and `false` omit the thinking flag.
 
+Use `harness: codex` to invoke `codex exec --json` in the isolated playpen.
+See [`codex.md`](../codex.md) for its telemetry limits and a runnable smoke
+configuration.
+
+### Evaluation Judge
+
+Evaluation can use a different harness and model than the coding agent. Select
+an inline judge or reference an existing `local_agents` profile:
+
+```yaml
+evaluation:
+  enabled: true
+  judge:
+    profile: codex-judge
+```
+
+```yaml
+evaluation:
+  enabled: true
+  judge:
+    harness: codex
+    model: gpt-5.6-terra
+    timeout_minutes: 10
+```
+
+Without `judge`, existing configurations retain the legacy Claude judge
+(`evaluation.model`). Built-in judge harnesses are `claude-code` and `codex`;
+plugins may register additional judge harnesses.
+
 #### The `prompt` factor
 
 Adding `prompt` as a factor lets you compare named prompting strategies across every other combination of factors.

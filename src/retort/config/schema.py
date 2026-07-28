@@ -17,7 +17,7 @@ from pydantic import BaseModel, Field, field_validator, model_validator
 
 Visibility = Literal["public", "private"]
 ThinkingMode = Literal["off", "minimal", "low", "medium", "high", "xhigh", "max"]
-LocalHarness = Literal["omp", "gemini", "opencode", "hermes"]
+LocalHarness = Literal["omp", "gemini", "opencode", "hermes", "codex"]
 
 
 class ExperimentConfig(BaseModel):
@@ -37,6 +37,21 @@ IssueTracker = Literal["beads", "github", "both"]
 Severity = Literal["critical", "high", "medium", "low", "info"]
 
 
+class JudgeConfig(BaseModel):
+    """Select the harness and model used to evaluate an archived run."""
+
+    profile: Annotated[str | None, Field(default=None, min_length=1)]
+    harness: Annotated[str | None, Field(default=None, min_length=1)]
+    model: Annotated[str | None, Field(default=None, min_length=1)]
+    timeout_minutes: Annotated[int, Field(default=10, ge=1)]
+
+    @model_validator(mode="after")
+    def has_one_selector(self) -> JudgeConfig:
+        if bool(self.profile) == bool(self.harness):
+            raise ValueError("judge requires exactly one of profile or harness")
+        return self
+
+
 class EvaluationConfig(BaseModel):
     """Auto-evaluation configuration.
 
@@ -46,7 +61,8 @@ class EvaluationConfig(BaseModel):
     """
 
     enabled: Annotated[bool, Field(default=True, description="Run evaluate-run skill after each successful run")]
-    model: Annotated[str, Field(default="haiku", description="Claude model passed as --model to the skill invocation")]
+    model: Annotated[str, Field(default="haiku", description="Legacy Claude judge model; superseded by judge.model")]
+    judge: Annotated[JudgeConfig | None, Field(default=None)]
     min_severity_to_file: Annotated[Severity, Field(default="high", description="Findings below this severity stay in findings.jsonl only")]
     issue_tracker: Annotated[IssueTracker, Field(default="beads", description="Where file-run-issues mirrors findings")]
 

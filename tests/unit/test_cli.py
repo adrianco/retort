@@ -593,7 +593,7 @@ class TestEvaluateCommand:
 
         called = []
 
-        def _fake_eval(run_dir, eval_config, visibility, *, force=False):
+        def _fake_eval(run_dir, eval_config, visibility, *, force=False, local_agents=None):
             called.append(run_dir)
 
         monkeypatch.setattr("retort.cli._run_auto_evaluation", _fake_eval)
@@ -614,7 +614,7 @@ class TestEvaluateCommand:
 
         called = []
 
-        def _fake_eval(run_dir, eval_config, visibility, *, force=False):
+        def _fake_eval(run_dir, eval_config, visibility, *, force=False, local_agents=None):
             called.append(run_dir)
 
         monkeypatch.setattr("retort.cli._run_auto_evaluation", _fake_eval)
@@ -863,6 +863,37 @@ class TestRunDesignFlag:
         assert result.exit_code == 0, result.output
         assert "agent': 'qwen-local'" in result.output
         assert "agent': 'pi-dense'" in result.output
+
+    def test_dry_run_accepts_codex_harness(self, tmp_path: Path):
+        cfg = tmp_path / "workspace.yaml"
+        cfg.write_text(
+            "factors:\n"
+            "  language:\n"
+            "    levels: [python, go]\n"
+            "  agent:\n"
+            "    levels: [codex, codex-default]\n"
+            "  framework:\n"
+            "    levels: [fastapi, stdlib]\n"
+            "responses: [code_quality]\n"
+            "tasks:\n"
+            "  - source: bundled://rest-api-crud\n"
+            "playpen:\n"
+            "  runner: local\n"
+            "  replicates: 1\n"
+            "  local_agents:\n"
+            "    codex:\n"
+            "      harness: codex\n"
+            "      model: gpt-5.6-terra\n"
+            "    codex-default:\n"
+            "      harness: codex\n"
+        )
+
+        result = CliRunner().invoke(
+            cli, ["run", "--phase", "screening", "--config", str(cfg), "--dry-run"]
+        )
+
+        assert result.exit_code == 0, result.output
+        assert "agent': 'codex'" in result.output
 
 
 class TestPromptFactor:
