@@ -471,6 +471,20 @@ numbered experiment when prioritised.
   before a full run (à la Laguna). Source: https://awesomeagents.ai/news/nvidia-nemotron-cascade-2-open-moe-30b/
   — GGUF: https://huggingface.co/bartowski/nvidia_Nemotron-Cascade-2-30B-A3B-GGUF
 
+- 2026-07-28 — **Gemma 4 (31B dense / 26B MoE)** — Apache 2.0, Google's first family with
+  **native function-calling + structured-JSON** (explicitly pitched for autonomous agents), 256K
+  context, **80.0 LiveCodeBench**. **Q4 GGUF ≈ 18 GB → fits 64GB with enormous headroom** (a QAT
+  4-bit build also ships). Serving is unblocked on both of retort's backends: **mainline llama.cpp
+  supports it (MTP since b9549)** and MLX quants exist, so no arch gate-probe à la Laguna.
+  First **Google-lineage** local candidate and the first *dense* 31B at this size class — a clean
+  dense-vs-MoE partner to the Qwen3.6-27B entry above, and the only candidate here whose weights are
+  small enough to leave room for a large draft model (feeds the §3 speculative-decoding lever).
+  **Caveat, same as Nemotron:** this is an **April-2026 release, not a last-cycle drop** — it
+  surfaced via current agentic-coding/local-LLM roundups and is simply a gap in this list rather
+  than news; judge priority accordingly. It is also a *general* model with strong coding scores, not
+  a coder-specialised one. Source: https://blog.google/innovation-and-ai/technology/developers-tools/gemma-4/
+  — GGUF: https://huggingface.co/unsloth/gemma-4-31B-it-GGUF
+
 **Serving backends:** retort now supports **`serving.backend: omlx | llamacpp`** (2026-07-21). The
 llama.cpp path (`llama-server`, Metal-native, GGUF, `--jinja` tool templates) serves models oMLX
 can't — any GGUF whose arch + tool format are in *mainline* llama.cpp. It unblocks **Devstral**
