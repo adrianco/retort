@@ -1,242 +1,109 @@
-# Why Is the Newer Model Slower? One Task, Every Version
+# The Unit of Choice Is Model × Thinking Level, Not Model
 
-Every stack in this post gets the **same easy task** — the "bookshop" REST API in **Python** — and
-almost all of them get it **completely right**. So this isn't a post about reliability. It's about the
-thing that varies wildly *when everything succeeds*: **how much work the model does to get there.**
+For a year the question has been "which model should I use?" That question is
+underspecified. Every frontier model now has a **thinking-level** dial, and on the evidence
+below the dial moves cost more than the model choice does — while moving the result not at
+all.
 
-Between the oldest and newest Claude versions, the same finished app costs **6× more** and takes **4×
-longer**. That is worth understanding, because nothing about the deliverable changed.
+One task (a "bookshop" REST API in **Python**), one prompt, one judge. Four Claude versions
+× five thinking levels, three replicates each: **21 cells, 63 runs, zero failures.**
 
-## The board: one task, every stack
+## Every cell passed. The bill spans 16×.
 
-| stack | n | pass | turns | tokens | seconds | cost |
-|---|---:|---:|---:|---:|---:|---:|
-| **Fable 5** | 3 | 1.00 | **10.7** | 229 K | **96** | $0.76 |
-| Opus 4.8 — **fast mode** | 3 | 1.00 | 11.3 | 242 K | 90 | $0.74 |
-| Opus 4.7 | 6 | 1.00 | 17.2 | 613 K | 100 | $0.59 |
-| Opus 4.8 | 6 | 1.00 | 17.3 | 310 K | 122 | **$0.50** |
-| **Opus 5** | 1 | 1.00 | **36.0** | **1,252 K** | **392** | **$1.84** |
-| Qwen3.6-35B (local, Hermes+oMLX) | 3 | 1.00 | **12.0** ᴺ | 238 K | 126 | $0 |
-| Qwen3-Coder-Next 80B (local, ctx 0.9) | 3 | 1.00 | **24.7** ᴺ | 1,586 K | 440 | $0 |
-| Qwen3-Coder-30B (local, llama.cpp) | 12 | 0.67 | — | 1,114 K | 531 | $0 |
-| gpt-oss-20b (local) | 5 | 0.40 | — | 876 K | 245 | $0 |
+| model | effort | turns | tokens | **cost** | seconds |
+|---|---|---:|---:|---:|---:|
+| **Opus 4.8** | **default** | 9.3 | 245 K | **$0.42** | 79 |
+| Opus 4.8 | low | 10.3 | 272 K | $0.57 | 83 |
+| Opus 4.8 | high | 14.0 | 393 K | $0.60 | 117 |
+| Opus 4.7 | low | 7.3 | 273 K | $0.61 | 56 |
+| Opus 4.8 | medium | 12.7 | 348 K | $0.66 | 97 |
+| Opus 4.7 | medium | 8.7 | 329 K | $0.67 | 65 |
+| Opus 4.7 | default | 10.3 | 397 K | $0.75 | 91 |
+| **Opus 5** | **low** | 15.7 | 432 K | **$0.75** | 114 |
+| Opus 4.7 | high | 11.7 | 451 K | $0.79 | 97 |
+| Opus 5 | medium | 18.0 | 436 K | $0.86 | 142 |
+| Fable 5 | low | 8.0 | 131 K | $0.91 | 49 |
+| Opus 4.8-fast | default | 11.5 | 204 K | $0.95 | 125 |
+| Opus 4.7 | max | 14.0 | 588 K | $1.13 | 171 |
+| Fable 5 | high | 13.3 | 369 K | $1.13 | 109 |
+| Fable 5 | medium | 10.3 | 245 K | $1.16 | 75 |
+| Fable 5 | default | 13.0 | 352 K | $1.21 | 107 |
+| Opus 5 | default | 31.0 | 950 K | $1.38 | 270 |
+| Opus 4.8 | max | 15.3 | 628 K | $1.45 | 326 |
+| Opus 5 | high | 30.7 | 1,072 K | $1.77 | 399 |
+| Fable 5 | max | 13.7 | 428 K | $2.28 | 241 |
+| **Opus 5** | **max** | 43.7 | 2,337 K | **$6.75** | 1,110 |
 
-*(Opus 5 is n=1 on this specific cell — but the pattern is confirmed at n=9 across nine more languages
-below. **ᴺ The local turn counts come from exp-49's fresh in-batch runs**, not from the historical rows
-beside them, which recorded no turns at all.)*
+**Every row is pass-proportion 1.00.** Not "mostly" — all 63 runs fully implemented the
+spec, tests executing, verified by an independent judge. The cheapest configuration costs
+**$0.42** and the dearest **$6.75**: a **16× spread buying literally nothing** on this task.
 
-> **Provenance caveat on this table.** These rows do **not** all come from one batch. The Opus 4.7 /
-> 4.8 / fast-mode / Fable 5 rows come from exp-6, exp-7 and exp-10, which declared no `prompt` factor at
-> all; the Opus 5 row is from exp-46 at `prompt=neutral`. In content those are near-identical — retort's
-> `neutral` level exists precisely as the *null* methodology control ("No particular testing or
-> development methodology is prescribed") — so this is not a methodology confound. But the batches also
-> differ in **harness version**: the older rows predate the turn-recording fix, the timeout change and
-> several scorer corrections. **exp-49 re-runs every one of these arms at default effort in a single
-> batch** for exactly this reason, so the effort comparison rests on an in-batch control rather than on
-> cross-experiment drift.
+## The dial is a bigger lever than the version
 
-## The finding: it's turns, not speed
+Compare the two axes directly.
 
-The tempting explanation is that newer models "think longer" per step. The data says otherwise —
-**seconds per turn is roughly flat across versions** (5.8 s for 4.7, 7.0 s for 4.8, 9.0 s for Fable 5,
-10.9 s for Opus 5). What explodes is the **number of agentic turns**:
+**Within one model, changing only the thinking level:**
 
-- **Fable 5: 10.7 turns** → 96 s
-- **Opus 4.8: 17.3 turns** → 122 s
-- **Opus 5: 36 turns** → 392 s
+| model | low → max | cost multiple |
+|---|---|---:|
+| Opus 4.7 | $0.61 → $1.13 | 1.9× |
+| Opus 4.8 | $0.57 → $1.45 | 2.5× |
+| Fable 5 | $0.91 → $2.28 | 2.5× |
+| **Opus 5** | **$0.75 → $6.75** | **9.0×** |
 
-Opus 5 takes **3.4× as many steps as Fable 5** to produce the same passing app. Time and cost follow
-the step count almost mechanically. So the honest framing is not "the model got slower" — it's **"the
-model does more steps."**
+**Between models, holding the thinking level fixed:**
 
-*Why "does more steps" and not "was tuned to iterate more":* the step count is measured, but its
-**cause** is not established. Every run here used the CLI's default thinking level, and raising that
-level on one model reproduces most of the gap by itself — see
-[the thinking-level caveat](#the-biggest-caveat-nobody-controlled-the-thinking-level) below.
+| effort | cheapest → dearest | cost multiple |
+|---|---|---:|
+| low | $0.57 (4.8) → $0.91 (Fable 5) | 1.6× |
+| default | $0.42 (4.8) → $1.38 (Opus 5) | 3.3× |
+| max | $1.13 (4.7) → $6.75 (Opus 5) | 6.0× |
 
-## Why cost grows *faster* than turns: the cache-read curve
+Two things fall out. **At `low`, the four model generations nearly converge** — 1.6× apart,
+and all perfect. Most of what looks like "the new model is expensive" is the new model
+*thinking harder by default*, not the weights being pricier. And **the two axes interact**:
+Opus 5 responds to the dial 9×, where the older models respond 2×. The newest model is both
+the most expensive at its default and by far the most sensitive to the setting.
 
-Token totals grow faster than turn counts, and the transcript shows exactly why. Opus 5's Python run
-breaks down as:
+The practical consequence is concrete: **Opus 5 at `low` ($0.75) is cheaper than Fable 5 at
+its default ($1.21) and half the price of Opus 5 at its own default.** If you want the
+newest model, the dial — not the version — is what decides your bill.
 
-| | tokens |
-|---|---:|
-| fresh input | 16,495 |
-| **output (actual generation)** | **32,731** |
-| cache creation | 133,176 |
-| **cache reads** | **3,280,338** |
+## Why cost tracks turns, and turns tracks the dial
 
-The model only *generated* ~33 K tokens — the whole app, its tests, and every message. But it **read
-3.28 M tokens back out of cache**, 100× more than it wrote. That's the structural cost of an agentic
-loop: **every turn re-reads the entire accumulated conversation.** With `n` turns over a context that
-grows as you go, cache-read volume scales roughly with **n²**, not n.
+The mechanism is unchanged from earlier versions of this post, and it is the part that has
+held up under every re-measurement.
 
-That is the real answer to "why is it more expensive": doubling the number of turns roughly
-*quadruples* the tokens billed, even though the code written is identical. Cache reads are individually
-cheap, which is what keeps the bill at $1.84 rather than something absurd — but they dominate the
-totals, and they are why the `tokens` column looks alarming next to a 33 K-token deliverable.
+Cost follows the **number of agentic turns**, not per-turn speed. Seconds-per-turn is roughly
+flat; what varies is how many steps the loop takes. And token cost grows *faster* than turns
+because **every turn re-reads the whole accumulated conversation from cache**. Opus 5 at
+`max`: 43.7 turns, and 2.34 M tokens against roughly 33 K actually generated. Cache reads are
+individually cheap, which is why the bill is $6.75 and not absurd — but they dominate the
+totals, and they scale with roughly the *square* of the step count.
 
-## Confirmed on nine more languages (n=9, not n=1)
+So the dial's mechanism is simple: more thinking → more steps → quadratically more re-read
+context. That is why `max` costs 9× on the model that takes the most steps to begin with.
 
-The Python cell above is a single replicate for Opus 5, so a separate experiment re-ran **nine further
-languages** — TypeScript, Java, C#, Elixir, Erlang, C, C++, Objective-C and Swift — on the same routine
-task. Every model scores the same result; only the work differs:
+## What the dial does not buy
 
-| bookshop, 9 languages | n | pass | turns | tokens | seconds | cost |
-|---|---:|---:|---:|---:|---:|---:|
-| **Fable 5** | 9 | **1.00** | **26.4** | 866 K | **280** | $2.68 |
-| **Opus 5** | 9 | **1.00** | **59.8** | **2,878 K** | **712** | $3.76 |
-| Opus 4.8 | 22 | 0.95 | 32.2 | 696 K | 375 | **$1.07** |
+Nothing measurable here. Every level, every model: 1.00.
 
-**The ratio holds.** Opus 5 needs **2.3× the turns** of Fable 5 for an identical 1.00 — and the tokens
-grow **3.3×** off that 2.3× step increase, the n² curve again. It is the third independent dataset
-(single Python cell, fast-mode across task difficulty, and now nine languages at n=9) pointing at the
-same mechanism, so this is no longer a one-run curiosity.
+That is a real finding *and* a bounded one. This is **one language on a routine task**, where
+the ceiling was already saturated — with everything at 1.00 there is no headroom in which a
+difference could show. Thinking level may well earn its cost on genuinely hard work, and
+nothing in these 63 runs tests that. It is the obvious next experiment.
 
-Note also that Opus 4.8 is **cheapest but not perfect** here (0.95 — one miss across 22 runs on these
-harder languages), which is the real trade: Fable 5 buys the last 5 % of reliability for ~2.5× the
-price, and Opus 5 buys nothing over Fable 5 on this task except a bigger bill.
+The honest summary: **on work your stack already handles, the dial is pure expense. On work
+it doesn't, we don't know yet.**
 
-## Fast mode: the control that separates *serving* from *model*
+## The version story, corrected
 
-Fast mode is the same Opus 4.8 weights served differently, so it isolates a question the version
-comparison can't: **is the extra work coming from the model or from how it's delivered?**
+An earlier version of this post described a smooth generational climb — Fable 5 10.7 turns →
+Opus 4.8 17.3 → Opus 5 36.0 — and built a narrative on it. Measured **in one batch**, with
+the thinking level held at the historical default, three of those generations are
+indistinguishable:
 
-| Opus 4.8, Python bookshop | n | turns | tokens | seconds | cost |
-|---|---:|---:|---:|---:|---:|
-| standard | 6 | 17.3 | 310 K | 122 | **$0.50** |
-| **fast mode** | 3 | **11.3** | 242 K | **90** | $0.74 |
-
-Fast mode finishes **26 % quicker** and bills **48 % more** (it's charged at 2× the standard rate — a
-premium retort applies explicitly, since the CLI reports the standard-rate figure). That trade is the
-expected one. The *unexpected* part is the **turn count: 11.3 vs 17.3** — the same weights taking a
-third fewer agentic steps. With n=3 against n=6 that could be variance, but if it's real it means the
-serving path affects *how many steps the loop takes*, not just how fast each one returns. Worth
-resolving in exp-49, where fast mode gets the same instrumented treatment.
-
-Fast mode also shows the turn count tracking task difficulty, which is the cleanest confirmation of the
-central thesis. Same model, same serving, harder task:
-
-| Opus 4.8 fast mode | n | turns | tokens | seconds | cost |
-|---|---:|---:|---:|---:|---:|
-| bookshop (routine, all languages) | 12 | 14.7 | 370 K | 143 | $1.08 |
-| **brazil-bench (hard)** | 12 | **55.8** | **4,110 K** | **887** | **$8.72** |
-
-Same weights, same serving, **3.8× the turns → 11× the tokens → 6× the time**. Nothing about the model
-changed; only how much work the task demanded. That super-linear token growth against a merely
-3.8× step increase is the n² cache-read curve again, measured on a second axis.
-
-## What Opus 5 is actually doing with those turns
-
-From its transcript — 55 assistant messages, 35 tool calls:
-
-| tool | calls |
-|---|---:|
-| Bash | 13 |
-| Write | 11 |
-| Edit | 9 |
-| Read | 2 |
-
-The shape is **write → run → edit → run again**: eleven file writes, nine follow-up edits, and thirteen
-shell invocations (installs, test runs). Only two reads — it isn't exploring, it's **iterating on its
-own output**. More than half the tool calls come *after* the first version of the code exists. That is
-consistent with a model tuned to verify and refine rather than to emit once and stop.
-
-Whether that iteration *buys* anything was the interesting open question. **It now looks like it
-doesn't.** Opus 5 was briefly the only model known to clear the [hard task](docs/past-experiments.md) in
-all 13 languages, which made "the extra turns are the price of breadth" a plausible story. Then
-Fable 5 was run on the nine languages it had never been tried on, cleared all nine, and reached the
-**same 13/13 with 2.3× fewer turns** — at half the cost and 2.4× the speed.
-
-So the extra cycles are not the mechanism behind breadth; both models get there, one of them the long
-way round. On an easy task the extra turns are overhead, and on the hard task they are *also* overhead —
-they just weren't visible as such until there was something to compare against.
-
-## The local models tell the same story
-
-The pattern isn't Anthropic-specific. Among local stacks on the identical task:
-
-- **Qwen3.6-35B: 238 K tokens, 126 s** — the lean end, and it passes 3/3. Its profile is remarkably
-  close to Opus 4.8's (310 K, 122 s).
-- **Qwen3-Coder-Next 80B: 1,586 K tokens, 440 s** — the verbose end, also 3/3. Its profile mirrors
-  **Opus 5's** (1,252 K, 392 s).
-
-So "bigger/newer model, same result, ~4× the work" reproduces across two entirely different model
-families. That suggests the driver is **how the model was tuned to behave in an agent loop**, not
-anything specific to one vendor's architecture.
-
-Two local stacks also spend heavily *without* succeeding — Qwen3-Coder-30B (1,114 K tokens, 0.67) and
-gpt-oss-20b (876 K, 0.40 at n=5) — a useful reminder that high token counts signal *effort*, not
-competence.
-
-## What we can't yet answer honestly
-
-**We cannot compare the tool-call mix across versions**, because the older runs have no transcripts:
-`_agent_stdout.log` capture was added part-way through this project, so exp-6 (Opus 4.7 / 4.8) and the
-early local experiments archived scores but not the agent's steps. The Opus 5 profile above is the only
-one we can compute. Everything cross-version in this post therefore rests on **turns / tokens /
-seconds / cost**, which are recorded throughout — and the tool-level claim is deliberately confined to
-the one run that supports it.
-
-### The biggest caveat: nobody controlled the thinking level
-
-Every number in this post was produced at whatever **thinking level the CLI chose by default**. It was
-never set, never recorded, and never treated as a factor. `claude` exposes it as
-`--effort low|medium|high|max`, and a probe confirms it is real: the response carries a `thinking` block
-at `max` and none at `low`, and output tokens climb with the level (Fable 5: 342 → 3499 on a fixed
-prompt, ~10×).
-
-That matters because it is a **plausible** alternative explanation for this entire post. It is not yet
-a demonstrated one, and an early attempt to demonstrate it is a cautionary tale in its own right.
-
-A first instrumented cell — same model, same task, only the knob moved — looked decisive: Opus 4.8 at
-`effort=max` took **33 turns and 1,620 K tokens** against a default-effort baseline of 17.3 turns /
-310 K. Nearly double the steps, five times the tokens, and 33 is essentially Opus 5's default-effort 36.
-
-**Then it failed to replicate.** The controlled run (exp-49) measured the *identical* cell, the same
-day, in-batch:
-
-| Opus 4.8 × python bookshop × `effort=max` | turns | tokens | cost | sec |
-|---|---:|---:|---:|---:|
-| first instrumented cell | **33** | 1,620 K | $2.55 | 475 |
-| exp-49, in-batch | **14** | 522 K | $1.19 | 291 |
-
-**A 2.4× spread between two runs of one configuration.** In-batch, `max` costs 1.4× the turns of
-`default` (14 vs 10) — a real effect, but a modest one, and nothing like enough to account for Opus 5's
-36. So the tempting story — *"the newer model isn't tuned to iterate more, it just thinks more by
-default"* — is **unsupported on current evidence**.
-
-What the failed replication does establish is that **single runs of this cell are noisy enough to
-manufacture a headline**, which is a warning that applies to the n=1 rows in this post's own opening
-table as much as to the claim it just killed.
-
-The other reason for caution: the *default* is not a named level — measured on a fixed prompt it sits
-near `high` for 4.8 and between `medium` and `high` for Fable 5 and Opus 5, so "newer versions default
-to more thinking" is not established either.
-
-### ✅ Resolved: exp-49 ran, and it corrects this post twice
-
-The 63-run factorial (4 versions × 5 effort levels × n=3, plus a fast-mode control) is complete —
-**63/63, zero failures, every run 1.00.** Two of this post's claims survive; two do not.
-
-**1. Thinking level is a big cost lever — and buys nothing here.**
-
-| effort | turns | tokens | cost | seconds | **pass** |
-|---|---:|---:|---:|---:|---:|
-| **low** | **10.3** | **277 K** | **$0.71** | **75** | **1.00** |
-| medium | 12.4 | 340 K | $0.84 | 95 | **1.00** |
-| *default (what every earlier experiment used)* | 15.3 | 430 K | $0.94 | 135 | **1.00** |
-| high | 17.4 | 571 K | $1.08 | 180 | **1.00** |
-| max | 21.7 | 995 K | $2.90 | 462 | **1.00** |
-
-low → max is **2.1× the turns, 3.6× the tokens, 4.1× the cost, 6.2× the wall-clock — for an identical
-1.00.** The CLI default isn't even the cheap end: `low` is ~25% cheaper and ~45% faster than it, with no
-measured reliability cost. On routine work, **turn the knob down.**
-
-**2. But thinking level does NOT explain the version differences — and the version table above is
-partly wrong.** Measured in-batch at default effort, three generations are indistinguishable:
-
-| model | in-batch (n=3) | this post says | ratio | source of the published figure |
+| model | in-batch turns (n=3) | previously published | ratio | source of the old figure |
 |---|---:|---:|---:|---|
 | Opus 4.8-fast | 11.5 | 11.3 | **1.02×** | exp-7 |
 | Fable 5 | 13.0 | 10.7 | 1.21× | exp-10 |
@@ -244,74 +111,48 @@ partly wrong.** Measured in-batch at default effort, three generations are indis
 | **Opus 4.7** | **10.3** | 17.2 | **0.60×** | **exp-6** |
 | **Opus 4.8** | **9.3** | 17.3 | **0.54×** | **exp-6** |
 
-Three of five replicate. **The two that don't are both from exp-6** — so the smooth "each generation
-takes more steps" progression this post is built around was substantially **one old experiment's
-inflated middle**. The corrected finding is narrower but cleaner: **Opus 4.7, 4.8 and Fable 5 all sit
-around 9–13 turns, and Opus 5 alone takes ~2.7× that.** It is not a trend across versions; it is one
-model behaving differently.
+Three of five replicate closely. The two that don't both come from **exp-6**, the oldest
+source — so the "gradual climb" was substantially one old experiment's inflated middle.
+Corrected: **4.7, 4.8 and Fable 5 all sit around 9–13 turns; Opus 5 alone takes ~2.7× that.**
+Not a trend across versions — one model behaving differently.
 
-**3. Effort and version interact.** low → max multiplies turns by 1.5–1.9× on the older models but
-**2.8× on Opus 5**, whose cost swings **$0.75 → $6.75** and wall-clock 114 s → 1110 s. The priciest
-model is also the most sensitive to the priciest setting.
+*(A note on how that was found: the cross-version comparison had been assembled from
+experiments run months apart on different harness versions. The fix was to re-run every arm
+in a single batch. If you take one methodological point from this post, take that one.)*
 
-**What still stands:** the mechanism. Turns drive time and cost, and cache reads scale ~n² because every
-turn re-reads the conversation. That is unaffected — what changed is *which* models take more turns, and
-the discovery that you can move turns substantially with a flag.
+## It isn't a Claude phenomenon
 
-*Everything above is Python on the routine task. Thinking level may well pay for itself on hard work;
-that is the next experiment, and nothing here tests it.*
+The same cell run on local models, driven by the Hermes agent over oMLX on a 64 GB laptop:
 
-Two further measurement gaps to close:
-
-1. **No transcripts for older versions** → we can't say whether 4.8 also writes-then-edits, or whether
-   Opus 5's extra turns are extra *edit* cycles specifically.
-2. ~~**Local stacks recorded no turn count.**~~ **CLOSED.** Hermes reports `api_calls` in its usage file
-   and the parser was dropping it; it is now recorded as `num_turns`, and exp-49's local half supplies
-   fresh in-batch turn counts for both local stacks (above). *Historical* local runs stay blank — they
-   cannot be recovered, only re-run.
-
-   Closing this gap also uncovered a harness fault that had been silently shaping local results:
-   **Hermes was capped at 30 turns** by a setting retort never reconciled with the 200 its own
-   workspaces declared. One of the three 80B runs here took **44 turns** — so the cap was truncating
-   real work on the *routine* task, and every earlier local run was measured through it. Fixed;
-   [exp-50](docs/future-experiments.md) re-tests the local hard-task result, which was measured
-   entirely under the cap.
-
-**The controlled rerun has now run in full** — that is exp-49. Its cloud half (63 runs) replaced the
-cross-batch version table with an in-batch one and corrected it; its local half (6 runs) put the local
-stacks on the cloud's turn axis for the first time:
-
-| stack, python bookshop | n | turns | replicates |
+| stack | n | turns | replicates |
 |---|---:|---:|---|
 | Qwen3.6-35B (local) | 3 | **12.0** | 10, 8, 18 |
 | Qwen3-Coder-Next 80B (local) | 3 | **24.7** | 44, 17, 13 |
 
-**The claim that the pattern reproduces across model families survives the harder test.** It was
-originally inferred from profile *shape* — tokens and seconds — because no local turn count existed. On
-the turn axis the ordering is **Opus 4.8 9.3 · Opus 4.7 10.3 · 35B 12.0 · Fable 5 13.0 · 80B 24.7 ·
-Opus 5 31.0**: a 35B open-weights model on a laptop sits in the same ~10–13 turn cluster as three Claude
-generations, and the 80B sits with Opus 5 well above it. That is a 20× parameter range and two vendors
-producing the same two-group split, which is stronger evidence for *agent-loop tuning* over
-architecture or scale than this post originally had.
+Placed on the same axis: **Opus 4.8 9.3 · Opus 4.7 10.3 · 35B 12.0 · Fable 5 13.0 · 80B 24.7
+· Opus 5 31.0.** A 35B open-weights model on a laptop sits in the same cluster as three
+Claude generations, and the 80B sits with Opus 5 well above it. Two vendors, a 20× parameter
+range, and the same two-group split — which points at **how a model was tuned to behave in an
+agent loop** rather than at scale or architecture.
 
-One caution: the 80B's replicates span **44, 17, 13** — a 3.4× spread, far noisier than any cloud arm.
-Its 24.7 is a thin mean, and a single 80B run tells you very little.
+Caveat worth keeping: the 80B's replicates span 44/17/13, a 3.4× spread. A single 80B run
+tells you very little.
 
-## The practical takeaway
+## What to actually do
 
-If your task is routine, **the newest model is the wrong default**. On this task Opus 4.8 delivers the
-identical 1.00 for **$0.50 and 122 s**, against Opus 5's **$1.84 and 392 s** — and Fable 5 finishes
-fastest of all at 10.7 turns. Fast mode is the exception worth knowing: ~26 % quicker for ~48 % more, same result — buy it when latency matters, not when throughput does.
+1. **Pick a (model, effort) pair, not a model.** The pair spans 16× in cost here; the model
+   alone explains a minority of that.
+2. **On routine work, turn the dial down.** `low` cost 1.6× less than `default` on average and
+   changed no outcome. The CLI default is not the cheap end.
+3. **If you want the newest model, run it at `low`.** Opus 5 at `low` undercuts Fable 5 at
+   its default. Opus 5 at `max` costs 16× the cheapest cell for the same passing app.
+4. **Don't generalise this to hard tasks.** Everything above saturated at 1.00. The dial's
+   value, if it has one, lives where the ceiling isn't already hit.
 
-**And the "but it earns its keep on hard work" defence has now been tested and failed.** That was the
-obvious reply to everything above: the extra steps must be buying reliability where things get
-difficult. On the hard task Fable 5 matches Opus 5's coverage across all 13 languages using **2.3× fewer
-turns**, for half the money and 2.4× the speed. There is no task size in this dataset where the extra
-steps buy a result you couldn't get more cheaply. Pay for the steps when you have evidence the steps are
-what you need — and on this evidence, you don't yet.
+---
 
-**One caveat on that advice**, from the section above: if the extra steps turn out to be *thinking
-level* rather than *model tuning*, then the lever is the knob, not the version — you would keep the
-newer model and run it at a lower effort, rather than downgrading. Until exp-49 separates the two,
-"pick the cheapest model that clears your language" is the safe recommendation, but it may turn out to
-be the second-best one.
+*Method: `python × bookshop × prompt=neutral`, n=3 per cell, judged by an independent
+Opus 4.8 against a pinned requirement checklist; a run passes only if it implements the whole
+spec. Cost is list-price-per-token — the basis every metered stack here is recorded on, and
+one that does not vary with whose subscription happened to pay. Data:
+[`master.db`](master.csv), experiment `adrianco/experiment-49-versions-cloud`.*

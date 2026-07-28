@@ -58,6 +58,55 @@ re-qualification pass, so this document is expected to churn.
 
 ---
 
+## Start here: the cheapest (model × thinking level) that clears each cell
+
+**A stack is a model *and* a thinking level.** Measured on one cell across four Claude
+versions × five effort levels, every one of the 21 combinations passed — and the bill spanned
+**16×**, from \$0.42 to \$6.75, for identical output. The dial moves cost more than the
+version does, and it moves the result not at all. So the recommendation is a pair, never a
+model alone.
+
+The machine-readable form of the table below is committed at **[`optimal.json`](optimal.json)**
+(regenerate with `retort report optimal --routing-json optimal.json`) so other tools — the
+metaharness router, CI, your own scripts — can consume the routing decision directly rather
+than scraping prose.
+
+<!-- GEN:per-language-routing START -->
+| Language | Routine → model @ effort | pass | cost | Hard task → model @ effort | pass | cost |
+|---|---|---:|---:|---|---:|---:|
+| **c** | Opus 4.8 @ `default` <sub>n=1</sub> | 1.00 | $1.28 | Fable 5 @ `default` <sub>n=1</sub> | 1.00 | $10.59 |
+| **clojure** | Opus 4.7 @ `default` <sub>n=6</sub> | 1.00 | $1.06 | Opus 5 @ `default` <sub>n=1</sub> | 1.00 | $2.55 |
+| **cpp** | Opus 4.8 @ `default` <sub>n=1</sub> | 1.00 | $1.08 | Opus 5 @ `default` <sub>n=1</sub> | 1.00 | $17.50 |
+| **csharp** | Opus 4.8 @ `default` <sub>n=1</sub> | 1.00 | $0.65 | Sonnet 5 @ `default` <sub>n=3</sub> | 1.00 | $9.96 |
+| **elixir** | Opus 4.8 @ `default` <sub>n=3</sub> | 1.00 | $0.85 | Fable 5 @ `default` <sub>n=1</sub> | 1.00 | $13.21 |
+| **erlang** | Opus 4.8 @ `default` <sub>n=3</sub> | 1.00 | $1.35 | Fable 5 @ `default` <sub>n=1</sub> | 1.00 | $12.06 |
+| **go** | Qwen3.6-35B-A3B (local) @ `default` <sub>n=27</sub> | **0.85** | $0 | Opus 4.8 @ `default` <sub>n=6</sub> | 1.00 | $5.30 |
+| **java** | Opus 4.7 @ `default` <sub>n=6</sub> | 1.00 | $0.92 | Fable 5 @ `default` <sub>n=1</sub> | 1.00 | $12.01 |
+| **objc** | Opus 4.8 @ `default` <sub>n=1</sub> | 1.00 | $1.52 | Fable 5 @ `default` <sub>n=1</sub> | 1.00 | $13.30 |
+| **python** | Qwen3.6-35B-A3B (local) @ `default` <sub>n=30</sub> | **0.87** | $0 | Qwen3.6-35B-A3B (local) @ `default` <sub>n=6</sub> | **0.50** | $0 |
+| **rust** | Opus 4.8 @ `default` <sub>n=6</sub> | 1.00 | $0.71 | Fable 5 @ `default` <sub>n=3</sub> | 1.00 | $9.63 |
+| **swift** | Opus 4.8 @ `default` <sub>n=1</sub> | 1.00 | $1.25 | Fable 5 @ `default` <sub>n=1</sub> | 1.00 | $9.24 |
+| **typescript** | Qwen3-Coder-Next 80B (local) @ `default` <sub>n=3</sub> | 1.00 | $0 | Opus 4.7 @ `default` <sub>n=3</sub> | 1.00 | $4.14 |
+<!-- GEN:per-language-routing END -->
+
+> **Reading the `effort` column.** Almost every cell says `default`, and that is an honest
+> statement rather than a recommendation: **thinking level has only ever been *varied* on one
+> cell** (python × bookshop, exp-49). Everywhere else the corpus has exactly one measured
+> level, so the router reports the level those runs actually used and does not imply a
+> comparison nobody made. Where the dial *was* swept, the finding was consistent — `low` cost
+> ~1.6× less than the CLI default at identical reliability, and the default is not the cheap
+> end. Expect these to shift toward `low` as the sweep widens.
+>
+> **A `null` means nothing measured clears the bar for that cell** — not "untested". And read
+> the `n`: several cells are n=1, where a 1.00 is much weaker evidence than a 1.00 at n=9.
+>
+> ⚠️ **The bar is not the same for local and cloud.** Cloud stacks must be perfect (1.00);
+> local stacks qualify at **0.50**, on the view that a \$0 stack is worth a lower bar if you
+> are watching it. So the routing can pick a *coin flip* purely because it is free — most
+> starkly **python on the hard task: local 35B at `0.50`**, which is "free and right half the
+> time", not "recommended". Any `pass` below 1.00 is bolded for exactly this reason. If you
+> need it right unattended, read the column, not the price.
+
 ## The leading stacks
 
 Reliability, cost and time are all reported **per task size** — routine and hard are

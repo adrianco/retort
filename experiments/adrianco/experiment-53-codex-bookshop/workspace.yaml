@@ -1,0 +1,49 @@
+# Experiment 53 — Codex (OpenAI lineage) joins the leaderboard.
+#
+# WHY: every cloud result in this repo is Claude, plus one Gemini scaffold. There
+# is no OpenAI-lineage agent at all, so "which stack should I use" has never been
+# answerable outside one vendor. Codex support landed in PR #45; this is its first
+# real measurement.
+#
+# SCORING: judged by opus-4.8, the SAME judge as every other experiment here
+# (user, 2026-07-28). requirement_coverage is only comparable across experiments
+# when the judge is held fixed — which is why the judge is now recorded in
+# master.db as its own column. A codex-judged smoke comparison runs separately so
+# any judge disagreement is measured rather than assumed.
+#
+# COST: a ChatGPT subscription reports no per-run price. retort now computes it at
+# LIST PRICE per token (src/retort/pricing.py) — the same basis Claude's CLI
+# reports and does not bill on a Max plan. Without that, codex would record $0 and
+# win every cheapest-qualifying routing decision on an unmeasured number.
+#
+# PRE-FLIGHT VERIFIED (not assumed): codex-cli 0.145.0 accepts every flag the
+# harness builds; its JSONL emits usage on `turn.completed` (no payload wrapper,
+# no token_count event) and the parser was corrected to match after the original
+# returned 0 tokens / 0 turns on real output.
+experiment:
+  name: experiment-53-codex-bookshop
+  visibility: public
+factors:
+  language: { levels: [python, go, typescript] }
+  agent: { levels: [codex, claude-code] }        # design pins codex
+  prompt: { levels: [neutral, none] }            # design pins neutral
+responses: [code_quality, token_efficiency, test_coverage, defect_rate, maintainability, idiomatic]
+tasks:
+  - source: bundled://rest-api-crud
+playpen:
+  runner: local
+  replicates: 3
+  timeout_minutes: 45
+  stall_minutes: 20
+  max_turns: 200
+  prompts_dir: prompts
+  local_agents:
+    # gpt-5.3-codex and every gpt-5.x-CODEX id are API-only: with a ChatGPT
+    # account they 400 with "not supported when using Codex with a ChatGPT
+    # account". This account's ~/.codex/models_cache.json lists gpt-5.4,
+    # gpt-5.4-mini, gpt-5.5, gpt-5.6-luna/sol/terra. luna is the cheapest and
+    # is what PR #45's own smoke used, so results stay comparable.
+    codex: { harness: codex, model: gpt-5.6-luna }
+design: { screening_resolution: 3, significance_threshold: 0.10 }
+promotion: { screening_to_trial: { p_value: 0.10 }, trial_to_production: { posterior_confidence: 0.80 } }
+evaluation: { enabled: true, model: opus-4.8 }

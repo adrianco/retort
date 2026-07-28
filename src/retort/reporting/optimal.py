@@ -379,6 +379,46 @@ def efforts_for(conn, stack, task, language):
     return levels if len(levels) > 1 else [None]
 
 
+def per_language_routing_table(conn):
+    """Both task sizes side by side, as (model × thinking level) pairs.
+
+    This is the document's lead table: a stack is a model AND an effort level,
+    and exp-49 measured a 16x cost spread across (model, effort) combinations
+    that all scored 1.00. Recommending a bare model would leave the larger lever
+    unspecified.
+    """
+    routine = per_language_routing(conn, ROUTINE_TASK)
+    hard = per_language_routing(conn, HARD_TASK)
+    langs = sorted(set(routine) | set(hard))
+    lines = [
+        "| Language | Routine → model @ effort | pass | cost | Hard task → model @ effort | pass | cost |",
+        "|---|---|---:|---:|---|---:|---:|",
+    ]
+
+    def cell(r):
+        if r is None:
+            return ("*none qualifies*", "—", "—")
+        short = r["stack"].replace("Claude ", "").replace(" (local, $0)", " (local)")
+        short = short.replace(" (local, $0, ctx 0.9)", " (local)")
+        label = f"{short} @ `{r['effort']}` <sub>n={r['n']}</sub>"
+        cost = "$0" if r["cost"] == 0.0 else f"${r['cost']:.2f}"
+        # SHOW THE PASS RATE. Local stacks qualify at a 0.50 bar (a $0 stack is
+        # worth a lower bar, reviewed) — so a coin-flip local option can outrank
+        # a perfect cloud one purely on cost. That is a legitimate trade only if
+        # the reader can SEE it; a cost-only table would read as "recommended"
+        # when it means "cheapest thing that cleared a deliberately lower bar".
+        p = f"{r['pass']:.2f}"
+        if r["pass"] < 1.0:
+            p = f"**{p}**"          # flag anything that is not perfect
+        return (label, p, cost)
+
+    for lang in langs:
+        rl, rp, rc = cell(routine.get(lang))
+        hl, hp, hc = cell(hard.get(lang))
+        lines.append(f"| **{lang}** | {rl} | {rp} | {rc} | {hl} | {hp} | {hc} |")
+    return "\n".join(lines)
+
+
 def per_language_table(conn):
     routing = per_language_routing(conn)
     lines = [
@@ -532,6 +572,7 @@ def splice(path: Path, conn) -> tuple[int, list[str]]:
         "leading-stacks": leading_stacks_table(conn),
         "per-language-matrix": per_language_matrix(conn),
         "per-language": per_language_table(conn),
+        "per-language-routing": per_language_routing_table(conn),
         "prompt-method": prompt_method_table(conn),
     }
     text = path.read_text()

@@ -145,8 +145,10 @@ def test_splice_is_idempotent(tmp_path):
     )
     changed1, skipped1 = opt.splice(blog, conn)
     assert changed1 == 1
-    # the other three keys have no markers here -> reported as skipped, not an error
-    assert set(skipped1) == {"leading-stacks", "per-language", "prompt-method"}
+    # the other keys have no markers here -> reported as skipped, not an error
+    assert set(skipped1) == {
+        "leading-stacks", "per-language", "per-language-routing", "prompt-method",
+    }
     first = blog.read_text()
     assert "OLD" not in first and "| Language |" in first
 
