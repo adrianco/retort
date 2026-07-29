@@ -287,6 +287,64 @@ whole question.
 value stays the **large-repo** arm (funkygibbon-port / the-goodies ~30K lines), where navigation is
 the actual bottleneck.
 
+### exp-53 — Codex joins the board, and is an order of magnitude cheaper
+
+The first OpenAI-lineage agent in this corpus. Every cloud result before this was Claude (plus one
+Gemini scaffold), so "which stack should I use" had never been answerable outside one vendor.
+`codex exec` × `gpt-5.6-luna` × bookshop × {python, go, typescript} × n=3, prompt=neutral, judged by
+**opus-4.8** — the same judge as every other experiment here, so the numbers pool.
+
+| language | n | pass | cost | time | tokens |
+|---|---:|---:|---:|---:|---:|
+| **python** | 3 | **1.00** | **\$0.062** | 145 s | 171 K |
+| **go** | 3 | **1.00** | **\$0.084** | 127 s | 245 K |
+| typescript | 3 | 0.00 | \$0.116 | 186 s | 408 K |
+
+**On the same python cell: Opus 4.8 \$0.67, Fable 5 \$1.24, Opus 5 \$2.27 — all also 1.00.** Codex
+reaches the same verified result for roughly **11× less than Opus 4.8 and 37× less than Opus 5**.
+That is the largest cost gap in the corpus, and it is n=3 on one routine task — a starting point, not
+a verdict.
+
+**That price only exists because of a fix made the same day.** A ChatGPT subscription reports no
+per-run cost, so before `retort.pricing` landed Codex would have recorded **\$0** — and
+`per_language_routing` picks the cheapest qualifying stack, so it would have won every recommendation
+it qualified for on a number nobody measured. Cost here is list-price-per-token, the same basis
+Claude's CLI reports (and does not bill on a Max plan).
+
+**TypeScript 0.00 is a GENUINE failure, and the reasoning matters.** All three runs chose
+`better-sqlite3`, which will not build under this machine's Node 26; `npm install` is all-or-nothing,
+so `tsx` never installed either and the suite never ran. The tempting reading is "environment
+incompatibility, not the model's fault" — **and the transcript refutes it.** The agent ran:
+
+```
+npm test                       -> sh: tsx: command not found
+npm install                    -> (failed, node-gyp)
+npm run build                  -> sh: tsc: command not found
+npm install --ignore-scripts …
+```
+
+It watched its own suite fail, attempted the same workaround the scorer now uses, and finished
+anyway — on a **repair** attempt where it had already been told it failed. An agent executing in the
+playpen can inspect the target machine. Choosing a dependency that does not build there and shipping
+untested code is a model failure, and the same model passed python and go on the same machine.
+
+*(The scorer now retries `npm install --ignore-scripts` when a full install fails. That is a
+diagnostic aid — it turns an opaque zero into "Could not locate the bindings file" — not an excuse
+for the run.)*
+
+**Three integration bugs were found first, each only visible by running the real CLI** (see PR #45's
+review thread): the telemetry parser was written to an event shape `codex exec --json` does not emit
+(returned 0 tokens / 0 turns on real output); `output_tokens` and `input_tokens` were double-counted
+against their own subsets (~490 % cost inflation); and Codex's `turn.completed` fires **once per exec
+invocation**, not per agent step, so recording it as `num_turns` would have put Codex at the bottom
+of the turn axis and made it look radically more efficient than every measured stack. `num_turns` is
+deliberately absent for Codex; `codex_items` / `codex_exec_turns` carry the data under honest names.
+
+*Caveats:* n=3, one task, one tier at its default reasoning level. GPT-5.6 ships three tiers
+(Sol/Terra/Luna) each with its own effort dial, so this measures one point in a 3 × 5 grid. Also
+`gpt-5.x-codex` model ids are **API-key-only** — on a ChatGPT plan they 400; the usable set is in
+`~/.codex/models_cache.json`.
+
 ### exp-50 — the local hard-task wall is real for unattended runs, and breachable with feedback
 
 Re-ran exp-39 unchanged except for the turn cap: `Qwen3-Coder-Next 80B × brazil-bench ×
