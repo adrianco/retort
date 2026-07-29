@@ -1138,9 +1138,9 @@ def test_model_cli_args_non_fast_has_no_settings():
 
 def test_effort_cli_args_named_levels_emit_flag():
     from retort.playpen.local_runner import EFFORT_LEVELS, _effort_cli_args
-    for level in ("low", "medium", "high", "max"):
+    for level in ("low", "medium", "high", "xhigh", "max"):
         assert _effort_cli_args(level) == ["--effort", level]
-    assert set(EFFORT_LEVELS) == {"default", "low", "medium", "high", "max"}
+    assert set(EFFORT_LEVELS) == {"default", "low", "medium", "high", "xhigh", "max"}
 
 
 def test_effort_cli_args_default_passes_no_flag():
@@ -1534,3 +1534,43 @@ def test_codex_usage_unknown_model_leaves_cost_absent():
             ' "reasoning_output_tokens": 0}}')
     _, meta = _parse_codex_usage(line, "some-unreleased-model")
     assert "total_cost_usd" not in meta
+
+
+def test_xhigh_is_a_valid_effort_level():
+    """`claude --help` lists xhigh; exp-49's sweep omitted it because retort did."""
+    from retort.playpen.local_runner import EFFORT_LEVELS, _effort_cli_args
+    assert "xhigh" in EFFORT_LEVELS
+    assert _effort_cli_args("xhigh") == ["--effort", "xhigh"]
+
+
+def test_cross_vendor_effort_levels_exclude_default():
+    """`default` is not a shared operating point: the CLIs pick different defaults
+    (Claude near `high`; Codex Terra `medium`, Sol `low`)."""
+    from retort.playpen.local_runner import CROSS_VENDOR_EFFORT_LEVELS
+    assert CROSS_VENDOR_EFFORT_LEVELS == ("low", "medium", "high", "xhigh", "max")
+    assert "default" not in CROSS_VENDOR_EFFORT_LEVELS
+    assert "ultra" not in CROSS_VENDOR_EFFORT_LEVELS   # no Claude counterpart
+
+
+def test_codex_command_carries_the_effort_level():
+    """Codex has no --effort flag; the level is a config key via -c.
+
+    Regression: the effort factor was silently ignored for codex cells, so a
+    design claiming to sweep it actually ran everything at the model's default.
+    """
+    from retort.playpen.local_runner import LocalRunner
+    from retort.config.schema import LocalAgentConfig
+
+    runner = LocalRunner(local_agents={"codex": LocalAgentConfig(
+        harness="codex", model="gpt-5.6-terra")})
+    stack = StackConfig(language="python", agent="codex", framework="fastapi",
+                        extra={"effort": "xhigh", "prompt": "none"})
+    task = TaskSpec(name="t", description="d", prompt="build it")
+    cmd = runner._build_agent_command(stack, task, Path("/tmp"))
+    assert "-c" in cmd
+    assert "model_reasoning_effort=xhigh" in cmd
+
+    # default => no override, so the model's own default applies
+    stack.extra["effort"] = "default"
+    assert "model_reasoning_effort=default" not in runner._build_agent_command(
+        stack, task, Path("/tmp"))

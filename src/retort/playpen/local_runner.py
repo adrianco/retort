@@ -254,7 +254,17 @@ def _model_cli_args(model_level: str) -> list[str]:
 #: `default` is NOT one of them — it is retort's name for *passing no flag at all*,
 #: which is what every run before exp-49 did. Keeping it as an explicit level means
 #: the historical baseline is a addressable cell rather than an absence.
-EFFORT_LEVELS = ("default", "low", "medium", "high", "max")
+#: `xhigh` was missing until 2026-07-29 — `claude --help` lists it, and exp-49's
+#: sweep therefore skipped a level that exists. Codex exposes the SAME five
+#: (plus `ultra` on Sol/Terra, which Claude has no counterpart for), so these five
+#: are exactly the levels on which the two vendors can be compared like-for-like.
+EFFORT_LEVELS = ("default", "low", "medium", "high", "xhigh", "max")
+
+#: Levels both `claude` and `codex` support — the matched set for a cross-vendor
+#: effort comparison. `default` is excluded: it means "pass no flag", and the two
+#: CLIs choose DIFFERENT defaults (Claude's sits near `high`; Codex Terra defaults
+#: to `medium` and Sol to `low`), so it is not a common operating point.
+CROSS_VENDOR_EFFORT_LEVELS = ("low", "medium", "high", "xhigh", "max")
 
 
 def _effort_cli_args(effort_level: str) -> list[str]:
@@ -925,6 +935,23 @@ class LocalRunner:
             model = self._model_for(stack)
             if model and model != "none":
                 cmd.extend(["--model", model])
+
+            # THINKING LEVEL. Codex has no --effort flag; the level is a config
+            # key, so it goes through `-c`. Without this the `effort` factor was
+            # silently ignored for codex cells — they all ran at the model's
+            # DEFAULT (medium for Terra/Luna, low for Sol) while the design
+            # claimed to be sweeping it, which is the set-but-unverified failure
+            # this project keeps paying for. Same five names as Claude
+            # (low/medium/high/xhigh/max) so the two are directly comparable;
+            # `ultra` exists on Sol/Terra only and has no Claude counterpart.
+            effort = stack.extra.get("effort", "")
+            if effort and effort != "default":
+                if effort not in EFFORT_LEVELS and effort != "ultra":
+                    raise ValueError(
+                        f"unknown effort level {effort!r} for codex; expected one of "
+                        f"{', '.join(EFFORT_LEVELS)} (or 'ultra' on Sol/Terra)"
+                    )
+                cmd.extend(["-c", f"model_reasoning_effort={effort}"])
 
             prompt_level = stack.extra.get("prompt", "none")
             prompt_injection = (

@@ -178,6 +178,41 @@ would CHANGE pass/fail under the other judge.
 than adopting it. Note also that exp-53's code was *written* by a Codex model, so a Codex judge
 agreeing is a same-vendor loop and weaker evidence than it looks.
 
+## 0f. exp-55 — Terra vs Opus 5, matched thinking levels  — RUNNING (bookshop first)
+
+**The pairing.** GPT-5.6's three tiers price onto the Claude ladder, so tier-to-tier is the honest
+comparison: **Luna ($1/$6) ↔ Sonnet · Terra ($2.50/$15) ↔ Opus · Sol ($5/$30) ↔ Fable.** Opus is the
+optimal Claude pick in most cells today, so its price-peer **Terra** is the one worth measuring
+(user, 2026-07-29).
+
+**Design.** `{gpt-5.6-terra, claude-opus-5} × {low, medium, high, xhigh, max} × {python, go} ×
+{bookshop, brazil} × n=2` = **40 cells / 80 runs.** Judged by opus-4.8 throughout so the numbers pool
+with the rest of the corpus.
+
+**Effort is set EXPLICITLY on both sides, and that is the whole point.** `default` is *not* a shared
+operating point — Claude's default sits near `high`, Terra defaults to `medium`, Sol to `low`.
+Comparing defaults would compare two vendors' product decisions rather than two models. Both CLIs
+support exactly these five levels. (`ultra` is Sol/Terra-only, has no Claude counterpart, and is not
+even an API reasoning value — excluded.)
+
+**Two plumbing bugs fixed first, either of which would have invalidated the sweep:**
+1. **`xhigh` was missing from retort's `EFFORT_LEVELS`** — it exists in both CLIs, so exp-49's sweep
+   silently skipped a real level.
+2. **codex ignored the effort factor entirely** (it has no `--effort` flag; the level is a config
+   key). A design claiming to sweep effort would have run every codex cell at the model's default.
+   Now `-c model_reasoning_effort=<level>`, confirmed live because the API *rejects* an invalid value
+   — a stripped key could not do that.
+
+**Run order: every Terra row precedes every Opus 5 row**, so if the Codex token budget runs out
+mid-run the Terra half is complete and `--resume` continues into Opus 5 (user's requested fallback:
+Terra → Opus → retry Terra).
+
+**Scale warning, recorded up front.** Extrapolating from exp-46/49: the bookshop half is a few hours;
+the **brazil half is the expensive one** — Opus 5 averaged \$21.67 and 44 min per brazil cell at
+*default* effort, and exp-49 showed `max` costing 2–5× default. Opus 5 × brazil × `max` alone could
+run hours per cell. bookshop is therefore run FIRST: it yields the complete matched 2×5×2 grid soonest,
+and brazil can be trimmed on evidence rather than guesswork.
+
 ## 1. Graphify tooling factor + large-existing-codebase task  — PLANNED (top priority)
 
 Add a third level to the `tooling` factor (currently `none` / `beads`): **`graphify`** — a

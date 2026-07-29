@@ -1,0 +1,57 @@
+# Experiment 55 — matched (model x thinking level) across two vendors.
+#
+# THE PAIRING (user, 2026-07-29). GPT-5.6 ships three capability tiers whose
+# prices line up with the Claude ladder, so the honest comparison is tier-to-tier
+# rather than vendor-to-vendor:
+#     Luna  ($1/$6)     <-> Sonnet
+#     Terra ($2.50/$15) <-> Opus        <- this experiment
+#     Sol   ($5/$30)    <-> Fable
+# Opus is the optimal Claude pick in most cells today, so its price-peer Terra is
+# the one worth measuring.
+#
+# EFFORT IS SET EXPLICITLY ON BOTH SIDES, and that is the point. `default` is NOT
+# a shared operating point: Claude's default sits near `high`, Codex Terra
+# defaults to `medium` and Sol to `low`. Comparing defaults would compare two
+# vendors' product decisions, not two models. Both CLIs support exactly
+# low/medium/high/xhigh/max, so all five are swept on both.
+# (`ultra` is Sol/Terra-only with no Claude counterpart, and is not an API
+# reasoning value at all, so it is excluded.)
+#
+# PLUMBING VERIFIED BEFORE LAUNCH (CLAUDE.md):
+#  * `xhigh` was missing from retort's EFFORT_LEVELS until today — exp-49's sweep
+#    silently skipped a level that exists in both CLIs.
+#  * codex has no --effort flag; the level is a config key. Until today the effort
+#    factor was IGNORED for codex cells, so a design claiming to sweep it would
+#    have run everything at the model's default. Now passed as
+#    `-c model_reasoning_effort=<level>`, and confirmed live: the API rejects an
+#    invalid value with "[reasoning.effort] Invalid value ... Supported values are
+#    'none','minimal','low','medium','high','xhigh','max'", which a stripped key
+#    could not do.
+#
+# ORDER: every Terra row precedes every Opus 5 row, so if the Codex token budget
+# runs out mid-run the Terra half is already complete and `--resume` continues
+# into Opus 5.
+experiment:
+  name: experiment-55-terra-vs-opus5-effort-brazil
+  visibility: public
+factors:
+  language: { levels: [python, go] }
+  agent: { levels: [codex, claude-code] }
+  prompt: { levels: [neutral, none] }
+  model: { levels: [gpt-5.6-terra, claude-opus-5] }
+  effort: { levels: [low, medium, high, xhigh, max] }
+responses: [code_quality, token_efficiency, test_coverage, defect_rate, maintainability, idiomatic]
+tasks:
+  - source: github://brazil-bench/benchmark-template/brazilian-soccer-mcp-guide.md
+playpen:
+  runner: local
+  replicates: 2
+  timeout_minutes: 150
+  stall_minutes: 30
+  max_turns: 200
+  prompts_dir: prompts
+  local_agents:
+    codex: { harness: codex, model: gpt-5.6-terra }
+design: { screening_resolution: 3, significance_threshold: 0.10 }
+promotion: { screening_to_trial: { p_value: 0.10 }, trial_to_production: { posterior_confidence: 0.80 } }
+evaluation: { enabled: true, model: opus-4.8 }
