@@ -1,0 +1,16 @@
+{
+  "name": "book-collection-api",
+  "version": "1.0.0",
+  "private": true,
+  "description": "A REST API for managing a book collection",
+  "type": "module",
+  "scripts": {
+    "build": "node --experimental-strip-types --check src/database.ts && node --experimental-strip-types --check src/app.ts && node --experimental-strip-types --check src/server.ts",
+    "start": "node --experimental-strip-types src/server.ts",
+    "test": "npm run build && node --experimental-strip-types --test test/api.test.ts"
+  },
+  "engines": {
+    "node": ">=22.5"
+  },
+  "dependencies": {}
+}

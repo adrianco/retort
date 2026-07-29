@@ -69,12 +69,12 @@
         "n": 3
       },
       "go": {
-        "stack": "Qwen3.6-35B-A3B (local, $0)",
+        "stack": "Qwen3-Coder-Next 80B (local, $0, ctx 0.9)",
         "models": [],
         "effort": "default",
         "cost": 0.0,
-        "pass": 0.8518518518518519,
-        "n": 27
+        "pass": 1.0,
+        "n": 3
       },
       "java": {
         "stack": "Claude Opus 4.7",
@@ -98,12 +98,12 @@
         "n": 1
       },
       "python": {
-        "stack": "Qwen3.6-35B-A3B (local, $0)",
+        "stack": "Qwen3-Coder-Next 80B (local, $0, ctx 0.9)",
         "models": [],
         "effort": "default",
         "cost": 0.0,
-        "pass": 0.8666666666666667,
-        "n": 30
+        "pass": 1.0,
+        "n": 3
       },
       "rust": {
         "stack": "Claude Opus 4.8",
@@ -229,12 +229,14 @@
         "n": 1
       },
       "python": {
-        "stack": "Qwen3.6-35B-A3B (local, $0)",
-        "models": [],
+        "stack": "Claude Opus 4.7",
+        "models": [
+          "claude-opus-4-7"
+        ],
         "effort": "default",
-        "cost": 0.0,
-        "pass": 0.5,
-        "n": 6
+        "cost": 4.64231875,
+        "pass": 1.0,
+        "n": 3
       },
       "rust": {
         "stack": "Claude Fable 5",

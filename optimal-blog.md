@@ -80,10 +80,10 @@ than scraping prose.
 | **csharp** | Opus 4.8 @ `default` <sub>n=1</sub> | 1.00 | $0.65 | Sonnet 5 @ `default` <sub>n=3</sub> | 1.00 | $9.96 |
 | **elixir** | Opus 4.8 @ `default` <sub>n=3</sub> | 1.00 | $0.85 | Fable 5 @ `default` <sub>n=1</sub> | 1.00 | $13.21 |
 | **erlang** | Opus 4.8 @ `default` <sub>n=3</sub> | 1.00 | $1.35 | Fable 5 @ `default` <sub>n=1</sub> | 1.00 | $12.06 |
-| **go** | Qwen3.6-35B-A3B (local) @ `default` <sub>n=27</sub> | **0.85** | $0 | Opus 4.8 @ `default` <sub>n=6</sub> | 1.00 | $5.30 |
+| **go** | Qwen3-Coder-Next 80B (local) @ `default` <sub>n=3</sub> | 1.00 | $0 | Opus 4.8 @ `default` <sub>n=6</sub> | 1.00 | $5.30 |
 | **java** | Opus 4.7 @ `default` <sub>n=6</sub> | 1.00 | $0.92 | Fable 5 @ `default` <sub>n=1</sub> | 1.00 | $12.01 |
 | **objc** | Opus 4.8 @ `default` <sub>n=1</sub> | 1.00 | $1.52 | Fable 5 @ `default` <sub>n=1</sub> | 1.00 | $13.30 |
-| **python** | Qwen3.6-35B-A3B (local) @ `default` <sub>n=30</sub> | **0.87** | $0 | Qwen3.6-35B-A3B (local) @ `default` <sub>n=6</sub> | **0.50** | $0 |
+| **python** | Qwen3-Coder-Next 80B (local) @ `default` <sub>n=3</sub> | 1.00 | $0 | Opus 4.7 @ `default` <sub>n=3</sub> | 1.00 | $4.64 |
 | **rust** | Opus 4.8 @ `default` <sub>n=6</sub> | 1.00 | $0.71 | Fable 5 @ `default` <sub>n=3</sub> | 1.00 | $9.63 |
 | **swift** | Opus 4.8 @ `default` <sub>n=1</sub> | 1.00 | $1.25 | Fable 5 @ `default` <sub>n=1</sub> | 1.00 | $9.24 |
 | **typescript** | Qwen3-Coder-Next 80B (local) @ `default` <sub>n=3</sub> | 1.00 | $0 | Opus 4.7 @ `default` <sub>n=3</sub> | 1.00 | $4.14 |
@@ -100,12 +100,17 @@ than scraping prose.
 > **A `null` means nothing measured clears the bar for that cell** — not "untested". And read
 > the `n`: several cells are n=1, where a 1.00 is much weaker evidence than a 1.00 at n=9.
 >
-> ⚠️ **The bar is not the same for local and cloud.** Cloud stacks must be perfect (1.00);
-> local stacks qualify at **0.50**, on the view that a \$0 stack is worth a lower bar if you
-> are watching it. So the routing can pick a *coin flip* purely because it is free — most
-> starkly **python on the hard task: local 35B at `0.50`**, which is "free and right half the
-> time", not "recommended". Any `pass` below 1.00 is bolded for exactly this reason. If you
-> need it right unattended, read the column, not the price.
+> ✅ **One bar for every stack: 1.00.** Local stacks used to qualify at **0.50**, on the view
+> that a \$0 stack is worth a lower bar if you are watching it. That contradicted the metric's
+> own definition — *the probability a single **unattended** run comes out completely correct*,
+> where a single sub-1.0 run is a fail — and it let a coin flip outrank a perfect stack purely
+> on price (python-on-hard-task recommended the local 35B at **0.50**). Being free is already
+> expressed in the cost column; it should not also lower the standard.
+>
+> Raising local to 1.00 did **not** push local out of the recommendations — it picked a *better*
+> local stack: routine python and go moved from the 35B (0.87 / 0.85) to the **80B at 1.00,
+> still \$0**. The double standard had been hiding the more reliable free option. Hard-task
+> python moved from the 35B at 0.50 to **Opus 4.7 at 1.00**, which is the honest answer.
 
 ## The leading stacks
 
@@ -453,10 +458,10 @@ stacks table above is generated the same way.
 | **csharp** | Claude Opus 4.8 ($0.65) | 1.00 | 1 |
 | **elixir** | Claude Opus 4.8 ($0.85) | 1.00 | 3 |
 | **erlang** | Claude Opus 4.8 ($1.35) | 1.00 | 3 |
-| **go** | Qwen3.6-35B-A3B (local, $0) ($0) | 0.85 | 27 |
+| **go** | Qwen3-Coder-Next 80B (local, $0, ctx 0.9) ($0) | 1.00 | 3 |
 | **java** | Claude Opus 4.7 ($0.92) | 1.00 | 6 |
 | **objc** | Claude Opus 4.8 ($1.52) | 1.00 | 1 |
-| **python** | Qwen3.6-35B-A3B (local, $0) ($0) | 0.87 | 30 |
+| **python** | Qwen3-Coder-Next 80B (local, $0, ctx 0.9) ($0) | 1.00 | 3 |
 | **rust** | Claude Opus 4.8 ($0.71) | 1.00 | 6 |
 | **swift** | Claude Opus 4.8 ($1.25) | 1.00 | 1 |
 | **typescript** | Qwen3-Coder-Next 80B (local, $0, ctx 0.9) ($0) | 1.00 | 3 |

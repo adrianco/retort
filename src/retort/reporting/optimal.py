@@ -47,7 +47,10 @@ BASE_FILTER = "coalesce(prompt,'') != 'repair'"
 # ---------------------------------------------------------------------------
 # CURATION. Each featured stack declares a SQL predicate selecting the rows that
 # represent it, and the reliability bar at which it counts as "usable" for the
-# per-language table (cloud must be perfect; local buys $0 at a lower bar, reviewed).
+# per-language table. THE BAR IS 1.00 FOR EVERY STACK, local and cloud alike —
+# the metric is "the probability a single unattended run is completely correct",
+# and a stack being free is already expressed in the cost column, not by lowering
+# the standard it is measured against.
 # ---------------------------------------------------------------------------
 FEATURED_STACKS = [
     {
@@ -118,7 +121,17 @@ FEATURED_STACKS = [
             "AND experiment NOT LIKE '%experiment-35%'"
         ),
         "kind": "local",
-        "pass_bar": 0.50,
+        # ONE BAR FOR EVERYONE. This was 0.50 for local stacks on the reasoning
+        # that a $0 stack is worth a lower bar if you are watching it. That
+        # contradicted this document's own definition of the metric — "the
+        # probability a single UNATTENDED run comes out completely correct", where
+        # "a single sub-1.0 run is a fail" — and it let a coin flip outrank a
+        # perfect stack purely on price: python-on-hard-task recommended the local
+        # 35B at 0.50. Being free is already represented, in the cost column.
+        # Holding local to 1.00 did not remove local from the recommendations; it
+        # switched routine python/go from the 35B (0.85/0.87) to the 80B (1.00),
+        # still at $0. The double standard was hiding the better local stack.
+        "pass_bar": 1.00,
         "cost_override": 0.0,  # local marginal cost is $0 regardless of logged value
         # Headline aggregate scoped to the languages this stack is RECOMMENDED for
         # (python/go). Rust (0.00) and TS (0.00) failed here and go to cloud; leaving
@@ -151,7 +164,17 @@ FEATURED_STACKS = [
             "( experiment LIKE '%experiment-38%' OR experiment LIKE '%experiment-39%' )"
         ),
         "kind": "local",
-        "pass_bar": 0.50,
+        # ONE BAR FOR EVERYONE. This was 0.50 for local stacks on the reasoning
+        # that a $0 stack is worth a lower bar if you are watching it. That
+        # contradicted this document's own definition of the metric — "the
+        # probability a single UNATTENDED run comes out completely correct", where
+        # "a single sub-1.0 run is a fail" — and it let a coin flip outrank a
+        # perfect stack purely on price: python-on-hard-task recommended the local
+        # 35B at 0.50. Being free is already represented, in the cost column.
+        # Holding local to 1.00 did not remove local from the recommendations; it
+        # switched routine python/go from the 35B (0.85/0.87) to the 80B (1.00),
+        # still at $0. The double standard was hiding the better local stack.
+        "pass_bar": 1.00,
         "cost_override": 0.0,
         # Headline aggregate scoped to the 80B's RECOMMENDED languages (python/go/ts,
         # each 3/3=1.00 at ctx 0.9). exp-38 also ran rust (1/3) and 5 niche languages

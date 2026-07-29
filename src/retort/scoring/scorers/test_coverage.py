@@ -454,6 +454,14 @@ class TestCoverageScorer:
                 # TypeScript replicates failed identically, which reads as a
                 # capability result and is not one.
                 #
+                # NOTE this is a DIAGNOSTIC aid, not an excuse for the run. The exp-53
+                # agent ran `npm test` itself, saw "tsx: command not found", tried
+                # `npm install --ignore-scripts` itself, and finished anyway — on a
+                # REPAIR attempt where it had already been told it failed. An agent
+                # executing in the playpen can see the target machine; choosing a
+                # dependency that does not build there and shipping untested code is a
+                # GENUINE failure. The same model passed python and go on this machine.
+                #
                 # Retry without scripts so the JS toolchain at least exists. Any
                 # native module stays unbuilt, so a suite that genuinely needs it
                 # now fails with a REAL error in the test output ("Could not
