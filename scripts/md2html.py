@@ -1,9 +1,14 @@
 #!/usr/bin/env python3
-"""Render optimal-blog.md -> a clean, self-contained optimal-blog.html.
+"""Render any *-blog.md -> a clean, self-contained HTML page.
 
 Good for Medium import (semantic h1/h2/table/pre) and general viewing (embedded
 CSS, light/dark aware, responsive tables). Run via:
     uv run --with markdown python md2html.py <in.md> <out.html>
+
+The output is a LOCAL, DISPOSABLE artifact — `*-blog.html` is gitignored and no
+rendered copy is committed. The .md files are the source of truth (dev.to takes
+markdown directly). A committed optimal-blog.html once drifted 11 commits behind
+its .md, still describing a model lineup that predated Opus 5 and Codex.
 """
 import re
 import sys

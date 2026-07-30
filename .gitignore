@@ -338,3 +338,10 @@ ruvector.db
 
 # Graphify code-graph output (regenerable, dogfood)
 graphify-out/
+
+# Rendered HTML of the blogs. The .md files are the source of truth and are
+# published to dev.to directly; scripts/md2html.py can still render one locally
+# for a Medium import. A committed copy went 11 commits stale and stopped
+# mentioning Opus 5, Codex and GPT-5.6 entirely while the .md moved on — so a
+# rendered copy is never committed again.
+*-blog.html
