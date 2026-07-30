@@ -65,6 +65,26 @@ and "that one's local, this one's cloud" are both wrong.
 turns/tokens/cost survived — those are properties of the model's work — but its wall-clock
 time had to be thrown away.)*
 
+## Publishing: blogs are ONE LINE PER PARAGRAPH
+
+The `*-blog.md` files are published to dev.to, which treats a hard-wrapped source
+line as a literal line break instead of reflowing it — so a paragraph wrapped at
+~95 columns arrives with ragged breaks mid-sentence. **Never hard-wrap prose in a
+`*-blog.md` file.** One paragraph = one line, however long.
+
+This applies to anything you write or edit in those files, including a one-word
+fix to an existing wrapped paragraph — rewrap the whole paragraph onto one line.
+Tables, code fences, list items, footnotes and `<!-- GEN:… -->` markers keep their
+own lines; only prose is joined.
+
+    python scripts/reflow_blogs.py           # fix every blog in place
+    python scripts/reflow_blogs.py --check   # exit 1 if any are wrapped (CI)
+
+The script is idempotent and refuses to run if it would change the number of
+links, table rows, code fences or headings. Run `--check` before pushing blog
+edits. Other markdown (README, docs/) is unaffected — it is read on GitHub, which
+reflows normally.
+
 ## Experiment workflow
 
 - **Before** launching: write the plan (intent, design, hypothesis) into

@@ -35,14 +35,7 @@ Here is the full board, every model measured on the two tasks — **pass-proport
 | **gpt-oss-20b** *(OpenAI open weights)* ¹¹ | **local · $0** | — | 0.60 (15) | **$0** |
 | **Devstral-24B** *(agent-tuned, wrong harness)* ⁸ | **local · $0** | — | 0.17 | **$0** |
 
-> **Read the replicate counts (in brackets), and mind the language mix.** These are all-language
-> averages, and the models have *not* all been run on the same languages. Opus 4.8 and 4.7 have been
-> pushed across all thirteen — including the ones nothing handles well — while Opus 5 and Fable 5 have
-> 13–14 hard-task cells each. A model tested only on the languages it is good at will look better than
-> one tested everywhere. **The per-language matrix in [optimal-blog.md](optimal-blog.md) is the
-> like-for-like comparison; this board is a summary.** This is also why Opus 4.8's hard-task number
-> reads 0.57 here where an earlier version of this board said 1.00 — that figure came from a
-> three-language subset (Python/Go/TypeScript), which is where 4.8 *is* reliable.
+> **Read the replicate counts (in brackets), and mind the language mix.** These are all-language averages, and the models have *not* all been run on the same languages. Opus 4.8 and 4.7 have been pushed across all thirteen — including the ones nothing handles well — while Opus 5 and Fable 5 have 13–14 hard-task cells each. A model tested only on the languages it is good at will look better than one tested everywhere. **The per-language matrix in [optimal-blog.md](optimal-blog.md) is the like-for-like comparison; this board is a summary.** This is also why Opus 4.8's hard-task number reads 0.57 here where an earlier version of this board said 1.00 — that figure came from a three-language subset (Python/Go/TypeScript), which is where 4.8 *is* reliable.
 
 ¹² **GPT-5.6 Terra / Luna** via `codex exec` — the first non-Claude cloud lineage here. Routine-task only so far. Terra is 20/20 at 1.00 across five thinking levels on Python+Go for **\$0.15–0.35 a run**; Luna is 1.00 on Python and Go but 0.00 on TypeScript (a genuine failure — it chose a native dependency that will not build on this machine's Node, watched its own tests fail, and shipped anyway), giving 0.67 over the three languages. Cost is computed at list price per token, since a ChatGPT subscription reports none. See the lead section.
 
@@ -68,12 +61,9 @@ Two things worth pulling out of the board before the deep dives:
 
 ## Newest: the model is the wrong unit — it's (model × thinking level), and that spans 40×
 
-Every frontier model now ships a **thinking-level dial**, and a second vendor has arrived in this
-corpus. Put those together and the headline question changes from *"which model?"* to *"which model at
-which setting?"* — because the setting moves the bill further than the model does.
+Every frontier model now ships a **thinking-level dial**, and a second vendor has arrived in this corpus. Put those together and the headline question changes from *"which model?"* to *"which model at which setting?"* — because the setting moves the bill further than the model does.
 
-**One routine task (Python + Go bookshop), two price-peer models, the same five effort levels set
-explicitly on both, n=2. Every one of the 20 cells scored 1.00.**
+**One routine task (Python + Go bookshop), two price-peer models, the same five effort levels set explicitly on both, n=2. Every one of the 20 cells scored 1.00.**
 
 | effort | GPT-5.6 Terra | Claude Opus 5 | ratio | Terra time | Opus 5 time |
 |---|---:|---:|---:|---:|---:|
@@ -83,71 +73,33 @@ explicitly on both, n=2. Every one of the 20 cells scored 1.00.**
 | xhigh | $0.22 | $4.63 | 20.7× | 169 s | 909 s |
 | **max** | $0.35 | **$14.21** | **40.1×** | 254 s | 1669 s |
 
-**Terra's most expensive setting is half the price of Opus 5's cheapest.** At matched `max` the gap is
-40×, for an identical, independently-judged 1.00.
+**Terra's most expensive setting is half the price of Opus 5's cheapest.** At matched `max` the gap is 40×, for an identical, independently-judged 1.00.
 
-**Why the gap widens with effort — the step counts give it away.** Terra's agent steps stay **flat
-across the entire dial: 10 to 19**. Opus 5's **explode: 15 → 23 → 22 → 43 → 140 turns.** The dial is
-doing structurally different things: on Opus 5 it buys *more agentic iteration*, and since every turn
-re-reads the accumulated conversation from cache, cost grows super-linearly in steps. On Terra it
-appears to buy *deeper reasoning inside a roughly constant number of steps*. So the per-token price
-difference (~2.4×) explains less than half the gap; the rest is turns.
+**Why the gap widens with effort — the step counts give it away.** Terra's agent steps stay **flat across the entire dial: 10 to 19**. Opus 5's **explode: 15 → 23 → 22 → 43 → 140 turns.** The dial is doing structurally different things: on Opus 5 it buys *more agentic iteration*, and since every turn re-reads the accumulated conversation from cache, cost grows super-linearly in steps. On Terra it appears to buy *deeper reasoning inside a roughly constant number of steps*. So the per-token price difference (~2.4×) explains less than half the gap; the rest is turns.
 
-**Comparing defaults would have hidden all of this.** `default` is not a shared operating point —
-Claude's sits near `high`, Terra's is `medium`, Sol's is `low`. Comparing out-of-the-box settings
-compares two vendors' product decisions, not two models. Setting effort explicitly on both sides is
-what turned a muddled ~9× into a clean 4×→40× interaction.
+**Comparing defaults would have hidden all of this.** `default` is not a shared operating point — Claude's sits near `high`, Terra's is `medium`, Sol's is `low`. Comparing out-of-the-box settings compares two vendors' product decisions, not two models. Setting effort explicitly on both sides is what turned a muddled ~9× into a clean 4×→40× interaction.
 
-**The practical rule:** on work your stack already handles, run the dial *down*. Across four Claude
-generations, `low` matched `max` on reliability at a fraction of the cost — and the CLI default is
-not the cheap end.
+**The practical rule:** on work your stack already handles, run the dial *down*. Across four Claude generations, `low` matched `max` on reliability at a fraction of the cost — and the CLI default is not the cheap end.
 
-*Caveats: n=2 per cell, one routine task, and every cell already at the 1.00 ceiling — so this
-measures what the dial COSTS, not what it BUYS. Whether thinking level earns its price on genuinely
-hard work is untested. Terra's cost also rests on a 92% cache-hit rate, which is partly an artifact of
-running many cells behind an identical prompt prefix.*
+*Caveats: n=2 per cell, one routine task, and every cell already at the 1.00 ceiling — so this measures what the dial COSTS, not what it BUYS. Whether thinking level earns its price on genuinely hard work is untested. Terra's cost also rests on a 92% cache-hit rate, which is partly an artifact of running many cells behind an identical prompt prefix.*
 
 ### Codex, briefly: a genuinely new lineage
 
-Until this year every cloud result here was Claude. `codex exec` support (contributed by
-[@jschoch](https://github.com/adrianco/retort/pull/45)) added the OpenAI line, and its first outing was
-striking: **GPT-5.6 Luna reached 1.00 on Python ($0.062) and Go ($0.084)** against Opus 4.8's $0.67 on
-the same cell — roughly 11× cheaper.
+Until this year every cloud result here was Claude. `codex exec` support (contributed by [@jschoch](https://github.com/adrianco/retort/pull/45)) added the OpenAI line, and its first outing was striking: **GPT-5.6 Luna reached 1.00 on Python ($0.062) and Go ($0.084)** against Opus 4.8's $0.67 on the same cell — roughly 11× cheaper.
 
-Getting a trustworthy number out of it took four fixes, each only findable by running the real CLI:
-the telemetry parser was written to an event shape `codex exec --json` does not emit (it recorded
-**0 tokens, 0 turns** on real output); input and output tokens were double-counted against their own
-cached/reasoning subsets (~490% cost inflation); a ChatGPT subscription reports **no cost at all**, so
-Codex would have logged **$0** and won every cheapest-stack recommendation on an unmeasured number;
-and Codex's `turn.completed` fires **once per invocation**, so recording it as "turns" would have put
-it at the bottom of the turn axis looking impossibly efficient. Cost is now computed at list price per
-token — the same basis Claude's CLI reports and does not bill on a Max plan.
+Getting a trustworthy number out of it took four fixes, each only findable by running the real CLI: the telemetry parser was written to an event shape `codex exec --json` does not emit (it recorded **0 tokens, 0 turns** on real output); input and output tokens were double-counted against their own cached/reasoning subsets (~490% cost inflation); a ChatGPT subscription reports **no cost at all**, so Codex would have logged **$0** and won every cheapest-stack recommendation on an unmeasured number; and Codex's `turn.completed` fires **once per invocation**, so recording it as "turns" would have put it at the bottom of the turn axis looking impossibly efficient. Cost is now computed at list price per token — the same basis Claude's CLI reports and does not bill on a Max plan.
 
-TypeScript is the exception: **0.00 across three replicates**, and it is a real failure rather than a
-harness artifact. The agent chose `better-sqlite3`, which will not build on this machine's Node 26;
-the transcript shows it ran `npm test`, saw `tsx: command not found`, tried a workaround, and shipped
-anyway — on a repair attempt where it had already been told it failed. It had the evidence and
-finished regardless.
+TypeScript is the exception: **0.00 across three replicates**, and it is a real failure rather than a harness artifact. The agent chose `better-sqlite3`, which will not build on this machine's Node 26; the transcript shows it ran `npm test`, saw `tsx: command not found`, tried a workaround, and shipped anyway — on a repair attempt where it had already been told it failed. It had the evidence and finished regardless.
 
 ## Newest: Opus 5 clears everything — and so, it turns out, does the cheaper model
 
-The newest frontier model, **Claude Opus 5**, was run across **all thirteen supported languages on both
-tasks** — 26 cells, one replicate each. It got **26 out of 26**: every language on the routine task, and
-every language on the *hard* one (the Brazilian-soccer MCP server). Opus 4.8 manages only **0.57** there
-— reliable on Python/Go/TypeScript, a coin-flip on Rust (0.33), Java (0.33) and Clojure (0.45).
+The newest frontier model, **Claude Opus 5**, was run across **all thirteen supported languages on both tasks** — 26 cells, one replicate each. It got **26 out of 26**: every language on the routine task, and every language on the *hard* one (the Brazilian-soccer MCP server). Opus 4.8 manages only **0.57** there — reliable on Python/Go/TypeScript, a coin-flip on Rust (0.33), Java (0.33) and Clojure (0.45).
 
-> **⚠️ This section originally read "no other model has cleared the hard task in more than six
-> languages," and concluded that unique breadth was the one thing worth paying for. That was wrong, and
-> the way it was wrong is worth more than the result.**
+> **⚠️ This section originally read "no other model has cleared the hard task in more than six languages," and concluded that unique breadth was the one thing worth paying for. That was wrong, and the way it was wrong is worth more than the result.**
 >
-> Fable 5 hadn't failed those languages — it had never been **run** on them. It had only ever been
-> tested on 4 of the 13. An unrun cell and an unpassable cell look identical in a results table, and I
-> read the blank as a limit. **[exp-48](docs/past-experiments.md) ran them: Fable 5 cleared all nine,
-> reaching the same 13/13 on the hard task — at \$10.47 and 18.2 min against Opus 5's \$21.67 and 43.8
-> min.** On the identical nine-language subset it is **2.1× cheaper and 2.7× faster for the same 1.00**.
+> Fable 5 hadn't failed those languages — it had never been **run** on them. It had only ever been tested on 4 of the 13. An unrun cell and an unpassable cell look identical in a results table, and I read the blank as a limit. **[exp-48](docs/past-experiments.md) ran them: Fable 5 cleared all nine, reaching the same 13/13 on the hard task — at \$10.47 and 18.2 min against Opus 5's \$21.67 and 43.8 min.** On the identical nine-language subset it is **2.1× cheaper and 2.7× faster for the same 1.00**.
 >
-> **Languages only Opus 5 can do: none.** The premium bought nothing but the appearance of exclusivity,
-> and that appearance was an artifact of which questions had been asked.
+> **Languages only Opus 5 can do: none.** The premium bought nothing but the appearance of exclusivity, and that appearance was an artifact of which questions had been asked.
 
 **But look at the price of that coverage.** Per *solved* cell:
 
@@ -156,23 +108,9 @@ every language on the *hard* one (the Brazilian-soccer MCP server). Opus 4.8 man
 | routine task | \$2.91 · 10.1 min | **\$1.09 · 2.4 min** | \$0.99 · 4.9 min |
 | hard task | \$20.00 · 43.8 min | **\$8.98 · 17.3 min** *(4 langs)* | \$5.53 · 10.1 min *(0.59 pass)* |
 
-On routine work Opus 5 is **three times the price of Opus 4.8 for an identical 1.00** — there is no
-reason to reach for it. Even on the hard task it costs roughly **twice** what Fable 5 does per solved
-cell, in the languages where both have been measured. So the honest recommendation is narrow: **use the
-cheapest model that clears your language, and reach for Opus 5 only where nothing cheaper has been
-proven** — which today means the hard task outside Python/Go/TypeScript. (Fable 5 has only been run on
-four to five languages so far; a follow-up is filling those gaps, and if its lead holds it becomes the
-default for both task sizes.)
+On routine work Opus 5 is **three times the price of Opus 4.8 for an identical 1.00** — there is no reason to reach for it. Even on the hard task it costs roughly **twice** what Fable 5 does per solved cell, in the languages where both have been measured. So the honest recommendation is narrow: **use the cheapest model that clears your language, and reach for Opus 5 only where nothing cheaper has been proven** — which today means the hard task outside Python/Go/TypeScript. (Fable 5 has only been run on four to five languages so far; a follow-up is filling those gaps, and if its lead holds it becomes the default for both task sizes.)
 
-**The measurement story matters more than the model story here.** The raw run initially showed Opus 5
-*failing* Python, Erlang and C on the hard task. All three were harness artifacts: Erlang and C were
-killed mid-work by a 60-minute timeout (Opus 5 is 3–5× slower than 4.8, and those cells needed ~53
-minutes), and the Python "failure" was a project whose 239 tests all passed but whose `pyproject.toml`
-set `addopts = "-q"` — which combined with the scorer's own `-q` to suppress pytest's summary line
-entirely, so the pass-rate parser saw nothing and the mechanical gate failed a green suite. Raising the
-wall and making the **exit code** the universal pass signal turned three "capability failures" into
-three passes. Nothing about the model changed; only the measurement did. That is the fourth time in this
-project that a config artifact has masqueraded as a model result.
+**The measurement story matters more than the model story here.** The raw run initially showed Opus 5 *failing* Python, Erlang and C on the hard task. All three were harness artifacts: Erlang and C were killed mid-work by a 60-minute timeout (Opus 5 is 3–5× slower than 4.8, and those cells needed ~53 minutes), and the Python "failure" was a project whose 239 tests all passed but whose `pyproject.toml` set `addopts = "-q"` — which combined with the scorer's own `-q` to suppress pytest's summary line entirely, so the pass-rate parser saw nothing and the mechanical gate failed a green suite. Raising the wall and making the **exit code** the universal pass signal turned three "capability failures" into three passes. Nothing about the model changed; only the measurement did. That is the fourth time in this project that a config artifact has masqueraded as a model result.
 
 ## A free laptop stack matches the cloud on Python, Go *and* TypeScript
 
