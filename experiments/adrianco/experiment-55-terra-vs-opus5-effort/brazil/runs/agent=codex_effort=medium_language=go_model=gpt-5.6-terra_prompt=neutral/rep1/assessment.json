@@ -1,0 +1,23 @@
+{
+  "severity_counts": {
+    "critical": 0,
+    "high": 1,
+    "medium": 0,
+    "low": 0,
+    "info": 0
+  },
+  "penalty_score": 0.9,
+  "top_findings": [
+    {
+      "id": "DEF1",
+      "kind": "test_failure",
+      "severity": "high",
+      "title": "Overlapping Brasileirão datasets double-count every match in seasons 2012–2019 for all tools except standings",
+      "evidence": "data.go:39,43 load both Brasileirao_Matches.csv (seasons 2012–2022) and novo_campeonato_brasileiro.csv (Ano 2003–2019) under competition \"Brasileirao\"; both hold 380 rows for 2019. The de-dup fix in server.go:266-279 is scoped to standings() only. Live: team_statistics{team:Flamengo,season:2019,competition:Brasileirao} => \"76 matches | 56W 12D 8L | points 180 | win rate 73.7%\" (spec example TASK.md:241 expects 90 pts, 28W 6D 4L over 38 matches); competition_statistics => \"760 matches\" (should be 380); search_matches => \"76 match(es)\" (should be 38). standings itself is correct (Flamengo-RJ 90 pts, 380 matches).",
+      "suggestion": "Move the modern-source preference out of standings() into matchesFor() (or de-duplicate at load time by date+teams), so team_statistics, head_to_head, competition_statistics, biggest_wins and search_matches are not doubled for 2012–2019."
+    }
+  ],
+  "requirement_coverage": 1.0,
+  "model": "gpt-5.6-terra",
+  "evaluated_at": "2026-07-30T22:10:13Z"
+}

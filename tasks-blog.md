@@ -2,7 +2,9 @@
 
 *Published 2026-07-30 · updated 2026-07-30 — Adrian Cockcroft*
 
-What retort actually asks an agent to build, and — for each task — a summary of the fastest run that fully passed. "Fastest" here means the shortest `duration_seconds` among runs scoring `requirement_coverage == 1.0`, restricted to runs whose **agent log was archived**, since a record with no log can't be shown.
+What retort actually asks an agent to build, and — for each task — the fastest and the slowest run that fully passed. Both mean shortest/longest `duration_seconds` among runs scoring `requirement_coverage == 1.0`, restricted to runs whose **agent log was archived**, since a record with no log can't be shown.
+
+The slow end is worth as much attention as the fast end. Nothing fails there: every run below scores a perfect 1.00. They just take between 4× and 61× longer to get there, and the reasons differ per task — over-engineering on one, the language itself on another, and a tool that costs time on the third.
 
 Task definitions live in [`tasks/`](tasks/) and are indexed by [`tasks/registry.yaml`](tasks/registry.yaml). Three of the seven registered tasks have been run at scale; the other four (`react-dashboard`, `cli-data-pipeline`, `brazil-bench-neutral`, `funkygibbon-port`) are defined but have few or no scored runs.
 
@@ -42,6 +44,19 @@ The entire run, condensed:
 ```
 
 One read, four writes, one verification command, done. No exploration, no iteration, no failed attempt. This is what the routine task looks like when a model simply knows the answer — and it's why the routine task no longer discriminates between frontier models on *reliability*, only on cost.
+
+### Slowest logged pass — 45.6 min, for the same 1.00
+
+| | |
+|---|---|
+| **Stack** | Claude Opus 5, `effort=max`, python, prompt=neutral |
+| **Experiment** | `adrianco/experiment-55-terra-vs-opus5-effort-bookshop` rep2 |
+| **Duration** | **45.6 min** (61×) · 94 turns · **$24.96** (29×) · 18,448,183 tokens (174×) |
+| **Result** | 12/12 requirements · **104** tests · coverage 1.00 |
+
+2,351 lines against Fable 5's 194. It built a seven-module package, linted itself with `ruff` unprompted, spawned a subagent, and ran **mutation testing** — on a books CRUD API. Every one of the judge's five findings is an `info` noting scope *beyond* the spec: a `PATCH` endpoint, filtering and pagination, a hand-written 304-line OpenAPI document, WAL journaling, NUL-byte validation. The task asked for five endpoints, a health check and at least three tests.
+
+It is not slop — it scores *better* on maintainability (0.85 vs 0.27) and idiomaticity. But the gate cannot tell the two runs apart: both are 1.00. The full breakdown, including how much variance the thinking dial adds, is in [experiments-blog.md](experiments-blog.md).
 
 ---
 
@@ -128,6 +143,26 @@ The tests do not catch this because they assert *accounting identities* — `mat
 
 *This is a finding about the task's checklist, not a retraction of the run.* The 3m19s and the 12/12 stand as measured. But "passes the pinned requirements" and "returns correct answers" are not the same thing, and here they diverge.
 
+### Slowest logged pass — 64 minutes of Objective-C
+
+| | |
+|---|---|
+| **Stack** | Claude Opus 5, objc, prompt=neutral |
+| **Experiment** | `adrianco/experiment-46-opus5-brazil` rep1 |
+| **Duration** | **64.0 min** · 175 turns · 174 tool calls · **$31.31** |
+| **Result** | 12/12 requirements · coverage 1.00 · `code_quality` 1.00 |
+
+A different failure mode entirely: this one isn't gold-plating, it's the **language**. Nine thousand lines of `.m` and `.h` — a hand-rolled CSV parser, match/player models, a query engine and an MCP server — because Objective-C offers no ecosystem to lean on here. The tool mix says it plainly: 59 Edits, 42 Writes, 54 Bash, and only **2 Reads**. It was not exploring. It was typing.
+
+The cleanest way to see the cost is to hold the model and task fixed and vary only the language. Opus 5 ran all 13 on this task, and every one scored 1.00:
+
+| | clojure | python | rust | swift | java | go | cpp | erlang | c | csharp | elixir | objc |
+|---|---|---|---|---|---|---|---|---|---|---|---|---|
+| **min** | 5.7 | 16.1 | 38.2 | 39.4 | 41.4 | 42.2 | 42.3 | 52.8 | 53.2 | 56.4 | 58.3 | **64.0** |
+| **$** | 2.55 | 9.38 | 20.08 | 16.87 | 20.18 | 22.35 | 17.50 | 23.01 | 24.11 | 39.05 | 33.61 | **31.31** |
+
+Same model, same spec, same 1.00 — an **11× spread in wall clock and 15× in cost**, decided entirely by the language. (TypeScript is omitted: it passed in 59.9 min but recorded `$0.00`, a telemetry gap, not a free run.) This is the single strongest illustration of retort's premise that the *stack* is the unit of measurement, not the model.
+
 ---
 
 ## 3. `py-catalog-reservations` — the modify-existing task
@@ -145,7 +180,7 @@ Built for the **graphify tooling factor**: it needs comprehension of code the ag
 | **Stack** | Claude Opus 4.8, `tooling=none`, python |
 | **Experiment** | `adrianco/experiment-44-graphify-catalog` rep1 |
 | **Duration** | **72.8 s** · 15 turns · $0.43 · 302,025 tokens |
-| **Result** | 12/12 requirements · 14 tests pass (6 existing + 8 new) · coverage 0.99 |
+| **Result** | 11/11 requirements · 14 tests pass (6 existing + 8 new) · coverage 0.99 |
 
 ```text
 [Read] TASK.md
@@ -163,6 +198,19 @@ Built for the **graphify tooling factor**: it needs comprehension of code the ag
 ```
 
 Note the shape versus the greenfield task: **six reads before the first edit.** On a modify-existing task the agent front-loads comprehension, then edits surgically — `models.py` and `service.py` are edited, not rewritten. That difference is the whole reason this task exists.
+
+### Slowest logged pass — 4.5 min, and free
+
+| | |
+|---|---|
+| **Stack** | Qwen3-Coder-Next 80B **local** (Hermes + oMLX), `tooling=beads`, python |
+| **Experiment** | `adrianco/experiment-45-graphify-local-catalog` rep1 |
+| **Duration** | **4.5 min** (3.7×) · 1,000,059 tokens · **$0.00** |
+| **Result** | 11/11 requirements · coverage 1.00 |
+
+The third failure mode is not a failure at all. This run is 3.7× slower than the cloud record and costs **nothing** — it ran on a laptop. For a task you run once, $0.43 and 73 seconds wins; for one you run in a loop, the free option changes the arithmetic. It is the clearest case for reading the cost column next to the clock.
+
+One pattern worth flagging inside this experiment: the three slowest passing runs are all `tooling=beads` (4.5, 4.3, 4.2 min), while every `none` and `graphify` run came in faster (2.6–3.3 min). That matches the README's factor analysis, where `beads` measurably *adds* cost. At n=3 per arm it is a consistent ordering rather than a proven effect — but it is the direction the tooling factor exists to detect.
 
 ---
 
