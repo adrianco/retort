@@ -1,0 +1,25 @@
+[build-system]
+requires = []
+build-backend = "soccer_mcp.build_backend"
+backend-path = ["."]
+
+[project]
+name = "brazilian-soccer-mcp"
+version = "0.1.0"
+description = "An MCP server for querying the Brazilian soccer datasets bundled with this repository"
+readme = "README.md"
+requires-python = ">=3.10"
+dependencies = [
+    "mcp>=1.12,<2.0",
+    "pydantic>=2.7,<3.0",
+]
+
+[project.scripts]
+brazilian-soccer-mcp = "soccer_mcp.server:main"
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+addopts = "-q"
+
+[tool.setuptools.packages.find]
+include = ["soccer_mcp*"]

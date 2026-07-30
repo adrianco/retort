@@ -20,6 +20,50 @@ push; verify every tuning parameter takes effect with a smoke test first; after 
 
 ---
 
+## 0. brazil-bench checklist gap: the requirements don't test CORRECTNESS  — OPEN (proposal, do not act unilaterally)
+
+Found 2026-07-30 while writing [tasks-blog.md](../tasks-blog.md), from the fastest-ever brazil pass
+(exp-55, Terra/medium/python, 3m19s, scored **12/12**).
+
+The six Kaggle files **overlap**: BR-Football covers 2014–2023, Brasileirao_Matches 2012–2022,
+novo_campeonato 2003–2019. `load()` concatenates them, so the same real-world match exists 2–3
+times (23,954 rows = the exact sum of the five files, i.e. no dedup anywhere). That run's own MCP
+handshake returned **Corinthians 2022 home: 44 matches** — a Brasileirão club plays **19** home
+league games; the spec's own worked example says 19. It double-counts.
+
+It still scored 12/12 because:
+
+- `REQUIREMENTS.json` asks whether a capability *exists* ("a tool filters matches by team name"),
+  never whether its **numbers are right**. The word "graph" appears 0 times too, though the spec's
+  overview asks for a "knowledge graph interface" — this solution has no graph at all, and passes.
+- The agent's own tests assert **accounting identities** (`matches == wins+draws+losses`,
+  `points == wins*3+draws`) which remain true when every match is counted twice.
+- The judge flagged the overlap but as **low/enhancement**, scoped only to `standings()` (the one
+  method the agent guarded). It is broader: `team_statistics`, `head_to_head`, `search_matches`,
+  `aggregate_statistics` all double-count.
+
+**Do not just edit `REQUIREMENTS.json`.** It is pinned precisely so `requirement_coverage` has a
+constant denominator across all **284** brazil runs; changing it silently re-bases every historical
+number and makes old and new runs incomparable — the exact failure this project keeps paying for.
+
+Options, cheapest first:
+
+1. **Add a golden-answer scorer** as a NEW response (not a change to the existing checklist), e.g.
+   `factual_accuracy`: a handful of externally-verifiable assertions (Corinthians 2022 home = 19
+   matches; Flamengo 2019 = 90 points — already used informally). New column, old numbers intact.
+2. **Version the checklist** (`REQUIREMENTS.v2.json`) and record which version graded each run, so
+   both can coexist in `master.db`.
+3. Leave as-is and document the limitation — pass-proportion then means "implements the capability
+   list", which is what it has always meant, and tasks-blog now says so explicitly.
+
+Option 1 is preferred: it measures the thing that's missing without touching what's comparable.
+
+**Still to verify** (deferred — exp-55 was running, and this repo runs ONE experiment at a time):
+re-run the archived artifact and count matches per (competition, season, source) to confirm the
+duplication factor per file pair. Evidence so far is from the run's own log, not a fresh execution.
+
+---
+
 ## 1. exp-54 — does a Codex judge agree with the Opus judge?  — SCOPED DOWN (token budget)
 
 `requirement_coverage` is an LLM's opinion, and PR #45 made the judge configurable — so it is a

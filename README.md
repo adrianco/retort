@@ -53,7 +53,7 @@ Factor names are free-form — anything you put in `factors:` reaches the runner
 
 ## What the data says
 
-Full, always-current results live in six companion documents — each the **single home** for its topic. This README summarizes and links; it does not re-host tables that go stale.
+Full, always-current results live in seven companion documents — each the **single home** for its topic. This README summarizes and links; it does not re-host tables that go stale.
 
 - ⭐ **[optimal-blog.md](optimal-blog.md)** — *what to run today*: the leading stacks, the per-language / per-task-size recommendation, and the exact configuration each needs (generated from `master.db` by `retort report optimal`). No history — stacks appear when they lead and are removed when they don't.
 - 📝 **[model-blog.md](model-blog.md)** — the narrative: reliability-vs-cost, fast mode, the local-model arc, and the measurement bugs found along the way.
@@ -61,6 +61,7 @@ Full, always-current results live in six companion documents — each the **sing
 - 🔬 **[versions-blog.md](versions-blog.md)** — one task, every model version: why newer Claude releases cost 6× and take 4× longer for the *same* passing app (turns, not per-turn speed — and cache reads that scale with the square of the step count). Includes the open question of how much of that is **thinking level**, which no experiment controlled until now.
 - 🧩 **[harness-blog.md](harness-blog.md)** — a newcomer's map of the *stack under the model*: what oMLX / llama.cpp / Hermes / GGUF / MLX / `omp` are, where they came from, what competes with what and why there are so many — plus what the metaharness factors mean and what they'd test.
 - 🗂️ **[experiments-blog.md](experiments-blog.md)** — the **index**: every experiment by category, which harness changes moved published numbers (so you know when two experiments aren't comparable), and the conclusions that were later retracted.
+- 🏁 **[tasks-blog.md](tasks-blog.md)** — what the agents are actually asked to build, and the **fastest passing run recorded for each task**, with its log condensed and the solution picked apart (including a correctness defect the requirement checklist does not catch).
 
 The headline metric is **pass-proportion**: over N replicates of a stack, the fraction whose runs *fully implement the spec* (`requirement_coverage == 1.0`). Read it as **the probability a single unattended run comes out completely correct**. A single sub-1.0 run is a fail.
 

@@ -4,7 +4,7 @@
 
 An index, not an argument. Retort has run **1,014 scored runs across 56 experiment groups and 13 languages**; this page says what each group was for, where to read the detail, and — the part that matters most for reading an old number — **what the harness itself was doing at the time**. Several published figures moved because the tooling was fixed, not because a model changed.
 
-Detail lives in [`docs/past-experiments.md`](docs/past-experiments.md). Current recommendations: [`optimal-blog.md`](optimal-blog.md) and the machine-readable [`optimal.json`](optimal.json). What's next: [`docs/future-experiments.md`](docs/future-experiments.md).
+Detail lives in [`docs/past-experiments.md`](docs/past-experiments.md). Current recommendations: [`optimal-blog.md`](optimal-blog.md) and the machine-readable [`optimal.json`](optimal.json). What the agents are asked to build, and the fastest passing run for each: [`tasks-blog.md`](tasks-blog.md). What's next: [`docs/future-experiments.md`](docs/future-experiments.md).
 
 ---
 
