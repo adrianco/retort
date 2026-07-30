@@ -20,6 +20,32 @@ push; verify every tuning parameter takes effect with a smoke test first; after 
 
 ---
 
+## 0a. PRE-FLIGHT GATE: smoke-test the provisioned python venv  — REQUIRED before the next python experiment
+
+Landed post-exp-55: retort now creates a `venv/` in every python workspace (pytest + pytest-cov
+preinstalled) and puts `venv/bin` first on the agent's PATH, so a bare `python` and `pip` resolve.
+Motivation and the two deeper problems it fixes are in [tasks-blog.md](../tasks-blog.md).
+
+Unit tests cover creation, the PATH/`VIRTUAL_ENV` wiring, fingerprint exclusion and archive
+exclusion. **What is NOT yet verified is that a real agent process sees it** — and this repo's
+standing rule is that "I set it" is not "it took effect". Run ONE cell (python, bookshop, any cloud
+model) and confirm from `_agent_stdout.log`:
+
+1. No `command not found: python` anywhere in the run.
+2. If the agent installs anything, `pip install` succeeds — no `externally-managed-environment`.
+3. `test_coverage` is still parsed (the scorer must REUSE `venv/`, not build a second one).
+4. The archived `rep1/` contains **no** `venv/` directory (~17 MB each if this regresses).
+5. The no-write guard still fires on an empty workspace — i.e. venv files are not counted as
+   agent progress.
+
+Then compare turn count against the same cell pre-change: the expectation is **one turn fewer**
+(the `python`→`python3` retry). If it is not, the PATH is not reaching the agent.
+
+**Comparability:** python runs before and after this change are not turn-count comparable. Do not
+pool them; note the boundary in any write-up that spans it.
+
+---
+
 ## 0. brazil-bench checklist gap: the requirements don't test CORRECTNESS  — OPEN (proposal, do not act unilaterally)
 
 Found 2026-07-30 while writing [tasks-blog.md](../tasks-blog.md), from the fastest-ever brazil pass

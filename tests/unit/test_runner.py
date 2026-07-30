@@ -1574,3 +1574,81 @@ def test_codex_command_carries_the_effort_level():
     stack.extra["effort"] = "default"
     assert "model_reasoning_effort=default" not in runner._build_agent_command(
         stack, task, Path("/tmp"))
+
+
+def test_python_workspace_gets_a_venv_with_python_on_path(tmp_path):
+    """A python run must find a bare `python`, not just Homebrew's `python3`.
+
+    Regression: agents inherited the raw host env, where macOS provides only
+    `python3`. The fastest recorded run of ALL THREE tasks — two vendors, three
+    models — spent a turn on `command not found: python` and a retry. That is a
+    property of the machine being charged to the model. Worse, `pip install`
+    against a Homebrew interpreter fails with externally-managed-environment, so
+    whether an agent could install a dependency at all came down to whether it
+    happened to build its own venv first.
+    """
+    from retort.playpen.local_runner import LocalRunner
+
+    work = tmp_path / "work"
+    runner = LocalRunner(work_dir=work)
+    stack = StackConfig(language="python", agent="claude-code", framework="flask")
+    task = TaskSpec(name="t", description="d", prompt="build it")
+
+    env_id = runner.provision(stack, task)
+    env_dir = work / env_id
+    venv_python = env_dir / "venv" / "bin" / "python"
+    assert venv_python.exists(), "python workspace was provisioned without a venv"
+
+    env = runner._build_env(stack, env_dir)
+    assert env["VIRTUAL_ENV"] == str(env_dir / "venv")
+    assert env["PATH"].split(":")[0] == str(env_dir / "venv" / "bin")
+
+
+def test_non_python_workspace_gets_no_venv(tmp_path):
+    """Only python pays the venv-creation cost."""
+    from retort.playpen.local_runner import LocalRunner
+
+    work = tmp_path / "work"
+    runner = LocalRunner(work_dir=work)
+    stack = StackConfig(language="go", agent="claude-code", framework="stdlib")
+    task = TaskSpec(name="t", description="d", prompt="build it")
+
+    env_id = runner.provision(stack, task)
+    assert not (work / env_id / "venv").exists()
+    env = runner._build_env(stack, work / env_id)
+    assert "VIRTUAL_ENV" not in env
+
+
+def test_venv_is_excluded_from_progress_fingerprint(tmp_path):
+    """pip writing thousands of files must not read as the agent making progress.
+
+    `.venv` was skipped but plain `venv` was not — so an agent that built a venv
+    (some did) looked productive to the stall detector and sailed past the
+    no-write guard even if it never wrote a line of code.
+    """
+    from retort.playpen.local_runner import _progress_fingerprint
+
+    ws = tmp_path / "ws"
+    (ws / "venv" / "lib").mkdir(parents=True)
+    (ws / "venv" / "lib" / "thing.py").write_text("x = 1\n")
+    before = _progress_fingerprint(ws)
+
+    (ws / "venv" / "lib" / "more.py").write_text("y = 2\n")  # more venv churn
+    assert _progress_fingerprint(ws) == before, "venv/ leaked into the fingerprint"
+
+    (ws / "app.py").write_text("real work\n")  # actual agent output
+    assert _progress_fingerprint(ws) != before
+
+
+def test_venv_is_not_archived(tmp_path):
+    """Archiving a venv wastes ~17 MB per python run AND copies a broken venv.
+
+    A copied venv's scripts still point at the original playpen path, so
+    activating it during a rescore silently fails. Excluding it makes the scorer
+    fall back to building a fresh, working one.
+    """
+    from retort.cli import _ignore_archive_noise
+
+    skipped = _ignore_archive_noise("/w", ["venv", ".venv", "app.py", "node_modules"])
+    assert "venv" in skipped and ".venv" in skipped
+    assert "app.py" not in skipped

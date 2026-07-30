@@ -1495,6 +1495,15 @@ _ARCHIVE_NOISE = {
     "node_modules", "_build", "deps", "target", "build", "dist", "vendor",
     "__pycache__", ".gradle", ".cpcache", ".rebar3", ".elixir_ls",
     ".pytest_cache", ".mypy_cache", ".git",
+    # Python venvs — retort now provisions one into every python workspace
+    # (see playpen.local_runner.ensure_python_venv), so without this every
+    # python run would copy ~17 MB of thousands of small files into the archive.
+    # It is pure waste twice over: `venv/` is gitignored so it is never
+    # committed, AND a copied venv is BROKEN — its scripts hard-code the
+    # original playpen path, which no longer exists. Leaving it out is also what
+    # makes rescoring correct: `find_venv` then misses, and the scorer builds a
+    # fresh working venv instead of activating a dead one.
+    "venv", ".venv",
 }
 
 

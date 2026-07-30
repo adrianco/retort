@@ -166,8 +166,14 @@ Note the shape versus the greenfield task: **six reads before the first edit.** 
 
 ---
 
-## The `python` vs `python3` stumble
+## The `python` vs `python3` stumble — found here, since fixed
 
-All three record holders — two different vendors, three different models — ran `python`, got `command not found`, and retried with `python3`. It costs each of them a step.
+All three record holders — two different vendors, three different models — ran `python`, got `command not found`, and retried with `python3`. Each paid a step for it.
 
-It is worth noting because it is a property of *this machine* (macOS with no `python` shim) leaking into every measurement, and it is charged to the model as a turn. It's small and it's uniform, so it doesn't distort comparisons — but it is a reminder that a benchmark number always includes some of the bench.
+That is a property of *this machine* (macOS ships `python3` only) being charged to the model as agent work. Writing this page is what made it visible, because it is the one place three runs sit side by side.
+
+Pulling the thread found two bigger problems behind it. **`pip install` was a coin flip:** against a Homebrew interpreter it fails with `externally-managed-environment`, so whether an agent could install a dependency at all came down to whether it happened to build a venv first — some did (Fable 5 above), some wrote stdlib-only code instead (Terra above). That is a difference in the *stack*, silently attributed to the model. And **the scorer built a different interpreter than the agent's**: it reuses a venv if the agent shipped one, otherwise it creates a throwaway — so a suite could be written against one interpreter and graded on another.
+
+Retort now provisions a venv into every python workspace before the agent starts, with `python`, `pip` and pytest already on PATH, and the scorer reuses that same venv. Provisioning happens outside the timed window, so this removes a turn without adding time. Python runs from before and after this change are **not turn-count comparable** — it is logged in [experiments-blog.md](experiments-blog.md) with the other harness changes that moved numbers.
+
+The general lesson is the one this project keeps relearning: a benchmark number always includes some of the bench.

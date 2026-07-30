@@ -14,6 +14,7 @@ import re
 import shutil
 import signal
 import subprocess
+import sys
 import tempfile
 import time
 import uuid
@@ -33,7 +34,7 @@ logger = logging.getLogger(__name__)
 # Files/dirs that are seeded into the workspace (task spec, support data, the
 # agent's own telemetry) rather than produced by the agent. Excluded from the
 # progress fingerprint so the stall detector keys on the agent *writing code*.
-_PROGRESS_SKIP_DIRS = {".git", "data", "__pycache__", "node_modules", "target", ".venv"}
+_PROGRESS_SKIP_DIRS = {".git", "data", "__pycache__", "node_modules", "target", ".venv", "venv"}
 _PROGRESS_SKIP_FILES = {
     "_agent_stdout.log", "_agent_stderr.log", ".hermes_usage.json",
     "_hermes_session.jsonl",
@@ -471,6 +472,15 @@ class LocalRunner:
             if stats:
                 logger.info("graphify graph seeded for %s: %s", env_id, stats)
 
+        # Python runs get a ready venv with `python`, `pip` and pytest, put on
+        # PATH in _build_env. Provisioning — NOT agent work — so it happens
+        # before the seed fingerprint below (and `venv` is in _PROGRESS_SKIP_DIRS,
+        # or the thousands of files pip writes would read as agent progress and
+        # defeat both the stall detector and the no-write guard).
+        if (stack.language or "").lower() == "python":
+            if ensure_python_venv(env_dir) is not None:
+                logger.info("python venv provisioned for %s", env_id)
+
         self._envs[env_id] = _EnvInfo(
             env_id=env_id,
             workspace=env_dir,
@@ -520,7 +530,7 @@ class LocalRunner:
                 exit_code=1,
             )
 
-        env = self._build_env(stack)
+        env = self._build_env(stack, info.workspace)
         if self._resolve_harness(stack) == "opencode":
             self._write_opencode_config(info.workspace, stack)
             env["OPENCODE_DB"] = str(self._opencode_db_path(info.workspace))
@@ -1000,12 +1010,22 @@ class LocalRunner:
             return stack.agent
         return _harness_for_model(self._model_for(stack))
 
-    def _build_env(self, stack: StackConfig) -> dict[str, str]:
+    def _build_env(self, stack: StackConfig, workspace: Path | None = None) -> dict[str, str]:
         """Build environment variables for the agent process."""
         import os
         env = os.environ.copy()
         # Disable interactive features
         env["CLAUDE_CODE_NON_INTERACTIVE"] = "1"
+
+        # Activate the provisioned python venv (see ensure_python_venv). This is
+        # what makes a bare `python` and `pip` resolve at all — without it the
+        # agent finds only Homebrew's `python3`, and pays a turn to discover that.
+        if workspace is not None and (stack.language or "").lower() == "python":
+            venv = python_venv_path(workspace)
+            if (venv / "bin" / "python").exists():
+                env["VIRTUAL_ENV"] = str(venv)
+                env["PATH"] = str(venv / "bin") + os.pathsep + env.get("PATH", "")
+                env.pop("PYTHONHOME", None)
         # A stack preset may pin the Hermes lcm compaction point as a first-class
         # field: `presets.<name>.context_threshold`. Export it as LCM_CONTEXT_THRESHOLD
         # so the agent's lcm plugin compacts at that fraction of the context window
@@ -1753,6 +1773,70 @@ def _copy_support_files(src: Path, dst: Path) -> None:
             shutil.copytree(item, target, dirs_exist_ok=True)
         else:
             shutil.copy2(item, target)
+
+
+#: Name of the venv retort provisions into a python workspace. Must be one of
+#: the names the scorer's ``find_venv`` looks for, so the scorer REUSES this
+#: interpreter instead of building a second, different one.
+PYTHON_VENV_DIR = "venv"
+
+
+def python_venv_path(workspace: Path) -> Path:
+    """Where the provisioned python venv lives inside ``workspace``."""
+    return workspace / PYTHON_VENV_DIR
+
+
+def ensure_python_venv(workspace: Path) -> Path | None:
+    """Create a ready-to-use venv in a python workspace. Returns it, or None.
+
+    WHY this exists. Without it the agent inherits the bare host environment,
+    which has three measurable consequences:
+
+    1. **There is no ``python``.** macOS/Homebrew ship ``python3`` only. Every
+       python run that reaches for ``python`` burns a turn on
+       ``command not found`` and a retry — observed in the fastest recorded run
+       of all three tasks, across two vendors and three models. It is charged to
+       the model as agent work, and it is really a property of this machine.
+    2. **Dependency installs are unpredictable.** ``pip install`` against a
+       Homebrew interpreter hits ``externally-managed-environment`` and fails,
+       so an agent either has to know to build a venv first (some do, some do
+       not) or gives up and hand-rolls stdlib-only code. That is a difference in
+       the *stack*, silently attributed to the model.
+    3. **The scorer built a DIFFERENT interpreter.** ``ensure_python_env``
+       reuses a venv if the agent shipped one and otherwise creates a throwaway.
+       So a suite could be written against the agent's interpreter and graded on
+       another one, with a different python version and a different dependency
+       set. Provisioning one venv up front makes the agent and the scorer share
+       it — the same interpreter writes and grades the tests.
+
+    Best-effort: any failure returns None and the run proceeds exactly as it did
+    before, because a missing venv must never be the reason a run fails.
+    """
+    venv = python_venv_path(workspace)
+    if (venv / "bin" / "python").exists():
+        return venv
+    try:
+        subprocess.run(
+            [sys.executable, "-m", "venv", str(venv)],
+            capture_output=True, timeout=180,
+        )
+    except (subprocess.TimeoutExpired, FileNotFoundError, OSError) as exc:
+        logger.warning("python venv creation failed in %s: %s", workspace, exc)
+        return None
+    if not (venv / "bin" / "python").exists():
+        logger.warning("python venv creation produced no interpreter in %s", workspace)
+        return None
+    # Preinstall the test runner. The scorer needs pytest + pytest-cov to read a
+    # coverage number at all; installing it here means the agent does not spend a
+    # turn on it and cannot pick a conflicting version.
+    try:
+        subprocess.run(
+            [str(venv / "bin" / "pip"), "install", "-q", "pytest", "pytest-cov"],
+            capture_output=True, timeout=300,
+        )
+    except (subprocess.TimeoutExpired, FileNotFoundError, OSError):
+        logger.debug("pytest preinstall failed in %s (agent may install it)", venv)
+    return venv
 
 
 class _EnvInfo:
