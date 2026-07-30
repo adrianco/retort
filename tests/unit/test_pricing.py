@@ -81,3 +81,45 @@ def test_price_table_is_dated_and_sourced():
 
     assert pricing.PRICES_AS_OF
     assert pricing.PRICES_SOURCE.startswith("http")
+
+
+def test_gpt56_charges_for_cache_writes_at_1_25x_input():
+    """GPT-5.6+ bills cache WRITES at 1.25x the uncached input rate.
+
+    Source: OpenAI prompt-caching guide — "Cache writes have no additional fee on
+    models before the GPT-5.6 family"; on 5.6+ "cache writes cost 1.25x the
+    uncached input token rate". Missing this under-reports the FIRST run of a
+    batch, which is the one that populates the shared prefix.
+    """
+    from retort.pricing import charges_for_cache_writes
+
+    assert charges_for_cache_writes("gpt-5.6-terra")
+    assert not charges_for_cache_writes("gpt-5-codex")
+
+    # Terra input $2.50/M -> a 1M-token cache write costs 2.50 * 1.25 = $3.125
+    with_write = estimate_openai_cost_usd(
+        "gpt-5.6-terra", input_tokens=0, output_tokens=0,
+        cache_write_input_tokens=1_000_000,
+    )
+    assert with_write == pytest.approx(3.125)
+
+
+def test_pre_56_families_write_to_cache_for_free():
+    no_charge = estimate_openai_cost_usd(
+        "gpt-5-codex", input_tokens=0, output_tokens=0,
+        cache_write_input_tokens=1_000_000,
+    )
+    assert no_charge == pytest.approx(0.0)
+
+
+def test_real_terra_cell_reproduces_the_recorded_cost():
+    """Hand-checked against an exp-55 archive (effort=high, go, rep1).
+
+    raw: input 214,564 / cached 196,608 (92%) / cache_write 0 / output 6,770
+    """
+    cost = estimate_openai_cost_usd(
+        "gpt-5.6-terra",
+        input_tokens=214_564, cached_input_tokens=196_608,
+        cache_write_input_tokens=0, output_tokens=6_770,
+    )
+    assert cost == pytest.approx(0.1956, abs=0.001)

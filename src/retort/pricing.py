@@ -97,12 +97,32 @@ def normalize_model(model: str) -> str:
     return m
 
 
+#: GPT-5.6 and later bill cache WRITES at 1.25x the uncached input rate. Earlier
+#: families write for free. Source: developers.openai.com prompt-caching guide,
+#: checked 2026-07-29 — "Cache writes have no additional fee on models before the
+#: GPT-5.6 family", and on 5.6+ "cache writes cost 1.25x the uncached input token
+#: rate". Missing this under-reports the FIRST run of any batch, which is the run
+#: that populates the shared prefix; later runs read it for free-ish and report
+#: cache_write=0. Every exp-55 cell measured so far had cache_write=0 for exactly
+#: that reason, so this does not move those numbers — but a brazil run with a
+#: larger unique prefix, or the first cell of a fresh batch, would be wrong.
+CACHE_WRITE_MULTIPLIER = 1.25
+
+#: Families that charge for cache writes at all.
+_CACHE_WRITE_CHARGING_PREFIXES = ("gpt-5.6",)
+
+
+def charges_for_cache_writes(model: str) -> bool:
+    return normalize_model(model).startswith(_CACHE_WRITE_CHARGING_PREFIXES)
+
+
 def estimate_openai_cost_usd(
     model: str,
     *,
     input_tokens: int,
     output_tokens: int,
     cached_input_tokens: int = 0,
+    cache_write_input_tokens: int = 0,
 ) -> float | None:
     """List-price cost for one run, or ``None`` if the model is not in the table.
 
@@ -128,8 +148,12 @@ def estimate_openai_cost_usd(
     total_in = max(0, int(input_tokens or 0))
     uncached = max(0, total_in - cached)
     out = max(0, int(output_tokens or 0))
-    return (
+    written = max(0, int(cache_write_input_tokens or 0))
+    cost = (
         uncached * price.input / 1_000_000
         + cached * price.cached_input / 1_000_000
         + out * price.output / 1_000_000
     )
+    if written and charges_for_cache_writes(model):
+        cost += written * price.input * CACHE_WRITE_MULTIPLIER / 1_000_000
+    return cost

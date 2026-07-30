@@ -1543,6 +1543,7 @@ def _parse_codex_usage(stdout_text: str, model: str = "") -> tuple[int, dict[str
         input_tokens=input_tokens,
         output_tokens=output_tokens,
         cached_input_tokens=cached_tokens,
+        cache_write_input_tokens=cache_write,
     )
     if cost is not None:
         metadata["total_cost_usd"] = str(cost)
