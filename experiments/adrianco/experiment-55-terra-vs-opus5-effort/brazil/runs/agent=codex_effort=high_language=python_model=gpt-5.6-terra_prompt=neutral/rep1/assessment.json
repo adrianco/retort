@@ -1,0 +1,23 @@
+{
+  "severity_counts": {
+    "critical": 0,
+    "high": 1,
+    "medium": 0,
+    "low": 0,
+    "info": 0
+  },
+  "penalty_score": 0.9,
+  "top_findings": [
+    {
+      "id": "F1",
+      "kind": "test_failure",
+      "severity": "high",
+      "title": "Overlapping source files triple-count matches in standings/team_stats/competition_stats",
+      "evidence": "brazilian_soccer_mcp.py:147-151 maps Brasileirao_Matches.csv (2012-2022), novo_campeonato_brasileiro.csv (2003-2019) AND BR-Football-Dataset.csv (matched via _competition_key) all to competition 'Brasileirao'; standings(2019) returns matches_used=1140 and top team Flamengo with matches=114, points=270 (true Serie A season is 38 matches / 90 pts). Aggregates for overlapping seasons are ~3x inflated.",
+      "suggestion": "Deduplicate matches across source files (by date+teams+score) or restrict each competition/season to a single authoritative source before computing standings/stats."
+    }
+  ],
+  "requirement_coverage": 1.0,
+  "model": "gpt-5.6-terra",
+  "evaluated_at": "2026-07-30T21:12:40Z"
+}

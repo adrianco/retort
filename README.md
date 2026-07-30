@@ -40,7 +40,7 @@ Factor names are free-form — anything you put in `factors:` reaches the runner
 | Factor | Levels | What it does |
 |---|---|---|
 | `language` | 13 shipped (see the toolchain table) | Picks the build/test/lint commands the scorer runs |
-| `model` | any id; aliases incl. `opus-4.6/4.7/4.8`, `opus-5`, `sonnet-5`, `fable-5`, `haiku-4.5`, `opus-4.8-fast` | The model. A `-fast` suffix enables Claude Code fast mode and doubles recorded cost (its real rate) |
+| `model` | any id. **Claude** (via `agent: claude-code`): aliases `opus-4.6/4.7/4.8`, `opus-5`, `sonnet-4.6/5`, `fable-5`, `opus-4.8-fast`. **Codex** (via `agent: codex`): raw ids, no aliases — `gpt-5.6-sol`, `gpt-5.6-terra`, `gpt-5.6-luna`, `gpt-5.4`, `gpt-5.5` | The model. A `-fast` suffix enables Claude Code fast mode and doubles recorded cost (its real rate). Codex reports no cost of its own, so retort prices its token counts from [`src/retort/pricing.py`](src/retort/pricing.py) |
 | `effort` | `default`, `low`, `medium`, `high`, `xhigh`, `max` | **Thinking level.** `claude --effort` for claude-code; `-c model_reasoning_effort=` for codex — the same five names, so the two vendors are directly comparable. `default` means *pass no flag*, and is **not** a shared operating point: Claude's default sits near `high`, Codex Terra's is `medium`, Sol's is `low` |
 | `prompt` | `none`, or any `prompts/<level>.md` | Prompt/methodology injection (BDD/TDD/ATDD studies) |
 | `agent` | `claude-code`, `codex`, `gemini`, `omp`, `opencode`, + your `playpen.local_agents` keys | Which CLI drives the run |
@@ -53,13 +53,14 @@ Factor names are free-form — anything you put in `factors:` reaches the runner
 
 ## What the data says
 
-Full, always-current results live in five companion documents — each the **single home** for its topic. This README summarizes and links; it does not re-host tables that go stale.
+Full, always-current results live in six companion documents — each the **single home** for its topic. This README summarizes and links; it does not re-host tables that go stale.
 
 - ⭐ **[optimal-blog.md](optimal-blog.md)** — *what to run today*: the leading stacks, the per-language / per-task-size recommendation, and the exact configuration each needs (generated from `master.db` by `retort report optimal`). No history — stacks appear when they lead and are removed when they don't.
 - 📝 **[model-blog.md](model-blog.md)** — the narrative: reliability-vs-cost, fast mode, the local-model arc, and the measurement bugs found along the way.
 - 🎯 **[prompt-blog.md](prompt-blog.md)** — whether the prescribed test methodology (BDD / TDD / ATDD vs none) moves reliability.
 - 🔬 **[versions-blog.md](versions-blog.md)** — one task, every model version: why newer Claude releases cost 6× and take 4× longer for the *same* passing app (turns, not per-turn speed — and cache reads that scale with the square of the step count). Includes the open question of how much of that is **thinking level**, which no experiment controlled until now.
 - 🧩 **[harness-blog.md](harness-blog.md)** — a newcomer's map of the *stack under the model*: what oMLX / llama.cpp / Hermes / GGUF / MLX / `omp` are, where they came from, what competes with what and why there are so many — plus what the metaharness factors mean and what they'd test.
+- 🗂️ **[experiments-blog.md](experiments-blog.md)** — the **index**: every experiment by category, which harness changes moved published numbers (so you know when two experiments aren't comparable), and the conclusions that were later retracted.
 
 The headline metric is **pass-proportion**: over N replicates of a stack, the fraction whose runs *fully implement the spec* (`requirement_coverage == 1.0`). Read it as **the probability a single unattended run comes out completely correct**. A single sub-1.0 run is a fail.
 
