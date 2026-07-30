@@ -60,6 +60,47 @@ Four of those five came from reading a single run as a result.
 
 ---
 
+## The slowest successful run
+
+[tasks-blog.md](tasks-blog.md) shows the fastest passing run for each task. The other end is more instructive, because nothing fails there either.
+
+Both of these are the **same task** — `rest-api-crud`, python, a books CRUD API — and both score `requirement_coverage = 1.00`.
+
+| | Fastest (Fable 5, `effort=low`) | Slowest (Opus 5, `effort=max`) | Ratio |
+|---|---|---|---|
+| Wall clock | 44.5 s | **45.6 min** | 61× |
+| Cost | $0.86 | **$24.96** | 29× |
+| Tokens | 105,745 | **18,448,183** | 174× |
+| Turns | 7 | **94** (256 tool calls) | 13× |
+| Source + test lines | 194 | **2,351** | 12× |
+| Tests | 6 | **104** | 17× |
+| `requirement_coverage` | 1.00 | 1.00 | — |
+| `test_coverage` | 0.98 | 1.00 | |
+| `maintainability` | 0.27 | 0.85 | |
+| `token_efficiency` | 1.00 | 0.0019 | |
+
+The slow run is **not a failure, and not slop**. It scores *better* on maintainability, idiomaticity and coverage. It built a seven-module package, ran `ruff` on itself unprompted, spawned a subagent, and performed **mutation testing** — on a books CRUD API. Every one of the judge's five findings is an `info` describing scope *beyond* the spec: a `PATCH` endpoint, filtering/sorting/pagination, a hand-written 304-line OpenAPI 3.0 document served at `GET /openapi.json`, WAL journaling and busy-timeouts on SQLite, and validation for NUL bytes and SQLite integer bounds.
+
+Nobody asked for any of it. The task asked for five endpoints, a health check, and at least three tests.
+
+**What actually goes wrong is that the gate cannot see the difference.** `requirement_coverage` is 1.00 for both, so pass-proportion — the headline metric of this whole project — rates a 44-second $0.86 run and a 46-minute $25 run as identical. That is correct by its own definition and still the most misleading number on the page unless you read cost beside it. `token_efficiency` is the response that *does* separate them, by a factor of 534.
+
+**The dial also buys variance, not just cost.** Within exp-55, the same Opus 5 python cell run twice:
+
+| `effort` | rep1 | rep2 | mean cost |
+|---|---|---|---|
+| low | 1.9 min | 2.2 min | $0.76 |
+| medium | 3.0 min | 3.2 min | $1.04 |
+| high | 6.2 min | 5.6 min | $1.68 |
+| xhigh | 15.3 min | 8.6 min | $2.55 |
+| max | **24.5 min** | **45.6 min** | **$19.21** |
+
+At `low` the two replicates agree within 15%; at `max` they differ by 1.9×, and cost by 1.9×. Ten of ten cells score 1.00. On this task the thinking dial is a 25× cost multiplier that buys nothing measurable and becomes unpredictable at the top. *At n=2 the variance claim is suggestive, not established* — but the cost is not in doubt. Meanwhile GPT-5.6 Terra ran the same ten cells between 1.4 and 4.0 minutes for $0.10–$0.33, also 1.00 throughout.
+
+One more thing the log shows: the slow run spent its opening turns probing the host interpreter and discovered that the preinstalled FastAPI was **broken** (pydantic v1 cannot build models on Python 3.14), then chose Flask instead. That is the environment leaking into the measurement again — and it is the same class of problem as the missing `python`, now addressed by [provisioning a clean venv per workspace](tasks-blog.md).
+
+---
+
 ## Reading the numbers
 
 **Pass-proportion** is the fraction of runs that *fully* implement the spec — every requirement on a pinned checklist, with tests that actually execute, verified by an independent LLM judge. A run that misses one requirement scores 0, not 0.9. Read a cell as *the probability that one unattended run comes out completely correct*.
