@@ -33,6 +33,12 @@ TELEMETRY = {
     # 1.0 when the run only reached its outcome on the self-repair SECOND attempt.
     # A `second_try` pass counts at HALF credit toward pass-proportion.
     "_second_try": "second_try",
+    # Turn-like measure for harnesses that report no turn count. Codex fires one
+    # `turn.completed` per exec regardless of work done, so `turns` stays NULL for
+    # it while `agent_steps` carries its item.completed count (12-27/run vs
+    # Claude's 10-30 turns). Separate columns on purpose — they are not the same
+    # quantity, and a shared column would hide that.
+    "_agent_steps": "agent_steps",
 }
 # Design factors promoted to their own column in the master table.
 #

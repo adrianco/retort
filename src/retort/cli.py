@@ -2638,6 +2638,31 @@ def _store_run_result(
                 ))
         except (TypeError, ValueError):
             pass
+    # AGENT STEPS — a turn-like measure for harnesses that do not report turns.
+    #
+    # Codex has no comparable turn count: it fires ONE `turn.completed` per exec
+    # invocation regardless of how much work happened, so `_turns` is deliberately
+    # left absent for it (recording 1 would put it at the bottom of the turn axis
+    # and make it look absurdly efficient). But its `item.completed` events —
+    # command_execution / agent_message / file_change — DO count model-initiated
+    # actions, and land at 12–27 per run against Claude's 10–30, so they carry the
+    # same information under a name that does not claim to be identical.
+    #
+    # Kept as a SEPARATE metric from `_turns` on purpose: anyone comparing across
+    # harnesses has to notice they are reaching for a different column and decide
+    # whether the two are commensurable, rather than being handed a false one.
+    steps_str = (artifacts.metadata or {}).get("codex_items")
+    if steps_str:
+        try:
+            steps_val = float(steps_str)
+            if steps_val > 0:
+                session.add(RunResult(
+                    run_id=run.id,
+                    metric_name="_agent_steps",
+                    value=steps_val,
+                ))
+        except (TypeError, ValueError):
+            pass
 
 
 
