@@ -1,4 +1,4 @@
-# The Tasks, and the Fastest Solution Recorded for Each
+# The Tasks: What Gets Built, and How Differently a Run Can Pass
 
 *Published 2026-07-30 · updated 2026-07-30 — Adrian Cockcroft*
 

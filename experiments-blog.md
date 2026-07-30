@@ -4,7 +4,7 @@
 
 An index, not an argument. Retort has run **1,014 scored runs across 56 experiment groups and 13 languages**; this page says what each group was for, where to read the detail, and — the part that matters most for reading an old number — **what the harness itself was doing at the time**. Several published figures moved because the tooling was fixed, not because a model changed.
 
-Detail lives in [`docs/past-experiments.md`](docs/past-experiments.md). Current recommendations: [`optimal-blog.md`](optimal-blog.md) and the machine-readable [`optimal.json`](optimal.json). What the agents are asked to build, and the fastest passing run for each: [`tasks-blog.md`](tasks-blog.md). What's next: [`docs/future-experiments.md`](docs/future-experiments.md).
+Detail lives in [`docs/past-experiments.md`](docs/past-experiments.md). Current recommendations: [`optimal-blog.md`](optimal-blog.md) and the machine-readable [`optimal.json`](optimal.json). What the agents are asked to build, and the fastest and slowest passing run for each: [`tasks-blog.md`](tasks-blog.md). What's next: [`docs/future-experiments.md`](docs/future-experiments.md).
 
 ---
 
@@ -62,7 +62,7 @@ Four of those five came from reading a single run as a result.
 
 ## The slowest successful run
 
-[tasks-blog.md](tasks-blog.md) shows the fastest passing run for each task. The other end is more instructive, because nothing fails there either.
+[tasks-blog.md](tasks-blog.md) shows the fastest and slowest passing run for each task. The slow end is the more instructive one, because nothing fails there either.
 
 Both of these are the **same task** — `rest-api-crud`, python, a books CRUD API — and both score `requirement_coverage = 1.00`.
 
