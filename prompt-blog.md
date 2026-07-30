@@ -1,5 +1,7 @@
 # Does *How* You Ask Change How Reliable It Is? Testing the Prompt
 
+*Published 2026-06-11 · updated 2026-07-30 — Adrian Cockcroft*
+
 In the [model blog](model-blog.md) I varied the language, the model, and the tooling, and held one big lever deliberately constant: **the prompt**. Every run got the same terse *"implement TASK.md, make the tests pass."* But how you ask plausibly moves reliability as much as which model you pick — and unlike a model upgrade, it's nearly free. This is the experiment that varies it.
 
 The specific knob here is **test methodology**. When you tell a coding agent *how* to test — write the tests first, drive from acceptance criteria, use behaviour scenarios — does the resulting code come out more reliably correct? Or is methodology a ritual the model can take or leave on a task it already knows how to do?

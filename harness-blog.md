@@ -1,5 +1,7 @@
 # The Stack Under the Model: oMLX, llama.cpp, Hermes, and Why There Are So Many
 
+*Published 2026-07-22 · updated 2026-07-30 — Adrian Cockcroft*
+
 Most benchmarks answer "which *model* is best?" Retort insists that's the wrong unit. A coding result is produced by a whole **stack** — and the model is only one layer of it:
 
 > **language × model × weights-format × serving engine × agent/harness × context engine × sampling × prompt**
