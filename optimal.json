@@ -1,272 +1,514 @@
 {
   "source": "retort report optimal (master.db)",
   "objective": "cheapest featured stack per language/task that clears its pass-bar",
+  "notes": {
+    "effort": "The thinking level of the CHOSEN cell. 'default' means that stack ran with no effort flag \u2014 it is the level those runs used, not a recommendation, and for most stacks it is the only level ever measured. Where a stack HAS been swept (GPT-5.6 Terra, Opus 5) each level competes separately and the cheapest qualifying one is picked.",
+    "cheapest_cloud/cheapest_local": "The best option of each kind, because 'cheapest overall' alone is not actionable: a local stack at $0 wins every cell it qualifies for, hiding the best answer for anyone who cannot run models locally. Either may be null if nothing of that kind clears the bar.",
+    "null": "No measured stack clears the bar for that cell. NOT 'untested'.",
+    "n": "Replicates behind pass and cost. Several cells are n=1; cost is a point estimate with no error bar and the selection does not weight by n.",
+    "cost": "List price per token for every metered stack (what Claude's CLI reports and a Max plan does not bill; computed for codex, which reports nothing). Local stacks are $0 marginal by override."
+  },
+  "models": [
+    {
+      "stack": "Claude Opus 5",
+      "short": "Opus 5",
+      "kind": "cloud",
+      "routine": {
+        "pass": 1.0,
+        "n": 47,
+        "cost": 3.23
+      },
+      "hard": {
+        "pass": 1.0,
+        "n": 13,
+        "cost": 21.67
+      }
+    },
+    {
+      "stack": "Claude Fable 5",
+      "short": "Fable 5",
+      "kind": "cloud",
+      "routine": {
+        "pass": 1.0,
+        "n": 36,
+        "cost": 1.58
+      },
+      "hard": {
+        "pass": 1.0,
+        "n": 21,
+        "cost": 10.47
+      }
+    },
+    {
+      "stack": "GPT-5.6 Terra (codex)",
+      "short": "Terra",
+      "kind": "cloud",
+      "routine": {
+        "pass": 1.0,
+        "n": 20,
+        "cost": 0.22
+      },
+      "hard": null
+    },
+    {
+      "stack": "GPT-5.6 Luna (codex)",
+      "short": "Luna",
+      "kind": "cloud",
+      "routine": {
+        "pass": 0.67,
+        "n": 9,
+        "cost": 0.09
+      },
+      "hard": null
+    },
+    {
+      "stack": "Claude Sonnet 5",
+      "short": "Sonnet 5",
+      "kind": "cloud",
+      "routine": {
+        "pass": 1.0,
+        "n": 15,
+        "cost": 1.1
+      },
+      "hard": {
+        "pass": 0.93,
+        "n": 15,
+        "cost": 7.64
+      }
+    },
+    {
+      "stack": "Claude Opus 4.8",
+      "short": "Opus 4.8",
+      "kind": "cloud",
+      "routine": {
+        "pass": 0.98,
+        "n": 65,
+        "cost": 0.93
+      },
+      "hard": {
+        "pass": 0.59,
+        "n": 44,
+        "cost": 3.27
+      }
+    },
+    {
+      "stack": "Claude Opus 4.7",
+      "short": "Opus 4.7",
+      "kind": "cloud",
+      "routine": {
+        "pass": 1.0,
+        "n": 57,
+        "cost": 0.92
+      },
+      "hard": {
+        "pass": 0.4,
+        "n": 42,
+        "cost": 2.95
+      }
+    },
+    {
+      "stack": "Qwen3.6-35B-A3B (local, $0)",
+      "short": "Qwen 35B local",
+      "kind": "local",
+      "routine": {
+        "pass": 0.86,
+        "n": 57,
+        "cost": 0.0
+      },
+      "hard": {
+        "pass": 0.25,
+        "n": 12,
+        "cost": 0.0
+      }
+    },
+    {
+      "stack": "Qwen3-Coder-Next 80B (local, $0, ctx 0.9)",
+      "short": "Qwen 80B local",
+      "kind": "local",
+      "routine": {
+        "pass": 1.0,
+        "n": 9,
+        "cost": 0.0
+      },
+      "hard": {
+        "pass": 0.0,
+        "n": 6,
+        "cost": 0.0
+      }
+    }
+  ],
   "routes": {
     "rest-api-crud": {
       "c": {
-        "stack": "Claude Opus 4.8",
-        "models": [
-          "claude-opus-4-8",
-          "opus-4.8"
-        ],
-        "effort": "default",
-        "cost": 1.2778485000000002,
-        "pass": 1.0,
-        "n": 1
+        "cloud": {
+          "stack": "Claude Opus 4.8",
+          "models": [
+            "claude-opus-4-8",
+            "opus-4.8"
+          ],
+          "effort": "default",
+          "cost": 1.2778485000000002,
+          "pass": 1.0,
+          "n": 1
+        },
+        "local": null
       },
       "clojure": {
-        "stack": "Claude Opus 4.7",
-        "models": [
-          "claude-opus-4-7"
-        ],
-        "effort": "default",
-        "cost": 1.0640909583333333,
-        "pass": 1.0,
-        "n": 6
+        "cloud": {
+          "stack": "Claude Opus 4.7",
+          "models": [
+            "claude-opus-4-7"
+          ],
+          "effort": "default",
+          "cost": 1.0640909583333333,
+          "pass": 1.0,
+          "n": 6
+        },
+        "local": null
       },
       "cpp": {
-        "stack": "Claude Opus 4.8",
-        "models": [
-          "claude-opus-4-8",
-          "opus-4.8"
-        ],
-        "effort": "default",
-        "cost": 1.0755649999999999,
-        "pass": 1.0,
-        "n": 1
+        "cloud": {
+          "stack": "Claude Opus 4.8",
+          "models": [
+            "claude-opus-4-8",
+            "opus-4.8"
+          ],
+          "effort": "default",
+          "cost": 1.0755649999999999,
+          "pass": 1.0,
+          "n": 1
+        },
+        "local": null
       },
       "csharp": {
-        "stack": "Claude Opus 4.8",
-        "models": [
-          "claude-opus-4-8",
-          "opus-4.8"
-        ],
-        "effort": "default",
-        "cost": 0.6548685,
-        "pass": 1.0,
-        "n": 1
+        "cloud": {
+          "stack": "Claude Opus 4.8",
+          "models": [
+            "claude-opus-4-8",
+            "opus-4.8"
+          ],
+          "effort": "default",
+          "cost": 0.6548685,
+          "pass": 1.0,
+          "n": 1
+        },
+        "local": null
       },
       "elixir": {
-        "stack": "Claude Opus 4.8",
-        "models": [
-          "claude-opus-4-8",
-          "opus-4.8"
-        ],
-        "effort": "default",
-        "cost": 0.8489111666666668,
-        "pass": 1.0,
-        "n": 3
+        "cloud": {
+          "stack": "Claude Opus 4.8",
+          "models": [
+            "claude-opus-4-8",
+            "opus-4.8"
+          ],
+          "effort": "default",
+          "cost": 0.8489111666666668,
+          "pass": 1.0,
+          "n": 3
+        },
+        "local": null
       },
       "erlang": {
-        "stack": "Claude Opus 4.8",
-        "models": [
-          "claude-opus-4-8",
-          "opus-4.8"
-        ],
-        "effort": "default",
-        "cost": 1.3538590833333333,
-        "pass": 1.0,
-        "n": 3
+        "cloud": {
+          "stack": "Claude Opus 4.8",
+          "models": [
+            "claude-opus-4-8",
+            "opus-4.8"
+          ],
+          "effort": "default",
+          "cost": 1.3538590833333333,
+          "pass": 1.0,
+          "n": 3
+        },
+        "local": null
       },
       "go": {
-        "stack": "Qwen3-Coder-Next 80B (local, $0, ctx 0.9)",
-        "models": [],
-        "effort": "default",
-        "cost": 0.0,
-        "pass": 1.0,
-        "n": 3
+        "cloud": {
+          "stack": "GPT-5.6 Luna (codex)",
+          "models": [
+            "gpt-5.6-luna"
+          ],
+          "effort": "default",
+          "cost": 0.08434506666666668,
+          "pass": 1.0,
+          "n": 3
+        },
+        "local": {
+          "stack": "Qwen3-Coder-Next 80B (local, $0, ctx 0.9)",
+          "models": [],
+          "effort": "default",
+          "cost": 0.0,
+          "pass": 1.0,
+          "n": 3
+        }
       },
       "java": {
-        "stack": "Claude Opus 4.7",
-        "models": [
-          "claude-opus-4-7"
-        ],
-        "effort": "default",
-        "cost": 0.9160888749999999,
-        "pass": 1.0,
-        "n": 6
+        "cloud": {
+          "stack": "Claude Opus 4.7",
+          "models": [
+            "claude-opus-4-7"
+          ],
+          "effort": "default",
+          "cost": 0.9160888749999999,
+          "pass": 1.0,
+          "n": 6
+        },
+        "local": null
       },
       "objc": {
-        "stack": "Claude Opus 4.8",
-        "models": [
-          "claude-opus-4-8",
-          "opus-4.8"
-        ],
-        "effort": "default",
-        "cost": 1.5154185000000004,
-        "pass": 1.0,
-        "n": 1
+        "cloud": {
+          "stack": "Claude Opus 4.8",
+          "models": [
+            "claude-opus-4-8",
+            "opus-4.8"
+          ],
+          "effort": "default",
+          "cost": 1.5154185000000004,
+          "pass": 1.0,
+          "n": 1
+        },
+        "local": null
       },
       "python": {
-        "stack": "Qwen3-Coder-Next 80B (local, $0, ctx 0.9)",
-        "models": [],
-        "effort": "default",
-        "cost": 0.0,
-        "pass": 1.0,
-        "n": 3
+        "cloud": {
+          "stack": "GPT-5.6 Luna (codex)",
+          "models": [
+            "gpt-5.6-luna"
+          ],
+          "effort": "default",
+          "cost": 0.06169993333333334,
+          "pass": 1.0,
+          "n": 3
+        },
+        "local": {
+          "stack": "Qwen3-Coder-Next 80B (local, $0, ctx 0.9)",
+          "models": [],
+          "effort": "default",
+          "cost": 0.0,
+          "pass": 1.0,
+          "n": 3
+        }
       },
       "rust": {
-        "stack": "Claude Opus 4.8",
-        "models": [
-          "claude-opus-4-8",
-          "opus-4.8"
-        ],
-        "effort": "default",
-        "cost": 0.7134874583333334,
-        "pass": 1.0,
-        "n": 6
+        "cloud": {
+          "stack": "Claude Opus 4.8",
+          "models": [
+            "claude-opus-4-8",
+            "opus-4.8"
+          ],
+          "effort": "default",
+          "cost": 0.7134874583333334,
+          "pass": 1.0,
+          "n": 6
+        },
+        "local": null
       },
       "swift": {
-        "stack": "Claude Opus 4.8",
-        "models": [
-          "claude-opus-4-8",
-          "opus-4.8"
-        ],
-        "effort": "default",
-        "cost": 1.2517565000000002,
-        "pass": 1.0,
-        "n": 1
+        "cloud": {
+          "stack": "Claude Opus 4.8",
+          "models": [
+            "claude-opus-4-8",
+            "opus-4.8"
+          ],
+          "effort": "default",
+          "cost": 1.2517565000000002,
+          "pass": 1.0,
+          "n": 1
+        },
+        "local": null
       },
       "typescript": {
-        "stack": "Qwen3-Coder-Next 80B (local, $0, ctx 0.9)",
-        "models": [],
-        "effort": "default",
-        "cost": 0.0,
-        "pass": 1.0,
-        "n": 3
+        "cloud": {
+          "stack": "Claude Opus 4.8",
+          "models": [
+            "claude-opus-4-8",
+            "opus-4.8"
+          ],
+          "effort": "default",
+          "cost": 0.6518629285714285,
+          "pass": 1.0,
+          "n": 7
+        },
+        "local": {
+          "stack": "Qwen3-Coder-Next 80B (local, $0, ctx 0.9)",
+          "models": [],
+          "effort": "default",
+          "cost": 0.0,
+          "pass": 1.0,
+          "n": 3
+        }
       }
     },
     "brazil-soccer-mcp": {
       "c": {
-        "stack": "Claude Fable 5",
-        "models": [
-          "claude-fable-5"
-        ],
-        "effort": "default",
-        "cost": 10.587464999999998,
-        "pass": 1.0,
-        "n": 1
+        "cloud": {
+          "stack": "Claude Fable 5",
+          "models": [
+            "claude-fable-5"
+          ],
+          "effort": "default",
+          "cost": 10.587464999999998,
+          "pass": 1.0,
+          "n": 1
+        },
+        "local": null
       },
       "clojure": {
-        "stack": "Claude Opus 5",
-        "models": [
-          "claude-opus-5"
-        ],
-        "effort": "default",
-        "cost": 2.5517610000000004,
-        "pass": 1.0,
-        "n": 1
+        "cloud": {
+          "stack": "Claude Opus 5",
+          "models": [
+            "claude-opus-5"
+          ],
+          "effort": "default",
+          "cost": 2.5517610000000004,
+          "pass": 1.0,
+          "n": 1
+        },
+        "local": null
       },
       "cpp": {
-        "stack": "Claude Opus 5",
-        "models": [
-          "claude-opus-5"
-        ],
-        "effort": "default",
-        "cost": 17.496295500000002,
-        "pass": 1.0,
-        "n": 1
+        "cloud": {
+          "stack": "Claude Opus 5",
+          "models": [
+            "claude-opus-5"
+          ],
+          "effort": "default",
+          "cost": 17.496295500000002,
+          "pass": 1.0,
+          "n": 1
+        },
+        "local": null
       },
       "csharp": {
-        "stack": "Claude Sonnet 5",
-        "models": [
-          "sonnet-5"
-        ],
-        "effort": "default",
-        "cost": 9.964222999999999,
-        "pass": 1.0,
-        "n": 3
+        "cloud": {
+          "stack": "Claude Sonnet 5",
+          "models": [
+            "sonnet-5"
+          ],
+          "effort": "default",
+          "cost": 9.964222999999999,
+          "pass": 1.0,
+          "n": 3
+        },
+        "local": null
       },
       "elixir": {
-        "stack": "Claude Fable 5",
-        "models": [
-          "claude-fable-5"
-        ],
-        "effort": "default",
-        "cost": 13.207735000000003,
-        "pass": 1.0,
-        "n": 1
+        "cloud": {
+          "stack": "Claude Fable 5",
+          "models": [
+            "claude-fable-5"
+          ],
+          "effort": "default",
+          "cost": 13.207735000000003,
+          "pass": 1.0,
+          "n": 1
+        },
+        "local": null
       },
       "erlang": {
-        "stack": "Claude Fable 5",
-        "models": [
-          "claude-fable-5"
-        ],
-        "effort": "default",
-        "cost": 12.062622000000001,
-        "pass": 1.0,
-        "n": 1
+        "cloud": {
+          "stack": "Claude Fable 5",
+          "models": [
+            "claude-fable-5"
+          ],
+          "effort": "default",
+          "cost": 12.062622000000001,
+          "pass": 1.0,
+          "n": 1
+        },
+        "local": null
       },
       "go": {
-        "stack": "Claude Opus 4.8",
-        "models": [
-          "claude-opus-4-8",
-          "opus-4.8"
-        ],
-        "effort": "default",
-        "cost": 5.303661833333332,
-        "pass": 1.0,
-        "n": 6
+        "cloud": {
+          "stack": "Claude Opus 4.8",
+          "models": [
+            "claude-opus-4-8",
+            "opus-4.8"
+          ],
+          "effort": "default",
+          "cost": 5.303661833333332,
+          "pass": 1.0,
+          "n": 6
+        },
+        "local": null
       },
       "java": {
-        "stack": "Claude Fable 5",
-        "models": [
-          "claude-fable-5"
-        ],
-        "effort": "default",
-        "cost": 12.011324000000002,
-        "pass": 1.0,
-        "n": 1
+        "cloud": {
+          "stack": "Claude Fable 5",
+          "models": [
+            "claude-fable-5"
+          ],
+          "effort": "default",
+          "cost": 12.011324000000002,
+          "pass": 1.0,
+          "n": 1
+        },
+        "local": null
       },
       "objc": {
-        "stack": "Claude Fable 5",
-        "models": [
-          "claude-fable-5"
-        ],
-        "effort": "default",
-        "cost": 13.297392999999994,
-        "pass": 1.0,
-        "n": 1
+        "cloud": {
+          "stack": "Claude Fable 5",
+          "models": [
+            "claude-fable-5"
+          ],
+          "effort": "default",
+          "cost": 13.297392999999994,
+          "pass": 1.0,
+          "n": 1
+        },
+        "local": null
       },
       "python": {
-        "stack": "Claude Opus 4.7",
-        "models": [
-          "claude-opus-4-7"
-        ],
-        "effort": "default",
-        "cost": 4.64231875,
-        "pass": 1.0,
-        "n": 3
+        "cloud": {
+          "stack": "Claude Opus 4.7",
+          "models": [
+            "claude-opus-4-7"
+          ],
+          "effort": "default",
+          "cost": 4.64231875,
+          "pass": 1.0,
+          "n": 3
+        },
+        "local": null
       },
       "rust": {
-        "stack": "Claude Fable 5",
-        "models": [
-          "claude-fable-5"
-        ],
-        "effort": "default",
-        "cost": 9.629584833333332,
-        "pass": 1.0,
-        "n": 3
+        "cloud": {
+          "stack": "Claude Fable 5",
+          "models": [
+            "claude-fable-5"
+          ],
+          "effort": "default",
+          "cost": 9.629584833333332,
+          "pass": 1.0,
+          "n": 3
+        },
+        "local": null
       },
       "swift": {
-        "stack": "Claude Fable 5",
-        "models": [
-          "claude-fable-5"
-        ],
-        "effort": "default",
-        "cost": 9.243886,
-        "pass": 1.0,
-        "n": 1
+        "cloud": {
+          "stack": "Claude Fable 5",
+          "models": [
+            "claude-fable-5"
+          ],
+          "effort": "default",
+          "cost": 9.243886,
+          "pass": 1.0,
+          "n": 1
+        },
+        "local": null
       },
       "typescript": {
-        "stack": "Claude Opus 4.7",
-        "models": [
-          "claude-opus-4-7"
-        ],
-        "effort": "default",
-        "cost": 4.141262416666668,
-        "pass": 1.0,
-        "n": 3
+        "cloud": {
+          "stack": "Claude Opus 4.7",
+          "models": [
+            "claude-opus-4-7"
+          ],
+          "effort": "default",
+          "cost": 4.141262416666668,
+          "pass": 1.0,
+          "n": 3
+        },
+        "local": null
       }
     }
   }

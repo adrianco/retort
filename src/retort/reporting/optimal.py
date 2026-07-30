@@ -72,6 +72,25 @@ FEATURED_STACKS = [
         "pass_bar": 1.00,
     },
     {
+        # OpenAI's GPT-5.6 tiers, driven by `codex exec`. Priced onto the Claude
+        # ladder rather than against it: Luna<->Sonnet, Terra<->Opus, Sol<->Fable.
+        # Cost for these is COMPUTED at list price per token (retort.pricing) —
+        # a ChatGPT subscription reports none, and recording $0 would have made
+        # them win every cheapest-qualifying route on an unmeasured number.
+        "name": "GPT-5.6 Terra (codex)",
+        "short": "Terra",
+        "models": ["gpt-5.6-terra"],
+        "kind": "cloud",
+        "pass_bar": 1.00,
+    },
+    {
+        "name": "GPT-5.6 Luna (codex)",
+        "short": "Luna",
+        "models": ["gpt-5.6-luna"],
+        "kind": "cloud",
+        "pass_bar": 1.00,
+    },
+    {
         "name": "Claude Sonnet 5",
         "short": "Sonnet 5",
         "models": ["sonnet-5"],
@@ -366,16 +385,50 @@ def per_language_routing(conn, task=ROUTINE_TASK):
         # Cheapest qualifying; ties broken toward the better-replicated cell so a
         # lucky n=1 outlier doesn't beat a well-measured alternative on noise.
         candidates.sort(key=lambda c: (c[0], -c[2]["n"]))
-        cost, s, m, eff = candidates[0]
-        routing[lang] = {
-            "stack": s["name"],
-            "models": list(s.get("models", [])),
-            "effort": eff or "default",
-            "cost": 0.0 if s.get("cost_override") == 0.0 else m["cost"],
-            "pass": m["pass"],
-            "n": m["n"],
-        }
+
+        def record(entry):
+            cost, s, m, eff = entry
+            return {
+                "stack": s["name"],
+                "models": list(s.get("models", [])),
+                "effort": eff or "default",
+                "cost": 0.0 if s.get("cost_override") == 0.0 else m["cost"],
+                "pass": m["pass"],
+                "n": m["n"],
+            }
+
+        # LOCAL AND CLOUD ARE REPORTED SEPARATELY, not merged into one winner.
+        #
+        # A local stack costs $0 marginal, so "cheapest overall" is always local
+        # wherever local qualifies — which hides the only number a reader without
+        # that hardware can act on, and makes `effort` read "default" simply
+        # because the local stack was never swept. The two are also not really
+        # comparable: local is MACHINE-SPECIFIC (this is a 64 GB M5; a different
+        # box gets different answers), while a cloud stack is reproducible by
+        # anyone with an API key.
+        #
+        # So each cell reports the best of each kind. `local` may be null (no
+        # local stack clears the bar) and so may `cloud`; null means "nothing
+        # measured qualifies", never "untested".
+        entry = {}
+        for kind in ("cloud", "local"):
+            pick = next((c for c in candidates if c[1].get("kind") == kind), None)
+            entry[kind] = record(pick) if pick else None
+        routing[lang] = entry
     return routing
+
+
+def _best(rec, kind="cloud"):
+    """The chosen record of one kind from a routing cell, or None.
+
+    Tolerates the older flat shape (a single winner per cell) so callers written
+    against it keep working.
+    """
+    if not rec:
+        return None
+    if kind in rec or "cloud" in rec:
+        return rec.get(kind)
+    return rec  # legacy flat record
 
 
 def efforts_for(conn, stack, task, language):
@@ -402,43 +455,101 @@ def efforts_for(conn, stack, task, language):
     return levels if len(levels) > 1 else [None]
 
 
-def per_language_routing_table(conn):
-    """Both task sizes side by side, as (model × thinking level) pairs.
+def model_board(conn):
+    """Per-STACK summary on both tasks — the board at the top of model-blog.
 
-    This is the document's lead table: a stack is a model AND an effort level,
-    and exp-49 measured a 16x cost spread across (model, effort) combinations
-    that all scored 1.00. Recommending a bare model would leave the larger lever
-    unspecified.
+    Generated from the same FEATURED_STACKS curation as everything else, so the
+    published table and `optimal.json`'s `models` block are the same numbers by
+    construction rather than by transcription. Before this existed the board was
+    maintained by hand and drifted: it once showed Opus 4.8 at 1.00 on the hard
+    task (a three-language subset) while the prose two screens down said 0.59.
+    """
+    rows = []
+    for s in FEATURED_STACKS:
+        # Scope a local stack's ROUTINE number to the languages it is actually
+        # recommended for, exactly as the leading-stacks table does — otherwise
+        # the same stack reports two different figures in the same repo. Without
+        # this the 80B reads 0.37, because the average is dragged down by the
+        # niche languages it cannot do and which you would send to cloud anyway.
+        # The per-language matrix stays unscoped and shows those 0.00s in full.
+        easy = metrics(conn, stack_where(s), ROUTINE_TASK,
+                       languages=s.get("routine_scope"))
+        hard = metrics(conn, stack_where(s), HARD_TASK)
+        rows.append({
+            "stack": s["name"],
+            "short": s["short"],
+            "kind": s["kind"],
+            "routine": None if not easy["n"] else {
+                "pass": round(easy["pass"], 2), "n": easy["n"],
+                "cost": 0.0 if s.get("cost_override") == 0.0 else round(easy["cost"] or 0, 2),
+            },
+            "hard": None if not hard["n"] else {
+                "pass": round(hard["pass"], 2), "n": hard["n"],
+                "cost": 0.0 if s.get("cost_override") == 0.0 else round(hard["cost"] or 0, 2),
+            },
+        })
+    return rows
+
+
+def model_board_table(conn):
+    lines = ["| Stack | Serving | Easy: pass | Easy: $ | Hard: pass | Hard: $ |",
+             "|---|---|---:|---:|---:|---:|"]
+    for r in model_board(conn):
+        serving = "**local · $0**" if r["kind"] == "local" else "cloud"
+        def cells(d):
+            if not d:
+                return ("*not run*", "—")
+            v = f"{d['pass']:.2f} ({d['n']})"
+            v = f"**{v}**" if d["pass"] >= 1.0 else v
+            return (v, "$0" if d["cost"] == 0.0 else f"${d['cost']:.2f}")
+        ep, ec = cells(r["routine"])
+        hp, hc = cells(r["hard"])
+        name = f"**{r['stack']}**" if r["kind"] == "local" else r["stack"]
+        lines.append(f"| {name} | {serving} | {ep} | {ec} | {hp} | {hc} |")
+    return "\n".join(lines)
+
+
+def per_language_routing_table(conn):
+    """Best CLOUD (model @ effort) and best LOCAL, per language, both task sizes.
+
+    Cloud first because it is reproducible by anyone; local is reported beside it
+    but is MACHINE-SPECIFIC (these numbers are a 64 GB M5) and $0 marginal, so
+    merging the two into one "winner" would let $0 hide the only figure most
+    readers can act on.
     """
     routine = per_language_routing(conn, ROUTINE_TASK)
     hard = per_language_routing(conn, HARD_TASK)
     langs = sorted(set(routine) | set(hard))
     lines = [
-        "| Language | Routine → model @ effort | pass | cost | Hard task → model @ effort | pass | cost |",
-        "|---|---|---:|---:|---|---:|---:|",
+        "| Language | Routine → cloud | pass | $ | Routine → local | Hard → cloud | pass | $ |",
+        "|---|---|---:|---:|---|---|---:|---:|",
     ]
 
-    def cell(r):
-        if r is None:
-            return ("*none qualifies*", "—", "—")
-        short = r["stack"].replace("Claude ", "").replace(" (local, $0)", " (local)")
-        short = short.replace(" (local, $0, ctx 0.9)", " (local)")
-        label = f"{short} @ `{r['effort']}` <sub>n={r['n']}</sub>"
-        cost = "$0" if r["cost"] == 0.0 else f"${r['cost']:.2f}"
-        # SHOW THE PASS RATE. Local stacks qualify at a 0.50 bar (a $0 stack is
-        # worth a lower bar, reviewed) — so a coin-flip local option can outrank
-        # a perfect cloud one purely on cost. That is a legitimate trade only if
-        # the reader can SEE it; a cost-only table would read as "recommended"
-        # when it means "cheapest thing that cleared a deliberately lower bar".
-        p = f"{r['pass']:.2f}"
-        if r["pass"] < 1.0:
-            p = f"**{p}**"          # flag anything that is not perfect
-        return (label, p, cost)
+    def short(r):
+        if not r:
+            return "—"
+        s = r["stack"].replace("Claude ", "").replace(" (codex)", "")
+        s = s.replace(" (local, $0)", "").replace(" (local, $0, ctx 0.9)", "")
+        return f"{s} @ `{r['effort']}` <sub>n={r['n']}</sub>"
+
+    def money(r):
+        if not r:
+            return "—"
+        return "$0" if r["cost"] == 0.0 else f"${r['cost']:.2f}"
+
+    def rate(r):
+        if not r:
+            return "—"
+        v = f"{r['pass']:.2f}"
+        return f"**{v}**" if r["pass"] < 1.0 else v
 
     for lang in langs:
-        rl, rp, rc = cell(routine.get(lang))
-        hl, hp, hc = cell(hard.get(lang))
-        lines.append(f"| **{lang}** | {rl} | {rp} | {rc} | {hl} | {hp} | {hc} |")
+        rc, rl = _best(routine.get(lang), "cloud"), _best(routine.get(lang), "local")
+        hc = _best(hard.get(lang), "cloud")
+        lines.append(
+            f"| **{lang}** | {short(rc)} | {rate(rc)} | {money(rc)} | {short(rl)} "
+            f"| {short(hc)} | {rate(hc)} | {money(hc)} |"
+        )
     return "\n".join(lines)
 
 
@@ -448,7 +559,10 @@ def per_language_table(conn):
         "| Language | Routine → cheapest qualifying stack | Reliability | n |",
         "|---|---|---:|---:|",
     ]
-    for lang, r in routing.items():
+    for lang, rec in routing.items():
+        c_, l_ = _best(rec, "cloud"), _best(rec, "local")
+        # cheapest of whichever kinds qualify
+        r = min((x for x in (c_, l_) if x), key=lambda x: x["cost"], default=None)
         if r is None:
             lines.append(f"| **{lang}** | *no qualifying stack in db* | — | — |")
             continue
@@ -473,6 +587,29 @@ def routing_config(conn):
     return {
         "source": "retort report optimal (master.db)",
         "objective": "cheapest featured stack per language/task that clears its pass-bar",
+        "notes": {
+            "effort": (
+                "The thinking level of the CHOSEN cell. 'default' means that stack "
+                "ran with no effort flag — it is the level those runs used, not a "
+                "recommendation, and for most stacks it is the only level ever "
+                "measured. Where a stack HAS been swept (GPT-5.6 Terra, Opus 5) "
+                "each level competes separately and the cheapest qualifying one "
+                "is picked."
+            ),
+            "cheapest_cloud/cheapest_local": (
+                "The best option of each kind, because 'cheapest overall' alone is "
+                "not actionable: a local stack at $0 wins every cell it qualifies "
+                "for, hiding the best answer for anyone who cannot run models "
+                "locally. Either may be null if nothing of that kind clears the bar."
+            ),
+            "null": "No measured stack clears the bar for that cell. NOT 'untested'.",
+            "n": "Replicates behind pass and cost. Several cells are n=1; cost is a "
+                 "point estimate with no error bar and the selection does not weight by n.",
+            "cost": "List price per token for every metered stack (what Claude's CLI "
+                    "reports and a Max plan does not bill; computed for codex, which "
+                    "reports nothing). Local stacks are $0 marginal by override.",
+        },
+        "models": model_board(conn),
         "routes": routes,
     }
 
@@ -596,6 +733,7 @@ def splice(path: Path, conn) -> tuple[int, list[str]]:
         "per-language-matrix": per_language_matrix(conn),
         "per-language": per_language_table(conn),
         "per-language-routing": per_language_routing_table(conn),
+        "model-board": model_board_table(conn),
         "prompt-method": prompt_method_table(conn),
     }
     text = path.read_text()

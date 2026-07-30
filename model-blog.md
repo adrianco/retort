@@ -26,26 +26,33 @@ Read it as **the probability that a single run comes out completely correct.** 3
 
 Here is the full board, every model measured on the two tasks — **pass-proportion = the probability a single run comes out completely correct** — with the newest additions (local, on-device, $0) in bold at the bottom:
 
-| Model | Serving | Brazil MCP (hard) | REST-API (easy) | Cost/run (hard) |
-|---|---|---:|---:|---:|
-| **Claude Fable 5** ³ | cloud | **1.00** (21) | **1.00** (21) | **$10.47** |
-| Claude Opus 5 *(newest)* ¹⁰ | cloud | **1.00** (13) | **1.00** (13) | $21.67 |
-| Claude Opus 4.8 fast ² | cloud | **1.00** (12) | **1.00** (12) | $8.72 |
-| Claude Sonnet 5 ⁴ | cloud | 0.93 (15) | **1.00** (15) | $7.64 |
-| Claude Opus 4.8 | cloud | 0.57 (42) | 0.98 (46) | $3.16 |
-| Claude Opus 4.7 | cloud | 0.40 (42) | **1.00** (42) | $2.95 |
-| Claude Opus 4.6 | cloud | 0.50 (8) | 0.59 | $1.67 |
-| **GPT-5.6 Terra** *(OpenAI)* ¹² | cloud | *not yet run* | **1.00** (20) | — |
-| **GPT-5.6 Luna** *(OpenAI)* ¹² | cloud | *not yet run* | 0.67 (9) | — |
-| **Qwen3-Coder-Next-80B-A3B** *(best local, ctx 0.9)* ⁷ | **local · $0** | **0.00** ⁹ | **1.00** | **$0** |
-| **Qwen3.6-35B-A3B** *(faster local: Python/Go)* ⁵ | **local · $0** | **0.25** | **0.85** | **$0** |
-| **Qwen3-Coder-30B-A3B** ⁶ | **local · $0** | — | **0.33** | **$0** |
-| **gpt-oss-20b** *(OpenAI open weights)* ¹¹ | **local · $0** | — | 0.60 (15) | **$0** |
-| **Devstral-24B** *(agent-tuned, wrong harness)* ⁸ | **local · $0** | — | 0.17 | **$0** |
+<!-- GEN:model-board START -->
+| Stack | Serving | Easy: pass | Easy: $ | Hard: pass | Hard: $ |
+|---|---|---:|---:|---:|---:|
+| Claude Opus 5 | cloud | **1.00 (47)** | $3.23 | **1.00 (13)** | $21.67 |
+| Claude Fable 5 | cloud | **1.00 (36)** | $1.58 | **1.00 (21)** | $10.47 |
+| GPT-5.6 Terra (codex) | cloud | **1.00 (20)** | $0.22 | *not run* | — |
+| GPT-5.6 Luna (codex) | cloud | 0.67 (9) | $0.09 | *not run* | — |
+| Claude Sonnet 5 | cloud | **1.00 (15)** | $1.10 | 0.93 (15) | $7.64 |
+| Claude Opus 4.8 | cloud | 0.98 (65) | $0.93 | 0.59 (44) | $3.27 |
+| Claude Opus 4.7 | cloud | **1.00 (57)** | $0.92 | 0.40 (42) | $2.95 |
+| **Qwen3.6-35B-A3B (local, $0)** | **local · $0** | 0.86 (57) | $0 | 0.25 (12) | $0 |
+| **Qwen3-Coder-Next 80B (local, $0, ctx 0.9)** | **local · $0** | **1.00 (9)** | $0 | 0.00 (6) | $0 |
+<!-- GEN:model-board END -->
+
+*Table generated from `master.db` by `retort report optimal --write model-blog.md` — do not hand-edit between the markers. The same numbers are published machine-readably in [`optimal.json`](optimal.json) under `models`, so the table and the JSON cannot drift apart. Retired/legacy stacks that no longer lead on any axis (Opus 4.6, Qwen3-Coder-30B, Devstral-24B) are covered in the footnotes rather than the board.*
+
+**Terra is the cheapest 1.00 on the board — by a factor of 4 to 15 against every Claude stack that also scores 1.00 on the routine task.** \$0.22 a run against Fable 5's \$1.58, Opus 5's \$3.23, and Opus 4.7's \$0.92, all at the same verified reliability. On matched thinking levels the gap runs from 4.3× to 40× (see [versions-blog](versions-blog.md)). If your work looks like the routine task, that is not a close call.
+
+**But "Codex is the better model" is not what this table says yet, and it is worth being precise about why.** Terra's hard-task row reads *not run* — not 0.00, not a failure, simply unmeasured. Claude's advantage on this board is entirely in a column Terra has not entered. And Luna, the tier that *has* been pushed a little further, sits at 0.67, having shipped TypeScript whose tests it had watched fail.
+
+This project has made exactly this mistake before, in the other direction. exp-46 crowned Opus 5 "the only model that clears the hard task in every language" — a claim that survived precisely as long as it took to *run* Fable 5 on the nine languages nobody had tried it on. Fable 5 cleared all nine, at half the cost. **An unrun cell and an unpassable cell look identical in a results table.** Terra's blank hard-task column is that same blank, and the honest reading is "cheapest thing that clears routine work, hard task pending" rather than "better model".
+
+The hard-task run is in progress. If Terra holds 1.00 there at anything like these prices, the recommendation changes across the board; if it collapses the way local models do on brazil, Claude keeps the hard-task tier and Codex owns the routine one. Either way the table will say so.
 
 > **Read the replicate counts (in brackets), and mind the language mix.** These are all-language averages, and the models have *not* all been run on the same languages. Opus 4.8 and 4.7 have been pushed across all thirteen — including the ones nothing handles well — while Opus 5 and Fable 5 have 13–14 hard-task cells each. A model tested only on the languages it is good at will look better than one tested everywhere. **The per-language matrix in [optimal-blog.md](optimal-blog.md) is the like-for-like comparison; this board is a summary.** This is also why Opus 4.8's hard-task number reads 0.57 here where an earlier version of this board said 1.00 — that figure came from a three-language subset (Python/Go/TypeScript), which is where 4.8 *is* reliable.
 
-¹² **GPT-5.6 Terra / Luna** via `codex exec` — the first non-Claude cloud lineage here. Routine-task only so far. Terra is 20/20 at 1.00 across five thinking levels on Python+Go for **\$0.15–0.35 a run**; Luna is 1.00 on Python and Go but 0.00 on TypeScript (a genuine failure — it chose a native dependency that will not build on this machine's Node, watched its own tests fail, and shipped anyway), giving 0.67 over the three languages. Cost is computed at list price per token, since a ChatGPT subscription reports none. See the lead section.
+¹² **GPT-5.6 Terra / Luna** via `codex exec` — the first non-Claude cloud lineage here, and **routine-task only so far** (the hard-task column is genuinely unrun, not a failure). The cost column above is hard-task, so it is blank for both; on the routine task **Terra averages \$0.22 and Luna \$0.09 a run**. Terra is 20/20 at 1.00 across all five thinking levels on Python+Go. Luna is 1.00 on Python and Go but 0.00 on TypeScript — a genuine failure, not a harness artifact: it chose a native dependency that will not build on this machine's Node, watched its own tests fail, and shipped anyway — giving 0.67 over the three languages. Cost for both is **computed at list price per token**, since a ChatGPT subscription reports none; recording \$0 would have made them win every cheapest-stack ranking on a number nobody measured.
 
 ² Fast mode (`/fast`), 4 languages. Cost at fast mode's **2× per-token rate** ([announcement](https://www.anthropic.com/news/claude-opus-4-8)) — see [Fast mode](#fast-mode-speed-you-pay-double-for).
 ³ **Claude Fable 5** — a distinct model a *tier above* Opus 4.8, priced at the same $10/$50 rate as fast mode. More below.

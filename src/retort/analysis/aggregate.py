@@ -77,6 +77,42 @@ def unknown_factors() -> set[str]:
     return _SEEN_FACTOR_KEYS - set(FACTORS) - _NON_FACTOR_KEYS
 
 
+def model_from_archives(exp_dir: Path) -> str:
+    """The model an experiment ran, recovered from its archived ``stack.json``.
+
+    Some designs name the model only in the agent PROFILE
+    (``playpen.local_agents.<name>.model``) rather than as a design column, so
+    the run_config carries no `model` and the row aggregates with a blank id —
+    260 rows in master.db, which is why the reporting layer has to guess a stack
+    from the experiment slug. The runner does record the effective model in each
+    run's ``stack.json``, so it is recoverable.
+
+    CONSERVATIVE ON PURPOSE: returns a model only when every archive in the
+    experiment agrees. A multi-model experiment returns "" and its rows stay
+    blank rather than being assigned a wrong id — mis-attributing runs to a
+    model is exactly how gpt-oss runs once got counted as the 35B's.
+    """
+    models = set()
+    for sj in exp_dir.glob("runs/**/stack.json"):
+        # Skip "<cell>-failed" / "rep1-failed" snapshots: those are SUPERSEDED
+        # attempts kept for diagnosis (a pre-repair copy, or a run that was
+        # relaunched under a different config). exp-53 retained a first launch
+        # under gpt-5.3-codex before the model was switched to gpt-5.6-luna, so
+        # counting them made a single-model experiment look multi-model and the
+        # conservative check refused to backfill anything.
+        if any(part.endswith("-failed") for part in sj.parts):
+            continue
+        try:
+            m = json.loads(sj.read_text()).get("model")
+        except Exception:  # noqa: BLE001 — a damaged archive must not break aggregation
+            continue
+        if m:
+            models.add(m)
+        if len(models) > 1:
+            return ""
+    return models.pop() if len(models) == 1 else ""
+
+
 def judge_for(exp_dir: Path) -> str:
     """Which judge graded this experiment, as ``harness:model`` (or "" if unknown).
 
@@ -196,6 +232,8 @@ def collect_runs(experiments_dir: Path) -> list[dict]:
             exp = f"{owner}/{exp}"
         task = task_for(parent)
         judge = judge_for(parent)
+        # Recover a model the design didn't name as a column (see docstring).
+        fallback_model = model_from_archives(parent)
         con = sqlite3.connect(f"file:{db}?mode=ro", uri=True)
         con.row_factory = sqlite3.Row
         try:
@@ -217,6 +255,8 @@ def collect_runs(experiments_dir: Path) -> list[dict]:
             _SEEN_FACTOR_KEYS.update(k for k in cfg if k not in _NON_FACTOR_KEYS)
             for f in FACTORS:
                 row[f] = cfg.get(f)
+            if not row.get("model") and fallback_model:
+                row["model"] = fallback_model
             for m in METRICS:
                 row[m] = None
             for c in TELEMETRY.values():

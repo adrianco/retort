@@ -45,7 +45,7 @@ tasks:
   - source: github://brazil-bench/benchmark-template/brazilian-soccer-mcp-guide.md
 playpen:
   runner: local
-  replicates: 2
+  replicates: 1
   timeout_minutes: 150
   stall_minutes: 30
   max_turns: 200
