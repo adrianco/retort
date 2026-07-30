@@ -6,7 +6,7 @@
 
 Every few weeks a new frontier model tops the leaderboards, and the implicit advice is "upgrade." Sites like **[llm-stats.com](https://llm-stats.com/)** rank models well across many benchmarks — but they answer a question most engineering teams aren't actually asking. They hold the *stack* constant: one prompt, one harness, a fixed benchmark. They don't tell you whether the newest model is worth 4× the cost **in Rust**, how *reliably* each model gets a Go MCP server completely right, or how long any of it takes.
 
-Those are the variables that decide a real project. So I built **[retort](https://github.com/adrianco/retort)** to measure them properly — with statistical Design of Experiments, the same technique you'd use to tune a manufacturing process. Vary the factors you care about (here: programming **language** × **model version** × **tooling** — and, newly, the **coding agent**, the **prompt methodology**, and **local self-hosted models**), run a factorial grid on a real task, score every cell, and let the analysis tell you which factors actually matter. And because retort accumulates results across a shared database, each new model just gets *added* to what's already known — the point of the project is to measure how each new release behaves without re-running everything. It now spans two tasks, **thirteen** languages, the Claude Sonnet/Opus lines (plus a fast-mode variant, the tier-above Fable 5, and the newest Opus 5), and **local models running for free on a laptop**. **Newest first:** the most recent work re-baselined that on-device local stack — an M5 laptop, $0 per token — on the newest local model (Qwen3-Coder-Next 80B) at full context, and found it now runs Python, Go *and* TypeScript completely reliably (**1.00 each**) — the first time a free laptop stack matches the cloud frontier on those three languages. A follow-up confirmed the *hard* task stays out of local reach regardless of that setting. That's the lead section immediately below the headline board; the rest of the local-model arc and the cloud-model detail (Sonnet 5 and the rest) follow.
+Those are the variables that decide a real project. So I built **[retort](https://github.com/adrianco/retort)** to measure them properly — with statistical Design of Experiments, the same technique you'd use to tune a manufacturing process. Vary the factors you care about (here: programming **language** × **model version** × **tooling** — and, newly, the **coding agent**, the **prompt methodology**, and **local self-hosted models**), run a factorial grid on a real task, score every cell, and let the analysis tell you which factors actually matter. And because retort accumulates results across a shared database, each new model just gets *added* to what's already known — the point of the project is to measure how each new release behaves without re-running everything. It now spans two tasks, **thirteen** languages, the Claude Sonnet/Opus lines (plus a fast-mode variant, the tier-above Fable 5, and the newest Opus 5), **OpenAI's Codex line (GPT-5.6)**, and **local models running for free on a laptop**. **Newest first:** the most recent work added a second vendor and a **thinking-level dial**, and found that the dial moves cost further than the model choice does — a matched-effort comparison spans **40×** for identical results (lead section below). Before that, work re-baselined the on-device local stack — an M5 laptop, $0 per token — on the newest local model (Qwen3-Coder-Next 80B) at full context, and found it now runs Python, Go *and* TypeScript completely reliably (**1.00 each**) — the first time a free laptop stack matches the cloud frontier on those three languages. A follow-up confirmed the *hard* task stays out of local reach regardless of that setting. That's the lead section immediately below the headline board; the rest of the local-model arc and the cloud-model detail (Sonnet 5 and the rest) follow.
 
 ## The metric that matters: how often is it *completely* right?
 
@@ -27,6 +27,13 @@ Here is the full board, every model measured on the two tasks — **pass-proport
 | Claude Opus 4.8 | cloud | 0.57 (42) | 0.98 (46) | $3.16 |
 | Claude Opus 4.7 | cloud | 0.40 (42) | **1.00** (42) | $2.95 |
 | Claude Opus 4.6 | cloud | 0.50 (8) | 0.59 | $1.67 |
+| **GPT-5.6 Terra** *(OpenAI)* ¹² | cloud | *not yet run* | **1.00** (20) | — |
+| **GPT-5.6 Luna** *(OpenAI)* ¹² | cloud | *not yet run* | 0.67 (9) | — |
+| **Qwen3-Coder-Next-80B-A3B** *(best local, ctx 0.9)* ⁷ | **local · $0** | **0.00** ⁹ | **1.00** | **$0** |
+| **Qwen3.6-35B-A3B** *(faster local: Python/Go)* ⁵ | **local · $0** | **0.25** | **0.85** | **$0** |
+| **Qwen3-Coder-30B-A3B** ⁶ | **local · $0** | — | **0.33** | **$0** |
+| **gpt-oss-20b** *(OpenAI open weights)* ¹¹ | **local · $0** | — | 0.60 (15) | **$0** |
+| **Devstral-24B** *(agent-tuned, wrong harness)* ⁸ | **local · $0** | — | 0.17 | **$0** |
 
 > **Read the replicate counts (in brackets), and mind the language mix.** These are all-language
 > averages, and the models have *not* all been run on the same languages. Opus 4.8 and 4.7 have been
@@ -36,11 +43,8 @@ Here is the full board, every model measured on the two tasks — **pass-proport
 > like-for-like comparison; this board is a summary.** This is also why Opus 4.8's hard-task number
 > reads 0.57 here where an earlier version of this board said 1.00 — that figure came from a
 > three-language subset (Python/Go/TypeScript), which is where 4.8 *is* reliable.
-| **Qwen3-Coder-Next-80B-A3B** *(best local, ctx 0.9)* ⁷ | **local · $0** | **0.00** ⁹ | **1.00** | **$0** |
-| **Qwen3.6-35B-A3B** *(faster local: Python/Go)* ⁵ | **local · $0** | **0.25** | **0.85** | **$0** |
-| **Qwen3-Coder-30B-A3B** ⁶ | **local · $0** | — | **0.33** | **$0** |
-| **gpt-oss-20b** *(OpenAI open weights)* ¹¹ | **local · $0** | — | 0.60 (15) | **$0** |
-| **Devstral-24B** *(agent-tuned, wrong harness)* ⁸ | **local · $0** | — | 0.17 | **$0** |
+
+¹² **GPT-5.6 Terra / Luna** via `codex exec` — the first non-Claude cloud lineage here. Routine-task only so far. Terra is 20/20 at 1.00 across five thinking levels on Python+Go for **\$0.15–0.35 a run**; Luna is 1.00 on Python and Go but 0.00 on TypeScript (a genuine failure — it chose a native dependency that will not build on this machine's Node, watched its own tests fail, and shipped anyway), giving 0.67 over the three languages. Cost is computed at list price per token, since a ChatGPT subscription reports none. See the lead section.
 
 ² Fast mode (`/fast`), 4 languages. Cost at fast mode's **2× per-token rate** ([announcement](https://www.anthropic.com/news/claude-opus-4-8)) — see [Fast mode](#fast-mode-speed-you-pay-double-for).
 ³ **Claude Fable 5** — a distinct model a *tier above* Opus 4.8, priced at the same $10/$50 rate as fast mode. More below.
@@ -61,6 +65,69 @@ Two things worth pulling out of the board before the deep dives:
 
 - **On the cloud frontier, newer is more reliable — and the older/cheaper models are coin-flips on hard work.** Opus 4.6 and Sonnet 4.6 got the hard task fully right only ~half the time; each generation buys reliability and charges time and money for it. But at the very top, extra spend buys nothing: Sonnet 5, fast mode, and Fable 5 all match Opus 4.8's 1.00/1.00 at higher prices, because where 4.8 is already perfect there's no reliability left to buy.
 - **On a laptop, the whole stack around the model matters more than the model.** The climb from 0.08 to a reliable Python/Go/TypeScript 1.00 came from context size, an MLX serving layer that parses the model's tool calls, a model one size up, an agent that doesn't throw away its own context, and — the final unlock — raising that agent's compaction threshold to full context. None of it a new capability; all of it configuration. What it still doesn't move is the last hard limit: Rust, the niche languages, and the hard task.
+
+## Newest: the model is the wrong unit — it's (model × thinking level), and that spans 40×
+
+Every frontier model now ships a **thinking-level dial**, and a second vendor has arrived in this
+corpus. Put those together and the headline question changes from *"which model?"* to *"which model at
+which setting?"* — because the setting moves the bill further than the model does.
+
+**One routine task (Python + Go bookshop), two price-peer models, the same five effort levels set
+explicitly on both, n=2. Every one of the 20 cells scored 1.00.**
+
+| effort | GPT-5.6 Terra | Claude Opus 5 | ratio | Terra time | Opus 5 time |
+|---|---:|---:|---:|---:|---:|
+| low | $0.19 | $0.81 | 4.3× | 112 s | 136 s |
+| medium | **$0.15** | $1.15 | 7.5× | 105 s | 222 s |
+| high | $0.18 | $1.84 | 10.4× | 132 s | 401 s |
+| xhigh | $0.22 | $4.63 | 20.7× | 169 s | 909 s |
+| **max** | $0.35 | **$14.21** | **40.1×** | 254 s | 1669 s |
+
+**Terra's most expensive setting is half the price of Opus 5's cheapest.** At matched `max` the gap is
+40×, for an identical, independently-judged 1.00.
+
+**Why the gap widens with effort — the step counts give it away.** Terra's agent steps stay **flat
+across the entire dial: 10 to 19**. Opus 5's **explode: 15 → 23 → 22 → 43 → 140 turns.** The dial is
+doing structurally different things: on Opus 5 it buys *more agentic iteration*, and since every turn
+re-reads the accumulated conversation from cache, cost grows super-linearly in steps. On Terra it
+appears to buy *deeper reasoning inside a roughly constant number of steps*. So the per-token price
+difference (~2.4×) explains less than half the gap; the rest is turns.
+
+**Comparing defaults would have hidden all of this.** `default` is not a shared operating point —
+Claude's sits near `high`, Terra's is `medium`, Sol's is `low`. Comparing out-of-the-box settings
+compares two vendors' product decisions, not two models. Setting effort explicitly on both sides is
+what turned a muddled ~9× into a clean 4×→40× interaction.
+
+**The practical rule:** on work your stack already handles, run the dial *down*. Across four Claude
+generations, `low` matched `max` on reliability at a fraction of the cost — and the CLI default is
+not the cheap end.
+
+*Caveats: n=2 per cell, one routine task, and every cell already at the 1.00 ceiling — so this
+measures what the dial COSTS, not what it BUYS. Whether thinking level earns its price on genuinely
+hard work is untested. Terra's cost also rests on a 92% cache-hit rate, which is partly an artifact of
+running many cells behind an identical prompt prefix.*
+
+### Codex, briefly: a genuinely new lineage
+
+Until this year every cloud result here was Claude. `codex exec` support (contributed by
+[@jschoch](https://github.com/adrianco/retort/pull/45)) added the OpenAI line, and its first outing was
+striking: **GPT-5.6 Luna reached 1.00 on Python ($0.062) and Go ($0.084)** against Opus 4.8's $0.67 on
+the same cell — roughly 11× cheaper.
+
+Getting a trustworthy number out of it took four fixes, each only findable by running the real CLI:
+the telemetry parser was written to an event shape `codex exec --json` does not emit (it recorded
+**0 tokens, 0 turns** on real output); input and output tokens were double-counted against their own
+cached/reasoning subsets (~490% cost inflation); a ChatGPT subscription reports **no cost at all**, so
+Codex would have logged **$0** and won every cheapest-stack recommendation on an unmeasured number;
+and Codex's `turn.completed` fires **once per invocation**, so recording it as "turns" would have put
+it at the bottom of the turn axis looking impossibly efficient. Cost is now computed at list price per
+token — the same basis Claude's CLI reports and does not bill on a Max plan.
+
+TypeScript is the exception: **0.00 across three replicates**, and it is a real failure rather than a
+harness artifact. The agent chose `better-sqlite3`, which will not build on this machine's Node 26;
+the transcript shows it ran `npm test`, saw `tsx: command not found`, tried a workaround, and shipped
+anyway — on a repair attempt where it had already been told it failed. It had the evidence and
+finished regardless.
 
 ## Newest: Opus 5 clears everything — and so, it turns out, does the cheaper model
 

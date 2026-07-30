@@ -1,0 +1,4 @@
+fastapi
+uvicorn
+pytest
+httpx

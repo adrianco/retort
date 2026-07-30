@@ -1,0 +1,2 @@
+{"id": "R8-note", "kind": "enhancement", "severity": "info", "title": "POST /books sets a Location header on 201", "evidence": "handler.go:54 sets Location to /books/{id}", "suggestion": "None — this is correct REST behavior beyond the spec."}
+{"id": "R9-note", "kind": "enhancement", "severity": "info", "title": "Strict JSON decoding rejects unknown fields and trailing content", "evidence": "handler.go:112 DisallowUnknownFields and handler.go:119 trailing-object check", "suggestion": "None — hardens input validation beyond the minimum spec."}

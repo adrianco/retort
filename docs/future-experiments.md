@@ -1,8 +1,13 @@
 # Future experiments — prioritized queue
 
-The live queue of what to run next, highest priority first. When an experiment finishes (or a
-model candidate is rejected), its write-up moves to [`past-experiments.md`](past-experiments.md)
-in increasing experiment order, and it comes off this queue.
+**This file holds only what has NOT been run yet.** The moment an experiment finishes — or a model
+candidate is rejected — its write-up moves to [`past-experiments.md`](past-experiments.md) (in
+increasing experiment order) and its entry is **deleted from here**, not left behind marked DONE.
+A queue that accumulates finished work stops being a queue; this file had grown to 570 lines of
+which two thirds were already-completed experiments.
+
+For what has already been measured, read [`past-experiments.md`](past-experiments.md) (28 write-ups)
+or the living results in [`optimal-blog.md`](../optimal-blog.md).
 
 **Workflow (CLAUDE.md):** before launching any experiment, write its plan / hypothesis here and
 push; verify every tuning parameter takes effect with a smoke test first; after it lands, run
@@ -15,148 +20,7 @@ push; verify every tuning parameter takes effect with a smoke test first; after 
 
 ---
 
-## 0. exp-46 — Opus 5: all languages × both tasks  — DONE, see past-experiments
-
-Ran 2026-07-24/25 → [past-experiments.md](past-experiments.md). **Result: 26/26 — every one of the 13
-languages on BOTH tasks at req-coverage 1.0.**
-
-**⚠️ Its headline was withdrawn by exp-48 (below).** This entry originally claimed Opus 5 was the first
-and only model to clear the hard task in every language. Fable 5 had merely never been *run* on 9 of
-the 13; when exp-48 ran them it cleared all 9, reaching **13/13 at half the cost and 2.4× the speed**.
-Opus 5's 26/26 is real; its *exclusivity*, and the price premium justified by it, are not. The hard-task
-routing table selected Opus 5 for c/clojure/cpp/elixir/erlang on that basis and now selects Fable 5.
-
-**Three harness artifacts were caught and fixed before they became false capability claims** (the 60-min
-wall killing erlang+c, doubly-quiet pytest zeroing a green Python suite, and a "usage limit until 3pm"
-that was really a rolling window). See the entry for details.
-
-## 0b. exp-48 — fill Fable 5's per-language GAPS  — DONE, see past-experiments
-
-Ran 2026-07-25 → [past-experiments.md](past-experiments.md). **Result: 18/18 — Fable 5 cleared all nine
-gap languages on BOTH tasks.** On the hard task it now stands at **13/13, exactly matching Opus 5**, at
-**$10.47 / 18.2 min against Opus 5's $21.67 / 43.8 min**. Languages only Opus 5 clears: **none**.
-
-**This experiment overturned exp-46's headline** rather than confirming it. Opus 5's "only model to
-clear the hard task everywhere" claim rested on Fable 5 never having been *run* on 9 of the 13
-languages — an unrun cell reading as an unpassable one. The hard-task routing table now selects Fable 5
-where it selected Opus 5.
-
-The bookshop half also became the third independent dataset behind
-[`versions-blog.md`](../versions-blog.md)'s turns-drive-cost thesis: on the same nine cells Opus 5 needs
-**2.3× the turns** of Fable 5 for an identical 1.00, with tokens growing 3.3× off that — the n²
-cache-read curve.
-
-## 0c. exp-49 — thinking level as a factor  — DONE (cloud half), see past-experiments
-
-Ran 2026-07-25 → [past-experiments.md](past-experiments.md). **63/63, zero failures, every run 1.00.**
-
-**Effort is a 4× cost lever that buys nothing on routine work:** low → max is 2.1× turns, 3.6× tokens,
-**4.1× cost**, 6.2× wall-clock, for an identical pass-proportion. `low` beats even the CLI default
-(~25% cheaper, ~45% faster, same 1.00).
-
-**It does NOT explain the version gap** — the preliminary claim that motivated the experiment was
-retracted by the experiment itself. In-batch, Opus 4.7 / 4.8 / Fable 5 all sit at ~9–13 turns and only
-**Opus 5** moves (31.0, ~2.7×). versions-blog's smooth "progression" was largely exp-6's inflated
-17.2/17.3, which do not replicate (0.54–0.60×) while exp-7/10/46's figures do (0.86–1.02×).
-
-**Effort × version interact:** low→max is 1.5–1.9× turns for the older models but **2.8× for Opus 5**,
-whose cost swings **$0.75 → $6.75**.
-
-Also exposed and fixed: `retort aggregate` was dropping any factor not in a hardcoded list, so all 63
-runs landed in master.db with `effort` missing and no error. `unknown_factors()` now reports it.
-
-**Local half: DONE too (6/6).** It put the local stacks on the turn axis for the first time —
-**35B 12.0 turns, 80B 24.7** — giving the full ordering **Opus 4.8 9.3 · Opus 4.7 10.3 · 35B 12.0 ·
-Fable 5 13.0 · 80B 24.7 · Opus 5 31.0**. A 35B open-weights model on a laptop sits in the same cluster
-as three Claude generations, which makes agent-loop *tuning* a better explanation than scale.
-
-Its pre-flight also found the **30-turn Hermes cap** (fixed) and an oMLX 0.5.0rc1 **memory enforcer**
-whose `balanced` ceiling is below the 80B's own size — all three m80 cells wrote nothing until an
-explicit `--memory-guard-gb 54` was set. Both were caught by guards, not published.
-
-**Follow-up worth queueing:** **effort on the HARD task**, where the knob may actually earn its cost.
-Nothing in exp-49 tests that — it is one language on the routine task, where every arm scored 1.00 and
-so nothing *could* distinguish the levels on reliability.
-
-## 0d. exp-50 — was the local hard-task "capability wall" a 30-turn CAP?  — PLANNED (run next)
-
-**The claim under test.** [optimal-blog](../optimal-blog.md) and the README both state that no local
-stack clears the hard task, and that the 80B's **0/6 on brazil is "config-invariant"** — verified at
-`context_threshold` 0.7 *and* 0.9, and therefore a genuine capability ceiling. It is one of this
-project's load-bearing conclusions: it is why "hard tasks → cloud" is the standing recommendation.
-
-**Why it is in doubt.** Every one of those runs was executed with Hermes capped at **`max_turns: 30`**
-— a value retort never set and never reconciled with the `max_turns: 200` its own workspaces declared
-(fixed 2026-07-25; found by exp-49's local pre-flight). `provenance.json` recorded both numbers side by
-side without flagging the contradiction. A truncated run and an incapable model produce identical
-scores.
-
-> ### ⚠️ CORRECTION (2026-07-27, mid-run): the turn-cap premise above is WRONG.
->
-> The table below was read as **3 api_calls per turn**, making 90 api_calls = the 30-turn cap. exp-50
-> records `api_calls` **and** `_turns` for the same runs, and they are **1:1** (python 51 = 51, go
-> 56 = 56). So exp-39's runs did **32–90 turns** — *above* the supposed 30 cap, which was therefore
-> never enforced on them. The other candidate fails too: **no historical run hit the 60-minute wall**
-> (longest 3016 s = 50 min).
->
-> **Neither constraint truncated exp-39.** Its runs ran to completion and simply fell short —
-> req-coverage 0.9167, 0.9167, 0.8333, 0.8333, 0.75, 0.6667, 0.6667, 0.5833 — which is precisely what
-> exp-39 concluded: ~11 of 12 capabilities, never all 12.
->
-> exp-50's passes remain a real and important result — the 80B *can* fully implement the hard task,
-> which "0/6" said it never does — but the cause is **not** "a cap was lifted." Live candidates:
-> (a) a newer serving/agent stack (oMLX 0.5.0rc1's memory enforcer did not previously exist, so the
-> serving layer demonstrably moved), or (b) **variance around a threshold the model already sat on** —
-> 0.9167 → 1.00 is a single requirement. The remaining replicates separate "reliably passes now" from
-> "hovers and sometimes clears."
->
-> The `max_turns` plumbing fix stands on its own merits (retort should not disagree with its own
-> declared config), it just isn't what this experiment turns out to be testing. Kept visible rather
-> than rewritten, because the error — inventing a 3× mapping and then finding a pattern in it — is
-> the instructive part.
-
-**The evidence that prompted this — MISREAD, see the correction above.** Archived
-`.hermes_usage.json` from exp-39/31 (80B × brazil):
-
-| api_calls | test_coverage |
-|---:|---:|
-| **90** | 0.000 |
-| **90** | 0.045 |
-| **90** | 0.850 |
-| 84 | 0.435 |
-| 82 | 0.640 |
-| 79 | 0.760 |
-| 78 | 0.104 |
-| 78 | 0.394 |
-| 59 | 0.675 |
-| 53 | 0.800 |
-| 45 | 0.870 |
-| 32 | 0.660 |
-
-**Three runs stop at exactly 90** — 3 api_calls per turn × the 30-turn cap — and two of those three have
-near-zero coverage. Nothing else clusters on a round number. That is the shape of a wall being hit.
-
-**Honest counter-evidence, so this is not run as a foregone conclusion:** `api_calls` is *not* turns
-(the 3× mapping is inferred, not confirmed), the other nine runs stop well below any cap, and one run at
-90 still reached 0.85 coverage. It is also possible the 80B genuinely plateaus around 11/12 capabilities
-as exp-39 concluded. **This experiment is as likely to confirm the wall as to remove it** — which is why
-it is worth running rather than quietly rewriting the docs.
-
-**Design.** `Qwen3-Coder-Next 80B × brazil-bench × {python, go} × n=3` at `context_threshold: 0.9`,
-prompt=neutral, spec-gate ON — i.e. **exp-39 re-run unchanged except that the turn cap is now honestly
-200**. Same stack, same task, same scoring: the only altered variable is the one that was never
-controlled. 120-minute wall (a run allowed 200 turns needs the time to use them).
-
-**Pre-flight:** confirm from a live run that Hermes' config carries `max_turns: 200` (done for the 35B;
-repeat for the 80B preset), and that `num_turns` is recorded so the result can be read directly rather
-than inferred from `api_calls` — the whole ambiguity above exists because turns weren't recorded then.
-
-**Reading the result.** If the 80B now clears brazil in any language, the "local can't do hard tasks"
-recommendation is wrong and both blogs need correcting. If it still scores 0/6 **with runs visibly
-terminating below 200 turns**, the capability wall is confirmed on much stronger evidence than before —
-and that is a genuinely useful outcome, because the current claim rests on runs that were capped.
-
-## 0e. exp-54 — does a Codex judge agree with the Opus judge?  — SCOPED DOWN (token budget)
+## 1. exp-54 — does a Codex judge agree with the Opus judge?  — SCOPED DOWN (token budget)
 
 `requirement_coverage` is an LLM's opinion, and PR #45 made the judge configurable — so it is a
 variable nobody has measured. If two judges disagree about the same artifact, pass-proportions from
@@ -178,42 +42,7 @@ would CHANGE pass/fail under the other judge.
 than adopting it. Note also that exp-53's code was *written* by a Codex model, so a Codex judge
 agreeing is a same-vendor loop and weaker evidence than it looks.
 
-## 0f. exp-55 — Terra vs Opus 5, matched thinking levels  — RUNNING (bookshop first)
-
-**The pairing.** GPT-5.6's three tiers price onto the Claude ladder, so tier-to-tier is the honest
-comparison: **Luna ($1/$6) ↔ Sonnet · Terra ($2.50/$15) ↔ Opus · Sol ($5/$30) ↔ Fable.** Opus is the
-optimal Claude pick in most cells today, so its price-peer **Terra** is the one worth measuring
-(user, 2026-07-29).
-
-**Design.** `{gpt-5.6-terra, claude-opus-5} × {low, medium, high, xhigh, max} × {python, go} ×
-{bookshop, brazil} × n=2` = **40 cells / 80 runs.** Judged by opus-4.8 throughout so the numbers pool
-with the rest of the corpus.
-
-**Effort is set EXPLICITLY on both sides, and that is the whole point.** `default` is *not* a shared
-operating point — Claude's default sits near `high`, Terra defaults to `medium`, Sol to `low`.
-Comparing defaults would compare two vendors' product decisions rather than two models. Both CLIs
-support exactly these five levels. (`ultra` is Sol/Terra-only, has no Claude counterpart, and is not
-even an API reasoning value — excluded.)
-
-**Two plumbing bugs fixed first, either of which would have invalidated the sweep:**
-1. **`xhigh` was missing from retort's `EFFORT_LEVELS`** — it exists in both CLIs, so exp-49's sweep
-   silently skipped a real level.
-2. **codex ignored the effort factor entirely** (it has no `--effort` flag; the level is a config
-   key). A design claiming to sweep effort would have run every codex cell at the model's default.
-   Now `-c model_reasoning_effort=<level>`, confirmed live because the API *rejects* an invalid value
-   — a stripped key could not do that.
-
-**Run order: every Terra row precedes every Opus 5 row**, so if the Codex token budget runs out
-mid-run the Terra half is complete and `--resume` continues into Opus 5 (user's requested fallback:
-Terra → Opus → retry Terra).
-
-**Scale warning, recorded up front.** Extrapolating from exp-46/49: the bookshop half is a few hours;
-the **brazil half is the expensive one** — Opus 5 averaged \$21.67 and 44 min per brazil cell at
-*default* effort, and exp-49 showed `max` costing 2–5× default. Opus 5 × brazil × `max` alone could
-run hours per cell. bookshop is therefore run FIRST: it yields the complete matched 2×5×2 grid soonest,
-and brazil can be trimmed on evidence rather than guesswork.
-
-## 1. Graphify tooling factor + large-existing-codebase task  — PLANNED (top priority)
+## 2. Graphify tooling factor + large-existing-codebase task  — PLANNED (top priority)
 
 Add a third level to the `tooling` factor (currently `none` / `beads`): **`graphify`** — a
 code knowledge-graph skill ([graphify.com](https://graphify.com/),
@@ -313,14 +142,6 @@ The MCP server is `graphify-mcp` (stdio) for the live-query arm.
   `tasks/funkygibbon-port/README.md`) + the user's seed work. Optionally: `graphify --update` between
   turns.
 
-## 2. exp-41 — self-repair iteration-2  — DONE (see past-experiments)
-
-Ran 2026-07-22 → past-experiments. **Verdict: iteration-2 self-repair is NOT a reliable lever.**
-Rust's 0.9167 near-miss did not close (stayed 0.83–0.92), erlang flat (0.333); only java lifted
-0.75→0.92 (still <1.0). The inline iter-1 second-chance already captures the repairable gain;
-Rust stays cloud-only on the 80B. (Optional: a `--resume --retry-failed` re-run to complete the 3
-cells INTERRUPTED by a ~23s hermes/oMLX hiccup — wouldn't change the Rust/Erlang verdict.)
-
 ## 3. Inference-lever sweep — remaining tiers (issue #40)  — OPEN
 
 The sampling tier is done (exp-27). Remaining levers, by payoff:
@@ -339,42 +160,7 @@ The sampling tier is done (exp-27). Remaining levers, by payoff:
   inference levers move real coding reliability, and how badly perplexity mispredicts it.* No public
   benchmark answers this.
 
-## 4. gpt-oss-20b  — DONE (exp-47), see past-experiments
-
-Ran 2026-07-24, **extended to n=5 on 2026-07-25** → [past-experiments.md](past-experiments.md)
-(exp-47). Gate-probe passed (oMLX parses its Harmony tool calls). Final: **go 0.80 @102s**,
-**typescript 0.60 @147s** (still beats the 35B's 0.00), **python 0.40 @245s** (both Qwens are 1.00).
-
-**The n>=5 follow-up queued here has now run, and it REMOVED the headline rather than confirming it.**
-At n=3 Go was 1.00 and about to be published as "matches the 80B at 3.6x the speed"; replicates 4–5
-took it to 0.80. Revised verdict: **fast but reliable at nothing** — keep the 80B featured. gpt-oss's
-value is speed plus lineage evidence (the OpenAI open-weights family is servable and drivable locally),
-not any language it can be trusted with. The three all-zero failures were reproduced by hand and are
-GENUINE model errors (two `tsc` failures incl. a duplicated app body; one self-importing `httpx` shim),
-not harness artifacts.
-
-**Follow-ups worth queueing:** ~~(a) n>=5 on Go~~ **— done, see above;**
-(b) probe whether **Python's 0.40 is a prompt/scaffold artifact** rather than capability — at n=5 it
-produced *two* 0.9167 near-misses, so it is close, and its one hard failure was a self-inflicted
-`httpx` shim rather than an inability to write the API; (c) the **llama.cpp backend** could serve it
-too — a serving-layer comparison on an identical model is a clean lever test.
-
-## 5. More languages — C / C++ / Objective-C / Swift  — DONE (exp-43), see past-experiments
-
-First systems/Apple-tier run landed 2026-07-22 → moved to [past-experiments.md](past-experiments.md) (exp-43). Full scorer support (build/test/coverage/lint) + toolchains for c/cpp/objc/swift shipped; the README has the per-language toolchain table
-and the full-Xcode prerequisite. **Headline (after `retort recover` with the harness fixes):** cloud
-(Opus 4.8) passes all four cleanly; the local 80B **fully implements C (ReqCov 1.0)** and near-misses
-C++ (0.83) — the C 0.00→1.00 flip was a server-leak harness bug, not the model. ObjC/Swift are genuine
-incompletes (no build system / broken Vapor build).
-
-**Follow-ups worth queueing:**
-- **ObjC/Swift-local a fair shot** — the 80B produced ObjC source with no build system and a Vapor
-  Swift app that won't build in-env; a lighter task variant or build-scaffold nudge would separate
-  "can't" from "didn't scaffold". (The server-reaping fix + clean re-score is DONE.)
-- **C++-local repair (exp-41-style)** — cpp is at 0.83 (~5/6 reqs), a repair candidate like Rust.
-- **More languages** (Kotlin, Zig, Scala, …) reuse the same scorer machinery — add on request.
-
-## 6. Methodology: harness-orchestration factor (`retort-metaharness`)  — SIDE-BRANCH, staged
+## 4. Methodology: harness-orchestration factor (`retort-metaharness`)  — SIDE-BRANCH, staged
 
 > **SHARPENED DIRECTION (2026-07-24, user) — metaharness belongs in the `tooling` factor, and the
 > integration is a closed loop with `optimal-blog.md`.** metaharness is an **optimization + memory

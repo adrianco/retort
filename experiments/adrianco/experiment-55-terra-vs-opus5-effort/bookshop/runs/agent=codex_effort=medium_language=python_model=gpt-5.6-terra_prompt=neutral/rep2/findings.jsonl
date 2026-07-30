@@ -1,0 +1,1 @@
+{"id": "R8-info", "kind": "enhancement", "severity": "info", "title": "Non-JSON request bodies return 415, tests do not exercise it", "evidence": "app.py:132 json_payload() returns 415 for non-JSON; test_app.py has no case for the 415/400 body-shape branches", "suggestion": "Add a test posting a non-JSON body to lock the 415 behavior"}

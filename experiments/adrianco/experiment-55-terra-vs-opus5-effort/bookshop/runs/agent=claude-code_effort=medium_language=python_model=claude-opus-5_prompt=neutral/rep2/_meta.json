@@ -1,0 +1,12 @@
+{
+  "replicate": 2,
+  "run_config": {
+    "agent": "claude-code",
+    "effort": "medium",
+    "language": "python",
+    "model": "claude-opus-5",
+    "prompt": "neutral"
+  },
+  "succeeded": true,
+  "visibility": "public"
+}

@@ -1,0 +1,1 @@
+{"id": "R8", "kind": "enhancement", "severity": "info", "title": "Validation errors return 422, not 400", "evidence": "main.py:BookIn uses Pydantic; FastAPI emits 422 for invalid bodies (test_api.py:test_validation_errors asserts 422)", "suggestion": "422 is idiomatic FastAPI and acceptable; note only if the spec strictly requires 400"}

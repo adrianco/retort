@@ -1,0 +1,4 @@
+Flask<4,>=2.3
+
+[test]
+pytest>=7.4

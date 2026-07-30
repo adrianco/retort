@@ -1,0 +1,14 @@
+README.md
+pyproject.toml
+bookapi/__init__.py
+bookapi/db.py
+bookapi/routes.py
+bookapi/validation.py
+bookapi.egg-info/PKG-INFO
+bookapi.egg-info/SOURCES.txt
+bookapi.egg-info/dependency_links.txt
+bookapi.egg-info/requires.txt
+bookapi.egg-info/top_level.txt
+tests/test_books_api.py
+tests/test_persistence.py
+tests/test_validation.py

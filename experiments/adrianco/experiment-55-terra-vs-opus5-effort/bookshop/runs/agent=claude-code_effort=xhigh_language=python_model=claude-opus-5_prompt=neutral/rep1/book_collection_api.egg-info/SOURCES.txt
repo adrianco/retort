@@ -1,0 +1,17 @@
+README.md
+pyproject.toml
+book_collection_api.egg-info/PKG-INFO
+book_collection_api.egg-info/SOURCES.txt
+book_collection_api.egg-info/dependency_links.txt
+book_collection_api.egg-info/requires.txt
+book_collection_api.egg-info/top_level.txt
+bookapi/__init__.py
+bookapi/db.py
+bookapi/errors.py
+bookapi/repository.py
+bookapi/routes.py
+bookapi/validation.py
+tests/test_books_crud.py
+tests/test_errors_and_storage.py
+tests/test_health.py
+tests/test_validation.py

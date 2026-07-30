@@ -1,0 +1,12 @@
+{
+  "replicate": 1,
+  "run_config": {
+    "agent": "claude-code",
+    "effort": "high",
+    "language": "go",
+    "model": "claude-opus-5",
+    "prompt": "neutral"
+  },
+  "succeeded": true,
+  "visibility": "public"
+}

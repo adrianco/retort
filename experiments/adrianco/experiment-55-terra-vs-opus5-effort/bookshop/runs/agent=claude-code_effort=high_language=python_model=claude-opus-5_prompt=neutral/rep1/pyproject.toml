@@ -1,0 +1,16 @@
+[project]
+name = "bookapi"
+version = "1.0.0"
+description = "REST API for managing a book collection (Flask + SQLite)"
+requires-python = ">=3.10"
+dependencies = ["Flask>=2.3,<4"]
+
+[project.optional-dependencies]
+test = ["pytest>=7.4"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+addopts = "-q"
+# Make the project importable so both `pytest` and `python -m pytest` work
+# without installing the package first.
+pythonpath = ["."]

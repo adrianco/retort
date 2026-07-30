@@ -287,6 +287,55 @@ whole question.
 value stays the **large-repo** arm (funkygibbon-port / the-goodies ~30K lines), where navigation is
 the actual bottleneck.
 
+### exp-55 — Terra vs Opus 5 at matched thinking levels: 4× to 40× for the same result
+
+The first **cross-vendor, matched-effort** comparison. GPT-5.6's tiers price onto the Claude ladder
+(Luna↔Sonnet, **Terra↔Opus**, Sol↔Fable), and Opus is the optimal Claude pick in most cells, so Terra
+is its price-peer. `{gpt-5.6-terra, claude-opus-5} × {low, medium, high, xhigh, max} × {python, go} ×
+n=2` on bookshop = 40 runs, judged by opus-4.8. **40/40 completed, every cell 1.00.**
+
+| effort | Terra | Opus 5 | ratio | Terra time | Opus 5 time |
+|---|---:|---:|---:|---:|---:|
+| low | \$0.19 | \$0.81 | 4.3× | 112 s | 136 s |
+| medium | \$0.15 | \$1.15 | 7.5× | 105 s | 222 s |
+| high | \$0.18 | \$1.84 | 10.4× | 132 s | 401 s |
+| xhigh | \$0.22 | \$4.63 | 20.7× | 169 s | 909 s |
+| **max** | **\$0.35** | **\$14.21** | **40.1×** | 254 s | 1669 s |
+
+**Terra's most expensive setting is still half the price of Opus 5's cheapest** (\$0.35 vs \$0.81),
+and 40× cheaper at matched `max` — for an identical, independently-verified 1.00. Total experiment
+cost: \$80.67, of which Opus 5 at `max` alone is a third.
+
+**The mechanism is in the step counts, and it is the real finding.** Terra's agent steps stay
+**flat across the entire dial — 10 to 19** regardless of setting. Opus 5's **explode: 15 → 23 → 22 →
+43 → 140 turns.**
+
+So the dial does structurally different things in the two systems. On Opus 5 it buys **more agentic
+iteration**, which triggers the n²-ish cache-read growth documented in
+[versions-blog](../versions-blog.md) — hence \$14.21 and 28 minutes for a CRUD API. On Terra it
+appears to buy **deeper reasoning inside a roughly constant number of steps**, so cost rises ~2×
+rather than ~18×. That is why the ratio *widens* with effort instead of holding at the ~2.4× the
+per-token rates alone imply: roughly half the gap is pricing, half is token volume driven by turns.
+
+**Why effort had to be set explicitly.** `default` is not a shared operating point — Claude's sits
+near `high`, Terra's is `medium`, Sol's is `low`. Comparing defaults would have compared two vendors'
+product decisions rather than two models, and would have shown a muddled ~9× instead of the clean
+4×→40× interaction.
+
+**Two plumbing bugs were fixed first, either of which would have invalidated the sweep:** `xhigh` was
+missing from retort's effort levels (so exp-49's "five-level" sweep had actually skipped a real
+level), and **codex ignored the effort factor entirely** — it has no `--effort` flag, the level is a
+config key, so every codex cell would have run at the model's default while the design claimed to
+sweep it. Now `-c model_reasoning_effort=<level>`, verified live because the API *rejects* an invalid
+value.
+
+*Caveats:* n=2 per cell (n=4 pooled across languages), bookshop only. Go's Opus 5 `max` came in
+*below* its `xhigh` — non-monotonic, and a reminder that single cells are soft. Terra's cost rests on
+a **92% cache-hit rate**; without the cached-input discount it would be ~3.3× higher, and that hit
+rate is partly an artifact of retort running many cells behind an identical prompt prefix. Codex
+reports no per-request context, so peak-context is blank for those cells — see the notes in
+`_parse_codex_usage`.
+
 ### exp-53 — Codex joins the board, and is an order of magnitude cheaper
 
 The first OpenAI-lineage agent in this corpus. Every cloud result before this was Claude (plus one

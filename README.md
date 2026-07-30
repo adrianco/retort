@@ -23,7 +23,7 @@ See [`experiments/README.md`](experiments/README.md) for the layout and the step
 ## Features
 
 - **Factorial / fractional-factorial designs** over `language × model × tooling` (and any factors you add — context length, sampling, agent, prompt, **thinking level**), generated automatically — run the full grid or a fraction. Factor names are free-form; see [the factor table](#the-factors-you-can-vary).
-- **Isolated playpens** — each run gets a fresh local workspace; the agent implements the task, then the code is built and tested in place. Agents supported: **`claude-code`**, **`hermes`** (local models via oMLX), **`gemini`**, **`opencode`**, and **`omp`**.
+- **Isolated playpens** — each run gets a fresh local workspace; the agent implements the task, then the code is built and tested in place. Agents supported: **`claude-code`**, **`codex`** (OpenAI GPT-5.x via `codex exec`), **`hermes`** (local models via oMLX), **`gemini`**, **`opencode`**, and **`omp`**.
 - **Scoring that checks the spec, not the vibes.** Ten built-in scorers (code quality, test coverage, test quality, defect rate, maintainability, idiomaticity, token efficiency, findings, bead usage, **no-regression**) **plus a conformance gate**:
   - *Mechanical gate* — if the tests don't run, the run **fails** (no proof = no pass).
   - *Spec gate* — a **second-opinion LLM eval** (judge defaults to the **latest** Claude) checks the code against a **pinned requirement checklist** and records `requirement_coverage`; a run passes only if it implements the *whole* spec. A default inline **self-repair second chance** re-seeds a failing cell with its own code + the evaluation feedback before recording it (half credit).
@@ -31,7 +31,7 @@ See [`experiments/README.md`](experiments/README.md) for the layout and the step
 - **Cross-experiment master database** — `retort aggregate` rolls every experiment into one `master.db` / `master.csv`; **`retort report optimal`** generates the living per-language recommendation from it.
 - **ANOVA + effects**, **live `retort monitor`**, resumable sharded runs, `cost_limit_usd`.
 
-This repo *is* the result of running it: ~49 experiments across two tasks and **thirteen** languages (Go, Python, TypeScript, Rust, Clojure, Java, C#, Erlang, Elixir, C, C++, Objective-C, Swift), the Claude frontier (Opus 4.6/4.7/4.8, **Opus 5**, Sonnet 5, Fable 5, fast mode), local MLX stacks (Qwen 30B/35B/80B and gpt-oss-20b via Hermes+oMLX), a Gemini cross-agent scaffold, and prompt / sampling / context / self-repair studies.
+This repo *is* the result of running it: ~49 experiments across two tasks and **thirteen** languages (Go, Python, TypeScript, Rust, Clojure, Java, C#, Erlang, Elixir, C, C++, Objective-C, Swift), the Claude frontier (Opus 4.6/4.7/4.8, **Opus 5**, Sonnet 5, Fable 5, fast mode), **OpenAI Codex** (GPT-5.6 Luna/Terra), local MLX stacks (Qwen 30B/35B/80B and gpt-oss-20b via Hermes+oMLX), a Gemini cross-agent scaffold, and prompt / sampling / context / self-repair studies.
 
 ### The factors you can vary
 
@@ -41,9 +41,9 @@ Factor names are free-form — anything you put in `factors:` reaches the runner
 |---|---|---|
 | `language` | 13 shipped (see the toolchain table) | Picks the build/test/lint commands the scorer runs |
 | `model` | any id; aliases incl. `opus-4.6/4.7/4.8`, `opus-5`, `sonnet-5`, `fable-5`, `haiku-4.5`, `opus-4.8-fast` | The model. A `-fast` suffix enables Claude Code fast mode and doubles recorded cost (its real rate) |
-| `effort` | `default`, `low`, `medium`, `high`, `max` | **Thinking level** (`claude --effort`). `default` means *pass no flag* — the historical baseline, and measurably **not** the same as any named level. `claude-code` only |
+| `effort` | `default`, `low`, `medium`, `high`, `xhigh`, `max` | **Thinking level.** `claude --effort` for claude-code; `-c model_reasoning_effort=` for codex — the same five names, so the two vendors are directly comparable. `default` means *pass no flag*, and is **not** a shared operating point: Claude's default sits near `high`, Codex Terra's is `medium`, Sol's is `low` |
 | `prompt` | `none`, or any `prompts/<level>.md` | Prompt/methodology injection (BDD/TDD/ATDD studies) |
-| `agent` | `claude-code`, `gemini`, `omp`, `opencode`, + your `playpen.local_agents` keys | Which CLI drives the run |
+| `agent` | `claude-code`, `codex`, `gemini`, `omp`, `opencode`, + your `playpen.local_agents` keys | Which CLI drives the run |
 | `stack` | preset names from `playpen.stack_presets` | Serving preset — model weights, context length, sampling, compaction threshold. **Not** the `model` factor |
 | `tooling` | `none`, `beads`, `graphify` | Extra tools the agent gets. `beads` is scored by `bead_usage_score`; `graphify` builds a code knowledge-graph before the run |
 
@@ -65,6 +65,7 @@ The headline metric is **pass-proportion**: over N replicates of a stack, the fr
 
 **The current picture (latest experiments):**
 
+- **The unit of choice is (model × thinking level), not model — and it spans 40×.** On a routine task where *every* combination scores 1.00, **GPT-5.6 Terra costs \$0.19–0.35 and Claude Opus 5 costs \$0.81–14.21** across the same five effort levels. Terra's *most* expensive setting is still half the price of Opus 5's *cheapest*. The mechanism is turns: Terra's agent steps stay flat (10–19) across the whole dial while Opus 5's explode (15→140), and cost follows step count super-linearly. See [versions-blog.md](versions-blog.md).
 - **Cloud reliability is a cost decision, and it's task-dependent.** On the *hard* task **Fable 5 and Opus 5 both clear all 13 languages** — but Fable 5 does it for **$10.47 / 18.2 min** against Opus 5's **$21.67 / 43.8 min**, so there is no language where Opus 5 is the necessary choice. **Sonnet 5** is 0.93 for less again; **Opus 4.8** is a ~0.59 coin-flip (but ~1.00 and cheap on routine work); **Opus 4.7** is a fine routine stack (1.00) but weak on hard (0.40). On easy work almost anything reaches ~1.00, so the cheapest reliable model wins. **Newest ≠ best-value: pick the cheapest model proven on your language.**
 - **A local laptop stack is free and now covers three languages.** **Qwen3-Coder-Next 80B** (MLX + Hermes + oMLX on a 64 GB Mac, at `context_threshold: 0.9`) runs **Python, Go and TypeScript at 1.00** for $0 — TypeScript unlocked by raising the compaction point (a config lever, not a capability wall). **Rust (0.33) and the niche languages** (Clojure/C#/Elixir/Java/Erlang, ~0.00) still go to cloud, and no local stack clears the hard task **unattended** (**0/6** on first attempts, confirmed twice) — but [exp-50](docs/past-experiments.md) found that with retort's **self-repair second chance** the 80B reaches full spec coverage on **3 of 6** runs. It gets ~11 of 12 capabilities alone and closes the last one about half the time when told what is missing. The **35B** is the faster Python/Go alternative (0.85 each).
 - **The prompt/methodology is a lever only in proportion to model weakness** — it tanks ATDD on a weak stack (Sonnet/Go, the 35B) but is a flat no-op on strong ones (the 80B: neutral/BDD/TDD/ATDD all 1.00; and cloud). See the prompt blog.
@@ -121,6 +122,7 @@ retort --help                    # CLI loads → deps OK
 | **Per-language toolchains** | the scorer **builds, tests, and lints** the generated code — see the table below |
 | **Full Xcode, installed *and launched once*** | only for **Swift / Objective-C** (XCTest + Foundation) — see the Apple-language note below |
 | **`bd` (beads) CLI** | only if a factor uses `tooling: beads` |
+| **`codex` CLI, authenticated** | only for `agent: codex` — `brew install codex` then `codex login`. Note **`gpt-5.x-codex` model ids are API-key-only**; on a ChatGPT plan they 400, and the usable set is listed in `~/.codex/models_cache.json` (GPT-5.6 Sol/Terra/Luna, GPT-5.4/5.5) |
 | **`gemini` / `omp` CLI, or Hermes + oMLX** | only to run non-Claude agents — see [Comparing coding agents](#comparing-coding-agents) and [docs/configuration.md](docs/configuration.md#local-serving-stack-hermes--omlx) |
 
 `.devcontainer/` provisions this for Codespaces / Dev Containers (authenticate `claude` once).
