@@ -59,10 +59,10 @@ The machine-readable form of the table below is committed at **[`optimal.json`](
 | **csharp** | Opus 4.8 @ `default` <sub>n=1</sub> | 1.00 | $0.65 | — | Sonnet 5 @ `default` <sub>n=3</sub> | 1.00 | $9.96 |
 | **elixir** | Opus 4.8 @ `default` <sub>n=3</sub> | 1.00 | $0.85 | — | Fable 5 @ `default` <sub>n=1</sub> | 1.00 | $13.21 |
 | **erlang** | Opus 4.8 @ `default` <sub>n=3</sub> | 1.00 | $1.35 | — | Fable 5 @ `default` <sub>n=1</sub> | 1.00 | $12.06 |
-| **go** | GPT-5.6 Luna @ `default` <sub>n=3</sub> | 1.00 | $0.08 | Qwen3-Coder-Next 80B @ `default` <sub>n=3</sub> | Opus 4.8 @ `default` <sub>n=6</sub> | 1.00 | $5.30 |
+| **go** | GPT-5.6 Luna @ `default` <sub>n=3</sub> | 1.00 | $0.08 | Qwen3-Coder-Next 80B @ `default` <sub>n=3</sub> | GPT-5.6 Terra @ `low` <sub>n=1</sub> | 1.00 | $0.39 |
 | **java** | Opus 4.7 @ `default` <sub>n=6</sub> | 1.00 | $0.92 | — | Fable 5 @ `default` <sub>n=1</sub> | 1.00 | $12.01 |
 | **objc** | Opus 4.8 @ `default` <sub>n=1</sub> | 1.00 | $1.52 | — | Fable 5 @ `default` <sub>n=1</sub> | 1.00 | $13.30 |
-| **python** | GPT-5.6 Luna @ `default` <sub>n=3</sub> | 1.00 | $0.06 | Qwen3-Coder-Next 80B @ `default` <sub>n=3</sub> | Opus 4.7 @ `default` <sub>n=3</sub> | 1.00 | $4.64 |
+| **python** | GPT-5.6 Luna @ `default` <sub>n=3</sub> | 1.00 | $0.06 | Qwen3-Coder-Next 80B @ `default` <sub>n=3</sub> | GPT-5.6 Terra @ `high` <sub>n=1</sub> | 1.00 | $0.31 |
 | **rust** | Opus 4.8 @ `default` <sub>n=6</sub> | 1.00 | $0.71 | — | Fable 5 @ `default` <sub>n=3</sub> | 1.00 | $9.63 |
 | **swift** | Opus 4.8 @ `default` <sub>n=1</sub> | 1.00 | $1.25 | — | Fable 5 @ `default` <sub>n=1</sub> | 1.00 | $9.24 |
 | **typescript** | Opus 4.8 @ `default` <sub>n=7</sub> | 1.00 | $0.65 | Qwen3-Coder-Next 80B @ `default` <sub>n=3</sub> | Opus 4.7 @ `default` <sub>n=3</sub> | 1.00 | $4.14 |
@@ -83,9 +83,9 @@ Reliability, cost and time are all reported **per task size** — routine and ha
 <!-- GEN:leading-stacks START -->
 | Stack | Reliability (routine · hard) | Cost (routine · hard) | Time (routine · hard) |
 |---|---:|---:|---:|
-| **Claude Opus 5** | 1.00 · 1.00 | $3.23 · $21.67 | 546 s · 2630 s |
+| **Claude Opus 5** | 1.00 · 1.00 | $3.23 · $26.48 | 546 s · 2669 s |
 | **Claude Fable 5** | 1.00 · 1.00 | $1.58 · $10.47 | 166 s · 1090 s |
-| **GPT-5.6 Terra (codex)** | 1.00 · — | $0.22 · — | 155 s · — |
+| **GPT-5.6 Terra (codex)** | 1.00 · 1.00 | $0.22 · $1.06 | 155 s · 623 s |
 | **GPT-5.6 Luna (codex)** | 0.67 · — | $0.09 · — | 153 s · — |
 | **Claude Sonnet 5** | 1.00 · 0.93 | $1.10 · $7.64 | 237 s · 1252 s |
 | **Claude Opus 4.8** | 0.98 · 0.59 | $0.93 · $3.27 | 258 s · 608 s |

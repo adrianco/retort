@@ -20,34 +20,27 @@ push; verify every tuning parameter takes effect with a smoke test first; after 
 
 ---
 
-## 0z. BLOCKER: the `claude` CLI is logged out — everything is stopped  — 2026-07-31
+## 0z. RESOLVED — the `claude` CLI credential was blanked  — 2026-07-31
 
-`claude -p` returns **`Not logged in · Please run /login`** (`error: authentication_failed`) from a
-plain shell, with no retort involved. The keychain entry `Claude Code-credentials` is present and
-there is no `~/.claude/.credentials.json`; the CLI simply will not use the stored credential. It
-worked for exp-55 cells 11–13 roughly 12 hours earlier, and broke across the usage-limit event.
+Kept as a diagnostic recipe, not an open item. `claude -p` returned **`Not logged in · Please run
+/login`** while the *running* session kept working, which made it look like a retort or environment
+bug. It was neither: the keychain item `Claude Code-credentials` still existed and still read
+`subscriptionType: max`, but **`accessToken` and `refreshToken` were both empty strings and
+`expiresAt` was 0**. Nothing to refresh. The live session was simply the last process holding an
+in-memory token.
 
-**Fix (must be done by the account owner — Claude cannot authenticate):** run `claude`
-interactively and `/login`.
+Ruled out along the way, in this order: retort's own venv change (the third crashed cell was **go**,
+which never gets a venv), `ANTHROPIC_BASE_URL` (set, but to plain `api.anthropic.com`, and unsetting
+it changed nothing), and keychain readability (`security find-generic-password` succeeded — the entry
+was present, just hollow).
 
-This blocks **both** halves of the queue, and the second one is not obvious:
+**Diagnostic worth reusing:** check token *lengths*, not the entry's existence. A blanked credential
+passes every presence check.
 
-1. **exp-55 brazil resume** — all 7 remaining cells are `claude-opus-5`, so they crash in <1s.
-2. **exp-56 (below), even though codex/Terra auth is fine** — because the **spec-gate judge is the
-   `claude` CLI**. And a judge that cannot run does **NOT** fail the run:
-   `_spec_conformance_passes` returns `None` for "the eval could not run", the run loop does
-   `spec_failed = spec_verdict is False`, so `None` means *not gated*. Runs would be recorded as
-   fine with no `requirement_coverage` behind them — silently ungated data, which is worse than no
-   data. Do not launch anything until `claude -p` answers.
+Fixed by an interactive `/login` at the terminal; `/login` is local-only and does not work over
+Remote Control. exp-55 brazil then resumed and completed 20/20.
 
-Damage from the failed resume attempt: two rows recorded as `crashed` (python xhigh, python max)
-with all-zero metrics. **No cleanup needed** — `--resume` always re-runs `crashed` cells. But note
-`aggregate` does *not* filter on status, so a crashed row would enter `master.db` as a 0.00 if
-anyone aggregated before re-running. Don't aggregate exp-55 until it is complete.
-
----
-
-## 0y. exp-56 — Terra across the 11 remaining languages, both tasks  — PLANNED (launch when 0z clears)
+## 0y. exp-56 — Terra across the 11 remaining languages, both tasks  — READY TO LAUNCH
 
 **Question.** GPT-5.6 Terra matches Opus 5 at 1.00 on python and go for a fraction of the cost
 (exp-55). Does that hold across the *whole* language matrix, including the ones that have
@@ -69,7 +62,7 @@ task: Opus 5 needed 40–64 min per exotic-language brazil cell, and the run wal
 
 **Pre-flight checks.**
 
-1. `claude -p` must answer (blocker 0z) or the spec gate silently no-ops.
+1. `claude -p` must answer or the spec gate silently no-ops — **verified 2026-07-31**.
 2. Toolchains: node, cargo, mvn, dotnet, lein, mix, rebar3, swift, clang, clang++, cmake — **all
    verified present 2026-07-31**.
 3. ⚠️ **objc is at risk.** `xcode-select -p` reports `/Library/Developer/CommandLineTools`, not a
@@ -82,29 +75,22 @@ task: Opus 5 needed 40–64 min per exotic-language brazil cell, and the run wal
 
 ---
 
-## 0a. PRE-FLIGHT GATE: smoke-test the provisioned python venv  — REQUIRED before the next python experiment
+## 0a. DONE — provisioned python venv verified on a live agent run  — 2026-07-31
 
-Landed post-exp-55: retort now creates a `venv/` in every python workspace (pytest + pytest-cov
-preinstalled) and puts `venv/bin` first on the agent's PATH, so a bare `python` and `pip` resolve.
-Motivation and the two deeper problems it fixes are in [tasks-blog.md](../tasks-blog.md).
+retort creates a `venv/` in every python workspace (pytest + pytest-cov preinstalled) and puts
+`venv/bin` first on the agent's PATH. Verified on exp-55 brazil cell 14 (python `xhigh`, Opus 5)
+rather than a synthetic probe: venv present with Python 3.14.6, pytest 9.1.1 + pytest-cov installed,
+**zero** `command not found: python` in an 83 KB agent log, **5 bare `python` invocations and 0
+`python3`**, and pip working — the agent installed and imported the `mcp` package.
 
-Unit tests cover creation, the PATH/`VIRTUAL_ENV` wiring, fingerprint exclusion and archive
-exclusion. **What is NOT yet verified is that a real agent process sees it** — and this repo's
-standing rule is that "I set it" is not "it took effect". Run ONE cell (python, bookshop, any cloud
-model) and confirm from `_agent_stdout.log`:
+**Comparability consequence, larger than the saved turn.** pip previously failed with
+`externally-managed-environment` against the Homebrew interpreter, so agents avoided dependencies —
+the record-holding brazil run wrote a *dependency-free* server partly for that reason. Agents can now
+take dependencies they previously could not. Python runs before and after this change differ in more
+than turn count; do not pool them.
 
-1. No `command not found: python` anywhere in the run.
-2. If the agent installs anything, `pip install` succeeds — no `externally-managed-environment`.
-3. `test_coverage` is still parsed (the scorer must REUSE `venv/`, not build a second one).
-4. The archived `rep1/` contains **no** `venv/` directory (~17 MB each if this regresses).
-5. The no-write guard still fires on an empty workspace — i.e. venv files are not counted as
-   agent progress.
-
-Then compare turn count against the same cell pre-change: the expectation is **one turn fewer**
-(the `python`→`python3` retry). If it is not, the PATH is not reaching the agent.
-
-**Comparability:** python runs before and after this change are not turn-count comparable. Do not
-pool them; note the boundary in any write-up that spans it.
+Still unconfirmed (needs a fresh python run to check): that the archived rep contains no `venv/`, and
+that the no-write guard still fires on an empty workspace.
 
 ---
 

@@ -20,8 +20,8 @@
       },
       "hard": {
         "pass": 1.0,
-        "n": 13,
-        "cost": 21.67
+        "n": 23,
+        "cost": 26.48
       }
     },
     {
@@ -48,7 +48,11 @@
         "n": 20,
         "cost": 0.22
       },
-      "hard": null
+      "hard": {
+        "pass": 1.0,
+        "n": 10,
+        "cost": 1.06
+      }
     },
     {
       "stack": "GPT-5.6 Luna (codex)",
@@ -420,15 +424,14 @@
       },
       "go": {
         "cloud": {
-          "stack": "Claude Opus 4.8",
+          "stack": "GPT-5.6 Terra (codex)",
           "models": [
-            "claude-opus-4-8",
-            "opus-4.8"
+            "gpt-5.6-terra"
           ],
-          "effort": "default",
-          "cost": 5.303661833333332,
+          "effort": "low",
+          "cost": 0.387374,
           "pass": 1.0,
-          "n": 6
+          "n": 1
         },
         "local": null
       },
@@ -460,14 +463,14 @@
       },
       "python": {
         "cloud": {
-          "stack": "Claude Opus 4.7",
+          "stack": "GPT-5.6 Terra (codex)",
           "models": [
-            "claude-opus-4-7"
+            "gpt-5.6-terra"
           ],
-          "effort": "default",
-          "cost": 4.64231875,
+          "effort": "high",
+          "cost": 0.305717,
           "pass": 1.0,
-          "n": 3
+          "n": 1
         },
         "local": null
       },

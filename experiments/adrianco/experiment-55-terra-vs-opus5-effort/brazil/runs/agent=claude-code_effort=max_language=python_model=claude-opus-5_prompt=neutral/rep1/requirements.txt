@@ -1,0 +1,7 @@
+# Runtime
+mcp>=1.2          # MCP SDK; works with both 1.x (FastMCP) and 2.x (MCPServer)
+anyio>=4.0        # async runner used by the CLI/demo (also an mcp dependency)
+
+# Development
+pytest>=8
+pytest-cov>=5

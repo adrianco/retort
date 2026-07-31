@@ -46,15 +46,21 @@ At `max` the shape of the work changes. Edits outnumber writes **2.4:1**, Reads 
 
 This is where the self-imposed extras appear, and *only* here. Across the ten python runs, mutation testing, subagent delegation and a hand-written OpenAPI document occur exclusively in the two `max` runs — never at `low` through `xhigh`. That matches what the [slowest passing run](tasks-blog.md) turned out to contain: a seven-module package, unprompted `ruff` linting, and mutation testing, for a books CRUD API.
 
-**The switch point tracks task difficulty, not the dial position.** On the hard task the same flip happens two levels earlier:
+**On the hard task, it revises at every level.** The full brazil sweep (n=1 per cell):
 
-| brazil, python (n=1) | wall | cost | turns | Edit:Write |
-|---|---|---|---|---|
-| low | 18.7 min | $8.14 | 75 | 0.93 |
-| medium | 25.9 min | $13.94 | 126 | **1.91** |
-| high | **59.9 min** | **$45.34** | 231 | **2.11** |
+| brazil, python | wall | cost | turns | Edit:Write | src lines | tests |
+|---|---|---|---|---|---|---|
+| low | 18.7 min | $8.14 | 75 | 0.93 | 2,485 | 74 |
+| medium | 25.9 min | $13.94 | 126 | 1.91 | 3,397 | 165 |
+| high | 59.9 min | $45.34 | 231 | 2.11 | 5,000 | 185 |
+| xhigh | 53.0 min | $29.37 | 190 | 1.28 | 5,438 | 208 |
+| max | 67.1 min | $58.42 | 211 | 1.79 | 5,267 | 172 |
 
-On bookshop, Opus revises only at `max`. On brazil it is already revising at `medium`. The dial doesn't set the behaviour directly — it sets a budget, and the model switches into revision mode once it has spent enough to have something worth revising.
+Read this next to the routine task and the difference is the *baseline*, not a switch point. On bookshop, Edit:Write sits at 0.24–0.80 for four levels and only crosses 1.0 at `max`. On brazil it is **above 0.9 at every level, including `low`** — the hard task is revision-heavy from the start, because a 12-capability MCP server over six overlapping CSVs cannot be written correctly in one pass at any budget.
+
+*An earlier version of this page claimed the switch point "moves two levels earlier" on the hard task. That was written when only `low`/`medium`/`high` had run, and the completed sweep does not support it — Edit:Write goes 0.93 → 1.91 → 2.11 → 1.28 → 1.79, which is noise around a high baseline at n=1, not a progression. The honest statement is the one above: hard tasks revise throughout.*
+
+The brazil `go` arm is the same story and contains the most expensive run this project has recorded: **98.2 minutes and $85.45** at `max`, producing 8,573 lines and 142 tests — for a cell that `low` also passed, in 16 minutes for $7.03.
 
 ---
 
@@ -104,8 +110,8 @@ The two CLIs accept the same five words, which makes the factor look comparable.
 
 ## Caveats
 
-**n is small.** Two replicates per bookshop cell, one per brazil cell. The go `max` row is n=1 (13.3 min, $4.21) and lands *below* its own `xhigh` (18.4 min, $6.70) — almost certainly the missing replicate rather than a real inversion, so the go `max` figures are not used for any claim above.
+**n is small.** Two replicates per bookshop cell, one per brazil cell. The bookshop go `max` row is n=1 (13.3 min, $4.21) and lands *below* its own `xhigh` (18.4 min, $6.70) — almost certainly the missing replicate rather than a real inversion, so it backs no claim above. At n=1 the brazil Edit:Write ratios wander (see the correction above); treat the *level* of that ratio as the signal and its ordering as noise.
 
-**The brazil sweep is incomplete.** Opus 5 ran `low`/`medium`/`high` before the account hit its usage limit; `xhigh` and `max` never ran. The brazil table is the shape of the first three levels only, and the two most expensive cells are missing.
+**One brazil cell has no cost.** Opus 5 / go / `medium` completed and scored 1.00, but its agent log was never written, so `_cost_usd` is NULL and tokens read 0. Every Opus total on this page is therefore a **lower bound** with one cell missing. Filed as a harness bug — a run that completes without usage telemetry should say so loudly, because a missing cost and a free run look identical in every downstream table.
 
 **One measurement trap, recorded because it bit this analysis.** A Claude Code JSONL log can contain **more than one `result` record** — 2 of the 24 Opus runs here do. Reading `num_turns` from the last record alone undercounts: the 45.6-minute `max` run reports 94 that way when the true total is 116 + 94 = **210**. An earlier version of [tasks-blog.md](tasks-blog.md) and [experiments-blog.md](experiments-blog.md) published the 94; both are corrected. Directly counted `tool_use` blocks (256 for that run) are the more reliable measure and are what the tool-mix table above uses.

@@ -1,0 +1,33 @@
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "brazilian-soccer-mcp"
+version = "1.0.0"
+description = "MCP server exposing a Brazilian soccer knowledge graph built from Kaggle match and player datasets"
+readme = "README.md"
+requires-python = ">=3.11"
+license = { text = "MIT" }
+authors = [{ name = "Brazilian Soccer MCP" }]
+dependencies = ["mcp>=2.0.0"]
+
+[project.optional-dependencies]
+test = ["pytest>=8", "pytest-bdd>=8", "pytest-asyncio>=1.0", "pytest-cov>=6"]
+
+[project.scripts]
+brazilian-soccer-mcp = "brazilian_soccer.cli:main"
+
+[tool.setuptools]
+packages = ["brazilian_soccer"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+bdd_features_base_dir = "tests/features"
+asyncio_mode = "auto"
+filterwarnings = [
+    "ignore::pytest.PytestRemovedIn10Warning",
+]
+markers = [
+    "performance: assertions about query latency budgets",
+]

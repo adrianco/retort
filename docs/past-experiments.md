@@ -336,6 +336,53 @@ rate is partly an artifact of retort running many cells behind an identical prom
 reports no per-request context, so peak-context is blank for those cells — see the notes in
 `_parse_codex_usage`.
 
+### exp-55b — the same sweep on the HARD task: 28× the cost, and the gap the pass metric hides
+
+The brazil half of exp-55: `{gpt-5.6-terra, claude-opus-5} × {low, medium, high, xhigh, max} ×
+{python, go} × n=1` = 20 runs, judge held at opus-4.8. **20/20 completed, every cell 1.00** — so on
+the 12-capability MCP task, at every thinking level, in both languages, both models fully implement
+the spec.
+
+| | Terra | Opus 5 | ratio |
+|---|---:|---:|---:|
+| total cost, 10 cells | **\$10.58** | **\$296.08** | **28×** |
+| total wall clock | 1.7 h | 7.6 h | 4.5× |
+| cheapest passing cell | \$0.31 (python, high) | \$7.03 (go, low) | 23× |
+| dearest passing cell | \$3.36 (go, max) | **\$85.45** (go, max) | 25× |
+
+That \$85.45 / 98-minute run is **the most expensive single run this project has recorded**, and the
+`low` cell of the same stack passed the identical checklist in 16 minutes for \$7.03.
+
+**The finding that matters is what `requirement_coverage` cannot see.** All 20 cells are 1.00, but
+the mechanical scorers are not equal:
+
+| | `test_coverage` | range |
+|---|---:|---|
+| Opus 5, python | **0.98** | 0.95–1.00 |
+| Terra, python | 0.82 | 0.69–0.88 |
+| Opus 5, go | **0.88** | 0.86–0.90 |
+| Terra, go | 0.56 | **0.27**–0.66 |
+
+Opus ships materially better-tested code on the hard task — on Go it is 0.88 against Terra's 0.56,
+with one Terra cell at **0.27**. So "Terra matches Opus at 1/28th the cost" is true *of spec
+conformance* and false of test depth. The pinned checklist asks whether each capability exists, and
+a thinly-tested implementation answers yes. Anyone reading the cost ratio as "same result" is reading
+one column of four. (`code_quality` and `maintainability` are near-identical between them, so the
+gap is specifically in testing, not in the code.)
+
+**Effort still buys nothing on the pass metric here** — 1.00 at `low` and 1.00 at `max`, for 8× the
+money. Behavioural detail of what Opus does with the extra time is in
+[levels-blog](../levels-blog.md); briefly, the hard task is revision-heavy at *every* level
+(Edit:Write > 0.9 even at `low`), unlike the routine task where writing dominates until `max`.
+
+*Caveats:* n=1 per cell — these are single observations, and this project has reversed n=1 results
+before. **One cell has no cost at all:** Opus 5 / go / `medium` completed and scored 1.00, but its
+agent log was never written, so `_cost_usd` is NULL and tokens read 0 — the \$296.08 is a **lower
+bound**, and the missing telemetry is filed as a harness bug (a completed run with no usage data
+should fail loudly, because a missing cost and a free run are indistinguishable downstream). The
+first resume attempt also crashed 3 cells in <1 s on `Not logged in` after the credential store was
+blanked; those rows were re-run, not recorded.
+
 ### exp-53 — Codex joins the board, and is an order of magnitude cheaper
 
 The first OpenAI-lineage agent in this corpus. Every cloud result before this was Claude (plus one
