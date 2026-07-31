@@ -1,0 +1,38 @@
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "brazilian-soccer-mcp"
+version = "1.0.0"
+description = "MCP server exposing a Brazilian football knowledge graph built from six Kaggle datasets"
+readme = "README.md"
+requires-python = ">=3.10"
+license = { text = "MIT" }
+keywords = ["mcp", "model-context-protocol", "football", "soccer", "brazil", "knowledge-graph"]
+classifiers = [
+    "Programming Language :: Python :: 3",
+    "Topic :: Scientific/Engineering :: Information Analysis",
+]
+# No runtime dependencies: the knowledge graph and the MCP JSON-RPC transport
+# are both implemented on the standard library.
+dependencies = []
+
+[project.optional-dependencies]
+dev = ["pytest>=7.0"]
+
+[project.scripts]
+brazilian-soccer-mcp = "brazilian_soccer.server:main"
+brazilian-soccer = "brazilian_soccer.cli:main"
+
+[tool.setuptools]
+packages = ["brazilian_soccer"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+addopts = "-q --strict-markers"
+markers = [
+    "slow: tests that spawn a subprocess",
+    "bdd: behaviour-driven scenarios written in Given/When/Then form",
+    "performance: asserts the response-time budgets from the specification",
+]

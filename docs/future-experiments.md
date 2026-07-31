@@ -20,6 +20,68 @@ push; verify every tuning parameter takes effect with a smoke test first; after 
 
 ---
 
+## 0z. BLOCKER: the `claude` CLI is logged out — everything is stopped  — 2026-07-31
+
+`claude -p` returns **`Not logged in · Please run /login`** (`error: authentication_failed`) from a
+plain shell, with no retort involved. The keychain entry `Claude Code-credentials` is present and
+there is no `~/.claude/.credentials.json`; the CLI simply will not use the stored credential. It
+worked for exp-55 cells 11–13 roughly 12 hours earlier, and broke across the usage-limit event.
+
+**Fix (must be done by the account owner — Claude cannot authenticate):** run `claude`
+interactively and `/login`.
+
+This blocks **both** halves of the queue, and the second one is not obvious:
+
+1. **exp-55 brazil resume** — all 7 remaining cells are `claude-opus-5`, so they crash in <1s.
+2. **exp-56 (below), even though codex/Terra auth is fine** — because the **spec-gate judge is the
+   `claude` CLI**. And a judge that cannot run does **NOT** fail the run:
+   `_spec_conformance_passes` returns `None` for "the eval could not run", the run loop does
+   `spec_failed = spec_verdict is False`, so `None` means *not gated*. Runs would be recorded as
+   fine with no `requirement_coverage` behind them — silently ungated data, which is worse than no
+   data. Do not launch anything until `claude -p` answers.
+
+Damage from the failed resume attempt: two rows recorded as `crashed` (python xhigh, python max)
+with all-zero metrics. **No cleanup needed** — `--resume` always re-runs `crashed` cells. But note
+`aggregate` does *not* filter on status, so a crashed row would enter `master.db` as a 0.00 if
+anyone aggregated before re-running. Don't aggregate exp-55 until it is complete.
+
+---
+
+## 0y. exp-56 — Terra across the 11 remaining languages, both tasks  — PLANNED (launch when 0z clears)
+
+**Question.** GPT-5.6 Terra matches Opus 5 at 1.00 on python and go for a fraction of the cost
+(exp-55). Does that hold across the *whole* language matrix, including the ones that have
+historically separated models — Rust, Clojure, C#, Elixir, Erlang, and the Apple/systems set?
+
+**Design.** `language` × `task`, everything else fixed.
+
+- **languages (11):** typescript, rust, java, clojure, erlang, elixir, csharp, swift, c, cpp, objc
+  (Terra already has python + go from exp-55; do not re-run them — the point is the *gap*).
+- **tasks (2):** `rest-api-crud` (bookshop) and `brazil-bench` (brazil).
+- **model:** `gpt-5.6-terra`, **agent:** `codex`, **effort:** `default` (= Terra's own default,
+  medium — pass no flag), **prompt:** neutral, **1 replicate**.
+- **22 runs.** Judge held at `claude-code` / `opus-4.8` for comparability with every prior run.
+
+**Cost.** Terra's brazil cells in exp-55 ran \$0.31–\$3.36 and bookshop \$0.10–\$0.33, at *default*
+effort mostly at the low end — so roughly **\$8–12 list**. The real constraint is the ChatGPT Plus
+quota, not dollars; 22 agentic runs is a meaningful chunk of it. Expect long wall-clock on the hard
+task: Opus 5 needed 40–64 min per exotic-language brazil cell, and the run wall is 120 min.
+
+**Pre-flight checks.**
+
+1. `claude -p` must answer (blocker 0z) or the spec gate silently no-ops.
+2. Toolchains: node, cargo, mvn, dotnet, lein, mix, rebar3, swift, clang, clang++, cmake — **all
+   verified present 2026-07-31**.
+3. ⚠️ **objc is at risk.** `xcode-select -p` reports `/Library/Developer/CommandLineTools`, not a
+   full Xcode, and the README requires full Xcode (XCTest + Foundation via `xcodebuild`) for objc.
+   exp-46 *did* pass objc, so the setup has changed since. Either point `xcode-select` at a full
+   Xcode first, or drop objc and record why — an objc 0.00 from a missing toolchain is a HARNESS
+   false zero, not a Terra result. Verify with a single objc cell before trusting the batch.
+4. n=1 per cell. Treat any single 0.00 as a hypothesis and re-run it before publishing — this repo
+   has reversed n=1 results repeatedly.
+
+---
+
 ## 0a. PRE-FLIGHT GATE: smoke-test the provisioned python venv  — REQUIRED before the next python experiment
 
 Landed post-exp-55: retort now creates a `venv/` in every python workspace (pytest + pytest-cov
