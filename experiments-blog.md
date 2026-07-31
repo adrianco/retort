@@ -71,7 +71,7 @@ Both of these are the **same task** — `rest-api-crud`, python, a books CRUD AP
 | Wall clock | 44.5 s | **45.6 min** | 61× |
 | Cost | $0.86 | **$24.96** | 29× |
 | Tokens | 105,745 | **18,448,183** | 174× |
-| Turns | 7 | **94** (256 tool calls) | 13× |
+| Turns | 7 | **210** (256 tool calls) | 30× |
 | Source + test lines | 194 | **2,351** | 12× |
 | Tests | 6 | **104** | 17× |
 | `requirement_coverage` | 1.00 | 1.00 | — |

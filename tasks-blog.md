@@ -51,7 +51,7 @@ One read, four writes, one verification command, done. No exploration, no iterat
 |---|---|
 | **Stack** | Claude Opus 5, `effort=max`, python, prompt=neutral |
 | **Experiment** | `adrianco/experiment-55-terra-vs-opus5-effort-bookshop` rep2 |
-| **Duration** | **45.6 min** (61×) · 94 turns · **$24.96** (29×) · 18,448,183 tokens (174×) |
+| **Duration** | **45.6 min** (61×) · 210 turns · 256 tool calls · **$24.96** (29×) · 18,448,183 tokens (174×) |
 | **Result** | 12/12 requirements · **104** tests · coverage 1.00 |
 
 2,351 lines against Fable 5's 194. It built a seven-module package, linted itself with `ruff` unprompted, spawned a subagent, and ran **mutation testing** — on a books CRUD API. Every one of the judge's five findings is an `info` noting scope *beyond* the spec: a `PATCH` endpoint, filtering and pagination, a hand-written 304-line OpenAPI document, WAL journaling, NUL-byte validation. The task asked for five endpoints, a health check and at least three tests.
