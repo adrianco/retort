@@ -1,0 +1,57 @@
+# Experiment 56 — GPT-5.6 Terra across the languages it has NOT been run on.
+#
+# QUESTION. exp-55 showed Terra matching Opus 5 at 1.00 on python and go for a
+# fraction of the cost, on BOTH tasks. Does that hold across the rest of the
+# language matrix — including the languages that have historically separated
+# models (Rust, Clojure, C#, Elixir, Erlang) and the systems set (C, C++)?
+#
+# SCOPE. Only the GAP is run. Terra already has python + go from exp-55 at five
+# effort levels; re-running them would spend quota to re-measure a known cell.
+#
+# EFFORT = default, DELIBERATELY. exp-55 swept all five levels on python/go and
+# found Terra almost flat across the dial ($0.12-$0.29 on bookshop, every cell
+# 1.00). Sweeping effort again here would multiply 9 languages by 5 for a factor
+# already measured to be inert on this model. `default` is Terra's own default
+# (medium) and is the setting a user actually gets.
+#
+# APPLE LANGUAGES EXCLUDED — HARNESS, NOT MODEL (verified 2026-08-01).
+# swift and objc are NOT in this design because they cannot be scored on this
+# host right now. Full Xcode IS installed at /Applications/Xcode.app, but
+# `xcode-select -p` points at /Library/Developer/CommandLineTools, so:
+#     xcodebuild            -> "requires Xcode, but active developer directory
+#                               ... is a command line tools instance"
+#     swift test + XCTest   -> "no such module 'XCTest'"  (reproduced directly)
+# Either language would therefore score a HARNESS false zero that looks exactly
+# like a Terra capability wall — the precise failure this repo keeps paying for.
+# They are added back, via --resume with the two rows appended to design.csv,
+# after:
+#     sudo xcode-select -s /Applications/Xcode.app/Contents/Developer
+# (needs the account owner's password, so it is not something the harness can do
+# for itself.) exp-46 passed objc, so this host changed after that run.
+#
+# JUDGE held at claude-code / opus-4.8, unchanged since exp-53, so
+# requirement_coverage pools with every prior experiment.
+experiment:
+  name: experiment-56-terra-alllang-bookshop
+  visibility: public
+factors:
+  language: { levels: [typescript, rust, java, clojure, erlang, elixir, csharp, c, cpp] }
+  agent: { levels: [codex] }
+  prompt: { levels: [neutral] }
+  model: { levels: [gpt-5.6-terra] }
+  effort: { levels: [default] }
+responses: [code_quality, token_efficiency, test_coverage, defect_rate, maintainability, idiomatic]
+tasks:
+  - source: bundled://rest-api-crud
+playpen:
+  runner: local
+  replicates: 1
+  timeout_minutes: 150
+  stall_minutes: 30
+  max_turns: 200
+  prompts_dir: prompts
+  local_agents:
+    codex: { harness: codex, model: gpt-5.6-terra }
+design: { screening_resolution: 3, significance_threshold: 0.10 }
+promotion: { screening_to_trial: { p_value: 0.10 }, trial_to_production: { posterior_confidence: 0.80 } }
+evaluation: { enabled: true, model: opus-4.8 }

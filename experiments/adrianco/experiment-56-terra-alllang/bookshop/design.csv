@@ -1,0 +1,10 @@
+run,language,agent,prompt,model,effort
+0,typescript,codex,neutral,gpt-5.6-terra,default
+1,rust,codex,neutral,gpt-5.6-terra,default
+2,java,codex,neutral,gpt-5.6-terra,default
+3,clojure,codex,neutral,gpt-5.6-terra,default
+4,erlang,codex,neutral,gpt-5.6-terra,default
+5,elixir,codex,neutral,gpt-5.6-terra,default
+6,csharp,codex,neutral,gpt-5.6-terra,default
+7,c,codex,neutral,gpt-5.6-terra,default
+8,cpp,codex,neutral,gpt-5.6-terra,default

@@ -40,38 +40,40 @@ passes every presence check.
 Fixed by an interactive `/login` at the terminal; `/login` is local-only and does not work over
 Remote Control. exp-55 brazil then resumed and completed 20/20.
 
-## 0y. exp-56 — Terra across the 11 remaining languages, both tasks  — READY TO LAUNCH
+## 0y. exp-56 — Terra across the remaining languages, both tasks  — LAUNCHED 2026-08-01
 
-**Question.** GPT-5.6 Terra matches Opus 5 at 1.00 on python and go for a fraction of the cost
-(exp-55). Does that hold across the *whole* language matrix, including the ones that have
-historically separated models — Rust, Clojure, C#, Elixir, Erlang, and the Apple/systems set?
+**Question.** exp-55 showed Terra matching Opus 5 at 1.00 on python and go for a fraction of the
+cost, on *both* tasks. Does that hold across the rest of the language matrix — including the
+languages that have historically separated models (Rust, Clojure, C#, Elixir, Erlang) and the
+systems set (C, C++)?
 
-**Design.** `language` × `task`, everything else fixed.
+**Design.** 9 languages × 2 tasks × 1 replicate = **18 runs**. `gpt-5.6-terra` via `codex`,
+`effort: default`, prompt neutral, judge held at opus-4.8.
 
-- **languages (11):** typescript, rust, java, clojure, erlang, elixir, csharp, swift, c, cpp, objc
-  (Terra already has python + go from exp-55; do not re-run them — the point is the *gap*).
-- **tasks (2):** `rest-api-crud` (bookshop) and `brazil-bench` (brazil).
-- **model:** `gpt-5.6-terra`, **agent:** `codex`, **effort:** `default` (= Terra's own default,
-  medium — pass no flag), **prompt:** neutral, **1 replicate**.
-- **22 runs.** Judge held at `claude-code` / `opus-4.8` for comparability with every prior run.
+Only the gap is run — python and go already have Terra at five effort levels from exp-55. Effort is
+**not** swept: exp-55 measured it as near-inert on Terra ($0.12–$0.29 across the whole dial, every
+cell 1.00), so re-sweeping it would multiply 9 languages by 5 to re-measure a known flat factor.
+`default` is Terra's own default (medium) and is what a user actually gets.
 
-**Cost.** Terra's brazil cells in exp-55 ran \$0.31–\$3.36 and bookshop \$0.10–\$0.33, at *default*
-effort mostly at the low end — so roughly **\$8–12 list**. The real constraint is the ChatGPT Plus
-quota, not dollars; 22 agentic runs is a meaningful chunk of it. Expect long wall-clock on the hard
-task: Opus 5 needed 40–64 min per exotic-language brazil cell, and the run wall is 120 min.
+**swift and objc are EXCLUDED — harness, not model.** Verified at launch: full Xcode *is* installed
+at `/Applications/Xcode.app`, but `xcode-select -p` points at `/Library/Developer/CommandLineTools`,
+so `xcodebuild` errors with "requires Xcode, but active developer directory ... is a command line
+tools instance", and a minimal SwiftPM package fails to build its tests with **"no such module
+'XCTest'"** (reproduced directly, not assumed). Either language would have scored a HARNESS false
+zero indistinguishable from a Terra capability wall. exp-46 passed objc, so this host changed after
+that run.
 
-**Pre-flight checks.**
+To add them later — append the two rows per task to `design.csv` and `--resume`:
 
-1. `claude -p` must answer or the spec gate silently no-ops — **verified 2026-07-31**.
-2. Toolchains: node, cargo, mvn, dotnet, lein, mix, rebar3, swift, clang, clang++, cmake — **all
-   verified present 2026-07-31**.
-3. ⚠️ **objc is at risk.** `xcode-select -p` reports `/Library/Developer/CommandLineTools`, not a
-   full Xcode, and the README requires full Xcode (XCTest + Foundation via `xcodebuild`) for objc.
-   exp-46 *did* pass objc, so the setup has changed since. Either point `xcode-select` at a full
-   Xcode first, or drop objc and record why — an objc 0.00 from a missing toolchain is a HARNESS
-   false zero, not a Terra result. Verify with a single objc cell before trusting the batch.
-4. n=1 per cell. Treat any single 0.00 as a hypothesis and re-run it before publishing — this repo
-   has reversed n=1 results repeatedly.
+    sudo xcode-select -s /Applications/Xcode.app/Contents/Developer
+
+That needs the account owner's password, so the harness cannot do it unattended.
+
+**Expected cost** ~\$8–12 list; the real constraint is ChatGPT Plus quota. Wall clock may be long on
+the hard task — Opus 5 needed 40–64 min per exotic-language brazil cell, and the wall is 150 min.
+
+**Reading the result:** n=1 per cell. Any single 0.00 is a hypothesis, not a finding — re-run it
+before publishing. This repo has reversed n=1 results repeatedly.
 
 ---
 
