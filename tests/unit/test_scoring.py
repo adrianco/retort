@@ -1281,7 +1281,8 @@ def test_runtime_reports_a_non_result_rather_than_zero_ms(monkeypatch, tmp_path)
     res = rt.measure(tmp_path, "brazil-soccer-mcp", "rust")
     assert not res.ok
     assert res.steady_median_ms is None and res.cold_start_ms is None
-    assert "entrypoint" in res.note
+    # the note must say WHY, so a non-result is diagnosable rather than opaque
+    assert res.note and "Cargo.toml" in res.note
 
 
 def test_runtime_uses_median_not_mean(monkeypatch, tmp_path):

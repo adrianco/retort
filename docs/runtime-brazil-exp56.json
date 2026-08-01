@@ -1,0 +1,101 @@
+[
+ {
+  "task": "brazil-soccer-mcp",
+  "language": "c",
+  "ok": false,
+  "cold_start_ms": null,
+  "steady_median_ms": null,
+  "steady_min_ms": null,
+  "steady_max_ms": null,
+  "iters": 0,
+  "note": "server did not answer a tools/call probe"
+ },
+ {
+  "task": "brazil-soccer-mcp",
+  "language": "clojure",
+  "ok": false,
+  "cold_start_ms": null,
+  "steady_median_ms": null,
+  "steady_min_ms": null,
+  "steady_max_ms": null,
+  "iters": 0,
+  "note": "no run recipe for 'clojure'"
+ },
+ {
+  "task": "brazil-soccer-mcp",
+  "language": "cpp",
+  "ok": false,
+  "cold_start_ms": null,
+  "steady_median_ms": null,
+  "steady_min_ms": null,
+  "steady_max_ms": null,
+  "iters": 0,
+  "note": "no non-test executable produced"
+ },
+ {
+  "task": "brazil-soccer-mcp",
+  "language": "csharp",
+  "ok": false,
+  "cold_start_ms": null,
+  "steady_median_ms": null,
+  "steady_min_ms": null,
+  "steady_max_ms": null,
+  "iters": 0,
+  "note": "dotnet build failed"
+ },
+ {
+  "task": "brazil-soccer-mcp",
+  "language": "elixir",
+  "ok": false,
+  "cold_start_ms": null,
+  "steady_median_ms": null,
+  "steady_min_ms": null,
+  "steady_max_ms": null,
+  "iters": 0,
+  "note": "server did not answer a tools/call probe"
+ },
+ {
+  "task": "brazil-soccer-mcp",
+  "language": "erlang",
+  "ok": false,
+  "cold_start_ms": null,
+  "steady_median_ms": null,
+  "steady_min_ms": null,
+  "steady_max_ms": null,
+  "iters": 0,
+  "note": "no run recipe for 'erlang'"
+ },
+ {
+  "task": "brazil-soccer-mcp",
+  "language": "java",
+  "ok": false,
+  "cold_start_ms": null,
+  "steady_median_ms": null,
+  "steady_min_ms": null,
+  "steady_max_ms": null,
+  "iters": 0,
+  "note": "server did not answer a tools/call probe"
+ },
+ {
+  "task": "brazil-soccer-mcp",
+  "language": "rust",
+  "ok": false,
+  "cold_start_ms": null,
+  "steady_median_ms": null,
+  "steady_min_ms": null,
+  "steady_max_ms": null,
+  "iters": 0,
+  "note": "server did not answer a tools/call probe"
+ },
+ {
+  "task": "brazil-soccer-mcp",
+  "language": "typescript",
+  "ok": true,
+  "cold_start_ms": 363.4230839088559,
+  "steady_median_ms": 361.53250001370907,
+  "steady_min_ms": 358.65766694769263,
+  "steady_max_ms": 367.90679208934307,
+  "iters": 10,
+  "note": ""
+ }
+]

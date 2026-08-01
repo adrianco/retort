@@ -111,49 +111,165 @@ def _machine_is_busy() -> bool:
 # ---------------------------------------------------------------- brazil probe
 
 
-#: The fixed tool call every brazil implementation must answer. Chosen because
-#: the spec's own worked example pins the expected answer, so a probe that
-#: returns nonsense is visible rather than merely fast.
+#: The fixed exchange every brazil implementation must answer.
+#:
+#: `initialize` MUST carry `capabilities` and `clientInfo` — a stricter server
+#: (the TypeScript one validates with zod) rejects the handshake without them,
+#: and an earlier version of this probe omitted both and read the resulting
+#: -32603 as "the server never answered".
+#:
+#: The second call is `tools/list`, NOT a named tool. Tool NAMES are chosen by
+#: each implementation and are not pinned by the spec, so `tools/call` with a
+#: fixed name would silently measure "did this run happen to pick that name"
+#: rather than "how fast is this program". `tools/list` is protocol-guaranteed,
+#: so it is the same request everywhere — and because these servers load all six
+#: CSVs at start-up, the round-trip still includes the data load that makes the
+#: number interesting.
 BRAZIL_CALLS = [
     {"jsonrpc": "2.0", "id": 1, "method": "initialize",
-     "params": {"protocolVersion": "2024-11-05"}},
-    {"jsonrpc": "2.0", "id": 2, "method": "tools/call",
-     "params": {"name": "team_statistics",
-                "arguments": {"team": "Corinthians", "season": 2022}}},
+     "params": {"protocolVersion": "2024-11-05",
+                "capabilities": {},
+                "clientInfo": {"name": "retort-runtime-probe", "version": "1"}}},
+    {"jsonrpc": "2.0", "id": 2, "method": "tools/list"},
 ]
 
 
-def _find_server_entry(run_dir: Path, language: str) -> list[str] | None:
-    """Best-effort command that starts the produced MCP server on stdio.
-
-    Deliberately conservative: return None rather than guess wrong, because a
-    wrong entrypoint produces a fast *failure* that would otherwise be recorded
-    as a fast *program*.
-    """
-    py = run_dir / "venv" / "bin" / "python"
-    interp = str(py) if py.exists() else "python3"
-    candidates: list[tuple[str, list[str]]] = [
-        ("server.py", [interp, "server.py"]),
-        ("main.py", [interp, "main.py"]),
-        ("main.go", ["go", "run", "."]),
-    ]
-    for fname, cmd in candidates:
-        if (run_dir / fname).exists():
-            return cmd
-    # Compiled artefacts the build already produced.
-    for pat in ("target/release/*", "target/debug/*", ".build/debug/*", "build/*"):
-        for p in sorted(run_dir.glob(pat)):
-            if p.is_file() and p.stat().st_mode & 0o111 and "." not in p.name:
-                return [str(p)]
+def _first_executable(*globs: Path) -> Path | None:
+    for p in globs:
+        if p.is_file() and p.stat().st_mode & 0o111 and "." not in p.name:
+            return p
     return None
+
+
+def _build_then_entry(run_dir: Path, language: str) -> tuple[list[str] | None, str]:
+    """(command that starts the stdio server, note) — building first if needed.
+
+    The BUILD IS UNTIMED and runs once, before any measurement: charging a
+    compiled language for `cargo build` inside a latency figure would say more
+    about the compiler than the program. Build cost already lives in
+    `_duration_seconds`.
+
+    Each entry is derived from the project's OWN manifest rather than a guessed
+    convention — the binary name comes from Cargo.toml, the start command from
+    package.json, the escript name from mix.exs. Where the manifest does not
+    declare an entrypoint (clojure's deps.edn here has only a :test alias, and
+    this erlang project ships no escript stanza), this returns None and the run
+    is reported as an explicit non-result rather than measured wrongly.
+    """
+    def build(cmd: list[str], timeout: int = 600) -> bool:
+        try:
+            r = subprocess.run(cmd, cwd=run_dir, capture_output=True,
+                               text=True, timeout=timeout)
+            return r.returncode == 0
+        except (subprocess.TimeoutExpired, FileNotFoundError, OSError):
+            return False
+
+    if language == "python":
+        py = run_dir / "venv" / "bin" / "python"
+        interp = str(py) if py.exists() else "python3"
+        for f in ("server.py", "main.py"):
+            if (run_dir / f).exists():
+                return [interp, f], ""
+        return None, "no server.py/main.py"
+
+    if language == "go":
+        if (run_dir / "go.mod").exists():
+            if not build(["go", "build", "-o", ".retort-bin", "."]):
+                return None, "go build failed"
+            return [str(run_dir / ".retort-bin")], ""
+        return None, "no go.mod"
+
+    if language == "rust":
+        toml = run_dir / "Cargo.toml"
+        if not toml.exists():
+            return None, "no Cargo.toml"
+        if not build(["cargo", "build", "--release", "--quiet"]):
+            return None, "cargo build failed"
+        m = re.search(r'^\s*name\s*=\s*"([^"]+)"', toml.read_text(errors="replace"), re.M)
+        if m:
+            exe = run_dir / "target" / "release" / m.group(1)
+            if exe.exists():
+                return [str(exe)], ""
+        exe = _first_executable(*sorted((run_dir / "target" / "release").glob("*")))
+        return ([str(exe)], "") if exe else (None, "no release binary")
+
+    if language == "typescript":
+        pkg = run_dir / "package.json"
+        if not pkg.exists():
+            return None, "no package.json"
+        try:
+            scripts = json.loads(pkg.read_text()).get("scripts", {})
+        except ValueError:
+            scripts = {}
+        # Archives strip node_modules AND dist (see cli._ARCHIVE_NOISE), so a
+        # restore is required before the build — without it `npm run build`
+        # fails silently and `npm start` dies on a missing dist/server.js,
+        # which the probe would otherwise report as "the server never answered".
+        if not (run_dir / "node_modules").exists():
+            build(["npm", "install", "--silent"], timeout=600)
+        if scripts.get("build") and not build(["npm", "run", "build", "--silent"]):
+            return None, "npm run build failed after restore"
+        start = scripts.get("start")
+        if start:
+            return ["npm", "start", "--silent"], ""
+        return None, "package.json declares no start script"
+
+    if language == "csharp":
+        projs = [p for p in run_dir.glob("*.csproj") if "test" not in p.stem.lower()]
+        if not projs:
+            return None, "no non-test .csproj"
+        if not build(["dotnet", "build", str(projs[0]), "--nologo", "-v", "q"]):
+            return None, "dotnet build failed"
+        return ["dotnet", "run", "--project", str(projs[0]), "--no-build", "--nologo"], ""
+
+    if language == "elixir":
+        mix = run_dir / "mix.exs"
+        if not mix.exists():
+            return None, "no mix.exs"
+        text = mix.read_text(errors="replace")
+        if "escript" not in text:
+            return None, "mix.exs declares no escript entrypoint"
+        if not build(["mix", "escript.build"]):
+            return None, "mix escript.build failed"
+        m = re.search(r"app:\s*:(\w+)", text)
+        exe = run_dir / (m.group(1) if m else "")
+        return ([str(exe)], "") if exe.exists() else (None, "escript not produced")
+
+    if language in ("c", "cpp", "objc"):
+        # C ships its server binary already; C++/ObjC usually need the build.
+        exe = _first_executable(*sorted(run_dir.glob("*")))
+        if exe and "test" not in exe.name.lower():
+            return [str(exe)], ""
+        if (run_dir / "Makefile").exists():
+            build(["make"])
+            exe = _first_executable(*sorted(run_dir.glob("*")))
+            if exe and "test" not in exe.name.lower():
+                return [str(exe)], ""
+        return None, "no non-test executable produced"
+
+    if language == "java":
+        if not (run_dir / "pom.xml").exists():
+            return None, "no pom.xml"
+        if not build(["mvn", "-q", "-DskipTests", "package"], timeout=900):
+            return None, "mvn package failed"
+        jars = [p for p in (run_dir / "target").glob("*.jar")
+                if "sources" not in p.name and "javadoc" not in p.name]
+        return ([ "java", "-jar", str(jars[0])], "") if jars else (None, "no jar built")
+
+    return None, f"no run recipe for {language!r}"
+
+
+def _find_server_entry(run_dir: Path, language: str) -> list[str] | None:
+    cmd, _ = _build_then_entry(run_dir, language)
+    return cmd
 
 
 def _probe_brazil(run_dir: Path, language: str) -> RuntimeResult:
     """Time N identical MCP tool calls, plus the one-off data load."""
     res = RuntimeResult(task="brazil-soccer-mcp", language=language, ok=False)
-    cmd = _find_server_entry(run_dir, language)
+    cmd, why = _build_then_entry(run_dir, language)
     if cmd is None:
-        res.note = "no recognizable server entrypoint — not guessed"
+        res.note = why or "no recognizable server entrypoint — not guessed"
         return res
 
     payload = "\n".join(json.dumps(c) for c in BRAZIL_CALLS) + "\n"

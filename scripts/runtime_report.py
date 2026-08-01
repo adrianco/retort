@@ -34,7 +34,10 @@ def main() -> int:
               "invalid. Wait for it to finish.", file=sys.stderr)
         return 2
 
-    runs = sorted((args.experiment_dir / "runs").glob("*/rep*"))
+    # `rep1-failed` archives are superseded snapshots of a crashed attempt —
+    # measuring them would double-count a language and time code that never ran.
+    runs = sorted(p for p in (args.experiment_dir / "runs").glob("*/rep*")
+                  if not p.name.endswith("-failed"))
     if not runs:
         print(f"no archived runs under {args.experiment_dir}/runs", file=sys.stderr)
         return 1
