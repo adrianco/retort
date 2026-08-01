@@ -1177,3 +1177,24 @@ def test_quiet_pytest_project_is_not_false_failed(tmp_path):
     env, _ = ensure_python_env(tmp_path)
     assert TestCoverageScorer()._tests_pass_rate(tmp_path, "python", env=env) in (None, 0.0), \
         "a failing suite must not be rescued by the exit-code fallback"
+
+
+def test_node_test_summary_parses_both_reporters():
+    """`node --test` prints its summary two different ways; both must parse.
+
+    Regression (exp-56): the pattern accepted only TAP's "# pass 7". Node 26's
+    default `spec` reporter emits "ℹ pass 3" instead, so a typescript cell that
+    passed 3/3 with exit code 0 scored 0.00 on EVERY response — indistinguishable
+    from a model that cannot write TypeScript. The runner branch had matched and
+    the tests had run; only the summary line went unread.
+    """
+    from retort.scoring.scorers.test_coverage import _parse_test_pass_rate
+
+    spec = "ℹ tests 3\nℹ suites 0\nℹ pass 3\nℹ fail 0\nℹ cancelled 0\n"
+    tap = "# tests 7\n# suites 0\n# pass 7\n# fail 0\n"
+    assert _parse_test_pass_rate(spec, "typescript") == 1.0
+    assert _parse_test_pass_rate(tap, "typescript") == 1.0
+
+    # and a genuine failure must still read as a failure under both
+    assert _parse_test_pass_rate("ℹ pass 3\nℹ fail 1\n", "typescript") == 0.75
+    assert _parse_test_pass_rate("# pass 3\n# fail 1\n", "typescript") == 0.75

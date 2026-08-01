@@ -1,0 +1,11 @@
+{
+  "name": "book-collection-api",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "start": "node src/server.ts",
+    "test": "node --test test/**/*.test.ts",
+    "build": "node --check src/app.ts && node --check src/server.ts"
+  }
+}

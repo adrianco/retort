@@ -861,12 +861,19 @@ _TEST_PASS_PATTERNS: dict[str, list[re.Pattern[str]]] = {
         # jest summary (--verbose or default):
         #   Tests:      49 passed, 49 total
         re.compile(r"Tests:\s+(?P<passed>\d+)\s+passed(?:,\s*\d+\s+\w+)*,\s*(?P<total>\d+)\s+total"),
-        # node:test (`node --test`) TAP summary — pass/fail counts on their own
-        # lines (DOTALL spans the intervening `# suites`/`# tests` lines):
-        #   # pass 7
-        #   # fail 0
+        # node:test (`node --test`) summary — pass/fail counts on their own lines
+        # (DOTALL spans the intervening suites/tests lines). TWO marker styles,
+        # and matching only the first one cost a green suite a flat zero:
+        #   TAP reporter   ->  "# pass 7"  /  "# fail 0"
+        #   spec reporter  ->  "ℹ pass 3"  /  "ℹ fail 0"
+        # `node --test` switched its DEFAULT reporter to `spec` when stdout is a
+        # TTY and, on Node 26, emits the ℹ form here too. exp-56's typescript
+        # cell passed 3/3 with exit 0 and still scored 0.00 on every response,
+        # which reads as a capability wall and is not one — the runner branch
+        # matched, the tests ran, only the summary went unparsed.
         re.compile(
-            r"#\s+pass\s+(?P<passed>\d+).*?#\s+fail\s+(?P<failed>\d+)", re.DOTALL
+            r"[#ℹ]\s+pass\s+(?P<passed>\d+).*?[#ℹ]\s+fail\s+(?P<failed>\d+)",
+            re.DOTALL,
         ),
     ],
     "java": [
