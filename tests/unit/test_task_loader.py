@@ -19,7 +19,12 @@ class TestBundledTasks:
         assert task.name == "rest-api-crud"
         assert task.prompt
         assert task.description
-        assert task.validation_script is not None
+        # validate.py was deleted: the four scripts were structural-only
+        # (file counts, no execution) and nothing invoked them. The mechanical
+        # gate RUNS the tests and the spec gate grades a pinned checklist, both
+        # strictly stronger. The loader field stays for back-compat and is now
+        # legitimately None for bundled tasks.
+        assert task.validation_script is None
         assert task.timeout_minutes == 20
 
     def test_load_bundled_cli_pipeline(self):

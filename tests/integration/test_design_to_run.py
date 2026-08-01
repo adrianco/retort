@@ -121,7 +121,7 @@ class TestDesignToRun:
         task = load_task("bundled://rest-api-crud")
         assert task.name == "rest-api-crud"
         assert task.prompt
-        assert task.validation_script
+        assert task.validation_script is None   # deleted; see test_task_loader
 
     def test_design_deterministic_config(self, registry):
         """Verify design produces consistent factor assignments."""
