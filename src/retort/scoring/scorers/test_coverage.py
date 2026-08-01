@@ -574,18 +574,28 @@ class TestCoverageScorer:
         out = output_dir.resolve()
         results = out / ".retort-coverage"
         shutil.rmtree(results, ignore_errors=True)
-        # A bare `dotnet test` needs a solution/project at the cwd; agents
-        # often ship <App>/ + <App>.Tests/ with no root .sln, which errors
-        # with MSB1003 before running anything (false-fail). When the root
-        # has no solution or project, target the test project(s) explicitly.
+        # A bare `dotnet test` needs an UNAMBIGUOUS entry point at the cwd.
+        # Two ways agents break that, and both used to false-fail:
+        #   * no solution or project at the root (<App>/ + <App>.Tests/ layout)
+        #     -> MSB1003 "Specify a project or solution file"
+        #   * SEVERAL projects at the root and no .sln (e.g. App.csproj +
+        #     App.Tests.csproj side by side) -> MSB1011 "Specify which project
+        #     or solution file to use because this folder contains more than
+        #     one project or solution file"
+        # Either way MSBuild exits BEFORE running a single test, so a green
+        # suite scores 0. exp-56's csharp brazil cell shipped exactly the second
+        # layout and its 5 tests all pass when run explicitly.
+        # A solution disambiguates by itself; otherwise the root is only safe
+        # when it holds exactly ONE project.
         base = ["dotnet", "test", "--collect:XPlat Code Coverage",
                 "--results-directory", str(results), "--nologo"]
         cmds = [base]
-        has_root_entry = any(
-            next(out.glob(pat), None) is not None
-            for pat in ("*.sln", "*.slnx", "*.csproj")
+        has_solution = any(
+            next(out.glob(pat), None) is not None for pat in ("*.sln", "*.slnx")
         )
-        if not has_root_entry:
+        root_projects = list(out.glob("*.csproj"))
+        unambiguous_root = has_solution or len(root_projects) == 1
+        if not unambiguous_root:
             test_projects = sorted(
                 p for p in out.rglob("*.csproj")
                 if ".retort-coverage" not in p.parts

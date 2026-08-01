@@ -53,19 +53,19 @@ The machine-readable form of the table below is committed at **[`optimal.json`](
 <!-- GEN:per-language-routing START -->
 | Language | Routine → cloud | pass | $ | Routine → local | Hard → cloud | pass | $ |
 |---|---|---:|---:|---|---|---:|---:|
-| **c** | Opus 4.8 @ `default` <sub>n=1</sub> | 1.00 | $1.28 | — | Fable 5 @ `default` <sub>n=1</sub> | 1.00 | $10.59 |
-| **clojure** | Opus 4.7 @ `default` <sub>n=6</sub> | 1.00 | $1.06 | — | Opus 5 @ `default` <sub>n=1</sub> | 1.00 | $2.55 |
-| **cpp** | Opus 4.8 @ `default` <sub>n=1</sub> | 1.00 | $1.08 | — | Opus 5 @ `default` <sub>n=1</sub> | 1.00 | $17.50 |
-| **csharp** | Opus 4.8 @ `default` <sub>n=1</sub> | 1.00 | $0.65 | — | Sonnet 5 @ `default` <sub>n=3</sub> | 1.00 | $9.96 |
-| **elixir** | Opus 4.8 @ `default` <sub>n=3</sub> | 1.00 | $0.85 | — | Fable 5 @ `default` <sub>n=1</sub> | 1.00 | $13.21 |
-| **erlang** | Opus 4.8 @ `default` <sub>n=3</sub> | 1.00 | $1.35 | — | Fable 5 @ `default` <sub>n=1</sub> | 1.00 | $12.06 |
+| **c** | GPT-5.6 Terra @ `default` <sub>n=1</sub> | 1.00 | $0.26 | — | GPT-5.6 Terra @ `default` <sub>n=1</sub> | 1.00 | $0.40 |
+| **clojure** | GPT-5.6 Terra @ `default` <sub>n=1</sub> | 1.00 | $0.33 | — | GPT-5.6 Terra @ `default` <sub>n=1</sub> | 1.00 | $0.57 |
+| **cpp** | GPT-5.6 Terra @ `default` <sub>n=1</sub> | 1.00 | $0.26 | — | GPT-5.6 Terra @ `default` <sub>n=1</sub> | 1.00 | $0.33 |
+| **csharp** | GPT-5.6 Terra @ `default` <sub>n=1</sub> | 1.00 | $0.26 | — | GPT-5.6 Terra @ `default` <sub>n=1</sub> | 1.00 | $1.36 |
+| **elixir** | GPT-5.6 Terra @ `default` <sub>n=1</sub> | 1.00 | $0.42 | — | GPT-5.6 Terra @ `default` <sub>n=1</sub> | 1.00 | $0.67 |
+| **erlang** | GPT-5.6 Terra @ `default` <sub>n=1</sub> | 1.00 | $0.34 | — | GPT-5.6 Terra @ `default` <sub>n=1</sub> | 1.00 | $0.49 |
 | **go** | GPT-5.6 Luna @ `default` <sub>n=3</sub> | 1.00 | $0.08 | Qwen3-Coder-Next 80B @ `default` <sub>n=3</sub> | GPT-5.6 Terra @ `low` <sub>n=1</sub> | 1.00 | $0.39 |
-| **java** | Opus 4.7 @ `default` <sub>n=6</sub> | 1.00 | $0.92 | — | Fable 5 @ `default` <sub>n=1</sub> | 1.00 | $12.01 |
+| **java** | GPT-5.6 Terra @ `default` <sub>n=1</sub> | 1.00 | $0.38 | — | GPT-5.6 Terra @ `default` <sub>n=1</sub> | 1.00 | $0.49 |
 | **objc** | Opus 4.8 @ `default` <sub>n=1</sub> | 1.00 | $1.52 | — | Fable 5 @ `default` <sub>n=1</sub> | 1.00 | $13.30 |
 | **python** | GPT-5.6 Luna @ `default` <sub>n=3</sub> | 1.00 | $0.06 | Qwen3-Coder-Next 80B @ `default` <sub>n=3</sub> | GPT-5.6 Terra @ `high` <sub>n=1</sub> | 1.00 | $0.31 |
-| **rust** | Opus 4.8 @ `default` <sub>n=6</sub> | 1.00 | $0.71 | — | Fable 5 @ `default` <sub>n=3</sub> | 1.00 | $9.63 |
+| **rust** | GPT-5.6 Terra @ `default` <sub>n=1</sub> | 1.00 | $0.14 | — | GPT-5.6 Terra @ `default` <sub>n=1</sub> | 1.00 | $0.37 |
 | **swift** | Opus 4.8 @ `default` <sub>n=1</sub> | 1.00 | $1.25 | — | Fable 5 @ `default` <sub>n=1</sub> | 1.00 | $9.24 |
-| **typescript** | Opus 4.8 @ `default` <sub>n=7</sub> | 1.00 | $0.65 | Qwen3-Coder-Next 80B @ `default` <sub>n=3</sub> | Opus 4.7 @ `default` <sub>n=3</sub> | 1.00 | $4.14 |
+| **typescript** | GPT-5.6 Terra @ `default` <sub>n=1</sub> | 1.00 | $0.22 | Qwen3-Coder-Next 80B @ `default` <sub>n=3</sub> | GPT-5.6 Terra @ `default` <sub>n=1</sub> | 1.00 | $0.15 |
 <!-- GEN:per-language-routing END -->
 
 > **Reading the `effort` column.** Almost every cell says `default`, and that is an honest statement rather than a recommendation: **thinking level has only ever been *varied* on one cell** (python × bookshop, exp-49). Everywhere else the corpus has exactly one measured level, so the router reports the level those runs actually used and does not imply a comparison nobody made. Where the dial *was* swept, the finding was consistent — `low` cost ~1.6× less than the CLI default at identical reliability, and the default is not the cheap end. Expect these to shift toward `low` as the sweep widens.
@@ -85,7 +85,7 @@ Reliability, cost and time are all reported **per task size** — routine and ha
 |---|---:|---:|---:|
 | **Claude Opus 5** | 1.00 · 1.00 | $3.23 · $26.48 | 546 s · 2669 s |
 | **Claude Fable 5** | 1.00 · 1.00 | $1.58 · $10.47 | 166 s · 1090 s |
-| **GPT-5.6 Terra (codex)** | 1.00 · 1.00 | $0.22 · $1.06 | 155 s · 623 s |
+| **GPT-5.6 Terra (codex)** | 1.00 · 1.00 | $0.24 · $0.81 | 163 s · 481 s |
 | **GPT-5.6 Luna (codex)** | 0.67 · — | $0.09 · — | 153 s · — |
 | **Claude Sonnet 5** | 1.00 · 0.93 | $1.10 · $7.64 | 237 s · 1252 s |
 | **Claude Opus 4.8** | 0.98 · 0.59 | $0.93 · $3.27 | 258 s · 608 s |
@@ -141,19 +141,19 @@ Reliability, cost and time are all reported **per task size** — routine and ha
 <!-- GEN:per-language-matrix START -->
 | Language | Opus 5 | Fable 5 | Terra | Luna | Sonnet 5 | Opus 4.8 | Opus 4.7 | Qwen 35B local | Qwen 80B local |
 |---|---:|---:|---:|---:|---:|---:|---:|---:|---:|
-| **c** | 1.00 (1) | 1.00 (1) | — | — | — | 1.00 (1) | — | — | — |
-| **clojure** | 1.00 (1) | 1.00 (3) | — | — | — | 1.00 (6) | 1.00 (6) | — | 0.00 (3) |
-| **cpp** | 1.00 (1) | 1.00 (1) | — | — | — | 1.00 (1) | — | — | — |
-| **csharp** | 1.00 (1) | 1.00 (1) | — | — | 1.00 (3) | 1.00 (1) | — | — | 0.00 (3) |
-| **elixir** | 1.00 (1) | 1.00 (1) | — | — | — | 1.00 (3) | 1.00 (3) | — | 0.00 (3) |
-| **erlang** | 1.00 (1) | 1.00 (1) | — | — | — | 1.00 (3) | 1.00 (3) | — | 0.00 (3) |
+| **c** | 1.00 (1) | 1.00 (1) | 1.00 (1) | — | — | 1.00 (1) | — | — | — |
+| **clojure** | 1.00 (1) | 1.00 (3) | 1.00 (1) | — | — | 1.00 (6) | 1.00 (6) | — | 0.00 (3) |
+| **cpp** | 1.00 (1) | 1.00 (1) | 1.00 (1) | — | — | 1.00 (1) | — | — | — |
+| **csharp** | 1.00 (1) | 1.00 (1) | 1.00 (1) | — | 1.00 (3) | 1.00 (1) | — | — | 0.00 (3) |
+| **elixir** | 1.00 (1) | 1.00 (1) | 1.00 (1) | — | — | 1.00 (3) | 1.00 (3) | — | 0.00 (3) |
+| **erlang** | 1.00 (1) | 1.00 (1) | 1.00 (1) | — | — | 1.00 (3) | 1.00 (3) | — | 0.00 (3) |
 | **go** | 1.00 (10) | 1.00 (3) | 1.00 (10) | 1.00 (3) | 1.00 (3) | 1.00 (7) | 1.00 (6) | 0.85 (27) | 1.00 (3) |
-| **java** | 1.00 (1) | 1.00 (1) | — | — | — | 0.83 (6) | 1.00 (6) | — | 0.00 (3) |
+| **java** | 1.00 (1) | 1.00 (1) | 1.00 (1) | — | — | 0.83 (6) | 1.00 (6) | — | 0.00 (3) |
 | **objc** | 1.00 (1) | 1.00 (1) | — | — | — | 1.00 (1) | — | — | — |
 | **python** | 1.00 (26) | 1.00 (18) | 1.00 (10) | 1.00 (3) | 1.00 (3) | 1.00 (22) | 1.00 (21) | 0.87 (30) | 1.00 (3) |
-| **rust** | 1.00 (1) | 1.00 (3) | — | — | 1.00 (3) | 1.00 (6) | 1.00 (6) | 0.00 (2) | 0.33 (3) |
+| **rust** | 1.00 (1) | 1.00 (3) | 1.00 (1) | — | 1.00 (3) | 1.00 (6) | 1.00 (6) | 0.00 (2) | 0.33 (3) |
 | **swift** | 1.00 (1) | 1.00 (1) | — | — | — | 1.00 (1) | — | — | — |
-| **typescript** | 1.00 (1) | 1.00 (1) | — | 0.00 (3) | 1.00 (3) | 1.00 (7) | 1.00 (6) | 0.00 (3) | 1.00 (3) |
+| **typescript** | 1.00 (1) | 1.00 (1) | 1.00 (1) | 0.00 (3) | 1.00 (3) | 1.00 (7) | 1.00 (6) | 0.00 (3) | 1.00 (3) |
 <!-- GEN:per-language-matrix END -->
 
 **The language split: Python, Go and TypeScript run locally for free (on the 80B at full context); every other language means Claude.** The 80B (`Qwen3-Coder-Next`, at `context_threshold: 0.9`) is reliable on all three — **Python 1.00, Go 1.00, TypeScript 1.00** (exp-38, n=3 each) — the last only after raising compaction to full context (it was 0.33 below that). The 35B is the faster alternative but only on **Python and Go (0.85 each)**; it scores **0.00** on TypeScript and Rust even at its tuned config, so its cross-language average (0.85 when scoped to Python/Go; lower if you blend in the languages it can't do) is exactly why this document leads with the matrix, not an average. **Rust and the five niche languages (clojure/csharp/elixir/java/erlang) still go to cloud** — the 80B either near-misses (Rust 0.33, java/erlang) or can't produce working code at all (clojure/csharp/elixir score a genuine 0.00). So local has two stacks for Python/Go and one (the 80B at 0.9) that adds TypeScript.
@@ -275,17 +275,17 @@ These tables are regenerated from `master.db` by `retort report optimal` — run
 <!-- GEN:per-language START -->
 | Language | Routine → cheapest qualifying stack | Reliability | n |
 |---|---|---:|---:|
-| **c** | Claude Opus 4.8 ($1.28) | 1.00 | 1 |
-| **clojure** | Claude Opus 4.7 ($1.06) | 1.00 | 6 |
-| **cpp** | Claude Opus 4.8 ($1.08) | 1.00 | 1 |
-| **csharp** | Claude Opus 4.8 ($0.65) | 1.00 | 1 |
-| **elixir** | Claude Opus 4.8 ($0.85) | 1.00 | 3 |
-| **erlang** | Claude Opus 4.8 ($1.35) | 1.00 | 3 |
+| **c** | GPT-5.6 Terra (codex) ($0.26) | 1.00 | 1 |
+| **clojure** | GPT-5.6 Terra (codex) ($0.33) | 1.00 | 1 |
+| **cpp** | GPT-5.6 Terra (codex) ($0.26) | 1.00 | 1 |
+| **csharp** | GPT-5.6 Terra (codex) ($0.26) | 1.00 | 1 |
+| **elixir** | GPT-5.6 Terra (codex) ($0.42) | 1.00 | 1 |
+| **erlang** | GPT-5.6 Terra (codex) ($0.34) | 1.00 | 1 |
 | **go** | Qwen3-Coder-Next 80B (local, $0, ctx 0.9) ($0) | 1.00 | 3 |
-| **java** | Claude Opus 4.7 ($0.92) | 1.00 | 6 |
+| **java** | GPT-5.6 Terra (codex) ($0.38) | 1.00 | 1 |
 | **objc** | Claude Opus 4.8 ($1.52) | 1.00 | 1 |
 | **python** | Qwen3-Coder-Next 80B (local, $0, ctx 0.9) ($0) | 1.00 | 3 |
-| **rust** | Claude Opus 4.8 ($0.71) | 1.00 | 6 |
+| **rust** | GPT-5.6 Terra (codex) ($0.14) | 1.00 | 1 |
 | **swift** | Claude Opus 4.8 ($1.25) | 1.00 | 1 |
 | **typescript** | Qwen3-Coder-Next 80B (local, $0, ctx 0.9) ($0) | 1.00 | 3 |
 <!-- GEN:per-language END -->

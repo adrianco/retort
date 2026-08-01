@@ -45,13 +45,13 @@
       "kind": "cloud",
       "routine": {
         "pass": 1.0,
-        "n": 20,
-        "cost": 0.22
+        "n": 29,
+        "cost": 0.24
       },
       "hard": {
         "pass": 1.0,
-        "n": 10,
-        "cost": 1.06
+        "n": 19,
+        "cost": 0.81
       }
     },
     {
@@ -145,13 +145,12 @@
     "rest-api-crud": {
       "c": {
         "cloud": {
-          "stack": "Claude Opus 4.8",
+          "stack": "GPT-5.6 Terra (codex)",
           "models": [
-            "claude-opus-4-8",
-            "opus-4.8"
+            "gpt-5.6-terra"
           ],
           "effort": "default",
-          "cost": 1.2778485000000002,
+          "cost": 0.25985100000000005,
           "pass": 1.0,
           "n": 1
         },
@@ -159,26 +158,25 @@
       },
       "clojure": {
         "cloud": {
-          "stack": "Claude Opus 4.7",
+          "stack": "GPT-5.6 Terra (codex)",
           "models": [
-            "claude-opus-4-7"
+            "gpt-5.6-terra"
           ],
           "effort": "default",
-          "cost": 1.0640909583333333,
+          "cost": 0.3288275,
           "pass": 1.0,
-          "n": 6
+          "n": 1
         },
         "local": null
       },
       "cpp": {
         "cloud": {
-          "stack": "Claude Opus 4.8",
+          "stack": "GPT-5.6 Terra (codex)",
           "models": [
-            "claude-opus-4-8",
-            "opus-4.8"
+            "gpt-5.6-terra"
           ],
           "effort": "default",
-          "cost": 1.0755649999999999,
+          "cost": 0.2640765,
           "pass": 1.0,
           "n": 1
         },
@@ -186,13 +184,12 @@
       },
       "csharp": {
         "cloud": {
-          "stack": "Claude Opus 4.8",
+          "stack": "GPT-5.6 Terra (codex)",
           "models": [
-            "claude-opus-4-8",
-            "opus-4.8"
+            "gpt-5.6-terra"
           ],
           "effort": "default",
-          "cost": 0.6548685,
+          "cost": 0.2612755,
           "pass": 1.0,
           "n": 1
         },
@@ -200,29 +197,27 @@
       },
       "elixir": {
         "cloud": {
-          "stack": "Claude Opus 4.8",
+          "stack": "GPT-5.6 Terra (codex)",
           "models": [
-            "claude-opus-4-8",
-            "opus-4.8"
+            "gpt-5.6-terra"
           ],
           "effort": "default",
-          "cost": 0.8489111666666668,
+          "cost": 0.42447599999999996,
           "pass": 1.0,
-          "n": 3
+          "n": 1
         },
         "local": null
       },
       "erlang": {
         "cloud": {
-          "stack": "Claude Opus 4.8",
+          "stack": "GPT-5.6 Terra (codex)",
           "models": [
-            "claude-opus-4-8",
-            "opus-4.8"
+            "gpt-5.6-terra"
           ],
           "effort": "default",
-          "cost": 1.3538590833333333,
+          "cost": 0.3419185,
           "pass": 1.0,
-          "n": 3
+          "n": 1
         },
         "local": null
       },
@@ -248,14 +243,14 @@
       },
       "java": {
         "cloud": {
-          "stack": "Claude Opus 4.7",
+          "stack": "GPT-5.6 Terra (codex)",
           "models": [
-            "claude-opus-4-7"
+            "gpt-5.6-terra"
           ],
           "effort": "default",
-          "cost": 0.9160888749999999,
+          "cost": 0.3795,
           "pass": 1.0,
-          "n": 6
+          "n": 1
         },
         "local": null
       },
@@ -295,15 +290,14 @@
       },
       "rust": {
         "cloud": {
-          "stack": "Claude Opus 4.8",
+          "stack": "GPT-5.6 Terra (codex)",
           "models": [
-            "claude-opus-4-8",
-            "opus-4.8"
+            "gpt-5.6-terra"
           ],
           "effort": "default",
-          "cost": 0.7134874583333334,
+          "cost": 0.1419695,
           "pass": 1.0,
-          "n": 6
+          "n": 1
         },
         "local": null
       },
@@ -323,15 +317,14 @@
       },
       "typescript": {
         "cloud": {
-          "stack": "Claude Opus 4.8",
+          "stack": "GPT-5.6 Terra (codex)",
           "models": [
-            "claude-opus-4-8",
-            "opus-4.8"
+            "gpt-5.6-terra"
           ],
           "effort": "default",
-          "cost": 0.6518629285714285,
+          "cost": 0.21962150000000003,
           "pass": 1.0,
-          "n": 7
+          "n": 1
         },
         "local": {
           "stack": "Qwen3-Coder-Next 80B (local, $0, ctx 0.9)",
@@ -346,12 +339,12 @@
     "brazil-soccer-mcp": {
       "c": {
         "cloud": {
-          "stack": "Claude Fable 5",
+          "stack": "GPT-5.6 Terra (codex)",
           "models": [
-            "claude-fable-5"
+            "gpt-5.6-terra"
           ],
           "effort": "default",
-          "cost": 10.587464999999998,
+          "cost": 0.4026885,
           "pass": 1.0,
           "n": 1
         },
@@ -359,12 +352,12 @@
       },
       "clojure": {
         "cloud": {
-          "stack": "Claude Opus 5",
+          "stack": "GPT-5.6 Terra (codex)",
           "models": [
-            "claude-opus-5"
+            "gpt-5.6-terra"
           ],
           "effort": "default",
-          "cost": 2.5517610000000004,
+          "cost": 0.571795,
           "pass": 1.0,
           "n": 1
         },
@@ -372,12 +365,12 @@
       },
       "cpp": {
         "cloud": {
-          "stack": "Claude Opus 5",
+          "stack": "GPT-5.6 Terra (codex)",
           "models": [
-            "claude-opus-5"
+            "gpt-5.6-terra"
           ],
           "effort": "default",
-          "cost": 17.496295500000002,
+          "cost": 0.33093,
           "pass": 1.0,
           "n": 1
         },
@@ -385,25 +378,25 @@
       },
       "csharp": {
         "cloud": {
-          "stack": "Claude Sonnet 5",
+          "stack": "GPT-5.6 Terra (codex)",
           "models": [
-            "sonnet-5"
+            "gpt-5.6-terra"
           ],
           "effort": "default",
-          "cost": 9.964222999999999,
+          "cost": 1.356327,
           "pass": 1.0,
-          "n": 3
+          "n": 1
         },
         "local": null
       },
       "elixir": {
         "cloud": {
-          "stack": "Claude Fable 5",
+          "stack": "GPT-5.6 Terra (codex)",
           "models": [
-            "claude-fable-5"
+            "gpt-5.6-terra"
           ],
           "effort": "default",
-          "cost": 13.207735000000003,
+          "cost": 0.6673595,
           "pass": 1.0,
           "n": 1
         },
@@ -411,12 +404,12 @@
       },
       "erlang": {
         "cloud": {
-          "stack": "Claude Fable 5",
+          "stack": "GPT-5.6 Terra (codex)",
           "models": [
-            "claude-fable-5"
+            "gpt-5.6-terra"
           ],
           "effort": "default",
-          "cost": 12.062622000000001,
+          "cost": 0.485014,
           "pass": 1.0,
           "n": 1
         },
@@ -437,12 +430,12 @@
       },
       "java": {
         "cloud": {
-          "stack": "Claude Fable 5",
+          "stack": "GPT-5.6 Terra (codex)",
           "models": [
-            "claude-fable-5"
+            "gpt-5.6-terra"
           ],
           "effort": "default",
-          "cost": 12.011324000000002,
+          "cost": 0.4851135,
           "pass": 1.0,
           "n": 1
         },
@@ -476,14 +469,14 @@
       },
       "rust": {
         "cloud": {
-          "stack": "Claude Fable 5",
+          "stack": "GPT-5.6 Terra (codex)",
           "models": [
-            "claude-fable-5"
+            "gpt-5.6-terra"
           ],
           "effort": "default",
-          "cost": 9.629584833333332,
+          "cost": 0.3711285,
           "pass": 1.0,
-          "n": 3
+          "n": 1
         },
         "local": null
       },
@@ -502,14 +495,14 @@
       },
       "typescript": {
         "cloud": {
-          "stack": "Claude Opus 4.7",
+          "stack": "GPT-5.6 Terra (codex)",
           "models": [
-            "claude-opus-4-7"
+            "gpt-5.6-terra"
           ],
           "effort": "default",
-          "cost": 4.141262416666668,
+          "cost": 0.1500645,
           "pass": 1.0,
-          "n": 3
+          "n": 1
         },
         "local": null
       }

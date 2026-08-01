@@ -40,43 +40,6 @@ passes every presence check.
 Fixed by an interactive `/login` at the terminal; `/login` is local-only and does not work over
 Remote Control. exp-55 brazil then resumed and completed 20/20.
 
-## 0y. exp-56 — Terra across the remaining languages, both tasks  — LAUNCHED 2026-08-01
-
-**Question.** exp-55 showed Terra matching Opus 5 at 1.00 on python and go for a fraction of the
-cost, on *both* tasks. Does that hold across the rest of the language matrix — including the
-languages that have historically separated models (Rust, Clojure, C#, Elixir, Erlang) and the
-systems set (C, C++)?
-
-**Design.** 9 languages × 2 tasks × 1 replicate = **18 runs**. `gpt-5.6-terra` via `codex`,
-`effort: default`, prompt neutral, judge held at opus-4.8.
-
-Only the gap is run — python and go already have Terra at five effort levels from exp-55. Effort is
-**not** swept: exp-55 measured it as near-inert on Terra ($0.12–$0.29 across the whole dial, every
-cell 1.00), so re-sweeping it would multiply 9 languages by 5 to re-measure a known flat factor.
-`default` is Terra's own default (medium) and is what a user actually gets.
-
-**swift and objc are EXCLUDED — harness, not model.** Verified at launch: full Xcode *is* installed
-at `/Applications/Xcode.app`, but `xcode-select -p` points at `/Library/Developer/CommandLineTools`,
-so `xcodebuild` errors with "requires Xcode, but active developer directory ... is a command line
-tools instance", and a minimal SwiftPM package fails to build its tests with **"no such module
-'XCTest'"** (reproduced directly, not assumed). Either language would have scored a HARNESS false
-zero indistinguishable from a Terra capability wall. exp-46 passed objc, so this host changed after
-that run.
-
-To add them later — append the two rows per task to `design.csv` and `--resume`:
-
-    sudo xcode-select -s /Applications/Xcode.app/Contents/Developer
-
-That needs the account owner's password, so the harness cannot do it unattended.
-
-**Expected cost** ~\$8–12 list; the real constraint is ChatGPT Plus quota. Wall clock may be long on
-the hard task — Opus 5 needed 40–64 min per exotic-language brazil cell, and the wall is 150 min.
-
-**Reading the result:** n=1 per cell. Any single 0.00 is a hypothesis, not a finding — re-run it
-before publishing. This repo has reversed n=1 results repeatedly.
-
----
-
 ## 0a. DONE — provisioned python venv verified on a live agent run  — 2026-07-31
 
 retort creates a `venv/` in every python workspace (pytest + pytest-cov preinstalled) and puts

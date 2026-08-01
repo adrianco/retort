@@ -31,7 +31,7 @@ Here is the full board, every model measured on the two tasks — **pass-proport
 |---|---|---:|---:|---:|---:|
 | Claude Opus 5 | cloud | **1.00 (47)** | $3.23 | **1.00 (23)** | $26.48 |
 | Claude Fable 5 | cloud | **1.00 (36)** | $1.58 | **1.00 (21)** | $10.47 |
-| GPT-5.6 Terra (codex) | cloud | **1.00 (20)** | $0.22 | **1.00 (10)** | $1.06 |
+| GPT-5.6 Terra (codex) | cloud | **1.00 (29)** | $0.24 | **1.00 (19)** | $0.81 |
 | GPT-5.6 Luna (codex) | cloud | 0.67 (9) | $0.09 | *not run* | — |
 | Claude Sonnet 5 | cloud | **1.00 (15)** | $1.10 | 0.93 (15) | $7.64 |
 | Claude Opus 4.8 | cloud | 0.98 (65) | $0.93 | 0.59 (44) | $3.27 |

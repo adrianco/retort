@@ -1198,3 +1198,58 @@ def test_node_test_summary_parses_both_reporters():
     # and a genuine failure must still read as a failure under both
     assert _parse_test_pass_rate("ℹ pass 3\nℹ fail 1\n", "typescript") == 0.75
     assert _parse_test_pass_rate("# pass 3\n# fail 1\n", "typescript") == 0.75
+
+
+def test_csharp_ambiguous_root_targets_test_projects(tmp_path, monkeypatch):
+    """Two .csproj at the root and no .sln must not run a bare `dotnet test`.
+
+    Regression (exp-56 brazil): the agent shipped App.csproj + App.Tests.csproj
+    side by side. `dotnet test` then exits with MSB1011 ("more than one project
+    or solution file") BEFORE running anything, so five passing tests scored
+    0.00 — indistinguishable from a model that cannot write C#. The scorer had
+    the explicit-test-project path already, but only used it when the root held
+    NO project; an ambiguous root fails the same way an empty one does.
+    """
+    from retort.scoring.scorers import test_coverage as tc
+
+    (tmp_path / "App.csproj").write_text("<Project/>")
+    (tmp_path / "App.Tests.csproj").write_text(
+        '<Project><PackageReference Include="Microsoft.NET.Test.Sdk"/></Project>'
+    )
+
+    seen: list[list[str]] = []
+
+    def fake_run(cmd, **kw):
+        seen.append(cmd)
+        class R:
+            stdout, stderr, returncode = "", "", 0
+        return R()
+
+    monkeypatch.setattr(tc, "_run_reaped", fake_run)
+    tc.TestCoverageScorer()._csharp_coverage(tmp_path)
+
+    assert seen, "scorer ran no command"
+    # every invocation must name a concrete .csproj rather than rely on cwd
+    for cmd in seen:
+        assert any(a.endswith(".csproj") for a in cmd), f"ambiguous invocation: {cmd}"
+        assert any("Tests" in a for a in cmd if a.endswith(".csproj"))
+
+
+def test_csharp_single_root_project_still_uses_bare_invocation(tmp_path, monkeypatch):
+    """One project at the root is unambiguous — don't change what already worked."""
+    from retort.scoring.scorers import test_coverage as tc
+
+    (tmp_path / "Only.csproj").write_text(
+        '<Project><PackageReference Include="Microsoft.NET.Test.Sdk"/></Project>'
+    )
+    seen: list[list[str]] = []
+
+    def fake_run(cmd, **kw):
+        seen.append(cmd)
+        class R:
+            stdout, stderr, returncode = "", "", 0
+        return R()
+
+    monkeypatch.setattr(tc, "_run_reaped", fake_run)
+    tc.TestCoverageScorer()._csharp_coverage(tmp_path)
+    assert seen and not any(a.endswith(".csproj") for a in seen[0])

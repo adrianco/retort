@@ -336,6 +336,60 @@ rate is partly an artifact of retort running many cells behind an identical prom
 reports no per-request context, so peak-context is blank for those cells — see the notes in
 `_parse_codex_usage`.
 
+### exp-56 — Terra clears every remaining language, both tasks, for \$7.44
+
+The gap-fill for exp-55: `gpt-5.6-terra` via codex at **default effort** (its own default, medium),
+1 replicate, across the nine languages Terra had never been run on, on **both** tasks. Judge held at
+opus-4.8.
+
+**18/18 at `requirement_coverage` 1.00. Total spend: \$7.44.**
+
+| language | bookshop | brazil |
+|---|---:|---:|
+| typescript | 1.00 · \$0.22 | 1.00 · \$0.15 * |
+| rust | 1.00 · \$0.14 | 1.00 · \$0.37 |
+| java | 1.00 · \$0.38 | 1.00 · \$0.49 |
+| clojure | 1.00 · \$0.33 | 1.00 · \$0.57 |
+| erlang | 1.00 · \$0.34 | 1.00 · \$0.49 |
+| elixir | 1.00 · \$0.42 | 1.00 · \$0.67 |
+| csharp | 1.00 · \$0.26 | 1.00 · \$1.36 |
+| c | 1.00 · \$0.26 | 1.00 · \$0.40 |
+| cpp | 1.00 · \$0.26 | 1.00 · \$0.33 |
+
+\* typescript/brazil passed on the **self-repair second chance** — the first attempt scored 0.9167
+(11 of 12 requirements) and the repair closed it. Every other cell passed first time.
+
+Put beside exp-46, where Opus 5 also went 13/13 on both tasks: Opus 5 spent **\$2.55–\$39.05 per
+brazil cell**; Terra's dearest here is **\$1.36**. Clojure, C#, Elixir and Erlang — the languages
+that wall the local 80B at 0.00 — are cleared for well under a dollar apiece.
+
+**Effort was deliberately not swept.** exp-55 measured the dial as near-inert on Terra (\$0.12–\$0.29
+across all five levels, every cell 1.00), so a 9 × 5 sweep would have re-measured a known flat
+factor. `default` is what a user actually gets.
+
+**Two scorer bugs surfaced, and both were false zeros on green code** — the pattern this project
+keeps paying for. Neither was a model failure:
+
+1. **typescript/bookshop scored 0.00 on every response.** The agent used Node's *built-in* runner
+   with zero dependencies. The `node --test` branch matched and the tests ran; only the summary went
+   unread, because the pattern accepted TAP's `# pass 7` while Node 26 emits its default spec
+   reporter's `ℹ pass 3`. Verified by hand: 3/3 pass, exit 0. Pattern now takes both markers.
+2. **csharp/brazil scored 0.00.** The agent shipped `App.csproj` + `App.Tests.csproj` at the root
+   with no `.sln`, so a bare `dotnet test` exits on **MSB1011** ("more than one project or solution
+   file") *before running anything*. The scorer already had an explicit-test-project path but only
+   used it when the root held **no** project — an ambiguous root fails exactly like an empty one.
+   Verified by hand: 5/5 pass. Both cells rescored and re-judged (ReqCov 1.0), with regression tests.
+
+**swift and objc were excluded, and that was a harness call, not a result.** Full Xcode is installed
+but `xcode-select` points at CommandLineTools, so `xcodebuild` errors and a minimal SwiftPM package
+fails with "no such module 'XCTest'" (reproduced before launch). Either would have scored a false
+zero indistinguishable from a capability wall. They need
+`sudo xcode-select -s /Applications/Xcode.app/Contents/Developer` and then 4 runs via `--resume`.
+
+*Caveats:* n=1 per cell. The two recovered cells were re-judged with `--eval-model opus-4.8`
+explicitly — `retort reevaluate` otherwise falls back to the CLI's default judge, which would have
+graded them under a different model than the other 16.
+
 ### exp-55b — the same sweep on the HARD task: 28× the cost, and the gap the pass metric hides
 
 The brazil half of exp-55: `{gpt-5.6-terra, claude-opus-5} × {low, medium, high, xhigh, max} ×

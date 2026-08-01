@@ -1,0 +1,23 @@
+{
+  "severity_counts": {
+    "critical": 0,
+    "high": 1,
+    "medium": 0,
+    "low": 0,
+    "info": 0
+  },
+  "penalty_score": 0.9,
+  "top_findings": [
+    {
+      "id": "agg-limit",
+      "kind": "test_failure",
+      "severity": "high",
+      "title": "Aggregate queries silently truncated to 100 matches by search_matches default limit",
+      "evidence": "lib/brazilian_soccer.ex:19 `Enum.take(Map.get(opts, :limit, 100))`; standings/3 (l.126), team_statistics/3 (l.26), competition_statistics/2 (l.139) and head_to_head/4 (l.78) all call search_matches with no explicit limit, so a full Brasileirao season (~380 matches) or league-wide average is computed from only the 100 most-recent matches. Tests pass (l.73) only because the fixture has 3 matches.",
+      "suggestion": "Apply the display limit only in search_matches' user-facing path; have the aggregate helpers query the unfiltered match list (e.g. an internal filter that omits the take) so standings/stats span the full season."
+    }
+  ],
+  "requirement_coverage": 1.0,
+  "model": "gpt-5.6-terra",
+  "evaluated_at": "2026-08-01T16:11:27Z"
+}
