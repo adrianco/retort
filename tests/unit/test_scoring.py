@@ -1253,3 +1253,61 @@ def test_csharp_single_root_project_still_uses_bare_invocation(tmp_path, monkeyp
     monkeypatch.setattr(tc, "_run_reaped", fake_run)
     tc.TestCoverageScorer()._csharp_coverage(tmp_path)
     assert seen and not any(a.endswith(".csproj") for a in seen[0])
+
+
+def test_runtime_refuses_to_measure_on_a_busy_machine(monkeypatch, tmp_path):
+    """Wall-clock timing during another experiment is invalid, not merely noisy.
+
+    Returning a plausible-but-wrong millisecond figure is worse than returning
+    nothing: it would be published as a language's speed. The measurement must
+    refuse rather than guess.
+    """
+    from retort.scoring.scorers import runtime as rt
+
+    monkeypatch.setattr(rt, "_machine_is_busy", lambda: True)
+    res = rt.measure(tmp_path, "brazil-soccer-mcp", "python")
+    assert not res.ok
+    assert "REFUSED" in res.note
+    assert res.steady_median_ms is None
+
+
+def test_runtime_reports_a_non_result_rather_than_zero_ms(monkeypatch, tmp_path):
+    """No entrypoint => explicit non-result, never a 0 that reads as 'instant'."""
+    from retort.scoring.scorers import runtime as rt
+
+    # Stub the busy-check: this suite may itself run while an experiment does,
+    # and the REFUSED path is covered by its own test above.
+    monkeypatch.setattr(rt, "_machine_is_busy", lambda: False)
+    res = rt.measure(tmp_path, "brazil-soccer-mcp", "rust")
+    assert not res.ok
+    assert res.steady_median_ms is None and res.cold_start_ms is None
+    assert "entrypoint" in res.note
+
+
+def test_runtime_uses_median_not_mean(monkeypatch, tmp_path):
+    """One stalled iteration must not define a language's reported speed."""
+    from retort.scoring.scorers import runtime as rt
+
+    monkeypatch.setattr(rt, "_machine_is_busy", lambda: False)
+    monkeypatch.setattr(rt, "_find_server_entry", lambda d, l: ["true"])
+    seq = iter([10.0] * 4 + [10.0, 10.0, 900.0, 10.0, 10.0, 10.0,
+                             10.0, 10.0, 10.0, 10.0])
+    monkeypatch.setattr(rt, "TIMED_ITERS", 10)
+    monkeypatch.setattr(rt, "WARMUP_ITERS", 3)
+
+    import retort.scoring.scorers.runtime as mod
+
+    def fake_probe(run_dir, language):
+        samples = [10.0] * 9 + [900.0]
+        r = rt.RuntimeResult(task="brazil-soccer-mcp", language=language, ok=True,
+                             cold_start_ms=50.0, samples_ms=samples,
+                             iters=len(samples))
+        import statistics
+        r.steady_median_ms = statistics.median(samples)
+        r.steady_max_ms = max(samples)
+        return r
+
+    monkeypatch.setitem(mod._PROBES, "brazil-soccer-mcp", fake_probe)
+    res = rt.measure(tmp_path, "brazil-soccer-mcp", "go")
+    assert res.steady_median_ms == 10.0      # median ignores the 900 ms stall
+    assert res.steady_max_ms == 900.0        # but it stays visible

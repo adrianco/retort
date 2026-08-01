@@ -38,7 +38,7 @@ experiment:
 # factors declare two and design.csv PINS the one actually run (the same shape
 # exp-46 and exp-48 use). Only `language` genuinely varies here.
 factors:
-  language: { levels: [typescript, rust, java, clojure, erlang, elixir, csharp, c, cpp] }
+  language: { levels: [typescript, rust, java, clojure, erlang, elixir, csharp, c, cpp, swift, objc] }
   agent: { levels: [codex, claude-code] }          # design pins codex
   prompt: { levels: [neutral, none] }              # design pins neutral
   model: { levels: [gpt-5.6-terra, gpt-5.6-luna] } # design pins terra

@@ -126,7 +126,7 @@ tasks:
   - source: local://./my-custom-task                                           # Local directory
 ```
 
-Each task source must contain a `task.yaml` (functional spec) and `validate.py` (automated pass/fail checks). See the `tasks/` directory for bundled examples.
+Each task source must contain a `task.yaml` (functional spec) and a pinned `REQUIREMENTS.json` (the checklist the spec gate grades against). See the `tasks/` directory for bundled examples.
 
 When a `github://` URI includes a spec path (e.g. `github://brazil-bench/benchmark-template/spec.md`), the **whole cloned repo** travels with the task and is copied into each playpen workspace alongside `TASK.md`. This is required for benchmarks like brazil-bench whose spec references data files (`data/*.csv`) and supporting docs in the same repo.
 

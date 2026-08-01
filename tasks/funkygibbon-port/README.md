@@ -23,7 +23,6 @@ but is harder because the deliverable lives inside a large existing repo and mus
 | `fixtures/mcp-tool-golden.json` | Tool calls → expected results against the graph. |
 | `REQUIREMENTS.json` | The pinned conformance checklist (R1–R12) for `requirement_coverage`. |
 | `prompts.txt` | Prompt(s) used to drive runs. |
-| `validate.py` | Light structural validation of the produced port. |
 
 ## Why it's a good Retort task
 

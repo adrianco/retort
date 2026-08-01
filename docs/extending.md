@@ -98,7 +98,7 @@ Then set `playpen.runner: kubernetes` in `workspace.yaml`.
 Tasks define what the AI agent builds. Each task needs:
 
 - `task.yaml` — Functional specification the agent receives as a prompt
-- `validate.py` — Automated checks that verify the output
+- `REQUIREMENTS.json` — The **pinned** requirement checklist the spec gate grades against
 
 ### task.yaml structure
 
@@ -118,22 +118,6 @@ validation:
   - schema_validation: true
 ```
 
-### validate.py structure
-
-```python
-def validate(output_dir: str) -> dict:
-    """Validate the agent's output.
-
-    Args:
-        output_dir: Path to the generated code
-
-    Returns:
-        Dict with 'passed' (bool) and 'details' (str)
-    """
-    # Check the code builds, tests pass, endpoints work
-    return {"passed": True, "details": "All 4 endpoints verified"}
-```
-
 ### Using a custom task
 
 ```yaml
@@ -142,7 +126,7 @@ tasks:
   - source: git://github.com/my-org/my-task-repo
 ```
 
-Git sources are cloned at experiment time. The repo root must contain `task.yaml` and `validate.py`.
+Git sources are cloned at experiment time. The repo root must contain `task.yaml` and `REQUIREMENTS.json`.
 
 ## Built-in scorers
 

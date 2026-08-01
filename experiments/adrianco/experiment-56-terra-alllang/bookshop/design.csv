@@ -8,3 +8,5 @@ run,language,agent,prompt,model,effort
 6,csharp,codex,neutral,gpt-5.6-terra,default
 7,c,codex,neutral,gpt-5.6-terra,default
 8,cpp,codex,neutral,gpt-5.6-terra,default
+9,swift,codex,neutral,gpt-5.6-terra,default
+10,objc,codex,neutral,gpt-5.6-terra,default

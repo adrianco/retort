@@ -4,7 +4,6 @@ A **task** is what the agent is asked to build (and what gets scored). A task is
 a directory (local or in a git repo) containing:
 
 - `task.yaml` — functional spec, prompt, validation criteria, timeout
-- `validate.py` — automated pass/fail validation script (optional)
 
 ## The registry
 
@@ -53,7 +52,7 @@ A bare name resolves to its registry `source`. Explicit `scheme://` URIs
 
 ## Adding a task
 
-- **Bundled:** drop a `tasks/<name>/` dir with `task.yaml` (+ optional
-  `validate.py`), then add a `source: bundled://<name>` row to `registry.yaml`.
+- **Bundled:** drop a `tasks/<name>/` dir with `task.yaml` (and a pinned
+  `REQUIREMENTS.json`), then add a `source: bundled://<name>` row to `registry.yaml`.
 - **Remote:** push the task to a GitHub repo (a template repo is ideal so others
   can fork it), then add a `source: github://<owner>/<repo>[/spec]` row.

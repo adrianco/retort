@@ -101,13 +101,10 @@ retort/
 │   ├── README.md                   # How to write a task spec
 │   ├── rest-api-crud/
 │   │   ├── task.yaml               # Functional spec, validation suite, expected endpoints
-│   │   └── validate.py             # Automated pass/fail checks
 │   ├── cli-data-pipeline/
 │   │   ├── task.yaml
-│   │   └── validate.py
 │   └── react-dashboard/
 │       ├── task.yaml
-│       └── validate.py
 │
 ├── examples/
 │   ├── workspace.yaml              # Example workspace config with factors + responses
@@ -301,7 +298,7 @@ Ships with `DockerRunner` (default, uses docker-in-docker within Codespaces) and
 
 - **Bundled** — 3 graduated tasks ship with Retort (CRUD API, CLI pipeline, React dashboard)
 - **Git** — Fork any repo (e.g., brazil-bench template) as a task source
-- **Local** — Point to a directory with a `task.yaml` and `validate.py`
+- **Local** — Point to a directory with a `task.yaml` and `REQUIREMENTS.json`
 - **Community** — Retort defines a task spec format; anyone can publish tasks
 
 ---
