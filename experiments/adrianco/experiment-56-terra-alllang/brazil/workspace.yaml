@@ -34,12 +34,15 @@
 experiment:
   name: experiment-56-terra-alllang-brazil
   visibility: public
+# The factor registry requires >= 2 levels per factor, so the held-constant
+# factors declare two and design.csv PINS the one actually run (the same shape
+# exp-46 and exp-48 use). Only `language` genuinely varies here.
 factors:
   language: { levels: [typescript, rust, java, clojure, erlang, elixir, csharp, c, cpp] }
-  agent: { levels: [codex] }
-  prompt: { levels: [neutral] }
-  model: { levels: [gpt-5.6-terra] }
-  effort: { levels: [default] }
+  agent: { levels: [codex, claude-code] }          # design pins codex
+  prompt: { levels: [neutral, none] }              # design pins neutral
+  model: { levels: [gpt-5.6-terra, gpt-5.6-luna] } # design pins terra
+  effort: { levels: [default, medium] }            # design pins default
 responses: [code_quality, token_efficiency, test_coverage, defect_rate, maintainability, idiomatic]
 tasks:
   - source: github://brazil-bench/benchmark-template/brazilian-soccer-mcp-guide.md
