@@ -214,6 +214,50 @@ One pattern worth flagging inside this experiment: the three slowest passing run
 
 ---
 
+## Cheapest passing configuration, per language, per task
+
+Every row below scores `requirement_coverage = 1.00`. This is the cheapest stack *measured so far* that fully implements the spec in that language — not the only one that passes, and at n=1 for most codex cells.
+
+| language | bookshop — stack | $ | min | brazil — stack | $ | min |
+|---|---|---:|---:|---|---:|---:|
+| typescript | Terra `default` | 0.22 | 1.8 | Terra `default` | **0.15** | 1.2 |
+| rust | Terra `default` | 0.14 | 1.6 | Terra `default` | 0.37 | 3.3 |
+| python | Luna `default` | **0.06** | 3.8 | Terra `high` | 0.31 | 4.1 |
+| go | Luna `default` | 0.08 | 2.0 | Terra `low` | 0.39 | 3.5 |
+| c | Terra `default` | 0.26 | 2.9 | Terra `default` | 0.40 | 4.5 |
+| cpp | Terra `default` | 0.26 | 2.7 | Terra `default` | 0.33 | 5.4 |
+| csharp | Terra `default` | 0.26 | 4.3 | Terra `default` | 1.36 | 11.6 |
+| java | Terra `default` | 0.38 | 3.5 | Terra `default` | 0.49 | 5.0 |
+| clojure | Terra `default` | 0.33 | 2.7 | Terra `default` | 0.57 | 6.9 |
+| erlang | Terra `default` | 0.34 | 3.3 | Terra `default` | 0.49 | 4.6 |
+| elixir | Terra `default` | 0.42 | 4.5 | Terra `default` | 0.67 | 6.1 |
+| swift | Opus 4.8 `default` | 1.25 | 5.2 | Fable 5 `default` | 9.24 | 15.9 |
+| objc | Opus 4.8 `default` | 1.52 | 5.5 | Fable 5 `default` | **13.30** | 23.5 |
+
+Two things stand out. **A codex tier is cheapest in 11 of 13 languages on both tasks** — the Claude entries survive only for Swift and Objective-C, and only because Terra has never been run on them (their toolchain was broken on this host until 2026-08-01, so those two cells are a gap, not a verdict). And **the hard task costs remarkably little more than the easy one** on the cheap stacks: TypeScript is *cheaper* on brazil (\$0.15) than on bookshop (\$0.22), because the routine task's floor is dominated by fixed overhead rather than by the work.
+
+The Apple pair is the outlier by two orders of magnitude — \$13.30 for Objective-C on brazil against \$0.15 for TypeScript. That gap is a language-and-model artifact, not a difficulty one: the same spec, the same judge.
+
+## Runtime: what the produced programs actually cost to *run*
+
+Build cost is not run cost, and until now retort measured only the former. There is now a `runtime` scorer that starts the produced program and times a **fixed probe** — an identical MCP `initialize` + `tools/list` round-trip against every implementation, rather than the model's own test suite, whose duration mostly reflects how many tests it chose to write (on the same task, one model wrote 6 tests and another 104).
+
+**There is not yet enough data for a table, and this section will stay honest about that rather than fill one in.** Four measurements exist:
+
+| language | stack | steady median | note |
+|---|---|---:|---|
+| python | Terra `medium` | **19 ms** | brazil |
+| python | Terra `max` | 28 ms | brazil |
+| python | Terra `default` | 260 ms | measured inline, during the run |
+| typescript | Terra `default` | 364 ms | 362 ms in an independent session — 0.5% apart |
+| python | Terra `low` | 336 ms | brazil |
+
+Of nine archived brazil languages, five rebuild successfully and only **one** answers the probe; the rest start but never complete the protocol exchange, one distinct cause per ecosystem. That is per-language plumbing, not a property of the languages.
+
+**On the effort-versus-runtime question: the data does not support an answer, and the three points that exist argue against the obvious one.** Terra on brazil/python reads `low` 336 ms, `medium` 19 ms, `max` 28 ms — a 17× swing that is not monotonic in effort and is almost certainly implementation choice, not thinking level. One run loads its CSVs eagerly at start-up; another indexes or defers. At n=1 per cell, with three cells, from one model in one language, any correlation drawn here would be an artifact.
+
+There is also a deeper comparability problem worth stating before anyone builds on these numbers. **The implementations are not doing the same work.** The Go brazil server logs `loaded 16947 matches`; the Python one logs `loaded 23954`. Both pass all twelve requirements. A uniform *probe* does not guarantee uniform *work*, so cross-language runtime numbers measure the program that was written as much as the language it was written in — the same trap as timing model-authored test suites, one level down.
+
 ## The `python` vs `python3` stumble — found here, since fixed
 
 All three record holders — two different vendors, three different models — ran `python`, got `command not found`, and retried with `python3`. Each paid a step for it.

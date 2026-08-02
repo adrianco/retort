@@ -125,11 +125,17 @@ def _machine_is_busy() -> bool:
 #: so it is the same request everywhere — and because these servers load all six
 #: CSVs at start-up, the round-trip still includes the data load that makes the
 #: number interesting.
+#: The `notifications/initialized` line is REQUIRED, not decorative. The MCP
+#: lifecycle is initialize -> initialized -> normal traffic, and a spec-faithful
+#: server will not serve `tools/list` until it has seen the notification. Omitting
+#: it made those servers sit silent, which the probe reported as "did not answer"
+#: — the failure looked identical to a broken program.
 BRAZIL_CALLS = [
     {"jsonrpc": "2.0", "id": 1, "method": "initialize",
      "params": {"protocolVersion": "2024-11-05",
                 "capabilities": {},
                 "clientInfo": {"name": "retort-runtime-probe", "version": "1"}}},
+    {"jsonrpc": "2.0", "method": "notifications/initialized"},
     {"jsonrpc": "2.0", "id": 2, "method": "tools/list"},
 ]
 
@@ -275,18 +281,55 @@ def _probe_brazil(run_dir: Path, language: str) -> RuntimeResult:
     payload = "\n".join(json.dumps(c) for c in BRAZIL_CALLS) + "\n"
 
     def one_shot() -> float | None:
-        """One full start → initialize → tools/call → exit, in ms."""
+        """Start → handshake → tools/list answered, in ms. Then kill the server.
+
+        Deliberately does NOT wait for the process to exit. A stdio MCP server is
+        a SERVER: several of these keep running after answering rather than
+        closing on EOF, so waiting for exit timed out and was recorded as "the
+        server never answered" — a false negative that hid every Go, Java and
+        Rust cell. Stop the clock when the reply to request id 2 arrives, which
+        is the thing being measured, then terminate.
+
+        Stdout is read LINE BY LINE and non-JSON lines are skipped, because
+        implementations print human banners first (the Go one emits
+        "loaded 16947 matches ... in 134ms" before any JSON).
+        """
         t0 = time.perf_counter()
         try:
-            out = subprocess.run(
-                cmd, cwd=run_dir, input=payload, capture_output=True,
-                text=True, timeout=ITER_TIMEOUT_S,
+            proc = subprocess.Popen(
+                cmd, cwd=run_dir, stdin=subprocess.PIPE, stdout=subprocess.PIPE,
+                stderr=subprocess.DEVNULL, text=True, bufsize=1,
             )
-        except (subprocess.TimeoutExpired, FileNotFoundError, OSError):
+        except (FileNotFoundError, OSError):
             return None
-        if '"result"' not in (out.stdout or ""):
+        try:
+            proc.stdin.write(payload)
+            proc.stdin.flush()
+            deadline = time.perf_counter() + ITER_TIMEOUT_S
+            while time.perf_counter() < deadline:
+                line = proc.stdout.readline()
+                if not line:
+                    return None
+                stripped = line.strip()
+                if not stripped.startswith("{"):
+                    continue          # human banner, not protocol
+                try:
+                    msg = json.loads(stripped)
+                except ValueError:
+                    continue
+                if msg.get("id") == 2 and "result" in msg:
+                    return (time.perf_counter() - t0) * 1000.0
+                if msg.get("id") == 2 and "error" in msg:
+                    return None
             return None
-        return (time.perf_counter() - t0) * 1000.0
+        except (BrokenPipeError, OSError):
+            return None
+        finally:
+            proc.kill()
+            try:
+                proc.wait(timeout=5)
+            except subprocess.TimeoutExpired:
+                pass
 
     first = one_shot()
     if first is None:

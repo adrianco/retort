@@ -1,0 +1,182 @@
+[
+ {
+  "lang": "go",
+  "effort": "high",
+  "model": "claude-opus-5",
+  "ok": false,
+  "ms": null,
+  "cold": null,
+  "note": "server did not answer a tools/call probe"
+ },
+ {
+  "lang": "python",
+  "effort": "high",
+  "model": "claude-opus-5",
+  "ok": false,
+  "ms": null,
+  "cold": null,
+  "note": "no server.py/main.py"
+ },
+ {
+  "lang": "go",
+  "effort": "low",
+  "model": "claude-opus-5",
+  "ok": false,
+  "ms": null,
+  "cold": null,
+  "note": "server did not answer a tools/call probe"
+ },
+ {
+  "lang": "python",
+  "effort": "low",
+  "model": "claude-opus-5",
+  "ok": false,
+  "ms": null,
+  "cold": null,
+  "note": "no server.py/main.py"
+ },
+ {
+  "lang": "go",
+  "effort": "max",
+  "model": "claude-opus-5",
+  "ok": false,
+  "ms": null,
+  "cold": null,
+  "note": "server did not answer a tools/call probe"
+ },
+ {
+  "lang": "python",
+  "effort": "max",
+  "model": "claude-opus-5",
+  "ok": false,
+  "ms": null,
+  "cold": null,
+  "note": "no server.py/main.py"
+ },
+ {
+  "lang": "go",
+  "effort": "medium",
+  "model": "claude-opus-5",
+  "ok": false,
+  "ms": null,
+  "cold": null,
+  "note": "server did not answer a tools/call probe"
+ },
+ {
+  "lang": "python",
+  "effort": "medium",
+  "model": "claude-opus-5",
+  "ok": false,
+  "ms": null,
+  "cold": null,
+  "note": "no server.py/main.py"
+ },
+ {
+  "lang": "go",
+  "effort": "xhigh",
+  "model": "claude-opus-5",
+  "ok": false,
+  "ms": null,
+  "cold": null,
+  "note": "server did not answer a tools/call probe"
+ },
+ {
+  "lang": "python",
+  "effort": "xhigh",
+  "model": "claude-opus-5",
+  "ok": false,
+  "ms": null,
+  "cold": null,
+  "note": "no server.py/main.py"
+ },
+ {
+  "lang": "go",
+  "effort": "high",
+  "model": "gpt-5.6-terra",
+  "ok": false,
+  "ms": null,
+  "cold": null,
+  "note": "server did not answer a tools/call probe"
+ },
+ {
+  "lang": "python",
+  "effort": "high",
+  "model": "gpt-5.6-terra",
+  "ok": false,
+  "ms": null,
+  "cold": null,
+  "note": "no server.py/main.py"
+ },
+ {
+  "lang": "go",
+  "effort": "low",
+  "model": "gpt-5.6-terra",
+  "ok": false,
+  "ms": null,
+  "cold": null,
+  "note": "server did not answer a tools/call probe"
+ },
+ {
+  "lang": "python",
+  "effort": "low",
+  "model": "gpt-5.6-terra",
+  "ok": true,
+  "ms": 336.4763748832047,
+  "cold": 333.4215828217566,
+  "note": ""
+ },
+ {
+  "lang": "go",
+  "effort": "max",
+  "model": "gpt-5.6-terra",
+  "ok": false,
+  "ms": null,
+  "cold": null,
+  "note": "server did not answer a tools/call probe"
+ },
+ {
+  "lang": "python",
+  "effort": "max",
+  "model": "gpt-5.6-terra",
+  "ok": true,
+  "ms": 27.785874903202057,
+  "cold": 29.61395774036646,
+  "note": ""
+ },
+ {
+  "lang": "go",
+  "effort": "medium",
+  "model": "gpt-5.6-terra",
+  "ok": false,
+  "ms": null,
+  "cold": null,
+  "note": "server did not answer a tools/call probe"
+ },
+ {
+  "lang": "python",
+  "effort": "medium",
+  "model": "gpt-5.6-terra",
+  "ok": true,
+  "ms": 19.451208179816604,
+  "cold": 20.693291909992695,
+  "note": ""
+ },
+ {
+  "lang": "go",
+  "effort": "xhigh",
+  "model": "gpt-5.6-terra",
+  "ok": false,
+  "ms": null,
+  "cold": null,
+  "note": "server did not answer a tools/call probe"
+ },
+ {
+  "lang": "python",
+  "effort": "xhigh",
+  "model": "gpt-5.6-terra",
+  "ok": false,
+  "ms": null,
+  "cold": null,
+  "note": "no server.py/main.py"
+ }
+]
