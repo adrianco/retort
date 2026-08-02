@@ -2985,6 +2985,7 @@ from retort.commands import utility  # noqa: E402,F401
 from retort.commands import workspace  # noqa: E402,F401
 from retort.commands import analysis  # noqa: E402,F401
 from retort.commands import monitoring  # noqa: E402,F401
+from retort.commands import rebuild  # noqa: E402,F401
 from retort.commands.scoring import (  # noqa: E402,F401  backward-compat re-exports
     evaluate, reevaluate, rescore, diagnose, recover, _nonpassing_languages,
 )

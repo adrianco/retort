@@ -91,10 +91,10 @@
   "task": "brazil-soccer-mcp",
   "language": "typescript",
   "ok": true,
-  "cold_start_ms": 363.4230839088559,
-  "steady_median_ms": 361.53250001370907,
-  "steady_min_ms": 358.65766694769263,
-  "steady_max_ms": 367.90679208934307,
+  "cold_start_ms": 374.94958308525383,
+  "steady_median_ms": 364.49864541646093,
+  "steady_min_ms": 357.54754091612995,
+  "steady_max_ms": 368.78224997781217,
   "iters": 10,
   "note": ""
  }

@@ -91,6 +91,14 @@ def create_default_registry() -> ScorerRegistry:
     registry.register(NoRegressionScorer())
     # Opt-in via responses: list — every invocation makes an LLM call.
     registry.register(IdiomaticScorer())
+    # Opt-in via responses: list — STARTS THE PRODUCED PROGRAM and times a fixed
+    # probe against it. Must run inline (here), while the playpen workspace is
+    # still built: archives have dist/build/target/node_modules stripped, so an
+    # archived run is not runnable without a restore that changes what is
+    # measured. Yields an explicit non-result for tasks/languages without a
+    # recipe, never a 0 ms that would read as "infinitely fast".
+    from retort.scoring.scorers.runtime import RuntimeScorer
+    registry.register(RuntimeScorer())
     # build_time was removed in favor of the raw `_duration_seconds`
     # telemetry written automatically by cli._store_run_result. Use that
     # column in retort analyze / report effects for timing analysis.

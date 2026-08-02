@@ -332,9 +332,18 @@ _PROBES = {
 }
 
 
-def measure(run_dir: Path, task: str, language: str) -> RuntimeResult:
-    """Measure one archived run. Refuses to guess and refuses a busy machine."""
-    if _machine_is_busy():
+def measure(run_dir: Path, task: str, language: str, *,
+            allow_busy: bool = False) -> RuntimeResult:
+    """Measure one run. Refuses to guess, and refuses a busy machine.
+
+    ``allow_busy`` is for the INLINE path only. Scoring happens inside the
+    experiment, so `retort run` is by definition alive and the guard would
+    refuse every cell. The guard still matters for the offline/report path,
+    where a concurrent experiment really would corrupt the numbers — and this
+    repo's one-experiment-at-a-time rule means an inline measurement still has
+    the machine to itself.
+    """
+    if not allow_busy and _machine_is_busy():
         return RuntimeResult(
             task=task, language=language, ok=False,
             note="REFUSED: an experiment is running; wall-clock timing would be invalid",
@@ -346,12 +355,39 @@ def measure(run_dir: Path, task: str, language: str) -> RuntimeResult:
     return probe(run_dir, language)
 
 
+def detect_task(run_dir: Path) -> str:
+    """Identify the task from the seeded workspace.
+
+    ``RunArtifacts`` carries no task name and ``StackConfig`` only knows the
+    factor levels, so rather than re-plumb every caller the task is read off the
+    workspace retort itself seeded. TASK.md is written into every workspace and
+    is the authoritative statement of what was asked.
+    """
+    if (run_dir / "brazilian-soccer-mcp-guide.md").exists() or \
+            (run_dir / "data" / "kaggle").is_dir():
+        return "brazil-soccer-mcp"
+    task_md = run_dir / "TASK.md"
+    if task_md.exists():
+        text = task_md.read_text(errors="replace").lower()
+        if "book collection" in text or "/books" in text:
+            return "rest-api-crud"
+        if "data pipeline" in text or "aggregate" in text and "csv" in text:
+            return "cli-data-pipeline"
+    return ""
+
+
 class RuntimeScorer:
     """Normalized 0..1 runtime score (fast → 1.0); raw ms via ``measure()``.
 
+    RUNS INLINE, during scoring, while the playpen workspace is still intact.
+    That placement is the whole point: archived runs have had ``dist/``,
+    ``build/``, ``target/`` and ``node_modules/`` stripped by
+    ``cli._ARCHIVE_NOISE``, so measuring one means restoring and rebuilding a
+    tree that is no longer what the agent actually ran. Inline, the built
+    artifact is right there.
+
     Opt-in via the ``responses:`` list — it starts the produced program, which is
-    far heavier than reading a file, and is only meaningful for tasks with a
-    probe defined above.
+    far heavier than reading a file, and only tasks with a probe yield a number.
     """
 
     @property
@@ -359,10 +395,17 @@ class RuntimeScorer:
         return "runtime"
 
     def score(self, artifacts: RunArtifacts, stack: StackConfig) -> float:
-        if not artifacts.succeeded:
+        if not artifacts.succeeded or artifacts.output_dir is None:
             return 0.0
-        task = (getattr(artifacts, "task_name", "") or "").strip()
-        result = measure(Path(artifacts.output_dir), task, stack.language)
+        run_dir = Path(artifacts.output_dir)
+        result = measure(run_dir, detect_task(run_dir), stack.language,
+                         allow_busy=True)
+        # Stash the raw measurement alongside the run so the milliseconds
+        # survive, not just the normalized score — the ms are the deliverable.
+        try:
+            (run_dir / "_runtime.json").write_text(json.dumps(result.as_dict(), indent=1))
+        except OSError:
+            pass
         if not result.ok or result.steady_median_ms is None:
             return 0.0
         ms = result.steady_median_ms

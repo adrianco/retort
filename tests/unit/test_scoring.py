@@ -68,7 +68,10 @@ class TestScorerRegistry:
         assert "bead_usage_score" in reg
         assert "no_regression" in reg
         assert "build_time" not in reg
-        assert len(reg) == 10
+        # `runtime` starts the produced program and times a fixed probe; it is
+        # registered but only runs when named in an experiment's `responses:`.
+        assert "runtime" in reg
+        assert len(reg) == 11
 
     def test_register_and_get(self):
         reg = ScorerRegistry()
@@ -92,6 +95,7 @@ class TestScorerRegistry:
             "idiomatic",
             "maintainability",
             "no_regression",
+            "runtime",
             "test_coverage",
             "test_quality",
             "token_efficiency",
