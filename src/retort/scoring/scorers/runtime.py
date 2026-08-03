@@ -83,11 +83,22 @@ class RuntimeResult:
     note: str = ""
     samples_ms: list[float] = field(default_factory=list)
     #: How much data this implementation actually ingested, scraped from its own
-    #: start-up banner. NOT a caveat on the timing — a dimension of the result.
-    #: Two passing brazil servers can differ by 40% in rows loaded (Go logged
-    #: 16,947 matches where python logged 23,954), both scoring 12/12, because
-    #: the checklist asks whether a capability exists and not how much of the
-    #: corpus it covers. A latency figure is only interpretable next to it.
+    #: start-up banner. NOT a caveat on the timing — a dimension of the result,
+    #: and READ IT CAREFULLY: fewer rows can mean a BETTER implementation.
+    #:
+    #: The five brazil match files overlap on purpose (BR-Football 2014-2023,
+    #: Brasileirao_Matches 2012-2022, novo_campeonato 2003-2019), so the same
+    #: real-world fixture appears 2-3 times. **23,954 is exactly the sum of the
+    #: five files** — that number means NO deduplication, and the run that
+    #: reported it double-counts: its own handshake answered "Corinthians 2022
+    #: home: 44 matches" where the spec's worked example says 19. The Go run
+    #: loaded 16,947, i.e. it appears to have merged the overlap.
+    #:
+    #: Both scored 12/12, because the pinned checklist asks whether a capability
+    #: EXISTS and never whether its numbers are right (future-experiments §0). So
+    #: this field is a cheap proxy for the correctness the gate cannot see — and
+    #: a low value is evidence of dedup, not of a lazy loader. Never rank on it
+    #: without checking against the deduplicated reference count.
     #: Median latency of a request to an ALREADY-RUNNING server — the data load
     #: already paid. Separate from cold start because they answer different
     #: questions: cold start is runtime boot + parse (where compiled should win
