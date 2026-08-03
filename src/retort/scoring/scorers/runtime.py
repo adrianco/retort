@@ -91,21 +91,31 @@ class RuntimeResult:
     #: real-world fixture appears 2-3 times. **23,954 is exactly the sum of the
     #: five files** — that number means NO deduplication, and the run that
     #: reported it double-counts: its own handshake answered "Corinthians 2022
-    #: home: 44 matches" where the spec's worked example says 19. The Go run
-    #: loaded 16,947, i.e. it appears to have merged the overlap.
+    #: home: 44 matches" where the spec's worked example says 19.
+    #:
+    #: The Go run loaded 16,947 and is the CORRECT one. It canonicalises
+    #: competitions across files and merges fixtures within a one-day window
+    #: (sources disagree by a day: local kick-off vs UTC). Verified externally —
+    #: it reports 8,404 Série A matches for 2003-2023 against 8,406 expected from
+    #: real season sizes, and its own `dataset_info` reports no load failures.
     #:
     #: Both scored 12/12, because the pinned checklist asks whether a capability
-    #: EXISTS and never whether its numbers are right (future-experiments §0). So
-    #: this field is a cheap proxy for the correctness the gate cannot see — and
-    #: a low value is evidence of dedup, not of a lazy loader. Never rank on it
-    #: without checking against the deduplicated reference count.
+    #: EXISTS and never whether its numbers are right (future-experiments §0).
+    #:
+    #: DO NOT RANK ON THIS FIELD ALONE, in either direction. A low count can be
+    #: careful merging or a broken loader, and the two are indistinguishable
+    #: without the dedup key that produced it — an early version of the reference
+    #: script keyed on date+teams only, and on that basis this very Go run looked
+    #: like it had lost 17% of the corpus. Use scripts/brazil_dedup_reference.py,
+    #: compare against the row matching the run's OWN key, and prefer the run's
+    #: self-report where it exposes one.
+    rows_loaded: int | None = None
     #: Median latency of a request to an ALREADY-RUNNING server — the data load
     #: already paid. Separate from cold start because they answer different
     #: questions: cold start is runtime boot + parse (where compiled should win
     #: big), this is per-request work (where every language should look similar,
     #: and a big spread means a structural problem like re-parsing per call).
     request_median_ms: float | None = None
-    rows_loaded: int | None = None
     banner: str = ""
     #: Tool names the server advertises — the other axis implementations differ
     #: on, and the reason the probe uses `tools/list` rather than a fixed name.
@@ -194,6 +204,14 @@ def _build_then_entry(run_dir: Path, language: str) -> tuple[list[str] | None, s
     this erlang project ships no escript stanza), this returns None and the run
     is reported as an explicit non-result rather than measured wrongly.
     """
+    # ABSOLUTE, always. The returned command is executed with cwd=run_dir, so a
+    # relative path like "experiments/.../target/release/server" resolves to
+    # run_dir/experiments/... and vanishes. Popen then raises FileNotFoundError,
+    # which the probe caught and reported as "server did not answer" — so every
+    # compiled language (rust, c, cpp, objc, java, elixir, go) looked like a
+    # broken program when the binary was fine and answered by hand.
+    run_dir = run_dir.resolve()
+
     def build(cmd: list[str], timeout: int = 600) -> bool:
         try:
             r = subprocess.run(cmd, cwd=run_dir, capture_output=True,

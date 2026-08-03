@@ -16,6 +16,26 @@ self-reported count can be classified rather than guessed at:
     ~= unique key   -> merged the overlap; the numbers it answers with are sound
     << unique       -> dropped data
 
+**THIS SCRIPT'S FIRST ANSWER WAS WRONG, and the way it was wrong is the point.**
+It originally keyed on date + teams only, giving 20,398, and on that basis the
+Go run's 16,947 looked like a loader that had lost ~17% of the corpus. It had
+not. Go canonicalises COMPETITION NAMES ACROSS FILES — it reads BR-Football's
+`tournament` column into Série A / B / C and merges those against
+`Brasileirao_Matches.csv` — while this script treated "Brasileirão Série A" and
+"Brasileirao" as different competitions and so under-merged.
+
+Go's number is externally verifiable: it reports 8,404 Série A matches for
+2003-2023, against 8,406 expected from real season sizes (24, 24, 22 teams, then
+20 from 2006 — and 2005 had replayed fixtures after the match-fixing scandal).
+Two matches out. Its `dataset_info` tool also reports `warnings: null`, so
+nothing failed to load.
+
+So the honest reference is not a single number: a count is only meaningful
+alongside the dedup key that produced it, and the strictest defensible key is
+competition-canonical + a one-day window (sources disagree by a day because one
+stores local kick-off and the other UTC). Compare a run against the row that
+matches ITS key, and prefer the run's own self-report where it has one.
+
 Usage:  python scripts/brazil_dedup_reference.py <dir-with-data/kaggle>
 """
 from __future__ import annotations
