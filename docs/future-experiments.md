@@ -374,7 +374,7 @@ invest in the solver dependency, master.db merge, and first-class docs.
 <!-- SCAN-HEARTBEAT: the daily scan rewrites the next line on EVERY run, including
      days it finds nothing. Do not hand-edit it. If the date is more than ~2 days
      stale, the scan is not running — see "when the heartbeat goes stale" below. -->
-**Daily scan last completed: 2026-07-28** (scanning for new 64GB-fittable coding models)
+**Daily scan last completed: 2026-08-03** (scanning for new 64GB-fittable coding models)
 
 New open-weight coding models found by the daily scan that plausibly fit 64GB at 4-bit; promote to a
 numbered experiment when prioritised.
@@ -425,6 +425,60 @@ survives the toggle, restart the Claude desktop app, which clears the in-memory 
   than news; judge priority accordingly. It is also a *general* model with strong coding scores, not
   a coder-specialised one. Source: https://blog.google/innovation-and-ai/technology/developers-tools/gemma-4/
   — GGUF: https://huggingface.co/unsloth/gemma-4-31B-it-GGUF
+
+- 2026-08-03 — **KAT-Coder-V2.5-Dev (Kwaipilot)** — *the strongest candidate this scan has found.*
+  Apache 2.0, **35B total / 3B active MoE, post-trained directly on `Qwen3.6-35B-A3B`** — the exact
+  base retort already serves in the hermes-lcm+35B stack — with a coding-specific SFT (127K examples)
+  + RL recipe trained on 100K+ verifiable repo environments, explicitly to fix agentic pathologies
+  (excessive parallel tool calls, content repetition). **SWE-bench Verified 69.40%**, Multilingual
+  63.00%, Pro 45.96%, Terminal-Bench 2.1 41.02%; 262,144 native context (same as our 35B runs).
+  bf16 is 70 GB → **4-bit ≈ 20–22 GB, fits 64GB with enormous headroom** (an NVFP4 build measures
+  21.9 GB). GGUF ships (bartowski, mradermacher, plus APEX MoE-aware mixed-precision and an MTP
+  build); **no mlx-community 4-bit quant yet** — but the arch is Qwen3.6-35B-A3B, which oMLX already
+  serves, so `mlx_lm.convert` should be routine and **no Laguna-style arch gate-probe is needed on
+  either backend**. **Why this is the highest-value local candidate on the list:** it is a *matched-
+  base* comparison — same architecture, same size, same serving path, same context as a model
+  already in `master.db`, with **post-training as the only variable**. That isolates "does agentic-
+  coding post-training beat general post-training" from every confound the other candidates carry.
+  Caveat: it thinks by default before responding (configurable) — record which mode was used, per
+  the tuning-parameter rule. Released 2026-07-26.
+  Source: https://www.marktechpost.com/2026/07/26/kwaikat-team-releases-kat-coder-v2-5-an-agentic-coding-model-trained-on-100000-verifiable-repository-environments/
+  — weights: https://huggingface.co/Kwaipilot/KAT-Coder-V2.5-Dev
+  — GGUF: https://huggingface.co/bartowski/Kwaipilot_KAT-Coder-V2.5-Dev-GGUF
+
+- 2026-08-03 — **Bonsai 27B (PrismML)** — **not a new model: a 1-bit / ternary compression of
+  Qwen3.6-27B** (the candidate two entries above), Apache 2.0, 262K context, released 2026-07-14.
+  **3.9 GB at 1-bit / 5.9 GB ternary**, claiming 90% / 95% of full-precision quality. Listed here
+  because it is a ready-made probe for the **quant-level-and-scheme lever in §3** rather than a new
+  capability: paired against a stock 4-bit Qwen3.6-27B it measures quantization *directly*, with the
+  weights and post-training held constant — the cleanest form of that comparison we could run. It is
+  also the only entry small enough to leave ~58 GB free for a **large draft model**, which is exactly
+  what the §3 speculative-decoding/MTP lever needs. **Gate-probe required before trusting it:** the
+  build reportedly replaces ~75% of Qwen3.6-27B's attention with a *linear* mechanism, so it is not
+  merely a requant — confirm mainline llama.cpp serves this GGUF *and* that tool-calling survives
+  1-bit before scheduling a run (a model that emits malformed tool calls scores an indistinguishable
+  false zero). Source: https://www.marktechpost.com/2026/07/14/prismml-releases-bonsai-27b-1-bit-and-ternary-builds-of-qwen3-6-27b-that-run-on-laptops-and-phones/
+  — GGUF: https://huggingface.co/prism-ml/Bonsai-27B-gguf
+
+- 2026-08-03 — **GLM-4.7-Flash (Zhipu / Z.ai)** — 30B total / 3B active MoE, open weights, 200K
+  context, pitched by Zhipu specifically at *local* coding and agents. **SWE-bench Verified 59.2%**
+  and **tau2-Bench 79.5%** (multi-step tool invocation) — the tool-calling number is what makes it
+  worth a slot. **Q4 ≈ 18 GB → fits 64GB with enormous headroom**; GGUF and an Ollama library entry
+  ship. First **Zhipu-lineage local candidate** (every GLM we have looked at so far — GLM-5.2 at
+  744B-A40B, the leaked GLM-5.5 at >1T — is far too large to run here, so this is the only way that
+  lineage enters the local leaderboard at all). **Caveat, stronger than the Nemotron/Gemma ones: this
+  is a January-2026 release, roughly six months old — a gap in this list, not news.** It surfaced via
+  current local-coding roundups where it is a standing recommendation. Judge priority accordingly:
+  below KAT-Coder, which is both newer and a matched-base comparison. Confirm GLM-4.x MoE arch +
+  tool-parser support on oMLX or mainline llama.cpp before committing to a run.
+  Source: https://www.marktechpost.com/2026/01/20/zhipu-ai-releases-glm-4-7-flash-a-30b-a3b-moe-model-for-efficient-local-coding-and-agents/
+  — weights: https://huggingface.co/zai-org/GLM-4.7-Flash
+
+*Excluded this scan as too large for 64GB at 4-bit, recorded so they are not re-investigated:*
+Kimi K3 (2.8T MoE, 2026-07-27), Inkling-Small (276B-A12B, 2026-08-02 — ~140 GB at 4-bit despite the
+"Small" name; its parent Inkling is 975B-A41B), Tencent Hy3 (295B-A21B, 2026-07-06), and Mistral
+Leanstral 1.5 (119B-A6B, 2026-07-02 — borderline on size *and* a Lean 4 theorem-prover, not an
+agentic coder).
 
 **Serving backends:** retort now supports **`serving.backend: omlx | llamacpp`** (2026-07-21). The
 llama.cpp path (`llama-server`, Metal-native, GGUF, `--jinja` tool templates) serves models oMLX
