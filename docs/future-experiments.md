@@ -371,8 +371,23 @@ invest in the solver dependency, master.db merge, and first-class docs.
 
 ## Candidate models to test next
 
+<!-- SCAN-HEARTBEAT: the daily scan rewrites the next line on EVERY run, including
+     days it finds nothing. Do not hand-edit it. If the date is more than ~2 days
+     stale, the scan is not running — see "when the heartbeat goes stale" below. -->
+**Daily scan last completed: 2026-07-28** (scanning for new 64GB-fittable coding models)
+
 New open-weight coding models found by the daily scan that plausibly fit 64GB at 4-bit; promote to a
 numbered experiment when prioritised.
+
+**When the heartbeat goes stale.** A silent scheduler failure is the reason this line exists. The
+scan stopped dispatching on 2026-07-28 and nobody noticed for six days, because a scan that finds
+nothing used to leave *no trace at all* — an outage and a quiet week looked identical in this file.
+The task also still listed as `enabled: true` with a healthy-looking `nextRunAt` throughout, so the
+task list did not reveal it either. The cause was `per_task_limit (active=1, limit=1)`: a run from
+2026-07-28 never terminated, so every later firing was skipped with
+`[CCDScheduledTasks] Skipping dispatch … per_task_limit`. To diagnose a stale heartbeat: check
+`~/Library/Logs/Claude/main*.log` for that line, then toggle the task off/on; if the counter
+survives the toggle, restart the Claude desktop app, which clears the in-memory state.
 
 - *(**Laguna XS 2.1** was gate-probed 2026-07-21 and is BLOCKED: its `laguna` arch isn't in
   mainline oMLX/llama.cpp yet (support PRs unmerged) — see past-experiments.)*

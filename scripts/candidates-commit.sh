@@ -60,7 +60,19 @@ if ! git pull --rebase --autostash; then
   exit 1
 fi
 
-git commit -m "candidates: ${n} new 64GB-fittable coding model(s) from daily scan"
+# A quiet day still commits, because the scan rewrites the heartbeat line on
+# every run. That is the point of the heartbeat: without it a scan that finds
+# nothing leaves no trace, so a silently-stopped scheduler and a slow news week
+# look identical in the file. (One went unnoticed for six days from 2026-07-28.)
+if [ "$n" -eq 0 ]; then
+  git commit -m "scan heartbeat: no new 64GB-fittable coding models this cycle"
+else
+  git commit -m "candidates: ${n} new 64GB-fittable coding model(s) from daily scan"
+fi
 git push
 
-echo "Committed and pushed ${n} new candidate(s)."
+if [ "$n" -eq 0 ]; then
+  echo "Committed and pushed the scan heartbeat (no new candidates)."
+else
+  echo "Committed and pushed ${n} new candidate(s)."
+fi
