@@ -82,6 +82,23 @@ class RuntimeResult:
     iters: int = 0
     note: str = ""
     samples_ms: list[float] = field(default_factory=list)
+    #: How much data this implementation actually ingested, scraped from its own
+    #: start-up banner. NOT a caveat on the timing — a dimension of the result.
+    #: Two passing brazil servers can differ by 40% in rows loaded (Go logged
+    #: 16,947 matches where python logged 23,954), both scoring 12/12, because
+    #: the checklist asks whether a capability exists and not how much of the
+    #: corpus it covers. A latency figure is only interpretable next to it.
+    #: Median latency of a request to an ALREADY-RUNNING server — the data load
+    #: already paid. Separate from cold start because they answer different
+    #: questions: cold start is runtime boot + parse (where compiled should win
+    #: big), this is per-request work (where every language should look similar,
+    #: and a big spread means a structural problem like re-parsing per call).
+    request_median_ms: float | None = None
+    rows_loaded: int | None = None
+    banner: str = ""
+    #: Tool names the server advertises — the other axis implementations differ
+    #: on, and the reason the probe uses `tools/list` rather than a fixed name.
+    tool_count: int | None = None
 
     def as_dict(self) -> dict:
         return {
@@ -93,6 +110,10 @@ class RuntimeResult:
             "steady_min_ms": self.steady_min_ms,
             "steady_max_ms": self.steady_max_ms,
             "iters": self.iters,
+            "request_median_ms": self.request_median_ms,
+            "rows_loaded": self.rows_loaded,
+            "tool_count": self.tool_count,
+            "banner": self.banner,
             "note": self.note,
         }
 
@@ -270,6 +291,84 @@ def _find_server_entry(run_dir: Path, language: str) -> list[str] | None:
     return cmd
 
 
+def _serve_latency(cmd: list[str], run_dir: Path) -> float | None:
+    """Median per-request latency against ONE already-warm process, in ms.
+
+    Distinct from cold start on purpose. Cold start measures runtime boot + data
+    load, where a native binary should beat an interpreter by a lot. THIS
+    measures answering a request once the data is already in memory, which is a
+    few microseconds of real work in any language — so a large spread here would
+    mean something structural (per-request re-parsing, no index), not "compiled
+    versus interpreted".
+    """
+    try:
+        proc = subprocess.Popen(
+            cmd, cwd=run_dir, stdin=subprocess.PIPE, stdout=subprocess.PIPE,
+            stderr=subprocess.DEVNULL, text=True, bufsize=1,
+        )
+    except (FileNotFoundError, OSError):
+        return None
+    try:
+        # Handshake once; the data load is paid here and excluded from the samples.
+        for call in BRAZIL_CALLS:
+            proc.stdin.write(json.dumps(call) + "\n")
+        proc.stdin.flush()
+        deadline = time.perf_counter() + ITER_TIMEOUT_S
+        while time.perf_counter() < deadline:
+            line = proc.stdout.readline()
+            if not line:
+                return None
+            s = line.strip()
+            if s.startswith("{"):
+                try:
+                    if json.loads(s).get("id") == 2:
+                        break
+                except ValueError:
+                    continue
+        else:
+            return None
+
+        samples: list[float] = []
+        for i in range(TIMED_ITERS + WARMUP_ITERS):
+            req = {"jsonrpc": "2.0", "id": 100 + i, "method": "tools/list"}
+            t0 = time.perf_counter()
+            try:
+                proc.stdin.write(json.dumps(req) + "\n")
+                proc.stdin.flush()
+            except (BrokenPipeError, OSError):
+                break
+            got = False
+            deadline = time.perf_counter() + ITER_TIMEOUT_S
+            while time.perf_counter() < deadline:
+                line = proc.stdout.readline()
+                if not line:
+                    break
+                s = line.strip()
+                if not s.startswith("{"):
+                    continue
+                try:
+                    msg = json.loads(s)
+                except ValueError:
+                    continue
+                if msg.get("id") == 100 + i:
+                    got = True
+                    break
+            if not got:
+                break
+            ms = (time.perf_counter() - t0) * 1000.0
+            if i >= WARMUP_ITERS:          # discard warm-up
+                samples.append(ms)
+        return statistics.median(samples) if samples else None
+    except (BrokenPipeError, OSError):
+        return None
+    finally:
+        proc.kill()
+        try:
+            proc.wait(timeout=5)
+        except subprocess.TimeoutExpired:
+            pass
+
+
 def _probe_brazil(run_dir: Path, language: str) -> RuntimeResult:
     """Time N identical MCP tool calls, plus the one-off data load."""
     res = RuntimeResult(task="brazil-soccer-mcp", language=language, ok=False)
@@ -279,6 +378,7 @@ def _probe_brazil(run_dir: Path, language: str) -> RuntimeResult:
         return res
 
     payload = "\n".join(json.dumps(c) for c in BRAZIL_CALLS) + "\n"
+    captured: dict = {}
 
     def one_shot() -> float | None:
         """Start → handshake → tools/list answered, in ms. Then kill the server.
@@ -312,12 +412,24 @@ def _probe_brazil(run_dir: Path, language: str) -> RuntimeResult:
                     return None
                 stripped = line.strip()
                 if not stripped.startswith("{"):
-                    continue          # human banner, not protocol
+                    # Human banner, not protocol — but KEEP it. These lines are
+                    # where implementations disclose how much they ingested
+                    # ("loaded 16947 matches and 18207 players"), which is the
+                    # variance this measurement exists to expose.
+                    if stripped and not captured.get("banner"):
+                        captured["banner"] = stripped[:200]
+                        m = re.search(r"(\d[\d,]{3,})\s+matches", stripped)
+                        if m:
+                            captured["rows"] = int(m.group(1).replace(",", ""))
+                    continue
                 try:
                     msg = json.loads(stripped)
                 except ValueError:
                     continue
                 if msg.get("id") == 2 and "result" in msg:
+                    tools = (msg.get("result") or {}).get("tools")
+                    if isinstance(tools, list):
+                        captured["tool_count"] = len(tools)
                     return (time.perf_counter() - t0) * 1000.0
                 if msg.get("id") == 2 and "error" in msg:
                     return None
@@ -337,6 +449,10 @@ def _probe_brazil(run_dir: Path, language: str) -> RuntimeResult:
         return res
     res.cold_start_ms = first
 
+    # PHASE 1 — COLD START, repeated. Each one_shot() is a FULL process launch:
+    # boot the runtime, parse the CSVs, answer once, die. This is the number that
+    # separates a native binary from an interpreter, because it is dominated by
+    # runtime start-up plus parsing ~24k rows — not by the trivial round-trip.
     for _ in range(WARMUP_ITERS):
         one_shot()
     samples = [ms for _ in range(TIMED_ITERS) if (ms := one_shot()) is not None]
@@ -344,7 +460,17 @@ def _probe_brazil(run_dir: Path, language: str) -> RuntimeResult:
         res.note = "probe answered once then stopped"
         return res
 
+    # PHASE 2 — PER-REQUEST latency against ONE LIVE process.
+    # Until now this scorer restarted the server for every iteration, so its
+    # "steady median" was just the cold start measured again — python read 267 ms
+    # cold and 260 ms "steady", which is the same number twice, not two metrics.
+    # Serving latency needs the process kept alive and asked repeatedly.
+    res.request_median_ms = _serve_latency(cmd, run_dir)
+
     res.ok = True
+    res.rows_loaded = captured.get("rows")
+    res.banner = captured.get("banner", "")
+    res.tool_count = captured.get("tool_count")
     res.samples_ms = samples
     res.iters = len(samples)
     res.steady_median_ms = statistics.median(samples)
