@@ -27,7 +27,9 @@ Usage:  python scripts/reflow_blogs.py [--check] [FILE ...]
 """
 from __future__ import annotations
 
+import datetime
 import re
+import subprocess
 import sys
 from pathlib import Path
 
@@ -146,6 +148,43 @@ def reflow(text: str) -> str:
     return "\n".join(out)
 
 
+#: Matches both header styles in use:
+#:   *Published 2026-07-30 · updated 2026-08-04 — Adrian Cockcroft*
+#:   *Living document — last updated 2026-08-01 (first published 2026-07-14).*
+UPDATED_RE = re.compile(r"updated (\d{4}-\d{2}-\d{2})")
+
+
+def stale_dates(paths: list[Path]) -> list[str]:
+    """Blogs edited in the working tree whose `updated` date is not today.
+
+    A published page carrying an old date is quietly wrong in a way no reader can
+    detect — the content changed, the byline says it didn't. This is checked
+    rather than remembered because it was missed four times in one week: three
+    blogs shipped edits while still claiming 2026-07-30.
+
+    Only files that actually DIFFER from HEAD are checked, so re-running the
+    check on a clean tree never nags.
+    """
+    today = datetime.date.today().isoformat()
+    stale = []
+    for path in paths:
+        try:
+            changed = subprocess.run(
+                ["git", "diff", "--quiet", "HEAD", "--", str(path)],
+                capture_output=True, timeout=30,
+            ).returncode != 0
+        except (subprocess.TimeoutExpired, FileNotFoundError, OSError):
+            continue
+        if not changed:
+            continue
+        m = UPDATED_RE.search(path.read_text())
+        if not m:
+            stale.append(f"{path.name}: edited but has no 'updated <date>' in its header")
+        elif m.group(1) != today:
+            stale.append(f"{path.name}: edited today but still says updated {m.group(1)}")
+    return stale
+
+
 def main(argv: list[str]) -> int:
     check = "--check" in argv
     args = [a for a in argv if not a.startswith("--")]
@@ -174,7 +213,13 @@ def main(argv: list[str]) -> int:
             print("hard-wrapped paragraphs found in: " + ", ".join(changed))
             print("run: python scripts/reflow_blogs.py")
             return 1
-        print("all blogs are one-line-per-paragraph")
+        stale = stale_dates(paths)
+        if stale:
+            print("blog dates are stale — bump the header before publishing:")
+            for s in stale:
+                print(f"  {s}")
+            return 1
+        print("all blogs are one-line-per-paragraph, and edited blogs carry today's date")
         return 0
 
     print("reflowed: " + (", ".join(changed) if changed else "nothing (already clean)"))

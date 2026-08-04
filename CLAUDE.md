@@ -80,6 +80,13 @@ own lines; only prose is joined.
     python scripts/reflow_blogs.py           # fix every blog in place
     python scripts/reflow_blogs.py --check   # exit 1 if any are wrapped (CI)
 
+**A blog you edit MUST carry today's date in its header.** `--check` enforces
+this: any `*-blog.md` that differs from HEAD must say `updated <today>`. A
+published page whose content changed while its byline still claims an older date
+is quietly wrong in a way no reader can detect — and it happened four times in
+one week, including twice when `retort report optimal --write` regenerated a GEN
+table and nobody touched the header.
+
 The script is idempotent and refuses to run if it would change the number of
 links, table rows, code fences or headings. Run `--check` before pushing blog
 edits. Other markdown (README, docs/) is unaffected — it is read on GitHub, which

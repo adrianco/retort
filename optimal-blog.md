@@ -1,6 +1,6 @@
 # The Optimal Stack
 
-*Living document — last updated 2026-07-30 (first published 2026-07-14). This records **what to run today**: the leading stacks, and the exact configuration each one needs. It is not a history. Superseded stacks and rejected configurations are not discussed here; they are retired, and retirement is the point.*
+*Living document — last updated 2026-08-04 (first published 2026-07-14). This records **what to run today**: the leading stacks, and the exact configuration each one needs. It is not a history. Superseded stacks and rejected configurations are not discussed here; they are retired, and retirement is the point.*
 
 ---
 

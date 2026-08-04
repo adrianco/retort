@@ -1,6 +1,6 @@
 # The Tasks: What Gets Built, and How Differently a Run Can Pass
 
-*Published 2026-07-30 · updated 2026-07-30 — Adrian Cockcroft*
+*Published 2026-07-30 · updated 2026-08-04 — Adrian Cockcroft*
 
 What retort actually asks an agent to build, and — for each task — the fastest and the slowest run that fully passed. Both mean shortest/longest `duration_seconds` among runs scoring `requirement_coverage == 1.0`, restricted to runs whose **agent log was archived**, since a record with no log can't be shown.
 

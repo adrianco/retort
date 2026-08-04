@@ -1,6 +1,6 @@
 # The Experiment Index: What Was Measured, and What the Harness Was Doing at the Time
 
-*Published 2026-07-30 · updated 2026-07-30 — Adrian Cockcroft*
+*Published 2026-07-30 · updated 2026-08-04 — Adrian Cockcroft*
 
 An index, not an argument. Retort has run **1,014 scored runs across 56 experiment groups and 13 languages**; this page says what each group was for, where to read the detail, and — the part that matters most for reading an old number — **what the harness itself was doing at the time**. Several published figures moved because the tooling was fixed, not because a model changed.
 

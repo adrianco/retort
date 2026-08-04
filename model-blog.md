@@ -1,6 +1,6 @@
 # How Reliable Is Your AI Coding Stack? I Measured It
 
-*Published 2026-06-11 · updated 2026-07-30 — Adrian Cockcroft*
+*Published 2026-06-11 · updated 2026-08-04 — Adrian Cockcroft*
 
 ---
 
