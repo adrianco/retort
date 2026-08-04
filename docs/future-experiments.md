@@ -374,7 +374,7 @@ invest in the solver dependency, master.db merge, and first-class docs.
 <!-- SCAN-HEARTBEAT: the daily scan rewrites the next line on EVERY run, including
      days it finds nothing. Do not hand-edit it. If the date is more than ~2 days
      stale, the scan is not running — see "when the heartbeat goes stale" below. -->
-**Daily scan last completed: 2026-08-03** (scanning for new 64GB-fittable coding models)
+**Daily scan last completed: 2026-08-04** (scanning for new 64GB-fittable coding models)
 
 New open-weight coding models found by the daily scan that plausibly fit 64GB at 4-bit; promote to a
 numbered experiment when prioritised.
@@ -473,6 +473,27 @@ survives the toggle, restart the Claude desktop app, which clears the in-memory 
   tool-parser support on oMLX or mainline llama.cpp before committing to a run.
   Source: https://www.marktechpost.com/2026/01/20/zhipu-ai-releases-glm-4-7-flash-a-30b-a3b-moe-model-for-efficient-local-coding-and-agents/
   — weights: https://huggingface.co/zai-org/GLM-4.7-Flash
+
+- 2026-08-04 — **North Mini Code 1.0 (Cohere Labs)** — Apache 2.0, **30B total / 3B active MoE**
+  (128 experts, 8 active; sliding-window + global attention 3:1), **256K input / 64K output** context.
+  Cohere's first developer-facing coding model, pitched squarely at agentic software engineering
+  (sub-agent orchestration, code review, terminal work) with **native function-calling via the chat
+  template + JSON-schema tool definitions** and interleaved thinking. **SWE-bench Verified 67.6%**,
+  SWE-bench Pro 40.2%, Terminal-Bench v2 36%. **Q4 ≈ 18 GB → fits 64GB with enormous headroom**
+  (unsloth GGUFs run 9 GB → BF16). First **Cohere-lineage** local candidate — a distinct training
+  lineage from every Qwen-derived entry on this list, which makes it the natural *unrelated-base*
+  counterpart to the KAT-Coder matched-base comparison above. Serving looks unblocked on both
+  backends but the arch is new: `cohere2_moe` merged into mainline llama.cpp (PR #24260, first in
+  build **b9626**), so `serving.backend: llamacpp` needs a build at or after that; MLX quants ship
+  (an mxfp8 community build, with day-0 MLX support claimed) but **no `mlx-community` 4-bit yet** —
+  confirm oMLX loads `cohere2_moe` before committing, or serve via llamacpp. **Caveat, same class as
+  the Nemotron/Gemma/GLM entries: this is a 2026-06-09 release, not a last-cycle drop** — it is a gap
+  in this list rather than news, surfaced via current local-coding roundups. Judge priority below
+  KAT-Coder (newer, and matched-base) but above the general-purpose entries, since this one is
+  coder-specialised and its tool-calling is native rather than inferred.
+  Source: https://www.marktechpost.com/2026/06/11/meet-north-mini-code-coheres-30b-open-weight-mixture-of-experts-model-with-3b-active-parameters-for-agentic-coding/
+  — weights: https://huggingface.co/CohereLabs/North-Mini-Code-1.0
+  — GGUF: https://huggingface.co/unsloth/North-Mini-Code-1.0-GGUF
 
 *Excluded this scan as too large for 64GB at 4-bit, recorded so they are not re-investigated:*
 Kimi K3 (2.8T MoE, 2026-07-27), Inkling-Small (276B-A12B, 2026-08-02 — ~140 GB at 4-bit despite the
