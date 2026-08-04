@@ -8,9 +8,9 @@ calls :meth:`ensure`, which restarts the serving layer to match and waits for it
 to come back warm. Sort the design by preset and reloads happen only at each
 boundary.
 
-**Two serving backends are supported**, selected by ``serving.backend`` (default
-``omlx``). Both expose the same OpenAI-compatible endpoint on ``host:port``, so the
-Hermes agent talks to either one transparently:
+**Three serving backends are supported**, selected by ``serving.backend`` (default
+``omlx``). All expose the same OpenAI-compatible endpoint on ``host:port``, so the
+Hermes agent talks to any of them transparently:
 
 - **oMLX** (Apple-Silicon MLX): fastest for the arches its bundled ``mlx-lm``
   supports (Qwen, DeepSeek, …) and the tool formats it parses (Qwen/Llama/Harmony).
@@ -18,6 +18,14 @@ Hermes agent talks to either one transparently:
   calls from the model's own chat template via ``--jinja`` — so it handles models
   oMLX can't (custom tool formats like Mistral ``[TOOL_CALLS]`` or poolside's XML,
   and arches mlx-lm lacks). This is how a model outside oMLX's support gets tested.
+- **Swiftlet** (``swiftlet-server``): a Swift + Metal runtime that streams routed MoE
+  experts from SSD, so model size stops being bounded by RAM — the reason to care is
+  models that do *not* fit (an 80B on a 32 GB box, or the Qwen3.5-397B config it
+  ships), not faster inference on ones that do. Its own endpoint cannot do tool
+  calls at all, so this backend launches ``swiftlet-server`` on an internal port and
+  puts :mod:`retort.playpen.swiftlet_shim` in front of it to translate; see that
+  module for what the translation costs. **Slow**: 7–11 tok/s (35B) / 4.5–5 tok/s
+  (80B) published, against ~54/~61 measured on oMLX — budget the timeout accordingly.
 
 The preset registry is a YAML file::
 
@@ -30,6 +38,10 @@ The preset registry is a YAML file::
       # --- llama.cpp fields ---
       llama_bin: llama-server           # on PATH via `brew install llama.cpp`
       ngl: 999                          # layers to offload to Metal (999 = all)
+      # --- swiftlet fields ---
+      swiftlet_bin: swiftlet-server     # built from the Swiftlet checkout
+      upstream_port: 8081               # swiftlet-server; the shim owns `port`
+      shim_max_tokens: 4096             # Swiftlet's own default (512) truncates agents
       # --- shared ---
       host: 127.0.0.1
       port: 8080
@@ -47,6 +59,13 @@ The preset registry is a YAML file::
         gguf: poolside/Laguna-XS-2.1-GGUF:Q4_K_M   # HF repo[:quant], or a local .gguf path
         context_length: 262144
         sampling: {temperature: 0.6, top_p: 0.95, top_k: 20, repetition_penalty: 1.0}
+      sw35:                             # swiftlet preset
+        model: Qwen3.6-35B-A3B          # the name Hermes addresses; the shim advertises it
+        qpack: /Volumes/models/Qwen3.6-35B-A3B-qpack   # the .qpack container directory
+        cache_gb: 12                    # expert-cache budget (see the sweep note below)
+        context_length: 262144
+        # NOTE: no `sampling:` — Swiftlet hardcodes its own and this backend
+        # REFUSES a preset that declares sampling it cannot enforce.
 """
 
 from __future__ import annotations
@@ -55,6 +74,7 @@ import json
 import logging
 import re
 import subprocess
+import sys
 import time
 import urllib.request
 from pathlib import Path
@@ -73,6 +93,10 @@ _OMLX_PROMPT_RE = re.compile(r"prompt:\s*(\d+)")
 #   "slot update_slots: id  0 | task 0 | n_prompt_tokens = 21806 ..."
 _LLAMA_PROMPT_RE = re.compile(r"n_prompt_tokens\s*[=:]\s*(\d+)")
 
+# swiftlet-server logs one line per completion to stderr:
+#   "[chatcmpl-1a2b3c4d] 21806 prompt + 238 generated, prefill 12.4s, 7.30 tok/s"
+_SWIFTLET_PROMPT_RE = re.compile(r"(\d+)\s+prompt\s*\+")
+
 # sampling key -> llama-server CLI flag (min_p/others map directly)
 _LLAMA_SAMPLING_FLAG = {
     "temperature": "--temp",
@@ -84,11 +108,18 @@ _LLAMA_SAMPLING_FLAG = {
 
 
 def _sig(preset: dict[str, Any]) -> tuple:
-    """A hashable signature: reload iff (model, gguf, context_length, sampling) changes."""
+    """A hashable signature: reload iff the served stack changes.
+
+    ``cache_gb`` is part of it so that a Swiftlet **expert-cache sweep** — the §3
+    inference lever this backend exists to measure — actually restarts the server
+    between cells instead of silently reusing the previous budget.
+    """
     s = preset.get("sampling", {}) or {}
     return (
         preset.get("model"),
         preset.get("gguf"),
+        preset.get("qpack"),
+        preset.get("cache_gb"),
         preset.get("context_length"),
         tuple((k, s.get(k)) for k in _SAMPLING_KEYS),
     )
@@ -103,7 +134,11 @@ def make_stack_manager(registry_path: str | Path) -> "_BaseStackManager":
         return OmlxStackManager(registry_path)
     if backend in ("llamacpp", "llama.cpp", "llama_cpp"):
         return LlamaCppStackManager(registry_path)
-    raise ValueError(f"unknown serving.backend {backend!r} (expected omlx or llamacpp)")
+    if backend == "swiftlet":
+        return SwiftletStackManager(registry_path)
+    raise ValueError(
+        f"unknown serving.backend {backend!r} (expected omlx, llamacpp or swiftlet)"
+    )
 
 
 class _BaseStackManager:
@@ -171,8 +206,8 @@ class _BaseStackManager:
     def _apply(self, preset: dict) -> None:  # pragma: no cover - abstract
         raise NotImplementedError
 
-    def _kill_port(self) -> None:
-        port = int(self.serving.get("port", 8080))
+    def _kill_port(self, port: int | None = None) -> None:
+        port = int(self.serving.get("port", 8080)) if port is None else int(port)
         pids = subprocess.run(
             ["lsof", "-ti", f"tcp:{port}"], capture_output=True, text=True
         ).stdout.split()
@@ -367,3 +402,102 @@ class LlamaCppStackManager(_BaseStackManager):
                 cmd += [flag, str(v)]
         cmd += list(self.serving.get("serve_flags", []))
         return cmd
+
+
+class SwiftletStackManager(_BaseStackManager):
+    """Serve ``.qpack`` models via Swiftlet, fronted by the tool-calling shim.
+
+    Two processes per reload, because Swiftlet's endpoint cannot do tool calls:
+
+    - ``swiftlet-server`` on ``serving.upstream_port`` (default 8081), and
+    - :mod:`retort.playpen.swiftlet_shim` on ``serving.port`` — the address Hermes
+      is pointed at. The shim renders ``tools`` into the prompt and parses
+      ``<tool_call>`` tags back into OpenAI ``tool_calls``.
+
+    **Sampling is not configurable and this class refuses to pretend otherwise.**
+    ``swiftlet-server`` exposes no sampling flags at all; ``SwiftletSession``
+    hardcodes temperature 0.7 / top-p 0.8 and bans EOS below a minimum length. A
+    preset that declares ``sampling:`` here would be silently ignored — the exact
+    set-but-unverified failure that made "the 35B scores 0.38" really mean "0.38 *at
+    temp 1.0*". So a declared sampling block raises unless
+    ``serving.allow_unenforced_sampling: true`` says the divergence is understood.
+
+    **``cache_gb`` is passed but unenforceable on the stock binary**, and that is
+    worth stating plainly: ``Sources/SwiftletServer/main.swift`` builds a
+    ``QwenCPUModel`` with ``retainAllLayers = true`` — the *CPU* path. The Metal
+    expert cache (``QwenMetalModel(modelDir:cacheBudgetGB:)``) and its ``--cache-gb``
+    flag exist only on the ``swiftlet`` CLI's ``--gpu`` path. Until the server is
+    taught to use the Metal model, a cache sweep through this backend measures
+    nothing. The flag is emitted so it works the moment that lands, and
+    :meth:`_launch_cmd` is the one place to change.
+    """
+
+    _prompt_re = _SWIFTLET_PROMPT_RE
+
+    def _apply(self, preset: dict) -> None:
+        self._check_sampling(preset)
+        self._ensure_hermes_model(
+            preset["model"], preset.get("context_length"), self.agent_max_turns
+        )
+        self._restart_server(preset)
+        self._wait_ready(preset["model"])
+        self._warm(preset["model"])
+
+    def _check_sampling(self, preset: dict) -> None:
+        declared = {
+            k: v for k, v in (preset.get("sampling") or {}).items() if v is not None
+        }
+        if not declared or self.serving.get("allow_unenforced_sampling"):
+            if declared:
+                logger.warning(
+                    "swiftlet cannot enforce sampling %s; running at its built-in "
+                    "temperature 0.7 / top_p 0.8 (allow_unenforced_sampling is set)",
+                    declared,
+                )
+            return
+        raise ValueError(
+            f"swiftlet backend cannot enforce sampling {sorted(declared)} — "
+            "swiftlet-server has no sampling flags and SwiftletSession hardcodes "
+            "temperature 0.7 / top_p 0.8. Drop the sampling block from the preset, "
+            "or set serving.allow_unenforced_sampling: true to record that the "
+            "run does NOT use the declared values."
+        )
+
+    def _restart_server(self, preset: dict) -> None:
+        host = self.serving.get("host", "127.0.0.1")
+        port = int(self.serving.get("port", 8080))
+        upstream_port = int(self.serving.get("upstream_port", 8081))
+        self._kill_port(port)
+        self._kill_port(upstream_port)
+        self._launch(self._launch_cmd(preset, upstream_port))
+        self._launch(self._shim_cmd(preset, host, port, upstream_port))
+
+    def _launch_cmd(self, preset: dict, upstream_port: int) -> list[str]:
+        """The ``swiftlet-server`` command.
+
+        Note it binds 127.0.0.1 itself and takes no ``--host``; only the shim is
+        reachable on ``serving.host``.
+        """
+        cmd = [
+            str(self.serving.get("swiftlet_bin", "swiftlet-server")),
+            "--model", str(preset["qpack"]),
+            "--port", str(upstream_port),
+        ]
+        if preset.get("cache_gb") is not None:
+            # No-op on the stock CPU-path server; see the class docstring.
+            cmd += ["--cache-gb", str(preset["cache_gb"])]
+        cmd += list(self.serving.get("serve_flags", []))
+        return cmd
+
+    def _shim_cmd(
+        self, preset: dict, host: str, port: int, upstream_port: int
+    ) -> list[str]:
+        return [
+            sys.executable, "-m", "retort.playpen.swiftlet_shim",
+            "--listen-host", host,
+            "--listen-port", str(port),
+            "--upstream-port", str(upstream_port),
+            "--model-name", str(preset["model"]),
+            "--read-timeout-s", str(int(self.serving.get("warm_timeout_s", 300)) * 6),
+            "--max-tokens", str(int(self.serving.get("shim_max_tokens", 4096))),
+        ]

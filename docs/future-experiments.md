@@ -480,7 +480,7 @@ Kimi K3 (2.8T MoE, 2026-07-27), Inkling-Small (276B-A12B, 2026-08-02 — ~140 GB
 Leanstral 1.5 (119B-A6B, 2026-07-02 — borderline on size *and* a Lean 4 theorem-prover, not an
 agentic coder).
 
-### Swiftlet — a third serving backend (expert streaming), NOT a model  — GATE-PROBE FIRST
+### Swiftlet — a third serving backend (expert streaming), NOT a model  — BUILT, NOT YET SMOKE-TESTED
 
 Added 2026-08-03 (user). [github.com/leonickson1/Swiftlet](https://github.com/leonickson1/Swiftlet) —
 Apache 2.0 Swift + Metal runtime that keeps only a small dense core resident and **streams routed MoE
@@ -489,15 +489,40 @@ eviction). It serves the two models we already benchmark, at **2.6 GB peak RAM (
 RAM (80B)** — 18 GB / 42 GB on *disk*. So it is a `serving.backend` level, not a candidate model:
 it belongs next to `omlx`/`llamacpp`, and its real relevance is to the §3 inference-lever sweep.
 
-**BLOCKER — no tool calling. Probe this before anything else.** `Sources/SwiftletServer/main.swift`
+**BUILT 2026-08-03 (`serving.backend: swiftlet`).** `SwiftletStackManager` in
+[`stack_reload.py`](../src/retort/playpen/stack_reload.py) launches `swiftlet-server` on an internal
+port and puts the new [`swiftlet_shim.py`](../src/retort/playpen/swiftlet_shim.py) on the public one
+to translate tool calls in both directions. 25 unit tests, all offline (no binary, no weights); full
+suite 887 passed. `cache_gb` is in the reload signature so a cache sweep actually restarts the
+server, and a preset declaring `sampling:` now **raises** rather than running at Swiftlet's built-in
+0.7/0.8 behind a provenance record claiming otherwise. See [`docs/configuration.md`](configuration.md).
+
+**WHAT IS NOT VERIFIED — do not treat the backend as working yet.** Everything above is plumbing
+tested against a *stub* upstream. Nothing has talked to a real `swiftlet-server`, because that needs
+the Swift toolchain build plus an 18–42 GB qpack download. Specifically unverified: (a) that a real
+Qwen3.6/Qwen3-Next emits `<tool_call>` reliably when the tools block arrives as *system text* rather
+than through its native template — this is the fidelity gap and the likeliest failure; (b) the exact
+`swiftlet-server` stderr log format `peak_prompt_tokens` parses; (c) whether the shim's max-tokens
+default is enough for an agent turn; (d) end-to-end tok/s on this box. **Per CLAUDE.md this is a
+set-but-unverified parameter set — run the staged probe below before any grid.**
+
+**Discovered while building, and it changes the cache story:** `Sources/SwiftletServer/main.swift`
+constructs a **`QwenCPUModel`** with `retainAllLayers = true` — the *CPU* path. The Metal expert
+cache (`QwenMetalModel(modelDir:cacheBudgetGB:)`) and `--cache-gb` exist **only on the `swiftlet` CLI's
+`--gpu` path**, not the server. So the cache sweep described below cannot be run through the OpenAI
+endpoint until the server is taught to use the Metal model — a small upstream change, and the second
+thing to fix after tool calls. retort emits `--cache-gb` already so it works the moment it lands.
+
+**ORIGINAL BLOCKER (what the shim exists to work around).** `Sources/SwiftletServer/main.swift`
 is 210 lines: it exposes OpenAI chat-completions on loopback, never parses a `tools` array, and only
 ever emits `finish_reason: "stop"` — there is no `tool_calls` path at all. Hermes drives its agentic
 loop on OpenAI-format `tool_calls` (that is exactly what we verified oMLX emits for the 80B), so a
 retort cell on Swiftlet **as it ships today would produce no code and score a false zero**,
 indistinguishable from an incapable model — the failure mode CLAUDE.md's "suspect the harness before
-the model" rule exists for. Unlike Laguna this is *ours to fix*: the weights emit tool-call tokens
-already, what's missing is the server-side parser that turns them into OpenAI JSON (what oMLX does
-natively and llama.cpp does via `--jinja`). Fixing 210 lines of Apache-2.0 Swift is tractable.
+the model" rule exists for. Worse than first assessed: `Message.content` is a non-optional `String`,
+so the `{"role": "assistant", "content": null, "tool_calls": […]}` turn Hermes replays after every
+tool call does not merely lose information, it **fails to decode and 400s the whole request**. The
+shim normalises that too.
 
 **Speed — the reason to be sceptical, quantified.** Swiftlet's own README claims **7–11 tok/s (35B)**
 and **4.5–5 tok/s (80B)** on "an M5 Mac". This box is an **M5 Pro / 64 GB**, so those are directly
@@ -560,10 +585,22 @@ change that unlocks Swiftlet for Hermes.
 that is the *non-Coder* Qwen3-Next-80B, benchmarking it against our Qwen3-Coder-Next-80B numbers
 confounds serving backend with model. **Repack our own weights rather than downloading theirs.**
 
-**Staged probe (~1 h, do not skip to a grid):** (a) build + `swiftlet-server`, one plain `generate`
-on the 35B → measured tok/s *on this box*; (b) POST a chat-completion carrying a `tools` array and
-confirm whether it is ignored; (c) only then decide whether to write the tool-call parser. Steps (a)
-and (c) produce wall-clock numbers, so per CLAUDE.md they need the machine to themselves.
+**Staged probe (~1 h, do not skip to a grid) — the backend is built, so this is now a verification
+sequence, in order:**
+1. Build the Swiftlet checkout; fetch or repack a 35B qpack (repack *our* MLX 4-bit weights, per the
+   confound above, rather than downloading theirs).
+2. `swiftlet-server` up, then `retort`'s shim in front of it: POST a chat-completion **carrying a
+   `tools` array** and confirm a real `<tool_call>` comes back and the shim converts it. This is the
+   one that decides whether the whole backend is viable — the tools block reaches the model as system
+   text, not through its native template.
+3. Check the stderr log lines actually match `_SWIFTLET_PROMPT_RE`, else `peak_prompt_tokens` returns
+   None and the context telemetry silently goes blank.
+4. One full agentic cell on the CRUD task at a generous timeout, then `retort diagnose` on the result
+   — confirm any zero is GENUINE, not TOOLING.
+5. Only then the `cache_gb` sweep — and only after the server is switched to `QwenMetalModel`, since
+   on the stock CPU-path binary the flag does nothing.
+
+Steps 2–5 produce wall-clock numbers, so per CLAUDE.md they need the machine to themselves.
 
 **Serving backends:** retort now supports **`serving.backend: omlx | llamacpp`** (2026-07-21). The
 llama.cpp path (`llama-server`, Metal-native, GGUF, `--jinja` tool templates) serves models oMLX

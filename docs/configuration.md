@@ -259,6 +259,65 @@ playpen:
     hermes-local: { harness: hermes, model: mlxlocal/mlx-community--Qwen3-Coder-Next-4bit }
 ```
 
+#### Serving backends: `omlx` / `llamacpp` / `swiftlet`
+
+`serving.backend` picks the serving layer (default `omlx`). All three expose the same
+OpenAI endpoint on `host:port`, so Hermes talks to any of them unchanged.
+
+| Backend | Serves | Tool calls | Use it when |
+|---|---|---|---|
+| `omlx` | MLX weights | native | the default — fastest for arches `mlx-lm` supports |
+| `llamacpp` | GGUF | model's own template via `--jinja` | the arch or tool format is outside oMLX (Mistral, poolside XML) |
+| `swiftlet` | `.qpack` | **via retort's shim** (see below) | the model does **not fit in RAM** |
+
+**`swiftlet` — expert streaming, for models that don't fit.** [Swiftlet](https://github.com/leonickson1/Swiftlet)
+keeps a small dense core resident and streams routed MoE experts from SSD. The point is
+*not* faster inference on a model that already fits — it's that model size stops being
+bounded by RAM (an 80B on a 32 GB box; Swiftlet ships a Qwen3.5-397B arch config).
+
+```yaml
+serving:
+  backend: swiftlet
+  swiftlet_bin: swiftlet-server   # built from the Swiftlet checkout
+  host: 127.0.0.1
+  port: 8080                      # the SHIM listens here — this is what Hermes talks to
+  upstream_port: 8081             # swiftlet-server listens here, loopback only
+  shim_max_tokens: 4096           # Swiftlet's own default is 512 and truncates agent turns
+  hermes_config: ~/.hermes/config.yaml
+  log: /tmp/serving.log
+presets:
+  sw35:
+    model: Qwen3.6-35B-A3B        # the name Hermes addresses; the shim advertises it
+    qpack: /Volumes/models/Qwen3.6-35B-A3B-qpack
+    cache_gb: 12                  # expert-cache budget; part of the reload signature
+    context_length: 262144
+    # no `sampling:` — see the refusal below
+```
+
+Three things to know before using it:
+
+1. **Two processes.** Swiftlet's endpoint cannot do tool calls at all — it drops a
+   `tools` array silently and 400s on the `content: null` assistant turn an agent
+   replays after a tool call. So this backend launches `swiftlet-server` on
+   `upstream_port` and puts `retort.playpen.swiftlet_shim` on `port` to translate in
+   both directions. Without it a run writes no code and scores a **false zero**.
+   The shim injects tools as system-message text rather than through the model's real
+   chat template (Swiftlet gives no way to pass template kwargs), so it is a fidelity
+   step down from `llamacpp --jinja` — suspect it first if tool-call quality is worse
+   here than on oMLX for the same weights.
+2. **Sampling is refused, not ignored.** `swiftlet-server` has no sampling flags and
+   `SwiftletSession` hardcodes temperature 0.7 / top-p 0.8. A preset that declares
+   `sampling:` raises unless you set `serving.allow_unenforced_sampling: true` — which
+   records that the run does *not* use the declared values.
+3. **`cache_gb` is plumbed but inert on the stock binary.** `SwiftletServer/main.swift`
+   builds a `QwenCPUModel`; the Metal expert cache and its `--cache-gb` live only on the
+   `swiftlet` CLI's `--gpu` path. Until the server is taught to use `QwenMetalModel`, a
+   cache sweep through this backend measures nothing. The flag is emitted so it works
+   the moment that lands.
+
+Budget the timeout generously: Swiftlet publishes 7–11 tok/s (35B) and 4.5–5 tok/s (80B)
+against ~54/~61 measured on oMLX.
+
 **After a local run**, `retort recover --experiment-dir <dir>` runs the standard cleanup in one
 step — `diagnose` (classify failures TOOLING vs GENUINE) → `rescore --only-failed` (recover the
 scorer false-failures) → `reevaluate` (refresh requirement_coverage on the recovered languages)
