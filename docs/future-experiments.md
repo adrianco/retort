@@ -523,6 +523,39 @@ SSD limit. Worth re-timing later rather than dismissing permanently.)
    so it can repack the exact `mlx-community--Qwen3-Coder-Next-4bit` weights already on disk — a
    genuinely matched-weights backend comparison with only the serving layer varying.
 
+**CORRECTION (2026-08-03, user) — 2.6/4.3 GB is the iPhone floor, not the design point, and the
+cache size is the interesting factor.** `SwiftletCLI` takes **`--cache-gb`, defaulting to 8**, and
+`ExpertCache.init(budgetBytes:)` sizes slots as `min(max(budget/stride, 16), total)` — capped at the
+*whole model*, so at a large enough budget the expert cache holds everything and **streaming stops
+happening at all**. Against 18 GB (35B) / 42 GB (80B) of qpack on disk that means: 24 GB M4 → ~12–14
+GB cache (35B ~75% resident); **32 GB M1 Max → ~20–22 GB, the entire 35B resident**; 64 GB M5 Pro →
+the entire 80B resident. So the published 7–11 / 4.5–5 tok/s are numbers at *some small cache*, not
+a ceiling, and the speed claim above should be treated as unmeasured at our configuration.
+
+**The measurement this makes cheap — and it is already instrumented.** `swiftlet` prints
+`expert cache: N slots (X GB), H hits / M misses (P% hit rate)` after every run. So sweep
+`--cache-gb` and watch whether tok/s tracks hit rate: if throughput stays flat as hit rate → 100%,
+decode is **dispatch-bound** (as Swiftlet's own README claims) and no amount of RAM rescues it — the
+fix would be batching expert matmuls, not caching. If throughput scales with hit rate, it was
+IO-bound and the big-cache configuration is simply the right way to run it. **This is a textbook
+`cache_gb` inference-lever factor with hit rate as a mediator response** — it belongs in §3
+alongside quant level, and it is a ~10-minute smoke test, not an experiment. Note the README's
+dispatch-bound claim predicts the pessimistic outcome; test it anyway, the counters are free.
+
+**Sampling defaults differ from ours — record them.** `SwiftletSession` hardcodes temperature 0.7 /
+top-p 0.8 for quantized non-thinking chat, and *bans EOS until a minimum length* (a guard against
+quantized models stopping after 1–2 tokens). There is a `--greedy` flag. Per CLAUDE.md this is
+exactly the set-but-unverified footgun that cost us the temp-1.0 result — pin and verify sampling
+before comparing any Swiftlet number to an oMLX one.
+
+**Tool calling is a smaller fix than it first looked.** `SwiftletSession` already calls
+`tokenizer.applyChatTemplate(messages:)` — the model's real Jinja template — and already handles the
+Qwen3.6-thinking vs Qwen3-Next-Instruct template split and `<think>` suppression. Qwen's own template
+takes a `tools` argument and makes the model emit `<tool_call>{"name":…,"arguments":…}</tool_call>`.
+So the work is: pass `tools` through to the template, parse those tags out of the generated text, and
+emit OpenAI `tool_calls` with `finish_reason: "tool_calls"` instead of `"stop"`. That is the one
+change that unlocks Swiftlet for Hermes.
+
 **Verify before trusting a comparison:** the published qpack is named `Qwen3-Next-80B-A3B-qpack`. If
 that is the *non-Coder* Qwen3-Next-80B, benchmarking it against our Qwen3-Coder-Next-80B numbers
 confounds serving backend with model. **Repack our own weights rather than downloading theirs.**
