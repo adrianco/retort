@@ -242,21 +242,38 @@ The Apple pair is the outlier by two orders of magnitude — \$13.30 for Objecti
 
 Build cost is not run cost, and until now retort measured only the former. There is now a `runtime` scorer that starts the produced program and times a **fixed probe** — an identical MCP `initialize` + `tools/list` round-trip against every implementation, rather than the model's own test suite, whose duration mostly reflects how many tests it chose to write (on the same task, one model wrote 6 tests and another 104).
 
-**There is not yet enough data for a table, and this section will stay honest about that rather than fill one in.** Four measurements exist:
+Measured on the exp-56 brazil artifacts, rebuilt with `retort rebuild` and probed identically. **Two numbers per language, because they answer different questions:**
 
-| language | stack | steady median | note |
-|---|---|---:|---|
-| python | Terra `medium` | **19 ms** | brazil |
-| python | Terra `max` | 28 ms | brazil |
-| python | Terra `default` | 260 ms | measured inline, during the run |
-| typescript | Terra `default` | 364 ms | 362 ms in an independent session — 0.5% apart |
-| python | Terra `low` | 336 ms | brazil |
+| language | cold start | per-request | tools |
+|---|---:|---:|---:|
+| **rust** | **202 ms** | 0.027 ms | 7 |
+| **c** | 242 ms | 0.017 ms | 6 |
+| typescript | 376 ms | 0.148 ms | 6 |
+| csharp | 758 ms | 0.029 ms | 6 |
+| objc | 1,764 ms | 0.027 ms | 6 |
+| elixir | 4,150 ms | 0.107 ms | 6 |
 
-Of nine archived brazil languages, five rebuild successfully and only **one** answers the probe; the rest start but never complete the protocol exchange, one distinct cause per ecosystem. That is per-language plumbing, not a property of the languages.
+**Compiled beats interpreted, by 20.6× — and essentially all of it is start-up.** The cold-start ordering is exactly what you would predict: native binaries first, then a JIT runtime, then the CLR, then the BEAM. But *per-request*, every language lands between 0.017 and 0.148 ms, and Rust is not meaningfully faster than C# once the process is warm.
 
-**On the effort-versus-runtime question: the data does not support an answer, and the three points that exist argue against the obvious one.** Terra on brazil/python reads `low` 336 ms, `medium` 19 ms, `max` 28 ms — a 17× swing that is not monotonic in effort and is almost certainly implementation choice, not thinking level. One run loads its CSVs eagerly at start-up; another indexes or defers. At n=1 per cell, with three cells, from one model in one language, any correlation drawn here would be an artifact.
+So the honest statement is narrow: on this task the language difference is **runtime boot plus parsing ~24k CSV rows**, not serving latency. Answering a request from memory is microseconds everywhere. A single blended number would have been published as a 20× difference in request latency, which it is not — the two phases were split precisely because the first version of this probe restarted the process on every iteration and so measured start-up twice while labelling one of them "steady state".
 
-There is also a deeper comparability problem worth stating before anyone builds on these numbers. **The implementations are not doing the same work.** The Go brazil server logs `loaded 16947 matches`; the Python one logs `loaded 23954`. Both pass all twelve requirements. A uniform *probe* does not guarantee uniform *work*, so cross-language runtime numbers measure the program that was written as much as the language it was written in — the same trap as timing model-authored test suites, one level down.
+Which matters more depends entirely on shape: for a CLI invoked per command, cold start *is* the user experience; for a long-lived server it is paid once.
+
+Five languages are still unmeasured, each for a named reason rather than a shrug — clojure, erlang and swift have no run recipe yet, cpp built only a test binary, and java starts but never completes the MCP handshake.
+
+*A measurement bug worth recording, because it looked exactly like a result.* Every compiled language initially reported "server did not answer" — which reads as a broken program. It was a **relative binary path** executed with `cwd=run_dir`, so `FileNotFoundError` was caught and reported as silence. Rust had been answering hand-run probes the whole time. One line, and 1/11 measured became 6/11. The lesson is the same one the harness table keeps teaching: a failing program and a broken measurement are indistinguishable in the output.
+
+### Dedup: the requirement nobody wrote down
+
+The five brazil match files overlap on purpose, so the same fixture appears in two or three of them. **23,954 is exactly the sum of the files** — that number means no deduplication at all, and the run reporting it double-counts: its own handshake answered *"Corinthians 2022 home: 44 matches"* where the spec's worked example says 19.
+
+The Go implementation loaded **16,947** and is the correct one. It canonicalises competition names across files and merges fixtures within a one-day window, because "one source stores the local kick-off and another the UTC date". It is externally verifiable: it reports **8,404** Série A matches for 2003–2023 against **8,406** expected from real season sizes, and its own `dataset_info` tool reports no load failures.
+
+Both scored 12/12. Deduplication is an *implicit* part of the task — you cannot compute a correct 2019 table without it — and the pinned checklist never asks, because it tests whether a capability exists and not whether its answers are right.
+
+**Do not rank on the row count alone, in either direction.** An early version of the reference script keyed only on date and team names, and on that basis the *correct* Go implementation looked like a loader that had lost 17% of the corpus. A low count can be careful merging or a broken loader, and the two are indistinguishable without the dedup key that produced them.
+
+The right test is a golden answer rather than a row count: 2019 Série A is a 20-team double round-robin, so **every club played exactly 38** and Flamengo took the title on 90 points. `played == 38` means merged, `~76` means double-counted, fewer means data dropped. That probe is written (`scripts/brazil_dedup_verdict.py`) but has not yet produced verdicts across the full set — it is slow against implementations that never answer, and the run was stopped. Scores are deliberately *not* adjusted by it; the point is to learn how often implementations get this right, which is the evidence for whether the checklist should test correctness at all.
 
 ## The `python` vs `python3` stumble — found here, since fixed
 
