@@ -480,6 +480,58 @@ Kimi K3 (2.8T MoE, 2026-07-27), Inkling-Small (276B-A12B, 2026-08-02 — ~140 GB
 Leanstral 1.5 (119B-A6B, 2026-07-02 — borderline on size *and* a Lean 4 theorem-prover, not an
 agentic coder).
 
+### Swiftlet — a third serving backend (expert streaming), NOT a model  — GATE-PROBE FIRST
+
+Added 2026-08-03 (user). [github.com/leonickson1/Swiftlet](https://github.com/leonickson1/Swiftlet) —
+Apache 2.0 Swift + Metal runtime that keeps only a small dense core resident and **streams routed MoE
+experts from SSD on demand** (`.qpack` containers, fixed-stride expert packing, LFU+recency
+eviction). It serves the two models we already benchmark, at **2.6 GB peak RAM (35B) / 4.3 GB peak
+RAM (80B)** — 18 GB / 42 GB on *disk*. So it is a `serving.backend` level, not a candidate model:
+it belongs next to `omlx`/`llamacpp`, and its real relevance is to the §3 inference-lever sweep.
+
+**BLOCKER — no tool calling. Probe this before anything else.** `Sources/SwiftletServer/main.swift`
+is 210 lines: it exposes OpenAI chat-completions on loopback, never parses a `tools` array, and only
+ever emits `finish_reason: "stop"` — there is no `tool_calls` path at all. Hermes drives its agentic
+loop on OpenAI-format `tool_calls` (that is exactly what we verified oMLX emits for the 80B), so a
+retort cell on Swiftlet **as it ships today would produce no code and score a false zero**,
+indistinguishable from an incapable model — the failure mode CLAUDE.md's "suspect the harness before
+the model" rule exists for. Unlike Laguna this is *ours to fix*: the weights emit tool-call tokens
+already, what's missing is the server-side parser that turns them into OpenAI JSON (what oMLX does
+natively and llama.cpp does via `--jinja`). Fixing 210 lines of Apache-2.0 Swift is tractable.
+
+**Speed — the reason to be sceptical, quantified.** Swiftlet's own README claims **7–11 tok/s (35B)**
+and **4.5–5 tok/s (80B)** on "an M5 Mac". This box is an **M5 Pro / 64 GB**, so those are directly
+comparable numbers rather than an extrapolation. Against retort's *measured* oMLX throughput —
+**~54 tok/s (35B, exp-25/26)** and **~61 tok/s (80B, exp-24)** — that is **5–8× slower on the 35B and
+~12× slower on the 80B**. exp-25/26 established these runs are **generation-bound**, and that at
+54 tok/s the timeout had to go 30 → 60 min before Go converted from all-zeros to 0.92 req_cov. Scale
+that: **~5–8 h/cell for the 35B and ~6–13 h/cell for the 80B**, before replicates. At n=3 across a
+few languages, on a machine that runs one experiment at a time, a Swiftlet grid is days-to-weeks.
+**Do not put Swiftlet on the critical path for any headline result.** (Note the README says the
+decode loop is *dispatch* bound, not IO bound — so the gap is an optimization gap, not a fundamental
+SSD limit. Worth re-timing later rather than dismissing permanently.)
+
+**Why it is still worth a probe — RAM stops being the constraint on model SIZE.** That, not faster
+35B/80B inference, is the prize:
+1. It would un-exclude the models recorded as too large just above — **Hy3 (295B-A21B)** and
+   **Inkling-Small (276B-A12B)** — which are otherwise unreachable here at *any* speed. Swiftlet's
+   own `assets/model-configs/` already ships a **`qwen3.5-397b.json`**, i.e. the approach targets
+   models ~6× larger than this box fits.
+2. It frees ~60 GB for a **large draft model**, feeding §3's speculative-decoding/MTP lever — the
+   top speed lever, and the one that could pay back Swiftlet's own slowness.
+3. `assets/model-configs/qwen3-next-80b-mlx4bit.json` shows the repacker accepts **MLX 4-bit input**,
+   so it can repack the exact `mlx-community--Qwen3-Coder-Next-4bit` weights already on disk — a
+   genuinely matched-weights backend comparison with only the serving layer varying.
+
+**Verify before trusting a comparison:** the published qpack is named `Qwen3-Next-80B-A3B-qpack`. If
+that is the *non-Coder* Qwen3-Next-80B, benchmarking it against our Qwen3-Coder-Next-80B numbers
+confounds serving backend with model. **Repack our own weights rather than downloading theirs.**
+
+**Staged probe (~1 h, do not skip to a grid):** (a) build + `swiftlet-server`, one plain `generate`
+on the 35B → measured tok/s *on this box*; (b) POST a chat-completion carrying a `tools` array and
+confirm whether it is ignored; (c) only then decide whether to write the tool-call parser. Steps (a)
+and (c) produce wall-clock numbers, so per CLAUDE.md they need the machine to themselves.
+
 **Serving backends:** retort now supports **`serving.backend: omlx | llamacpp`** (2026-07-21). The
 llama.cpp path (`llama-server`, Metal-native, GGUF, `--jinja` tool templates) serves models oMLX
 can't — any GGUF whose arch + tool format are in *mainline* llama.cpp. It unblocks **Devstral**
