@@ -291,6 +291,72 @@ def _build_then_entry(run_dir: Path, language: str) -> tuple[list[str] | None, s
         exe = run_dir / (m.group(1) if m else "")
         return ([str(exe)], "") if exe.exists() else (None, "escript not produced")
 
+    if language == "clojure":
+        deps = run_dir / "deps.edn"
+        if not deps.exists():
+            return None, "no deps.edn"
+        # deps.edn here declares only a :test alias, so the main namespace has to
+        # come from the source: find the file with (defn -main ...) and convert
+        # its path to a namespace (src/a_b/core.clj -> a-b.core; Clojure munges
+        # hyphens to underscores on disk).
+        for clj in sorted(run_dir.rglob("*.clj")):
+            if "test" in clj.parts or "test" in clj.stem:
+                continue
+            try:
+                if "(defn -main" not in clj.read_text(errors="replace"):
+                    continue
+            except OSError:
+                continue
+            rel = clj.relative_to(run_dir / "src") if (run_dir / "src") in clj.parents \
+                else clj.relative_to(run_dir)
+            ns = str(rel.with_suffix("")).replace("/", ".").replace("_", "-")
+            return ["clojure", "-M", "-m", ns], ""
+        return None, "no (defn -main ...) found in any .clj"
+
+    if language == "erlang":
+        if not (run_dir / "rebar.config").exists():
+            return None, "no rebar.config"
+        if not build(["rebar3", "compile"], timeout=600):
+            return None, "rebar3 compile failed"
+        # No escript stanza in this project, so run the beam directly. The entry
+        # module is the one matching the app name.
+        app = next(iter(sorted((run_dir / "src").glob("*.app.src"))), None)
+        mod = app.name.replace(".app.src", "") if app else None
+        ebins = sorted(run_dir.glob("_build/default/lib/*/ebin"))
+        if not mod or not ebins:
+            return None, "no app module or compiled ebin"
+        # The entry function is NOT always main/0. This project exports run/0 and
+        # its README says `erl ... -s brazilian_soccer_mcp run`; guessing "main"
+        # started the VM, ran nothing, and the probe reported "did not answer".
+        # Read the -export list instead of assuming a convention.
+        entry = None
+        src = run_dir / "src" / f"{mod}.erl"
+        if src.exists():
+            exports = " ".join(re.findall(r"-export\(\[([^\]]*)\]\)",
+                                          src.read_text(errors="replace")))
+            for cand in ("main", "run", "start_link", "start"):
+                if re.search(rf"\b{cand}/0\b", exports):
+                    entry = cand
+                    break
+        if entry is None:
+            return None, f"{mod}.erl exports no zero-arity main/run entry"
+        pa: list[str] = []
+        for e in ebins:
+            pa += ["-pa", str(e)]
+        return ["erl", *pa, "-noshell", "-s", mod, entry], ""
+
+    if language == "swift":
+        pkg = run_dir / "Package.swift"
+        if not pkg.exists():
+            return None, "no Package.swift"
+        if not build(["swift", "build", "-c", "release"], timeout=900):
+            return None, "swift build -c release failed"
+        m = re.search(r'\.executable\(\s*name:\s*"([^"]+)"', pkg.read_text(errors="replace"))
+        cands = [run_dir / ".build" / "release" / m.group(1)] if m else []
+        cands += sorted((run_dir / ".build" / "release").glob("*"))
+        exe = _first_executable(*cands)
+        return ([str(exe)], "") if exe else (None, "no release executable produced")
+
     if language in ("c", "cpp", "objc"):
         # C ships its server binary already; C++/ObjC usually need the build.
         exe = _first_executable(*sorted(run_dir.glob("*")))
@@ -301,6 +367,21 @@ def _build_then_entry(run_dir: Path, language: str) -> tuple[list[str] | None, s
             exe = _first_executable(*sorted(run_dir.glob("*")))
             if exe and "test" not in exe.name.lower():
                 return [str(exe)], ""
+        cml = run_dir / "CMakeLists.txt"
+        if cml.exists():
+            # Build the SERVER target explicitly. A bare `cmake --build .` makes
+            # every target, and the first executable found was `soccer_tests` —
+            # timing the test binary instead of the program under measurement.
+            targets = [n for n in re.findall(r"add_executable\(\s*([\w.-]+)",
+                                             cml.read_text(errors="replace"))
+                       if "test" not in n.lower()]
+            bdir = run_dir / ".retort-build"
+            if targets and build(["cmake", "-S", str(run_dir), "-B", str(bdir)]) \
+                    and build(["cmake", "--build", str(bdir), "--target", targets[0]]):
+                exe = _first_executable(*sorted(bdir.rglob(targets[0])))
+                if exe:
+                    return [str(exe)], ""
+            return None, f"cmake build failed (targets: {targets or 'none non-test'})"
         return None, "no non-test executable produced"
 
     if language == "java":
@@ -308,9 +389,29 @@ def _build_then_entry(run_dir: Path, language: str) -> tuple[list[str] | None, s
             return None, "no pom.xml"
         if not build(["mvn", "-q", "-DskipTests", "package"], timeout=900):
             return None, "mvn package failed"
+        # `java -jar` needs a Main-Class in the manifest, and a plain `mvn
+        # package` without a shade/assembly plugin does not write one — the jar
+        # here fails with "no main manifest attribute". So prefer running the
+        # class directly off target/classes, discovering it from the source
+        # rather than assuming a name.
+        main_cls = None
+        for src in sorted((run_dir / "src" / "main" / "java").rglob("*.java")):
+            try:
+                if "public static void main" not in src.read_text(errors="replace"):
+                    continue
+            except OSError:
+                continue
+            rel = src.relative_to(run_dir / "src" / "main" / "java")
+            main_cls = str(rel.with_suffix("")).replace("/", ".")
+            break
+        classes = run_dir / "target" / "classes"
+        if main_cls and classes.is_dir():
+            return ["java", "-cp", str(classes), main_cls], ""
         jars = [p for p in (run_dir / "target").glob("*.jar")
                 if "sources" not in p.name and "javadoc" not in p.name]
-        return ([ "java", "-jar", str(jars[0])], "") if jars else (None, "no jar built")
+        if jars:
+            return ["java", "-jar", str(jars[0])], ""
+        return None, "no main class on target/classes and no jar built"
 
     return None, f"no run recipe for {language!r}"
 

@@ -1,0 +1,1 @@
+/usr/bin/c++  -arch arm64 -Wl,-search_paths_first -Wl,-headerpad_max_install_names "CMakeFiles/brazilian-soccer-mcp.dir/main.cpp.o" -o brazilian-soccer-mcp  libsoccer_core.a

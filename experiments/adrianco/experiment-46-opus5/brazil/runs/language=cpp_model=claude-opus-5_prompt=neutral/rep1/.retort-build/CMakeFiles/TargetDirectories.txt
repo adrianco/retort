@@ -1,0 +1,6 @@
+/Users/adriancockcroft/code/retort/experiments/adrianco/experiment-46-opus5/brazil/runs/language=cpp_model=claude-opus-5_prompt=neutral/rep1/.retort-build/CMakeFiles/bsmcp_core.dir
+/Users/adriancockcroft/code/retort/experiments/adrianco/experiment-46-opus5/brazil/runs/language=cpp_model=claude-opus-5_prompt=neutral/rep1/.retort-build/CMakeFiles/bsmcp.dir
+/Users/adriancockcroft/code/retort/experiments/adrianco/experiment-46-opus5/brazil/runs/language=cpp_model=claude-opus-5_prompt=neutral/rep1/.retort-build/CMakeFiles/bsmcp_tests.dir
+/Users/adriancockcroft/code/retort/experiments/adrianco/experiment-46-opus5/brazil/runs/language=cpp_model=claude-opus-5_prompt=neutral/rep1/.retort-build/CMakeFiles/test.dir
+/Users/adriancockcroft/code/retort/experiments/adrianco/experiment-46-opus5/brazil/runs/language=cpp_model=claude-opus-5_prompt=neutral/rep1/.retort-build/CMakeFiles/edit_cache.dir
+/Users/adriancockcroft/code/retort/experiments/adrianco/experiment-46-opus5/brazil/runs/language=cpp_model=claude-opus-5_prompt=neutral/rep1/.retort-build/CMakeFiles/rebuild_cache.dir
