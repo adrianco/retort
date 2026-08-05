@@ -66,6 +66,9 @@ WARMUP_ITERS = 3
 TIMED_ITERS = 10
 #: A single probe iteration slower than this is treated as a non-result.
 ITER_TIMEOUT_S = 30
+#: Generous on purpose: for a lazily-loading implementation this ONE call pays
+#: the entire 42k-row data load that an eager one paid before start-up.
+QUERY_TIMEOUT_S = 120
 #: Seconds to wait for a server probe to start listening / answer.
 STARTUP_TIMEOUT_S = 60
 #: Milliseconds at which the normalized score reaches 0.0.
@@ -84,6 +87,10 @@ class RuntimeResult:
     steady_min_ms: float | None = None
     steady_max_ms: float | None = None
     iters: int = 0
+    #: Time to answer a REAL data question (tools/call), not protocol metadata.
+    #: This is the comparable number: see _first_query for why cold start is not.
+    first_query_ms: float | None = None
+    first_query_tool: str = ""
     note: str = ""
     samples_ms: list[float] = field(default_factory=list)
     #: How much data this implementation actually ingested, scraped from its own
@@ -136,6 +143,19 @@ class RuntimeResult:
             "steady_max_ms": self.steady_max_ms,
             "iters": self.iters,
             "request_median_ms": self.request_median_ms,
+            # The COMPARABLE pair. Cold start alone is not: `tools/list` is
+            # protocol metadata, so an eager implementation answers it having
+            # loaded 42k rows and a lazy one having loaded none. Adding the
+            # first real tools/call puts the finish line in the same place.
+            # Measured on one machine, same model, same task: lazy = 41 ms cold
+            # + 461 ms first answer; eager = 1109 ms cold + 2 ms first answer.
+            "first_query_ms": self.first_query_ms,
+            "first_query_tool": self.first_query_tool,
+            "total_to_answer_ms": (
+                self.cold_start_ms + self.first_query_ms
+                if self.cold_start_ms is not None and self.first_query_ms is not None
+                else None
+            ),
             "rows_loaded": self.rows_loaded,
             "tool_count": self.tool_count,
             "banner": self.banner,
@@ -554,6 +574,155 @@ def _readline_timeout(proc: subprocess.Popen, deadline: float) -> str | None:
         sel.close()
 
 
+#: Plausible values for a synthesized tools/call, keyed by what the parameter is
+#: called. These are real entities in the corpus, so a correct implementation
+#: returns data rather than an empty result.
+_ARG_VALUES: list[tuple[tuple[str, ...], object]] = [
+    (("team_a",), "Flamengo"),
+    (("team_b",), "Palmeiras"),
+    (("opponent",), "Palmeiras"),
+    (("team", "club", "home", "away"), "Flamengo"),
+    (("player", "scorer", "name"), "Neymar"),
+    (("season", "year"), 2019),
+    (("limit", "count", "top", "n"), 5),
+    (("state", "uf"), "SP"),
+    (("competition", "tournament", "league"), "Serie A"),
+]
+
+#: Tools whose name suggests they actually touch the match data. Ordered: the
+#: first that answers wins. A tool like `list_teams` may be served from a small
+#: index without ever loading the matches, which is exactly what we are trying
+#: not to measure.
+_QUERY_PREFERENCE = ("team_stats", "head_to_head", "find_matches", "match",
+                     "team_profile", "stats", "search", "query", "get_")
+
+
+def _synthesize_args(schema: dict) -> dict:
+    """Arguments satisfying a tool's REQUIRED properties, by parameter name."""
+    props = schema.get("properties", {}) or {}
+    args: dict = {}
+    for key in schema.get("required", []) or []:
+        spec = props.get(key, {}) or {}
+        typ = spec.get("type", "string")
+        val = None
+        low = key.lower()
+        for names, candidate in _ARG_VALUES:
+            if any(n in low for n in names):
+                val = candidate
+                break
+        if val is None:
+            val = {"integer": 1, "number": 1, "boolean": False,
+                   "array": [], "object": {}}.get(typ, "Flamengo")
+        # honour the declared type even when the name matched
+        if typ == "string" and not isinstance(val, str):
+            val = str(val)
+        elif typ in ("integer", "number") and not isinstance(val, (int, float)):
+            val = 2019
+        args[key] = val
+    return args
+
+
+def _first_query(cmd: list[str], run_dir: Path) -> tuple[float | None, str, str]:
+    """(ms to answer a REAL data question, tool name, note).
+
+    This exists because cold-start-to-`tools/list` is NOT comparable across
+    implementations, and reading it as if it were produced a 29x "difference"
+    between two runs of the SAME model on the SAME task.
+
+    The cause: `tools/list` is protocol metadata. An implementation that loads
+    all 42k rows at import answers it having done the work; one that streams
+    lazily (`yield from csv.DictReader(...)`) answers it having done none. The
+    clock stops at a different point in the work for each, so the fast number was
+    partly just "this one deferred the load past the finish line".
+
+    Issuing a real `tools/call` moves the finish line to the same place for
+    everyone: whoever has not loaded the data yet pays for it here. Tool names
+    are not pinned by the spec, so the tool and its arguments are synthesized
+    from the server's OWN advertised schema.
+    """
+    try:
+        proc = subprocess.Popen(
+            cmd, cwd=run_dir, stdin=subprocess.PIPE, stdout=subprocess.PIPE,
+            stderr=subprocess.DEVNULL, text=True, bufsize=1,
+        )
+    except (FileNotFoundError, OSError):
+        return None, "", "could not start server"
+
+    def send(obj) -> bool:
+        try:
+            proc.stdin.write(json.dumps(obj) + "\n")
+            proc.stdin.flush()
+            return True
+        except (BrokenPipeError, OSError):
+            return False
+
+    def await_id(want: int, budget: float) -> dict | None:
+        deadline = time.perf_counter() + budget
+        while time.perf_counter() < deadline:
+            line = _readline_timeout(proc, deadline)
+            if not line:
+                return None
+            s = line.strip()
+            if not s.startswith("{"):
+                continue                      # start-up banner, not a response
+            try:
+                msg = json.loads(s)
+            except ValueError:
+                continue
+            if msg.get("id") == want:
+                return msg
+        return None
+
+    try:
+        for call in BRAZIL_CALLS:
+            if not send(call):
+                return None, "", "server closed during handshake"
+        listed = await_id(2, ITER_TIMEOUT_S)
+        if not listed:
+            return None, "", "no tools/list response"
+        tools = (listed.get("result") or {}).get("tools") or []
+        if not tools:
+            return None, "", "server advertises no tools"
+
+        def rank(tool: dict) -> int:
+            name = tool.get("name", "").lower()
+            for i, pref in enumerate(_QUERY_PREFERENCE):
+                if pref in name:
+                    return i
+            return len(_QUERY_PREFERENCE)
+
+        tried = 0
+        for tool in sorted(tools, key=rank):
+            if tried >= 4:
+                break
+            tried += 1
+            name = tool.get("name", "")
+            args = _synthesize_args(tool.get("inputSchema", {}) or {})
+            rid = 500 + tried
+            t0 = time.perf_counter()
+            if not send({"jsonrpc": "2.0", "id": rid, "method": "tools/call",
+                         "params": {"name": name, "arguments": args}}):
+                return None, "", "server closed during tools/call"
+            msg = await_id(rid, QUERY_TIMEOUT_S)
+            ms = (time.perf_counter() - t0) * 1000.0
+            if msg is None:
+                continue
+            if "error" in msg:
+                continue                      # wrong args for this tool; try another
+            result = msg.get("result") or {}
+            if result.get("isError"):
+                continue
+            return ms, name, ""
+        return None, "", f"no tool answered a synthesized call (tried {tried})"
+    except (BrokenPipeError, OSError):
+        return None, "", "server died during query"
+    finally:
+        try:
+            proc.kill()
+        except OSError:
+            pass
+
+
 def _serve_latency(cmd: list[str], run_dir: Path) -> float | None:
     """Median per-request latency against ONE already-warm process, in ms.
 
@@ -729,6 +898,9 @@ def _probe_brazil(run_dir: Path, language: str) -> RuntimeResult:
     # cold and 260 ms "steady", which is the same number twice, not two metrics.
     # Serving latency needs the process kept alive and asked repeatedly.
     res.request_median_ms = _serve_latency(cmd, run_dir)
+    res.first_query_ms, res.first_query_tool, q_note = _first_query(cmd, run_dir)
+    if res.first_query_ms is None and q_note and not res.note:
+        res.note = f"cold start measured; first-query not: {q_note}"
 
     res.ok = True
     res.rows_loaded = captured.get("rows")
@@ -826,9 +998,20 @@ class RuntimeScorer:
     def name(self) -> str:
         return "runtime"
 
-    def score(self, artifacts: RunArtifacts, stack: StackConfig) -> float:
+    def score(self, artifacts: RunArtifacts, stack: StackConfig) -> float | None:
+        """Normalized score, or None when this run cannot be measured.
+
+        None, never 0.0. A zero would enter the data as "infinitely slow" and be
+        averaged into per-language means as if it were a real measurement — so a
+        language whose probe simply failed would look like the slowest language
+        rather than an absent one. This repo has already published two wrong
+        conclusions from exactly that shape (the /var playpen the agent could not
+        write to, and a Python cold start that was really a sampling artifact).
+        The raw JSON is still written either way, carrying `note` so the reason
+        is recoverable.
+        """
         if not artifacts.succeeded or artifacts.output_dir is None:
-            return 0.0
+            return None
         run_dir = Path(artifacts.output_dir)
         result = measure(run_dir, detect_task(run_dir), stack.language,
                          allow_busy=True)
@@ -839,6 +1022,6 @@ class RuntimeScorer:
         except OSError:
             pass
         if not result.ok or result.steady_median_ms is None:
-            return 0.0
+            return None
         ms = result.steady_median_ms
         return max(0.0, min(1.0, 1.0 - (ms / SLOW_MS)))

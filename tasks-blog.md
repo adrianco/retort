@@ -1,6 +1,6 @@
 # The Tasks: What Gets Built, and How Differently a Run Can Pass
 
-*Published 2026-07-30 · updated 2026-08-04 — Adrian Cockcroft*
+*Published 2026-07-30 · updated 2026-08-05 — Adrian Cockcroft*
 
 What retort actually asks an agent to build, and — for each task — the fastest and the slowest run that fully passed. Both mean shortest/longest `duration_seconds` among runs scoring `requirement_coverage == 1.0`, restricted to runs whose **agent log was archived**, since a record with no log can't be shown.
 
@@ -242,24 +242,39 @@ The Apple pair is the outlier by two orders of magnitude — \$13.30 for Objecti
 
 Build cost is not run cost, and until now retort measured only the former. There is now a `runtime` scorer that starts the produced program and times a **fixed probe** — an identical MCP `initialize` + `tools/list` round-trip against every implementation, rather than the model's own test suite, whose duration mostly reflects how many tests it chose to write (on the same task, one model wrote 6 tests and another 104).
 
-Measured on the exp-56 brazil artifacts, rebuilt with `retort rebuild` and probed identically. **Two numbers per language, because they answer different questions:**
+Measured across 53 archived brazil runs from four experiments, probed identically. **The headline number is time to first *real answer*, and getting there required throwing out the first version of this measurement.**
 
-| language | cold start | per-request | tools |
+| language | n | fastest | by | slowest | by | spread |
+|---|---:|---:|---|---:|---|---:|
+| **cpp** | 3 | **131 ms** | fable-5 | 415 ms | terra@default | 3.2× |
+| **go** | 8 | 294 ms | terra@xhigh | 1,123 ms | opus-5@high | 3.8× |
+| **swift** | 3 | 295 ms | fable-5 | 1,929 ms | terra@default | 6.5× |
+| **rust** | 1 | 344 ms | opus-5 | — | — | — |
+| **python** | 7 | 374 ms | terra@high | 1,237 ms | opus-5@max | 3.3× |
+| **typescript** | 2 | 386 ms | terra@default | 469 ms | opus-5 | 1.2× |
+| **csharp** | 1 | 520 ms | terra@default | — | — | — |
+| **clojure** | 1 | 989 ms | terra@default | — | — | — |
+| **objc** | 1 | 1,169 ms | fable-5 | — | — | — |
+| **elixir** | 2 | 3,791 ms | fable-5 | 4,754 ms | terra@default | 1.3× |
+
+**Cold start alone is a trap, and it ranked the languages wrongly.** An earlier version of this table timed process launch to an MCP `tools/list` reply. But `tools/list` is protocol metadata: an implementation that parses all 42k rows at import answers it having done the work, and one that streams lazily answers having done none. The clock was stopping at a different point in the job for each program.
+
+On that metric Python was the **fastest language in the corpus at 30 ms**. Adding one real `tools/call` — the tool and its arguments synthesized from each server's own advertised schema, since MCP does not pin tool names — moves Python to **fifth at 374 ms**, and collapses its apparent within-language spread from 37.8× to 3.3×. The missing 340 ms was work it had deferred past the old finish line.
+
+The clearest case is two runs of the *same model* on the *same task*, differing only in thinking level:
+
+| | cold start | first real query | total |
 |---|---:|---:|---:|
-| **rust** | **202 ms** | 0.027 ms | 7 |
-| **c** | 242 ms | 0.017 ms | 6 |
-| typescript | 376 ms | 0.148 ms | 6 |
-| csharp | 758 ms | 0.029 ms | 6 |
-| objc | 1,764 ms | 0.027 ms | 6 |
-| elixir | 4,150 ms | 0.107 ms | 6 |
+| lazy — `yield from csv.DictReader(...)` | 41 ms | 461 ms | ~502 ms |
+| eager — `rows = list(csv.DictReader(...))` | 1,109 ms | 2 ms | ~1,111 ms |
 
-**Compiled beats interpreted, by 20.6× — and essentially all of it is start-up.** The cold-start ordering is exactly what you would predict: native binaries first, then a JIT runtime, then the CLR, then the BEAM. But *per-request*, every language lands between 0.017 and 0.148 ms, and Rust is not meaningfully faster than C# once the process is warm.
+Cold start calls these 27× apart. Time-to-first-answer calls them 2.2× apart *the other way*. Which you prefer is a real engineering choice — a CLI invoked per command wants the lazy one, a long-lived server wants the eager one — but only the second metric lets you make it.
 
-So the honest statement is narrow: on this task the language difference is **runtime boot plus parsing ~24k CSV rows**, not serving latency. Answering a request from memory is microseconds everywhere. A single blended number would have been published as a 20× difference in request latency, which it is not — the two phases were split precisely because the first version of this probe restarted the process on every iteration and so measured start-up twice while labelling one of them "steady state".
+*Per-request* latency, once warm, remains microseconds in every language (0.017–0.148 ms). The narrow honest statement stands: on this task the language difference is runtime boot plus parsing, not serving latency.
 
-Which matters more depends entirely on shape: for a CLI invoked per command, cold start *is* the user experience; for a long-lived server it is paid once.
+**Three languages are still unmeasured** — java and erlang start but never complete the handshake, and c produced only a test binary. Each is a named reason rather than a shrug, and each is recorded as NULL rather than zero, because a zero would enter the per-language means as *infinitely slow* and make a language whose probe merely failed look like the worst in the table.
 
-Five languages are still unmeasured, each for a named reason rather than a shrug — clojure, erlang and swift have no run recipe yet, cpp built only a test binary, and java starts but never completes the MCP handshake.
+*Two measurement bugs worth recording, because both looked exactly like results.* Every compiled language initially reported "server did not answer" — a **relative binary path** executed with `cwd=run_dir`, so `FileNotFoundError` was caught and reported as silence; Rust had been answering hand-run probes the whole time. Then Python measured only 2 of 11 runs, because the probe looked for a top-level `server.py` and ran it on the system interpreter — which excluded every package-structured run (relative imports need `-m`) and every project that declared a dependency. The survivors were the implementations with nothing to import, which is the fastest-starting subset by construction. Same lesson twice: a failing program and a broken measurement are indistinguishable in the output.
 
 *A measurement bug worth recording, because it looked exactly like a result.* Every compiled language initially reported "server did not answer" — which reads as a broken program. It was a **relative binary path** executed with `cwd=run_dir`, so `FileNotFoundError` was caught and reported as silence. Rust had been answering hand-run probes the whole time. One line, and 1/11 measured became 6/11. The lesson is the same one the harness table keeps teaching: a failing program and a broken measurement are indistinguishable in the output.
 
@@ -274,6 +289,55 @@ Both scored 12/12. Deduplication is an *implicit* part of the task — you canno
 **Do not rank on the row count alone, in either direction.** An early version of the reference script keyed only on date and team names, and on that basis the *correct* Go implementation looked like a loader that had lost 17% of the corpus. A low count can be careful merging or a broken loader, and the two are indistinguishable without the dedup key that produced them.
 
 The right test is a golden answer rather than a row count: 2019 Série A is a 20-team double round-robin, so **every club played exactly 38** and Flamengo took the title on 90 points. `played == 38` means merged, `~76` means double-counted, fewer means data dropped. That probe is written (`scripts/brazil_dedup_verdict.py`) but has not yet produced verdicts across the full set — it is slow against implementations that never answer, and the run was stopped. Scores are deliberately *not* adjusted by it; the point is to learn how often implementations get this right, which is the evidence for whether the checklist should test correctness at all.
+
+## How differently the same task got built
+
+Every run in this section scored **12/12**. The checklist tests whether a capability exists, not how it was built — so the design decisions behind these programs are invisible in every number retort records. That is worth looking at directly, because two runs of the same model at different thinking levels produced programs 27× apart in start-up that disagreed about whether the data needed deduplicating at all.
+
+So all 53 archived brazil implementations were classified by reading their source along six axes: storage, loading strategy, indexing, deduplication, MCP SDK versus hand-rolled protocol, and layout ([`scripts/implementation_survey.py`](scripts/implementation_survey.py)). These are **heuristics over source text** — evidence, not proof. Read the distributions, not any single run's label.
+
+### Unanimity where variety was expected
+
+**All 53 runs kept everything in memory.** Not one used SQLite, DuckDB, or any embedded database — in any of the 13 languages, from any of the three models. The task guide describes a "knowledge graph", and most runs did not build an explicit graph either: the graph is an index plus joins at query time. When the corpus is 42k rows of CSV, every model independently concluded that a database would be overhead. That is a strong prior, held unanimously, and it is the kind of agreement that only shows up when you look at the code rather than the score.
+
+### Opus decides the same way at every thinking level; Terra's choices depend on it
+
+The only cells with graded thinking levels are exp-55 (Python and Go, five levels, two models), so that is where model and effort separate cleanly:
+
+| choice | model | low | medium | high | xhigh | max |
+|---|---|---|---|---|---|---|
+| **indexing** | opus-5 | index | index | index | index | index |
+| | terra | index/scan | index/scan | index | index | index |
+| **dedup** | opus-5 | date-window | key-set | key-set | key-set | key-set |
+| | terra | key-set/**none** | key-set/**none** | date-window/**none** | date-window/key-set | key-set |
+| **protocol** | opus-5 | hand/sdk | sdk | hand/sdk | sdk | hand/sdk |
+| | terra | hand-rolled | hand-rolled | hand-rolled | hand/sdk | hand/sdk |
+
+**Opus-5 never skipped deduplication at any thinking level, and always precomputed an index.** Terra reaches the same choices, but only as effort rises: it scans instead of indexing at low and medium, skips dedup entirely somewhere in low through high, and does not reach for the MCP SDK until xhigh. Across the corpus the indexing gap is stark — opus precomputed an index in **22 of 23** runs, terra in **11 of 21**.
+
+The pattern extends to the all-language experiment, where terra ran at default effort: **it skipped deduplication in 10 of 11 runs.** Its one-in-eleven dedup rate at default effort against zero skips for opus at any level is the single largest behavioural difference found between these models.
+
+**Caveat, and it is a real one:** non-default thinking levels exist only in exp-55 (Python and Go), while `default` is exp-56 (all 13 languages). Any aggregate table of "choice by effort" therefore mixes effort with language and experiment. The decomposition above avoids that by staying inside one experiment, at the cost of **n = 2 per cell**. Treat the direction as the finding and the magnitude as provisional.
+
+### The design choices do not explain the runtime spread
+
+The obvious next question is whether these decisions show up in the milliseconds. At this sample size, they do not:
+
+| choice | n | median time to first answer |
+|---|---:|---:|
+| dedup: date-window | 7 | 400 ms |
+| dedup: key-set | 15 | 469 ms |
+| dedup: none | 7 | 520 ms |
+| protocol: hand-rolled | 16 | 393 ms |
+| protocol: SDK | 13 | 520 ms |
+| indexing: precomputed | 24 | 460 ms |
+| indexing: scan | 5 | 415 ms |
+
+Every one of these gaps is smaller than the within-language spread, and each is confounded with language: C, C++ and Objective-C are hand-rolled in every run, TypeScript uses the SDK in every run. Nothing here supports "the SDK costs 127 ms". The variance is real and large; these six axes do not account for it.
+
+**And the dedup labels could not be validated.** The plan was to check them against `rows_loaded` — a run that skipped deduplication should report 23,954, exactly the sum of the five overlapping files. But that field is scraped from each server's start-up banner, and it is null for essentially every run in this set, so there is no ground truth to check the classifier against. The labels above rest on source text alone.
+
+The finding that survives all of this is the one at the top: these are 53 implementations of one specification, all of which passed, and they disagree about storage layout, when to load, whether to index, and whether the data needs reconciling at all. A pass-proportion cannot see any of it.
 
 ## The `python` vs `python3` stumble — found here, since fixed
 

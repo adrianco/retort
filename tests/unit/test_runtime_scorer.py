@@ -6,13 +6,19 @@ SYSTEM interpreter. Both choices silently excluded runs:
 
   - a package layout (`pkg/server.py`, importing `from .x import y`) has no
     top-level script, so it was reported as having no entrypoint;
-  - an implementation importing the real `mcp` SDK could not start, because the
-    SDK is not installed system-wide.
+  - a project declaring dependencies could not start, because they are not
+    installed system-wide.
 
-Neither exclusion was random. 21 of 36 Python brazil runs import the SDK, so the
-runs that survived were the hand-rolled stdlib ones — the fastest-starting subset
-by construction. Measured properly the same task takes 1386 ms with the SDK and
-38 ms without: the "language" number was really an implementation number.
+The exclusions were not random with respect to what was being measured: only
+2 of 11 Python runs measured, and both were hand-rolled stdlib servers. Fixing
+discovery took that to 7 of 11 and widened the observed Python range from
+38-42 ms to 32-1622 ms — a 50x spread inside one language.
+
+Deliberately NOT claimed here: that importing the `mcp` SDK explains the spread.
+That was the first hypothesis and it did not survive checking — the SDK imports
+in these runs sit inside try/except blocks, so they are lazy, and a grep anchored
+at line start had counted them wrongly. The cause found by reading the two
+extreme runs is eager-vs-lazy DATA loading; see the tools/call section below.
 """
 from __future__ import annotations
 
@@ -141,3 +147,69 @@ def test_unbuildable_venv_is_reported_not_silently_downgraded(tmp_path, monkeypa
 
     assert cmd is None
     assert "venv" in note and "mcp" in note
+
+
+# --- synthesized tools/call -------------------------------------------------
+#
+# Cold start alone is not comparable between implementations, and reading it as
+# if it were produced a 29x "difference" between two runs of the SAME model on
+# the SAME task. `tools/list` is protocol metadata: an implementation that loads
+# 42k rows at import answers it having done the work, one that streams lazily
+# (`yield from csv.DictReader(...)`) answers it having done none.
+#
+# Measured on the same machine: the lazy run starts in 41 ms and takes 461 ms to
+# answer a real question; the eager run starts in 1109 ms and answers in 2 ms.
+# Cold start says 27x apart; time-to-first-answer says 2.2x, the other way round.
+# So the call below is what makes the number mean anything.
+
+def test_synthesized_args_cover_required_properties_by_name():
+    schema = {
+        "type": "object",
+        "properties": {
+            "team_a": {"type": "string"},
+            "team_b": {"type": "string"},
+            "season": {"type": "integer"},
+            "note": {"type": "string"},
+        },
+        "required": ["team_a", "team_b", "season"],
+    }
+    args = rt._synthesize_args(schema)
+
+    assert set(args) == {"team_a", "team_b", "season"}     # optional ones omitted
+    assert args["team_a"] != args["team_b"]                # head_to_head needs two
+    assert isinstance(args["season"], int)
+
+
+def test_synthesized_args_honour_declared_type_over_name_match():
+    """A season declared as a string must not be sent as an int."""
+    schema = {"properties": {"season": {"type": "string"}}, "required": ["season"]}
+    assert rt._synthesize_args(schema)["season"] == "2019"
+
+
+def test_synthesized_args_fall_back_by_type_for_unknown_names():
+    schema = {
+        "properties": {"zzz": {"type": "integer"}, "flag": {"type": "boolean"}},
+        "required": ["zzz", "flag"],
+    }
+    args = rt._synthesize_args(schema)
+    assert args["zzz"] == 1
+    assert args["flag"] is False
+
+
+def test_no_required_properties_yields_empty_arguments():
+    assert rt._synthesize_args({"properties": {"team": {"type": "string"}}}) == {}
+
+
+def test_data_touching_tools_are_tried_before_metadata_tools():
+    """`list_teams` may be served from an index without loading the matches."""
+    names = ["list_teams", "team_stats", "ping", "find_matches"]
+
+    def rank(name: str) -> int:
+        low = name.lower()
+        for i, pref in enumerate(rt._QUERY_PREFERENCE):
+            if pref in low:
+                return i
+        return len(rt._QUERY_PREFERENCE)
+
+    assert sorted(names, key=rank)[0] == "team_stats"
+    assert rank("ping") == len(rt._QUERY_PREFERENCE)

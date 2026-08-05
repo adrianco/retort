@@ -24,8 +24,14 @@ class Scorer(Protocol):
         """Unique metric name (e.g., 'code_quality', 'build_time')."""
         ...
 
-    def score(self, artifacts: RunArtifacts, stack: StackConfig) -> float:
-        """Compute the metric value from run artifacts."""
+    def score(self, artifacts: RunArtifacts, stack: StackConfig) -> float | None:
+        """Compute the metric value from run artifacts.
+
+        Return None for "does not apply to this run" — the collector then omits
+        the metric entirely rather than recording it. Returning 0.0 instead
+        would make a run that could not be measured indistinguishable from one
+        measured as the worst possible, and it would be averaged as real data.
+        """
         ...
 
 
@@ -91,12 +97,15 @@ def create_default_registry() -> ScorerRegistry:
     registry.register(NoRegressionScorer())
     # Opt-in via responses: list — every invocation makes an LLM call.
     registry.register(IdiomaticScorer())
-    # Opt-in via responses: list — STARTS THE PRODUCED PROGRAM and times a fixed
-    # probe against it. Must run inline (here), while the playpen workspace is
-    # still built: archives have dist/build/target/node_modules stripped, so an
-    # archived run is not runnable without a restore that changes what is
-    # measured. Yields an explicit non-result for tasks/languages without a
-    # recipe, never a 0 ms that would read as "infinitely fast".
+    # STARTS THE PRODUCED PROGRAM and times it. Part of the standard response
+    # set (see docs/runtime-measurement.md) so every language gets performance
+    # data from a normal run, not from a follow-up sweep over archives.
+    #
+    # Must run inline (here), while the playpen workspace is still built:
+    # archives have dist/build/target/node_modules stripped by cli._ARCHIVE_NOISE,
+    # so an archived run is not runnable without a restore that changes the very
+    # thing being measured. Yields an explicit non-result (None) for a run it
+    # cannot measure, never a 0 that would read as "infinitely slow".
     from retort.scoring.scorers.runtime import RuntimeScorer
     registry.register(RuntimeScorer())
     # build_time was removed in favor of the raw `_duration_seconds`

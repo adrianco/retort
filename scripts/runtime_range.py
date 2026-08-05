@@ -49,6 +49,12 @@ def main() -> int:
                 "ok": r.ok,
                 "cold_ms": r.cold_start_ms,
                 "request_ms": r.request_median_ms,
+                "first_query_ms": r.first_query_ms,
+                "first_query_tool": r.first_query_tool,
+                "total_to_answer_ms": (
+                    (r.cold_start_ms + r.first_query_ms)
+                    if (r.cold_start_ms is not None and r.first_query_ms is not None)
+                    else None),
                 "tools": r.tool_count,
                 "rows_loaded": r.rows_loaded,
                 "note": r.note,
@@ -75,6 +81,24 @@ def main() -> int:
               f"{('@' + f_['effort']) if f_['effort'] else ''} | {s_['cold_ms']:.0f} ms | "
               f"{s_['model']}{('@' + s_['effort']) if s_['effort'] else ''} | "
               f"{spread:.1f}x |")
+
+    print("\n## Time to FIRST REAL ANSWER — cold start + first tools/call\n")
+    print("Cold start alone is not comparable: an implementation that loads the")
+    print("data lazily answers `tools/list` having done none of the work. This")
+    print("column moves the finish line to the same place for every run.\n")
+    print("| language | n | fastest | by | slowest | by | spread |")
+    print("|---|---:|---:|---|---:|---|---:|")
+    tot = {L: [x for x in g if x.get("total_to_answer_ms")] for L, g in by.items()}
+    for lang in sorted((L for L in tot if tot[L]),
+                       key=lambda L: min(x["total_to_answer_ms"] for x in tot[L])):
+        g = tot[lang]
+        f_ = min(g, key=lambda x: x["total_to_answer_ms"])
+        s_ = max(g, key=lambda x: x["total_to_answer_ms"])
+        sp = s_["total_to_answer_ms"] / f_["total_to_answer_ms"]
+        print(f"| **{lang}** | {len(g)} | {f_['total_to_answer_ms']:.0f} ms | "
+              f"{f_['model']}{('@' + f_['effort']) if f_['effort'] else ''} | "
+              f"{s_['total_to_answer_ms']:.0f} ms | "
+              f"{s_['model']}{('@' + s_['effort']) if s_['effort'] else ''} | {sp:.1f}x |")
 
     print("\n## Per-request latency — same runs\n")
     print("| language | n | fastest | slowest | spread |")

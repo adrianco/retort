@@ -67,6 +67,19 @@ class ScoreCollector:
             scorer = self.registry.get(metric_name)
             try:
                 value = scorer.score(artifacts, stack)
+                # None means "this metric does not apply to this run", which is
+                # NOT the same as scoring zero. `runtime` returns it when the
+                # language/task has no probe or the produced program never
+                # started: recording 0.0 there would enter the data as
+                # "infinitely slow" and be averaged as a real measurement.
+                # Omitting the metric leaves it NULL, so aggregation excludes it
+                # instead of dragging the mean down — the same distinction the
+                # spec gate makes between "judge said no" and "judge could not
+                # run". A scorer that RAISES is a different case: that is a bug
+                # or a broken run, and still scores 0.0 loudly.
+                if value is None:
+                    logger.debug("Scorer %r: no result for this run", metric_name)
+                    continue
                 results.append(ScoreResult(metric_name=metric_name, value=value))
             except Exception:
                 logger.exception("Scorer %r failed on run", metric_name)

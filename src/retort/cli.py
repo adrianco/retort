@@ -43,8 +43,15 @@ factors:
 responses:
   - code_quality
   - token_efficiency
-  - build_time
   - test_coverage
+  # Starts the produced program and times it, for every language that has a
+  # probe. Runs inline while the playpen is still built — archives have
+  # build/target/node_modules stripped, so this cannot be recovered afterwards
+  # by re-scoring. Runs it cannot measure are recorded as NULL, not 0.
+  # See docs/runtime-measurement.md.
+  - runtime
+  # NOTE: `build_time` was removed — use the `_duration_seconds` telemetry
+  # written automatically by every run instead.
 
 tasks:
   - source: bundled://rest-api-crud
