@@ -1,0 +1,7 @@
+/Users/adriancockcroft/code/retort/experiments/adrianco/experiment-48-fable5-gaps/brazil/runs/language=cpp_model=claude-fable-5_prompt=neutral/rep1/.retort-build/CMakeFiles/soccer_core.dir
+/Users/adriancockcroft/code/retort/experiments/adrianco/experiment-48-fable5-gaps/brazil/runs/language=cpp_model=claude-fable-5_prompt=neutral/rep1/.retort-build/CMakeFiles/soccer_mcp_server.dir
+/Users/adriancockcroft/code/retort/experiments/adrianco/experiment-48-fable5-gaps/brazil/runs/language=cpp_model=claude-fable-5_prompt=neutral/rep1/.retort-build/CMakeFiles/test_unit.dir
+/Users/adriancockcroft/code/retort/experiments/adrianco/experiment-48-fable5-gaps/brazil/runs/language=cpp_model=claude-fable-5_prompt=neutral/rep1/.retort-build/CMakeFiles/test_mcp_protocol.dir
+/Users/adriancockcroft/code/retort/experiments/adrianco/experiment-48-fable5-gaps/brazil/runs/language=cpp_model=claude-fable-5_prompt=neutral/rep1/.retort-build/CMakeFiles/test.dir
+/Users/adriancockcroft/code/retort/experiments/adrianco/experiment-48-fable5-gaps/brazil/runs/language=cpp_model=claude-fable-5_prompt=neutral/rep1/.retort-build/CMakeFiles/edit_cache.dir
+/Users/adriancockcroft/code/retort/experiments/adrianco/experiment-48-fable5-gaps/brazil/runs/language=cpp_model=claude-fable-5_prompt=neutral/rep1/.retort-build/CMakeFiles/rebuild_cache.dir

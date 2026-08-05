@@ -22,15 +22,54 @@ tidy. Everything else scatters:
 | oMLX internal cache | `~/.omlx/cache/` | 25 GB |
 | **task artifacts** | **loose in `$HOME`** | ~200 MB |
 
-Only the first is namespaced to retort. The proposal is a single root — call it
-`~/.retort/` — that owns every machine-local byte retort creates, with the
-existing `work/` beside `cache/`, `models/` and `logs/`. One directory to
-exclude from backup, one to measure, one to purge, and a `--runtime-dir` (or
-`RETORT_HOME`) to relocate it wholesale.
+Only the first is namespaced to retort. The proposal is a single runtime root
+that owns every machine-local byte retort creates — `work/` beside `cache/` and
+`logs/` — so there is one directory to exclude from backup, one to measure, one
+to purge, and one env var (`RETORT_HOME`) to relocate it.
 
-Shared caches are the honest exception: `~/.cache/huggingface` is the HF
-convention and other tools read it, so retort should *point* at it rather than
-own it. The oMLX SSD caches are retort-specific and should move under the root.
+**It should live in the repo: `<repo>/.retort/`, gitignored.** Everything scoped
+to the project directory, so deleting the checkout leaves the machine clean and
+two checkouts cannot contend. That is the right default — with two exceptions
+and one precondition, all of them load-bearing.
+
+### Precondition: playpens must become ephemeral first
+
+Measured on this machine today:
+
+| | files | `git status` |
+|---|---:|---:|
+| repo now | 245,190 (20,694 tracked) | 1.38 s |
+| `~/.retort/work` | 510,863 | — |
+| repo if playpens move in as-is | ~756,000 | ~4–5 s (est.) |
+
+Git stats the working tree even for ignored paths, so moving 3,326 accumulated
+workspaces inside would make **every** git command in this repo three times
+slower. That is an argument against *accumulation*, not against *location*: with
+guardrail 2 below (delete the playpen once its results are archived) the steady
+state is one or two live workspaces, and the objection evaporates.
+
+**So: adopt repo-scoping and prune-on-completion together.** Repo-scoping alone,
+without pruning, makes the repo unpleasant to work in.
+
+### Exception 1: model weights stay in the shared HF cache
+
+`~/.cache/huggingface` holds 145 GB and is the Hugging Face convention — other
+tools on this machine read it, and a second checkout would otherwise re-download
+42 GB for the 80B alone. retort should *point* at it (`HF_HOME`) rather than own
+it. This is the one place where machine-scoped beats project-scoped.
+
+### Exception 2 to weigh: blast radius
+
+Today an agent with a mis-set `cwd` wrote a bookshop into `$HOME` — untidy, but
+it touched nothing that mattered. With playpens inside the repo, the same slip
+puts a coding agent's writes next to `src/`, `experiments/` and `master.db`. The
+`$HOME` incident cost a cleanup; the repo version could corrupt results.
+
+That is not a reason to reject repo-scoping — it is a reason guardrail 1 (assert
+the workspace path, abort otherwise) is mandatory rather than nice-to-have. If
+only one guardrail gets built, build that one.
+
+The oMLX SSD caches are retort-specific and move under the root unambiguously.
 
 ## 2. Task artifacts in `$HOME` — a bug, not clutter
 
@@ -135,11 +174,18 @@ root. If it is a leftover, delete it. Either way it should not be `644`.
 1. **A runtime root, and a refusal.** `provision()` should assert the workspace
    is under the runtime root and abort otherwise. The `$HOME` litter exists
    because writing to the wrong place succeeded silently — the harness has a
-   guard for *no* writes but none for writes to the *wrong place*.
+   guard for *no* writes but none for writes to the *wrong place*. This becomes
+   **mandatory** once the root is inside the repo: the same slip that scattered
+   files in `$HOME` would then land beside `src/` and `experiments/`.
 2. **Prune on completion.** `retort run` already archives a workspace when a
    cell finishes; it should then delete the playpen unless `--keep-playpen`.
-   3,326 accumulated because nothing ever removes them.
-3. **Namespace the SSD cache under the root** so a purge is one directory.
+   3,326 accumulated because nothing ever removes them — 510,863 files, which is
+   what makes moving them into the repo untenable until this exists. Pair it
+   with the move, not after.
+3. **Namespace the SSD cache under the root** so a purge is one directory, and
+   add `.retort/` to `.gitignore` plus a `tmutil addexclusion` line — a
+   repo-scoped root inherits whatever backup policy covers `~/code`, which for
+   caches is the wrong one.
 4. **Report disk in the run summary.** The preflight already warns below 15 GB;
    printing bytes-created per run would have surfaced 110 GB of caches long ago.
 5. **A `retort clean` command** with `--dry-run` by default, covering tiers 1–3.

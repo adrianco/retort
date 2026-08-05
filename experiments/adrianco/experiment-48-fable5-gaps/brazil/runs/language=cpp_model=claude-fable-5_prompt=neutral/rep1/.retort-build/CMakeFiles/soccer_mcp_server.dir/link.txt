@@ -1,0 +1,1 @@
+/usr/bin/c++ -O3 -DNDEBUG -arch arm64 -Wl,-search_paths_first -Wl,-headerpad_max_install_names CMakeFiles/soccer_mcp_server.dir/src/main.cpp.o -o soccer_mcp_server  libsoccer_core.a
