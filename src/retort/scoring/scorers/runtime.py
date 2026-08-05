@@ -45,12 +45,15 @@ milliseconds are the point and are returned by `measure()` for the report.
 
 from __future__ import annotations
 
+import hashlib
 import json
+import os
 import re
 import selectors
 import shutil
 import statistics
 import subprocess
+import sys
 import time
 from dataclasses import dataclass, field
 from pathlib import Path
@@ -190,6 +193,105 @@ def _first_executable(*globs: Path) -> Path | None:
     return None
 
 
+def _declared_deps(run_dir: Path) -> list[str]:
+    """Third-party requirements this project declares, from its own manifest."""
+    deps: list[str] = []
+    pyproject = run_dir / "pyproject.toml"
+    if pyproject.exists():
+        txt = pyproject.read_text(errors="replace")
+        m = re.search(r"^\s*dependencies\s*=\s*\[(.*?)\]", txt, re.S | re.M)
+        if m:
+            deps += re.findall(r'"([^"]+)"', m.group(1))
+    for name in ("requirements.txt", "requirements-dev.txt"):
+        req = run_dir / name
+        if req.exists():
+            for line in req.read_text(errors="replace").splitlines():
+                line = line.split("#")[0].strip()
+                if line and not line.startswith("-"):
+                    deps.append(line)
+    return sorted({d for d in deps if not d.lower().startswith("pytest")})
+
+
+def _probe_venv(deps: list[str]) -> Path | None:
+    """A venv with `deps` installed, CACHED and SHARED across runs by dep-set.
+
+    Built once per distinct dependency set under the runtime root, never inside
+    the archived run — these live in the git repo and a per-run venv would both
+    pollute it and cost a pip install per measurement.
+
+    This exists because the probe previously ran archived Python code against the
+    SYSTEM interpreter. 21 of 36 Python brazil runs import the real `mcp` SDK,
+    which is not installed there, so every one of them was rejected as "no
+    entrypoint" while the hand-rolled stdlib implementations measured fine. The
+    survivors were not a sample of Python — they were a sample of "Python with
+    nothing to import", which is the fastest-starting subset by construction.
+    """
+    key = hashlib.sha1("\n".join(deps).encode()).hexdigest()[:12]
+    base = os.environ.get("RETORT_HOME")
+    root = (Path(base).expanduser() if base else Path.home() / ".retort")
+    venv_dir = root / "cache" / "probe-venvs" / key
+    py = venv_dir / "bin" / "python"
+    if py.exists():
+        return py
+    venv_dir.parent.mkdir(parents=True, exist_ok=True)
+    try:
+        subprocess.run([sys.executable, "-m", "venv", str(venv_dir)],
+                       capture_output=True, timeout=180, check=True)
+        if deps:
+            subprocess.run([str(py), "-m", "pip", "install", "-q", *deps],
+                           capture_output=True, timeout=900, check=True)
+    except (subprocess.CalledProcessError, subprocess.TimeoutExpired, OSError):
+        shutil.rmtree(venv_dir, ignore_errors=True)
+        return None
+    return py
+
+
+def _python_entry(run_dir: Path) -> tuple[list[str] | None, str]:
+    """Start command for a Python MCP server, in declared-entrypoint order.
+
+    Order matters. Opus consistently emits a PACKAGE layout
+    (`brazilian_soccer/server.py`, importing `from .formatting import ...`),
+    which cannot be started as a path — `python pkg/server.py` dies with
+    "attempted relative import with no known parent package". It must be `-m`.
+    An earlier version looked only for a TOP-LEVEL server.py/main.py and so
+    rejected every package-structured run as having no entrypoint.
+    """
+    deps = _declared_deps(run_dir)
+    py = _probe_venv(deps)
+    if py is None:
+        return None, f"could not build a venv for deps: {', '.join(deps) or 'none'}"
+    interp = str(py)
+
+    # 1. The manifest's own console script, preferred over any convention.
+    pyproject = run_dir / "pyproject.toml"
+    if pyproject.exists():
+        txt = pyproject.read_text(errors="replace")
+        m = re.search(r"^\s*\[project\.scripts\](.*?)(?=^\s*\[|\Z)", txt, re.S | re.M)
+        if m:
+            entries = re.findall(r'^\s*([\w.-]+)\s*=\s*"([\w.]+):(\w+)"',
+                                 m.group(1), re.M)
+            # Several projects declare BOTH a server and a CLI; pick the server.
+            entries.sort(key=lambda e: ("server" not in e[1] and "mcp" not in e[0],))
+            if entries:
+                _, mod, fn = entries[0]
+                return [interp, "-c", f"from {mod} import {fn}; {fn}()"], ""
+
+    # 2. package/__main__.py, then package/server.py — both via -m.
+    for pkg in sorted(d for d in run_dir.iterdir()
+                      if d.is_dir() and (d / "__init__.py").exists()):
+        if (pkg / "__main__.py").exists():
+            return [interp, "-m", pkg.name], ""
+        for cand in ("server", "main", "mcp_server"):
+            if (pkg / f"{cand}.py").exists():
+                return [interp, "-m", f"{pkg.name}.{cand}"], ""
+
+    # 3. A plain top-level script.
+    for f in ("server.py", "main.py", "mcp_server.py", "app.py"):
+        if (run_dir / f).exists():
+            return [interp, f], ""
+    return None, "no python entrypoint (no [project.scripts], package, or server.py)"
+
+
 def _build_then_entry(run_dir: Path, language: str) -> tuple[list[str] | None, str]:
     """(command that starts the stdio server, note) — building first if needed.
 
@@ -222,12 +324,7 @@ def _build_then_entry(run_dir: Path, language: str) -> tuple[list[str] | None, s
             return False
 
     if language == "python":
-        py = run_dir / "venv" / "bin" / "python"
-        interp = str(py) if py.exists() else "python3"
-        for f in ("server.py", "main.py"):
-            if (run_dir / f).exists():
-                return [interp, f], ""
-        return None, "no server.py/main.py"
+        return _python_entry(run_dir)
 
     if language == "go":
         if (run_dir / "go.mod").exists():
