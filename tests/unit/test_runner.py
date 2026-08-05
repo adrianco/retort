@@ -1652,3 +1652,60 @@ def test_venv_is_not_archived(tmp_path):
     skipped = _ignore_archive_noise("/w", ["venv", ".venv", "app.py", "node_modules"])
     assert "venv" in skipped and ".venv" in skipped
     assert "app.py" not in skipped
+
+
+def test_refuses_to_run_an_agent_outside_the_playpen_root(tmp_path, monkeypatch):
+    """A workspace outside the root is a startup failure, not a silent success.
+
+    Regression from a real incident: an agent ran with cwd=$HOME and wrote a
+    complete bookshop implementation into the home directory — ~/README.md still
+    reads "# Book Collection REST API", beside app.go, books.db and several
+    project dirs. Nothing failed, because the writes SUCCEEDED. The harness
+    aborts a run that writes NOTHING but had no guard against writing to the
+    WRONG PLACE, which is worse: pointed at the repo, a coding agent could edit
+    src/, experiments/ or master.db and corrupt results rather than just litter.
+    """
+    from retort.playpen import local_runner as lr
+
+    root = tmp_path / "work"
+    root.mkdir(parents=True, exist_ok=True)
+
+    # inside the root: fine
+    good = root / "retort-abc"
+    good.mkdir()
+    lr._assert_inside_playpen_root(good, root, what="test")
+
+    # outside the root: refused, and the message says where it expected to be
+    outside = tmp_path / "somewhere-else"
+    outside.mkdir()
+    with pytest.raises(RuntimeError, match="outside the playpen root"):
+        lr._assert_inside_playpen_root(outside, root, what="test")
+
+
+def test_refuses_home_and_system_directories_explicitly(tmp_path, monkeypatch):
+    """$HOME and / are named, not merely 'outside the root'.
+
+    The actual incident wrote to $HOME. If a future root were ever mis-derived
+    such that $HOME resolved *inside* it, the relative-path check alone would
+    pass — so home and the system roots are refused on their own.
+    """
+    from retort.playpen import local_runner as lr
+
+    # root = "/" so the relative-path check would PASS for both of these; they
+    # must be refused on their own account.
+    with pytest.raises(RuntimeError, match="home or system directory"):
+        lr._assert_inside_playpen_root(Path.home(), Path("/"), what="test")
+    # /tmp is a symlink to /private/tmp on macOS — resolving first hid it
+    with pytest.raises(RuntimeError, match="home or system directory"):
+        lr._assert_inside_playpen_root(Path("/tmp"), Path("/"), what="test")
+
+
+def test_playpen_root_honours_retort_home(tmp_path, monkeypatch):
+    """RETORT_HOME relocates the root, so the guard is testable and the runtime
+    directory can be moved without patching code."""
+    from retort.playpen import local_runner as lr
+
+    monkeypatch.setenv("RETORT_HOME", str(tmp_path / "elsewhere"))
+    root = lr._playpen_root()
+    assert root == tmp_path / "elsewhere" / "work"
+    assert root.is_dir()

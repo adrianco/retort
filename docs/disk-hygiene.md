@@ -161,22 +161,30 @@ early agent produced.
 
 ## 4. Security: a loose credential
 
-`~/openaikey` — 165 bytes of ASCII, mode `-rw-r--r--` (**world-readable**), dated
-2026-08-04, referenced by nothing in `~/.zshrc`, `~/.zprofile`, or this repo.
-
-It has the shape of an API key sitting unprotected in the home directory. It is
-not read here. Recommended: confirm what it is, and if it is a live key, rotate
-it and store it in the keychain or a `600` file outside `$HOME`'s browsable
-root. If it is a leftover, delete it. Either way it should not be `644`.
+`~/openaikey` — 165 bytes of ASCII, dated 2026-08-04, referenced by nothing in
+`~/.zshrc`, `~/.zprofile`, or this repo. It was mode `-rw-r--r--`
+(**world-readable**) when surveyed; the owner has since set it to `600`
+(verified 2026-08-05). Its contents are not read here and the file stays where
+it is — leaving it in place is the owner's decision.
 
 ## 5. Guardrails, so this does not come back
 
-1. **A runtime root, and a refusal.** `provision()` should assert the workspace
-   is under the runtime root and abort otherwise. The `$HOME` litter exists
-   because writing to the wrong place succeeded silently — the harness has a
-   guard for *no* writes but none for writes to the *wrong place*. Keeping the root
-   outside the repo bounds the damage, but does not prevent it — the assertion
-   is what turns a silent mis-write into a startup failure.
+1. **A runtime root, and a refusal.** ✅ **Done** (`local_runner.py`).
+   `_assert_inside_playpen_root()` runs at both `provision()` and `execute()`:
+   it refuses any workspace that resolves to `$HOME`, `/`, `/Users`, `/tmp`,
+   `/var` (and their `/private` symlink targets), or that falls outside the
+   runner's playpen root — naming the expected root in the error. The root is
+   `~/.retort/work` by default and relocatable via `RETORT_HOME`.
+
+   The `$HOME` litter exists because writing to the wrong place succeeded
+   silently — the harness had a guard for *no* writes but none for writes to
+   the *wrong place*. Keeping the root outside the repo bounds the damage; the
+   assertion is what turns a silent mis-write into a startup failure. Two
+   details cost a test each and are worth keeping: the check validates against
+   the runner's **own** `work_dir` (validating against the global default would
+   reject a legitimately-configured runner), and it tests the forbidden list
+   against both the raw **and** resolved path (on macOS `/tmp` resolves to
+   `/private/tmp`, so resolving first let `/tmp` through).
 2. **Prune on completion.** `retort run` already archives a workspace when a
    cell finishes; it should then delete the playpen unless `--keep-playpen`.
    3,326 accumulated because nothing ever removes them — 510,863 files across

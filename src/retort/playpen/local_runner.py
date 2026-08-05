@@ -54,10 +54,68 @@ def _playpen_root() -> Path:
     ``mkdtemp`` returns ``/var/folders/...``, and ``/var`` trips Hermes'
     sensitive-path guard). Keeping playpens under ``~/.retort/work`` lets the
     agent's normal file tools work.
+
+    Deliberately OUTSIDE the repo. Scratch here reached 3,326 workspaces and
+    510,863 files; git stats the working tree even for ignored paths, so a
+    repo-local root would slow every git command in the repo several-fold. It
+    also bounds the blast radius of a mis-pathed agent — see
+    ``_assert_inside_playpen_root``. Override with ``RETORT_HOME``.
     """
-    root = Path.home() / ".retort" / "work"
+    base = os.environ.get("RETORT_HOME")
+    root = (Path(base).expanduser() if base else Path.home() / ".retort") / "work"
     root.mkdir(parents=True, exist_ok=True)
     return root
+
+
+#: Paths a playpen must never be, even if it somehow resolved under the root.
+#: Checked against BOTH the raw and the resolved path: on macOS /tmp is a
+#: symlink to /private/tmp, so resolving first let "/tmp" slip straight through.
+_FORBIDDEN_WORKSPACES = ("/", "/Users", "/home", "/tmp", "/private/tmp",
+                         "/var", "/private/var")
+
+
+def _assert_inside_playpen_root(workspace: Path, root: Path | None = None, *,
+                                what: str) -> None:
+    """Refuse to run an agent anywhere but inside the playpen root.
+
+    WHY. An agent once ran with ``cwd=$HOME`` and wrote an entire bookshop
+    implementation into the home directory — ``~/README.md`` still reads
+    "# Book Collection REST API", beside app.go, books.db and several project
+    directories. Nothing failed, because the writes SUCCEEDED; they just landed
+    somewhere nobody looked for weeks.
+
+    The harness already guards the opposite case — a run that writes NOTHING
+    aborts as a suspected harness fault. There was no guard for writing to the
+    WRONG PLACE, which is the more dangerous of the two: a coding agent pointed
+    at the repo could edit ``src/``, ``experiments/`` or ``master.db`` and
+    silently corrupt results rather than merely littering.
+
+    Raising here turns that silent success into a startup failure.
+    """
+    # Validate against the runner's OWN work_dir when it has one. A caller that
+    # explicitly configures a work_dir has declared where playpens belong, and
+    # checking against the global default instead would reject that valid setup
+    # while still not catching anything extra.
+    root = (root or _playpen_root()).resolve()
+    try:
+        resolved = workspace.resolve()
+    except OSError as exc:                       # unresolvable path is also a refusal
+        raise RuntimeError(f"{what}: cannot resolve workspace {workspace}: {exc}")
+
+    if (str(resolved) in _FORBIDDEN_WORKSPACES
+            or str(workspace) in _FORBIDDEN_WORKSPACES
+            or resolved == Path.home().resolve()):
+        raise RuntimeError(
+            f"{what}: refusing to run an agent in {resolved} — that is a home or "
+            f"system directory, not a playpen. Expected something under {root}."
+        )
+    if not resolved.is_relative_to(root):
+        raise RuntimeError(
+            f"{what}: workspace {resolved} is outside the playpen root {root}. "
+            f"Refusing to start: an agent writing here would land outside its "
+            f"sandbox (this is how a bookshop implementation ended up in $HOME). "
+            f"Set RETORT_HOME if the root is meant to be elsewhere."
+        )
 
 
 def _progress_fingerprint(workspace: Path) -> tuple[int, int, int]:
@@ -411,6 +469,10 @@ class LocalRunner:
         env_id = f"retort-{uuid.uuid4().hex[:12]}"
         env_dir = self.work_dir / env_id
         env_dir.mkdir(parents=True, exist_ok=True)
+        # Refuse before a single file is seeded. See _assert_inside_playpen_root:
+        # an agent that runs outside the playpen writes successfully to the wrong
+        # place, which nothing else in the harness detects.
+        _assert_inside_playpen_root(env_dir, self.work_dir, what="provision")
 
         # repo-pr mode: check the pinned base repo out as a git WORKTREE instead of
         # copying it. Shares one cached clone's object store (no per-attempt copy of
@@ -529,6 +591,11 @@ class LocalRunner:
                 stderr=str(exc),
                 exit_code=1,
             )
+
+        # Checked again at launch, not just at provision: the workspace is what
+        # becomes the agent's cwd, and this is the last point before an agent
+        # with write tools is started.
+        _assert_inside_playpen_root(info.workspace, self.work_dir, what="execute")
 
         env = self._build_env(stack, info.workspace)
         if self._resolve_harness(stack) == "opencode":
