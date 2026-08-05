@@ -47,6 +47,7 @@ from __future__ import annotations
 
 import json
 import re
+import selectors
 import shutil
 import statistics
 import subprocess
@@ -421,6 +422,41 @@ def _find_server_entry(run_dir: Path, language: str) -> list[str] | None:
     return cmd
 
 
+
+def _readline_timeout(proc: subprocess.Popen, deadline: float) -> str | None:
+    """A readline that actually honours a deadline. Returns None on timeout/EOF.
+
+    `proc.stdout.readline()` BLOCKS FOREVER when a process produces no output and
+    does not close its stdout — so a `while time.perf_counter() < deadline` loop
+    around it never re-checks the clock and the timeout is decorative. One
+    Erlang server that started but never answered held a sweep for 25 HOURS on
+    exactly this, and the stuck beam.smp had to be killed by hand.
+
+    select() on the pipe gives a real deadline: wait for readable-or-timeout,
+    then read only when there is something to read.
+    """
+    sel = selectors.DefaultSelector()
+    try:
+        sel.register(proc.stdout, selectors.EVENT_READ)
+    except (ValueError, OSError):
+        return None
+    try:
+        while True:
+            remaining = deadline - time.perf_counter()
+            if remaining <= 0:
+                return None
+            if not sel.select(timeout=min(remaining, 1.0)):
+                if proc.poll() is not None:      # died without output
+                    return None
+                continue
+            line = proc.stdout.readline()
+            return line if line else None
+    except (OSError, ValueError):
+        return None
+    finally:
+        sel.close()
+
+
 def _serve_latency(cmd: list[str], run_dir: Path) -> float | None:
     """Median per-request latency against ONE already-warm process, in ms.
 
@@ -445,7 +481,7 @@ def _serve_latency(cmd: list[str], run_dir: Path) -> float | None:
         proc.stdin.flush()
         deadline = time.perf_counter() + ITER_TIMEOUT_S
         while time.perf_counter() < deadline:
-            line = proc.stdout.readline()
+            line = _readline_timeout(proc, deadline)
             if not line:
                 return None
             s = line.strip()
@@ -470,7 +506,7 @@ def _serve_latency(cmd: list[str], run_dir: Path) -> float | None:
             got = False
             deadline = time.perf_counter() + ITER_TIMEOUT_S
             while time.perf_counter() < deadline:
-                line = proc.stdout.readline()
+                line = _readline_timeout(proc, deadline)
                 if not line:
                     break
                 s = line.strip()
@@ -537,7 +573,7 @@ def _probe_brazil(run_dir: Path, language: str) -> RuntimeResult:
             proc.stdin.flush()
             deadline = time.perf_counter() + ITER_TIMEOUT_S
             while time.perf_counter() < deadline:
-                line = proc.stdout.readline()
+                line = _readline_timeout(proc, deadline)
                 if not line:
                     return None
                 stripped = line.strip()
