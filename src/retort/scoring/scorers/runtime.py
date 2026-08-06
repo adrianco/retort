@@ -268,50 +268,124 @@ def _probe_venv(deps: list[str]) -> Path | None:
     return py
 
 
+def _cap_majors(deps: list[str]) -> list[str]:
+    """Add an upper major bound to each unbounded `>=` requirement.
+
+    These archives declare open-ended constraints (`mcp>=1.2`) and then age. The
+    exp-46 Python run imports `mcp.server.fastmcp`, which mcp 2.0 removed — so
+    resolving `mcp>=1.2` today installs 2.0.0 and the program that was correct
+    when written no longer starts. Capping reproduces the era it was written in
+    (1.29.0 here) instead of recording a wrong non-result.
+    """
+    out = []
+    for d in deps:
+        m = re.match(r"^([A-Za-z0-9_.\-]+)\s*>=\s*(\d+)", d)
+        if m and "<" not in d and "," not in d:
+            out.append(f"{d},<{int(m.group(2)) + 1}")
+        else:
+            out.append(d)
+    return out
+
+
+def _importable(py: Path, run_dir: Path, module: str) -> str:
+    """"" if `module` imports cleanly, else the last line of the traceback."""
+    try:
+        r = subprocess.run([str(py), "-c", f"import {module}"], cwd=run_dir,
+                           capture_output=True, text=True, timeout=120)
+    except (subprocess.TimeoutExpired, OSError) as exc:
+        return str(exc)
+    if r.returncode == 0:
+        return ""
+    return (r.stderr.strip().splitlines() or ["import failed"])[-1][:160]
+
+
 def _python_entry(run_dir: Path) -> tuple[list[str] | None, str]:
     """Start command for a Python MCP server, in declared-entrypoint order.
 
-    Order matters. Opus consistently emits a PACKAGE layout
-    (`brazilian_soccer/server.py`, importing `from .formatting import ...`),
-    which cannot be started as a path — `python pkg/server.py` dies with
-    "attempted relative import with no known parent package". It must be `-m`.
-    An earlier version looked only for a TOP-LEVEL server.py/main.py and so
-    rejected every package-structured run as having no entrypoint.
+    Order matters twice over.
+
+    Opus consistently emits a PACKAGE layout (`brazilian_soccer/server.py`,
+    importing `from .formatting import ...`), which cannot be started as a path
+    — `python pkg/server.py` dies with "attempted relative import with no known
+    parent package". It must be `-m`. An earlier version looked only for a
+    TOP-LEVEL server.py/main.py and so rejected every package-structured run.
+
+    And a declared console script is not automatically the server. One run
+    declares only `brazilian-soccer-mcp = "brazilian_soccer.cli:main"`, an
+    argparse CLI whose subcommand is REQUIRED, so calling `main()` exits with
+    "the following arguments are required: command". The package's own
+    `server` module is the server; a `.cli` entry point loses to it.
     """
     deps = _declared_deps(run_dir)
-    py = _probe_venv(deps)
-    if py is None:
-        return None, f"could not build a venv for deps: {', '.join(deps) or 'none'}"
-    interp = str(py)
 
-    # 1. The manifest's own console script, preferred over any convention.
+    # ---- resolve the entrypoint (independent of which venv we end up with) --
+    module: str | None = None          # importable module, started with -m
+    call: tuple[str, str] | None = None  # (module, function) console script
+    script: str | None = None          # plain top-level script
+
+    packages = sorted(d for d in run_dir.iterdir()
+                      if d.is_dir() and (d / "__init__.py").exists())
+    # __main__.py first: it is the canonical "run this package" and the author
+    # wrote it deliberately. A `server` module is the next best signal.
+    server_mod = None
+    for pkg in packages:
+        if (pkg / "__main__.py").exists():
+            server_mod = pkg.name
+            break
+        for cand in ("server", "mcp_server"):
+            if (pkg / f"{cand}.py").exists():
+                server_mod = f"{pkg.name}.{cand}"
+                break
+        if server_mod:
+            break
+
     pyproject = run_dir / "pyproject.toml"
     if pyproject.exists():
         txt = pyproject.read_text(errors="replace")
         m = re.search(r"^\s*\[project\.scripts\](.*?)(?=^\s*\[|\Z)", txt, re.S | re.M)
         if m:
-            entries = re.findall(r'^\s*([\w.-]+)\s*=\s*"([\w.]+):(\w+)"',
-                                 m.group(1), re.M)
-            # Several projects declare BOTH a server and a CLI; pick the server.
-            entries.sort(key=lambda e: ("server" not in e[1] and "mcp" not in e[0],))
-            if entries:
-                _, mod, fn = entries[0]
-                return [interp, "-c", f"from {mod} import {fn}; {fn}()"], ""
+            entries = re.findall(r'^\s*([\w.-]+)\s*=\s*"([\w.]+):(\w+)"', m.group(1), re.M)
+            # A `.cli` module is a command-line front end, not the server; it
+            # sorts last, and loses outright when the package has a server module.
+            entries.sort(key=lambda e: (e[1].endswith(".cli"),
+                                        "server" not in e[1] and "mcp" not in e[0]))
+            if entries and not (entries[0][1].endswith(".cli") and server_mod):
+                call = (entries[0][1], entries[0][2])
 
-    # 2. package/__main__.py, then package/server.py — both via -m.
-    for pkg in sorted(d for d in run_dir.iterdir()
-                      if d.is_dir() and (d / "__init__.py").exists()):
-        if (pkg / "__main__.py").exists():
-            return [interp, "-m", pkg.name], ""
-        for cand in ("server", "main", "mcp_server"):
-            if (pkg / f"{cand}.py").exists():
-                return [interp, "-m", f"{pkg.name}.{cand}"], ""
+    if call is None and server_mod:
+        module = server_mod
+    if call is None and module is None:
+        for f in ("server.py", "main.py", "mcp_server.py", "app.py"):
+            if (run_dir / f).exists():
+                script = f
+                break
+    if call is None and module is None and script is None:
+        return None, "no python entrypoint (no [project.scripts], package, or server.py)"
 
-    # 3. A plain top-level script.
-    for f in ("server.py", "main.py", "mcp_server.py", "app.py"):
-        if (run_dir / f).exists():
-            return [interp, f], ""
-    return None, "no python entrypoint (no [project.scripts], package, or server.py)"
+    # ---- build a venv, and verify the entry actually IMPORTS in it ----------
+    target = call[0] if call else (module or "")
+    attempts: list[list[str]] = [deps]
+    capped = _cap_majors(deps)
+    if capped != deps:
+        attempts.append(capped)
+
+    last = ""
+    for attempt in attempts:
+        py = _probe_venv(attempt)
+        if py is None:
+            last = f"could not build a venv for deps: {', '.join(attempt) or 'none'}"
+            continue
+        if target:
+            last = _importable(py, run_dir, target)
+            if last:
+                continue           # e.g. mcp 2.0 removed mcp.server.fastmcp
+        interp = str(py)
+        if call:
+            return [interp, "-c", f"from {call[0]} import {call[1]}; {call[1]}()"], ""
+        if module:
+            return [interp, "-m", module], ""
+        return [interp, script], ""      # type: ignore[list-item]
+    return None, last or "python entry could not be imported"
 
 
 def _build_then_entry(run_dir: Path, language: str) -> tuple[list[str] | None, str]:
@@ -391,11 +465,33 @@ def _build_then_entry(run_dir: Path, language: str) -> tuple[list[str] | None, s
         return None, "package.json declares no start script"
 
     if language == "csharp":
-        projs = [p for p in run_dir.glob("*.csproj") if "test" not in p.stem.lower()]
+        # RECURSIVE. These solutions put projects under src/<Name>/<Name>.csproj,
+        # so a top-level glob found nothing and reported "no non-test .csproj"
+        # for a solution that builds and runs perfectly.
+        projs = [p for p in run_dir.rglob("*.csproj")
+                 if "test" not in p.stem.lower()
+                 and ".retort" not in str(p)]
+        # Prefer the project that actually produces an executable: a solution
+        # here is typically Core (a library) + McpServer (Exe), and `dotnet run`
+        # against the library fails.
+        exe_projs = [p for p in projs
+                     if "<OutputType>Exe</OutputType>"
+                     in p.read_text(errors="replace").replace(" ", "")]
+        projs = exe_projs or projs
         if not projs:
             return None, "no non-test .csproj"
         if not build(["dotnet", "build", str(projs[0]), "--nologo", "-v", "q"]):
             return None, "dotnet build failed"
+        # Run the BUILT ASSEMBLY, not `dotnet run --project`. `dotnet run` sets
+        # the working directory to the PROJECT directory (src/<Name>/), so a
+        # server that resolves `data/kaggle` relative to cwd cannot find it and
+        # exits with "could not locate the data/kaggle directory" — which is a
+        # harness artefact, not a defect in the program. Every other language
+        # here executes its artifact with cwd=run_dir; this makes C# match.
+        dlls = [d for d in (projs[0].parent / "bin").rglob(f"{projs[0].stem}.dll")
+                if "/ref/" not in str(d)]
+        if dlls:
+            return ["dotnet", str(sorted(dlls)[0])], ""
         return ["dotnet", "run", "--project", str(projs[0]), "--no-build", "--nologo"], ""
 
     if language == "elixir":
@@ -405,20 +501,55 @@ def _build_then_entry(run_dir: Path, language: str) -> tuple[list[str] | None, s
         text = mix.read_text(errors="replace")
         if "escript" not in text:
             return None, "mix.exs declares no escript entrypoint"
+        # deps FIRST. `deps/` is not in the archive, so escript.build stops with
+        # "Unchecked dependencies ... run mix deps.get" — a missing fetch step,
+        # not a broken project.
+        build(["mix", "deps.get"], timeout=600)
         if not build(["mix", "escript.build"]):
-            return None, "mix escript.build failed"
-        m = re.search(r"app:\s*:(\w+)", text)
+            return None, "mix escript.build failed (after deps.get)"
+        # The escript's filename comes from `escript: [name: "..."]`, NOT from
+        # `app: :...`. Here the app is :brazilian_soccer but the binary is
+        # `brazilian_soccer_mcp`, so keying on the app name looked for a file
+        # that was never going to exist and reported "escript not produced" for
+        # a build that had just succeeded.
+        m = re.search(r'escript:\s*\[[^\]]*name:\s*"([^"]+)"', text, re.S)
+        if not m:
+            m = re.search(r"app:\s*:(\w+)", text)
         exe = run_dir / (m.group(1) if m else "")
-        return ([str(exe)], "") if exe.exists() else (None, "escript not produced")
+        if exe.is_file():
+            return [str(exe)], ""
+        # Fall back to whatever executable the build dropped at the root.
+        cand = _first_executable(*sorted(run_dir.glob("*")))
+        if cand is not None and "test" not in cand.name.lower():
+            return [str(cand)], ""
+        return None, "escript not produced"
 
     if language == "clojure":
         deps = run_dir / "deps.edn"
         if not deps.exists():
             return None, "no deps.edn"
-        # deps.edn here declares only a :test alias, so the main namespace has to
-        # come from the source: find the file with (defn -main ...) and convert
-        # its path to a namespace (src/a_b/core.clj -> a-b.core; Clojure munges
-        # hyphens to underscores on disk).
+        # PREFER A DECLARED ALIAS. Where deps.edn declares one, it names the
+        # entrypoint the author intended: this project has both
+        # `:mcp {:main-opts ["-m" "brazilian-soccer.server"]}` and a `:cli`
+        # alias, and scanning the source for (defn -main ...) picked the CLI —
+        # which starts, ignores stdin, and was recorded as "no reply to
+        # tools/list". Rank server-ish aliases first and never take a test one.
+        text = deps.read_text(errors="replace")
+        aliases = re.findall(r":([\w-]+)\s*\{[^{}]*:main-opts\s*\[[^\]]*"
+                             r'"-m"\s*"([\w.-]+)"', text)
+        ranked = sorted(
+            (a for a in aliases
+             if "test" not in a[0].lower() and "test" not in a[1].lower()),
+            key=lambda a: (0 if ("mcp" in a[0].lower() or "server" in a[1].lower())
+                           else (2 if a[1].endswith(".cli") else 1)),
+        )
+        if ranked:
+            alias, ns = ranked[0]
+            return ["clojure", f"-M:{alias}"], ""
+
+        # No usable alias — fall back to the source: find the file with
+        # (defn -main ...) and convert its path to a namespace
+        # (src/a_b/core.clj -> a-b.core; Clojure munges hyphens to underscores).
         for clj in sorted(run_dir.rglob("*.clj")):
             if "test" in clj.parts or "test" in clj.stem:
                 continue
@@ -436,6 +567,24 @@ def _build_then_entry(run_dir: Path, language: str) -> tuple[list[str] | None, s
     if language == "erlang":
         if not (run_dir / "rebar.config").exists():
             return None, "no rebar.config"
+        # PREFER THE PROJECT'S OWN ESCRIPT. Both erlang runs here declare
+        # escript_main_app/escript_name in rebar.config and their READMEs say
+        # `rebar3 escriptize`; one exports main/1, not a zero-arity entry, so the
+        # `erl -s mod entry` path below could never start it and reported
+        # "exports no zero-arity main/run entry" for a project that builds and
+        # runs fine. Read the declared build, do not impose a convention.
+        rebar_cfg = (run_dir / "rebar.config").read_text(errors="replace")
+        if "escript_main_app" in rebar_cfg or "escript_name" in rebar_cfg:
+            if build(["rebar3", "escriptize"], timeout=900):
+                m = re.search(r"\{escript_name,\s*([\w']+)\}", rebar_cfg)
+                name = m.group(1).strip("'") if m else None
+                bins = [b for b in sorted((run_dir / "_build" / "default" / "bin").glob("*"))
+                        if b.is_file()] if (run_dir / "_build" / "default" / "bin").is_dir() else []
+                chosen = next((b for b in bins if name and b.name == name), None) or \
+                    (bins[0] if bins else None)
+                if chosen is not None:
+                    return [str(chosen)], ""
+
         if not build(["rebar3", "compile"], timeout=600):
             return None, "rebar3 compile failed"
         # No escript stanza in this project, so run the beam directly. The entry
@@ -478,13 +627,44 @@ def _build_then_entry(run_dir: Path, language: str) -> tuple[list[str] | None, s
         return ([str(exe)], "") if exe else (None, "no release executable produced")
 
     if language in ("c", "cpp", "objc"):
-        # C ships its server binary already; C++/ObjC usually need the build.
-        exe = _first_executable(*sorted(run_dir.glob("*")))
+        def find_exe() -> Path | None:
+            """Search the OUTPUT DIRECTORIES, not just the run root.
+
+            These Makefiles declare `BIN_DIR := bin` / `BUILD_DIR := build` and
+            emit `bin/brsoccer-mcp`, `build/brazilian-soccer-mcp`. The probe only
+            globbed the top level, so it reported "no non-test executable
+            produced" for projects whose server binary was already sitting built
+            on disk one directory down.
+            """
+            cands: list[Path] = []
+            for d in (run_dir, run_dir / "bin", run_dir / "build",
+                      run_dir / ".retort-build", run_dir / "out"):
+                if d.is_dir():
+                    cands += sorted(d.glob("*"))
+            return _first_executable(*cands)
+
+        makefile = run_dir / "Makefile"
+        # Prefer the target the Makefile itself names as the server, rather than
+        # whichever executable sorts first — `run-tests` and the server sit in
+        # the same output directory.
+        declared: Path | None = None
+        if makefile.exists():
+            m = re.search(r"^\s*SERVER\s*:?=\s*(\S+)", makefile.read_text(errors="replace"), re.M)
+            if m:
+                cand = run_dir / m.group(1).replace("$(BIN_DIR)", "bin").replace("$(BUILD_DIR)", "build")
+                declared = cand if cand.is_file() else None
+
+        exe = declared or find_exe()
         if exe and "test" not in exe.name.lower():
             return [str(exe)], ""
-        if (run_dir / "Makefile").exists():
+        if makefile.exists():
             build(["make"])
-            exe = _first_executable(*sorted(run_dir.glob("*")))
+            if declared is None:
+                m = re.search(r"^\s*SERVER\s*:?=\s*(\S+)", makefile.read_text(errors="replace"), re.M)
+                if m:
+                    cand = run_dir / m.group(1).replace("$(BIN_DIR)", "bin").replace("$(BUILD_DIR)", "build")
+                    declared = cand if cand.is_file() else None
+            exe = declared or find_exe()
             if exe and "test" not in exe.name.lower():
                 return [str(exe)], ""
         cml = run_dir / "CMakeLists.txt"
@@ -734,6 +914,43 @@ def _synthesize_args(schema: dict) -> dict:
     return args
 
 
+def _pick_working_call(proc, listed: dict, budget: float,
+                       await_id) -> tuple[str, dict, int] | None:
+    """(tool name, arguments, next id) for a call this server actually answers.
+
+    Shared by the first-query and per-request phases so both measure the same
+    thing. Tools whose names suggest they touch match data are tried first: a
+    `list_teams` may be served from a small index without ever reading the
+    corpus, which is precisely what we are not trying to time.
+    """
+    tools = (listed.get("result") or {}).get("tools") or []
+
+    def rank(tool: dict) -> int:
+        name = tool.get("name", "").lower()
+        for i, pref in enumerate(_QUERY_PREFERENCE):
+            if pref in name:
+                return i
+        return len(_QUERY_PREFERENCE)
+
+    rid = 700
+    for tool in sorted(tools, key=rank)[:4]:
+        rid += 1
+        name = tool.get("name", "")
+        args = _synthesize_args(tool.get("inputSchema", {}) or {})
+        try:
+            proc.stdin.write(json.dumps({"jsonrpc": "2.0", "id": rid,
+                                         "method": "tools/call",
+                                         "params": {"name": name,
+                                                    "arguments": args}}) + "\n")
+            proc.stdin.flush()
+        except (BrokenPipeError, OSError):
+            return None
+        msg = await_id(rid, budget)
+        if msg and "error" not in msg and not (msg.get("result") or {}).get("isError"):
+            return name, args, rid + 1
+    return None
+
+
 def _first_query(cmd: list[str], run_dir: Path) -> tuple[float | None, str, str]:
     """(ms to answer a REAL data question, tool name, note).
 
@@ -851,24 +1068,16 @@ def _serve_latency(cmd: list[str], run_dir: Path) -> float | None:
         return None
     try:
         # Handshake once; the data load is paid here and excluded from the samples.
-        if _mcp_handshake(proc, ITER_TIMEOUT_S) is None:
+        listed = _mcp_handshake(proc, ITER_TIMEOUT_S)
+        if listed is None:
             return None
 
-        samples: list[float] = []
-        for i in range(TIMED_ITERS + WARMUP_ITERS):
-            req = {"jsonrpc": "2.0", "id": 100 + i, "method": "tools/list"}
-            t0 = time.perf_counter()
-            try:
-                proc.stdin.write(json.dumps(req) + "\n")
-                proc.stdin.flush()
-            except (BrokenPipeError, OSError):
-                break
-            got = False
-            deadline = time.perf_counter() + ITER_TIMEOUT_S
+        def await_id(want: int, budget: float) -> dict | None:
+            deadline = time.perf_counter() + budget
             while time.perf_counter() < deadline:
                 line = _readline_timeout(proc, deadline)
                 if not line:
-                    break
+                    return None
                 s = line.strip()
                 if not s.startswith("{"):
                     continue
@@ -876,10 +1085,33 @@ def _serve_latency(cmd: list[str], run_dir: Path) -> float | None:
                     msg = json.loads(s)
                 except ValueError:
                     continue
-                if msg.get("id") == 100 + i:
-                    got = True
-                    break
-            if not got:
+                if msg.get("id") == want:
+                    return msg
+            return None
+
+        # Repeat a REAL query, not `tools/list`. tools/list is protocol
+        # metadata whose response size scales with how many tools the
+        # implementation chose to expose, and the models differ a lot there
+        # (median 6 tools for terra, 16 for opus). Timing it therefore partly
+        # measured "how big is your tool catalogue" — measured r = 0.37 between
+        # tool count and the old per-request figure. A real tools/call with the
+        # data already in memory is the per-request work we actually mean.
+        picked = _pick_working_call(proc, listed, QUERY_TIMEOUT_S, await_id)
+        if picked is None:
+            return None
+        tool_name, tool_args, next_id = picked
+
+        samples: list[float] = []
+        for i in range(TIMED_ITERS + WARMUP_ITERS):
+            req = {"jsonrpc": "2.0", "id": next_id + i, "method": "tools/call",
+                   "params": {"name": tool_name, "arguments": tool_args}}
+            t0 = time.perf_counter()
+            try:
+                proc.stdin.write(json.dumps(req) + "\n")
+                proc.stdin.flush()
+            except (BrokenPipeError, OSError):
+                break
+            if await_id(next_id + i, ITER_TIMEOUT_S) is None:
                 break
             ms = (time.perf_counter() - t0) * 1000.0
             if i >= WARMUP_ITERS:          # discard warm-up
@@ -893,6 +1125,86 @@ def _serve_latency(cmd: list[str], run_dir: Path) -> float | None:
             proc.wait(timeout=5)
         except subprocess.TimeoutExpired:
             pass
+
+
+#: Words that mark a documented command as BUILD/TEST rather than "start it".
+_NOT_A_RUN = ("test", "spec", "lint", "fmt", "format", "install", "deps.get",
+              "compile", "escriptize", "clean", "bench", "coverage", "check",
+              "eunit", "pytest", "publish", "docker", "git ", "curl", "chmod",
+              "build", "--help", "--version")
+#: First tokens that plausibly START something.
+_RUNNERS = ("python", "python3", "node", "java", "dotnet", "erl", "escript",
+            "clojure", "clj", "swift", "go", "cargo", "mix", "npm", "npx",
+            "./", "bin/", "make", "elixir", "iex", "rebar3")
+
+
+def _readme_commands(run_dir: Path) -> list[list[str]]:
+    """Commands the project's OWN README gives for starting the server.
+
+    Added because every single launch failure found in this corpus was the same
+    mistake: the probe imposed a convention where the project had DECLARED the
+    answer. C# said `<OutputType>Exe</OutputType>`, the C Makefile said
+    `SERVER := bin/brsoccer-mcp`, rebar.config said `escript_main_app`, mix.exs
+    said `escript: [name: ...]`, deps.edn said `:mcp {:main-opts ...}` — and
+    each project's README said it in plain text as well. The erlang one reads
+    `rebar3 escriptize     # build the server binary`.
+
+    Used as a VERIFIED FALLBACK, not as the primary source: a README can be
+    aspirational or stale, so a command from here is only accepted if it
+    actually completes the MCP handshake. That keeps the manifest-driven recipes
+    authoritative while stopping a convention mismatch from being recorded as a
+    dead program.
+    """
+    import shlex
+
+    text = ""
+    for name in ("README.md", "README", "README.txt", "RUNNING.md", "USAGE.md"):
+        f = run_dir / name
+        if f.is_file():
+            text += f.read_text(errors="replace") + "\n"
+    if not text:
+        return []
+
+    lines: list[str] = []
+    for block in re.findall(r"```[a-zA-Z]*\n(.*?)```", text, re.S):
+        lines += block.splitlines()
+    lines += [m for m in re.findall(r"`([^`\n]{4,120})`", text)]
+
+    out: list[list[str]] = []
+    seen: set[str] = set()
+    for raw in lines:
+        line = raw.strip().lstrip("$").strip()
+        line = line.split("#")[0].strip()          # drop trailing comments
+        if not line or "\n" in line or "|" in line or "&&" in line:
+            continue
+        low = line.lower()
+        # `make run` / `npm start` / `go run .` are runs despite the verb.
+        is_explicit_run = any(low.startswith(p) for p in (
+            "make run", "make serve", "make start", "make server",
+            "npm start", "npm run start", "go run", "cargo run",
+            "dotnet run", "mix run", "iex -s"))
+        if not is_explicit_run and any(w in low for w in _NOT_A_RUN):
+            continue
+        if not (low.startswith(_RUNNERS) or (run_dir / line.split()[0]).exists()):
+            continue
+        try:
+            argv = shlex.split(line)
+        except ValueError:
+            continue
+        if not argv or line in seen:
+            continue
+        if argv == ["make"]:          # bare `make` is the default BUILD target
+            continue
+        seen.add(line)
+        # Resolve a relative artifact path against the run dir; the command is
+        # executed with cwd=run_dir but Popen resolves argv[0] against OUR cwd.
+        cand = run_dir / argv[0]
+        if cand.exists():
+            argv[0] = str(cand)
+        out.append(argv)
+        if len(out) >= 4:
+            break
+    return out
 
 
 def _probe_brazil(run_dir: Path, language: str) -> RuntimeResult:
@@ -909,7 +1221,7 @@ def _probe_brazil(run_dir: Path, language: str) -> RuntimeResult:
     #: broken program indistinguishable in the results.
     failure: dict = {}
 
-    def one_shot() -> float | None:
+    def one_shot(cmd: list[str]) -> float | None:
         """Start -> handshake -> tools/list answered, in ms. Then kill the server.
 
         Deliberately does NOT wait for the process to exit. A stdio MCP server is
@@ -948,7 +1260,25 @@ def _probe_brazil(run_dir: Path, language: str) -> RuntimeResult:
             except subprocess.TimeoutExpired:
                 pass
 
-    first = one_shot()
+    # Try the manifest-derived command first, then whatever the project's OWN
+    # README says. Every launch failure in this corpus was the probe imposing a
+    # convention on a project that had declared the answer; a README command is
+    # accepted only if it completes the handshake, so a stale README cannot
+    # inject a wrong measurement.
+    candidates: list[list[str]] = [cmd]
+    for extra in _readme_commands(run_dir):
+        if extra not in candidates:
+            candidates.append(extra)
+
+    first = None
+    for candidate in candidates:
+        first = one_shot(candidate)
+        if first is not None:
+            if candidate is not cmd:
+                res.note = ("launched via the command documented in the "
+                            f"project README: {' '.join(candidate[:4])}")
+            cmd = candidate
+            break
     if first is None:
         res.note = f"did not complete the MCP handshake: {failure.get('why', 'no output')}"
         return res
@@ -959,8 +1289,8 @@ def _probe_brazil(run_dir: Path, language: str) -> RuntimeResult:
     # separates a native binary from an interpreter, because it is dominated by
     # runtime start-up plus parsing ~24k rows — not by the trivial round-trip.
     for _ in range(WARMUP_ITERS):
-        one_shot()
-    samples = [ms for _ in range(TIMED_ITERS) if (ms := one_shot()) is not None]
+        one_shot(cmd)
+    samples = [ms for _ in range(TIMED_ITERS) if (ms := one_shot(cmd)) is not None]
     if not samples:
         res.note = f"answered once then stopped: {failure.get('why', 'no output')}"
         return res

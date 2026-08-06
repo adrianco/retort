@@ -100,17 +100,50 @@ def main() -> int:
               f"{s_['total_to_answer_ms']:.0f} ms | "
               f"{s_['model']}{('@' + s_['effort']) if s_['effort'] else ''} | {sp:.1f}x |")
 
-    print("\n## Per-request latency — same runs\n")
-    print("| language | n | fastest | slowest | spread |")
-    print("|---|---:|---:|---:|---:|")
-    for lang in sorted(by):
-        g = [x for x in by[lang] if x["request_ms"] is not None]
-        if not g:
-            continue
-        f_, s_ = min(g, key=lambda x: x["request_ms"]), max(g, key=lambda x: x["request_ms"])
-        sp = s_["request_ms"] / f_["request_ms"] if f_["request_ms"] else float("inf")
+    print("\n## Per-request latency — the SAME runs, already warm\n")
+    print("Reported alongside start-up, not as a footnote. The absolute numbers")
+    print("are ~1000x smaller, but the SPREAD between implementations is not:")
+    print("this is per-call work with the data already in memory, so a large")
+    print("spread here is structural — re-parsing per request, a linear scan")
+    print("where another run built an index — and it is paid on EVERY call,")
+    print("whereas start-up is paid once.\n")
+    print("| language | n | fastest | by | slowest | by | spread |")
+    print("|---|---:|---:|---|---:|---|---:|")
+    req = {L: [x for x in g if x.get("request_ms") is not None] for L, g in by.items()}
+    for lang in sorted((L for L in req if req[L]),
+                       key=lambda L: min(x["request_ms"] for x in req[L])):
+        g = req[lang]
+        f_ = min(g, key=lambda x: x["request_ms"])
+        s_ = max(g, key=lambda x: x["request_ms"])
+        sp = (s_["request_ms"] / f_["request_ms"]) if f_["request_ms"] else float("inf")
         print(f"| **{lang}** | {len(g)} | {f_['request_ms']:.3f} ms | "
-              f"{s_['request_ms']:.3f} ms | {sp:.1f}x |")
+              f"{f_['model']}{('@' + f_['effort']) if f_['effort'] else ''} | "
+              f"{s_['request_ms']:.3f} ms | "
+              f"{s_['model']}{('@' + s_['effort']) if s_['effort'] else ''} | {sp:.1f}x |")
+
+    allreq = [x for g in req.values() for x in g]
+    if allreq:
+        fastest = min(allreq, key=lambda x: x["request_ms"])
+        slowest = max(allreq, key=lambda x: x["request_ms"])
+        print(f"\n**Across the whole corpus: {fastest['request_ms']:.3f} ms "
+              f"({fastest['language']}) to {slowest['request_ms']:.3f} ms "
+              f"({slowest['language']}) — "
+              f"{slowest['request_ms'] / fastest['request_ms']:.0f}x.** Start-up "
+              f"is amortised; this is not.")
+
+    print("\n## All three phases together\n")
+    print("| language | n | cold start | + first query | = first answer | per-request |")
+    print("|---|---:|---:|---:|---:|---:|")
+    for lang in sorted(by, key=lambda L: statistics.median(
+            [x["cold_ms"] for x in by[L]])):
+        g = by[lang]
+        med = lambda k: statistics.median([x[k] for x in g if x.get(k) is not None]) \
+            if any(x.get(k) is not None for x in g) else None
+        cold, fq, tot, rq = med("cold_ms"), med("first_query_ms"), \
+            med("total_to_answer_ms"), med("request_ms")
+        fmt = lambda v, d=0: f"{v:,.{d}f} ms" if v is not None else "—"
+        print(f"| **{lang}** | {len(g)} | {fmt(cold)} | {fmt(fq)} | {fmt(tot)} "
+              f"| {fmt(rq, 3)} |")
 
     langs_multi = [L for L in by if len(by[L]) > 1]
     if langs_multi:

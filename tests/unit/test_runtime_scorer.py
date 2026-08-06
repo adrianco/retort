@@ -31,8 +31,15 @@ from retort.scoring.scorers import runtime as rt
 
 @pytest.fixture
 def fake_venv(monkeypatch):
-    """Skip the real pip install; return a stable interpreter path."""
+    """Skip the real pip install AND the import smoke-test.
+
+    _python_entry verifies the chosen entry actually imports in the venv it
+    built — that is what recovers a run whose open-ended `mcp>=1.2` now
+    resolves to a 2.0 that removed the module it needs. With a fake interpreter
+    there is nothing to import into, so stub it as "imports cleanly".
+    """
     monkeypatch.setattr(rt, "_probe_venv", lambda deps: Path("/venv/bin/python"))
+    monkeypatch.setattr(rt, "_importable", lambda py, run_dir, module: "")
     return "/venv/bin/python"
 
 
