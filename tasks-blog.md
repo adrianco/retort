@@ -242,20 +242,23 @@ The Apple pair is the outlier by two orders of magnitude — \$13.30 for Objecti
 
 Build cost is not run cost, and until now retort measured only the former. There is now a `runtime` scorer that starts the produced program and times a **fixed probe** — an identical MCP `initialize` + `tools/list` round-trip against every implementation, rather than the model's own test suite, whose duration mostly reflects how many tests it chose to write (on the same task, one model wrote 6 tests and another 104).
 
-Measured across 53 archived brazil runs from four experiments, probed identically. **The headline number is time to first *real answer*, and getting there required throwing out the first version of this measurement.**
+Measured across 53 archived brazil runs from four experiments, probed identically — **43 of them measured, in all 13 languages**. **The headline number is time to first *real answer*, and getting there required throwing out the first version of this measurement.**
 
 | language | n | fastest | by | slowest | by | spread |
 |---|---:|---:|---|---:|---|---:|
-| **cpp** | 3 | **131 ms** | fable-5 | 415 ms | terra@default | 3.2× |
-| **go** | 8 | 294 ms | terra@xhigh | 1,123 ms | opus-5@high | 3.8× |
-| **swift** | 3 | 295 ms | fable-5 | 1,929 ms | terra@default | 6.5× |
-| **rust** | 1 | 344 ms | opus-5 | — | — | — |
-| **python** | 7 | 374 ms | terra@high | 1,237 ms | opus-5@max | 3.3× |
-| **typescript** | 2 | 386 ms | terra@default | 469 ms | opus-5 | 1.2× |
-| **csharp** | 1 | 520 ms | terra@default | — | — | — |
-| **clojure** | 1 | 989 ms | terra@default | — | — | — |
-| **objc** | 1 | 1,169 ms | fable-5 | — | — | — |
-| **elixir** | 2 | 3,791 ms | fable-5 | 4,754 ms | terra@default | 1.3× |
+| **c** | 1 | 29 ms | fable-5 | — | — | — |
+| **cpp** | 3 | 150 ms | fable-5 | 410 ms | terra@default | 2.7× |
+| **go** | 11 | 282 ms | terra@low | 921 ms | opus-5@high | 3.3× |
+| **swift** | 3 | 305 ms | fable-5 | 1,997 ms | terra@default | 6.5× |
+| **rust** | 2 | 339 ms | terra@default | 356 ms | opus-5 | 1.0× |
+| **python** | 9 | 357 ms | terra@high | 1,300 ms | opus-5@max | 3.6× |
+| **typescript** | 3 | 417 ms | terra@default | 501 ms | opus-5 | 1.2× |
+| **java** | 2 | 444 ms | fable-5 | 926 ms | opus-5 | 2.1× |
+| **csharp** | 1 | 869 ms | terra@default | — | — | — |
+| **clojure** | 1 | 1,012 ms | terra@default | — | — | — |
+| **objc** | 2 | 1,197 ms | fable-5 | 1,744 ms | terra@default | 1.5× |
+| **erlang** | 1 | 1,624 ms | terra@default | — | — | — |
+| **elixir** | 2 | 3,505 ms | fable-5 | 4,449 ms | terra@default | 1.3× |
 
 **Cold start alone is a trap, and it ranked the languages wrongly.** An earlier version of this table timed process launch to an MCP `tools/list` reply. But `tools/list` is protocol metadata: an implementation that parses all 42k rows at import answers it having done the work, and one that streams lazily answers having done none. The clock was stopping at a different point in the job for each program.
 
@@ -272,9 +275,11 @@ Cold start calls these 27× apart. Time-to-first-answer calls them 2.2× apart *
 
 *Per-request* latency, once warm, remains microseconds in every language (0.017–0.148 ms). The narrow honest statement stands: on this task the language difference is runtime boot plus parsing, not serving latency.
 
-**Three languages are still unmeasured** — java and erlang start but never complete the handshake, and c produced only a test binary. Each is a named reason rather than a shrug, and each is recorded as NULL rather than zero, because a zero would enter the per-language means as *infinitely slow* and make a language whose probe merely failed look like the worst in the table.
+**Ten of the 53 runs are still unmeasured, and each has a named reason** — two C# runs ship no non-test project file, an Elixir escript build fails, one Python entrypoint wants a subcommand it was never given, another needs a package version that is not installed, and single Clojure and Erlang runs still stall on `tools/list`. Each is recorded as NULL rather than zero, because a zero would enter the per-language means as *infinitely slow* and make a language whose probe merely failed look like the worst in the table.
 
-*Two measurement bugs worth recording, because both looked exactly like results.* Every compiled language initially reported "server did not answer" — a **relative binary path** executed with `cwd=run_dir`, so `FileNotFoundError` was caught and reported as silence; Rust had been answering hand-run probes the whole time. Then Python measured only 2 of 11 runs, because the probe looked for a top-level `server.py` and ran it on the system interpreter — which excluded every package-structured run (relative imports need `-m`) and every project that declared a dependency. The survivors were the implementations with nothing to import, which is the fastest-starting subset by construction. Same lesson twice: a failing program and a broken measurement are indistinguishable in the output.
+*Three measurement bugs worth recording, because all of them looked exactly like results.* Every compiled language initially reported "server did not answer" — a **relative binary path** executed with `cwd=run_dir`, so `FileNotFoundError` was caught and reported as silence; Rust had been answering hand-run probes the whole time. Then Python measured only 2 of 11 runs, because the probe looked for a top-level `server.py` and ran it on the system interpreter — which excluded every package-structured run (relative imports need `-m`) and every project that declared a dependency. The survivors were the implementations with nothing to import, which is the fastest-starting subset by construction. Then the largest one: the probe **pipelined the MCP handshake**, writing `initialize`, `notifications/initialized` and `tools/list` in a single burst before reading anything. Several implementations read stdin into a buffer, parse the first message, and drop the rest of that read — so they answered `initialize` and went silent. Batched, C and Rust stall for 15 s; sent one at a time, both answer in under 5 s. No real MCP client pipelines the handshake, so those servers had been correct the whole time. That single change took the corpus from 30 measured runs to 43, and from 10 languages to all 13. Java needed a second fix — it was launched with `java -cp target/classes`, which omits every Maven dependency, so it died with `NoClassDefFoundError` after loading 16,733 matches, even though `mvn package` had already built a self-contained jar the probe never used.
+
+All three shared one cause, and it is the reason they survived so long: the probe ran every server with `stderr` discarded. A `NoClassDefFoundError`, a missing Python module, and a genuinely hung server produced the same four words — *server did not answer*. Same lesson a third time: a failing program and a broken measurement are indistinguishable in the output, unless you keep the evidence.
 
 *A measurement bug worth recording, because it looked exactly like a result.* Every compiled language initially reported "server did not answer" — which reads as a broken program. It was a **relative binary path** executed with `cwd=run_dir`, so `FileNotFoundError` was caught and reported as silence. Rust had been answering hand-run probes the whole time. One line, and 1/11 measured became 6/11. The lesson is the same one the harness table keeps teaching: a failing program and a broken measurement are indistinguishable in the output.
 

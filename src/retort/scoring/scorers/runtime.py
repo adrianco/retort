@@ -53,8 +53,10 @@ import selectors
 import shutil
 import statistics
 import subprocess
+import tempfile
 import sys
 import time
+import zipfile
 from dataclasses import dataclass, field
 from pathlib import Path
 
@@ -507,11 +509,26 @@ def _build_then_entry(run_dir: Path, language: str) -> tuple[list[str] | None, s
             return None, "no pom.xml"
         if not build(["mvn", "-q", "-DskipTests", "package"], timeout=900):
             return None, "mvn package failed"
-        # `java -jar` needs a Main-Class in the manifest, and a plain `mvn
-        # package` without a shade/assembly plugin does not write one — the jar
-        # here fails with "no main manifest attribute". So prefer running the
-        # class directly off target/classes, discovering it from the source
-        # rather than assuming a name.
+        # ORDER MATTERS, and the previous order was wrong. `java -cp
+        # target/classes Main` omits every Maven dependency, so a project using
+        # the MCP Java SDK died with NoClassDefFoundError before answering — and
+        # with stderr discarded that read as "server did not answer". These
+        # projects DO configure maven-shade-plugin, so `mvn package` already
+        # produced a self-contained jar with a Main-Class; run that when it
+        # exists. target/classes is the fallback for a project with no shade
+        # plugin AND no dependencies, where a bare classpath is enough.
+        shaded = [p for p in (run_dir / "target").glob("*.jar")
+                  if not p.name.startswith("original-")
+                  and "sources" not in p.name and "javadoc" not in p.name]
+        for jar in shaded:
+            try:
+                with zipfile.ZipFile(jar) as zf:
+                    manifest = zf.read("META-INF/MANIFEST.MF").decode(errors="replace")
+            except (OSError, KeyError, zipfile.BadZipFile):
+                continue
+            if "Main-Class:" in manifest:
+                return ["java", "-jar", str(jar)], ""
+
         main_cls = None
         for src in sorted((run_dir / "src" / "main" / "java").rglob("*.java")):
             try:
@@ -597,6 +614,101 @@ _QUERY_PREFERENCE = ("team_stats", "head_to_head", "find_matches", "match",
                      "team_profile", "stats", "search", "query", "get_")
 
 
+def _stderr_file():
+    """A temp file to catch the server's stderr.
+
+    The probe used to run every server with stderr=DEVNULL, which threw away the
+    single most useful artifact whenever one failed to start. A Java run that
+    died with NoClassDefFoundError and a genuinely broken program produced the
+    same note — "server did not answer" — so a harness bug was indistinguishable
+    from a result. A FILE rather than a PIPE because nothing drains a pipe while
+    the handshake is in flight, and a server that logs enough to fill it would
+    deadlock.
+    """
+    return tempfile.TemporaryFile(mode="w+", errors="replace")
+
+
+def _stderr_tail(fh, limit: int = 300) -> str:
+    try:
+        fh.seek(0)
+        text = fh.read().strip()
+    except (OSError, ValueError):
+        return ""
+    if not text:
+        return ""
+    return text.splitlines()[-1][:limit]
+
+
+def _mcp_handshake(proc, budget: float, captured: dict | None = None) -> dict | None:
+    """initialize -> initialized -> tools/list, ONE MESSAGE AT A TIME.
+
+    Sequential, and that is the whole point. This probe used to write all three
+    handshake messages in a single burst and only then start reading. Several
+    implementations read stdin into a buffer, parse the FIRST message in it, and
+    drop whatever else arrived in the same read — so they answered `initialize`
+    and then looked dead, which was recorded as "server did not answer".
+
+    Measured on the same binaries: batched, C and Rust answer `[1]` and stall;
+    one-at-a-time, both answer `[1, 2]` in under 5 s. **No real MCP client
+    pipelines the handshake** — it sends `initialize`, waits for the reply, and
+    only then continues — so the servers were right and the probe was wrong.
+    That one difference accounted for most of the corpus being unmeasurable.
+
+    Returns the tools/list response, or None.
+    """
+    deadline = time.perf_counter() + budget
+
+    def send(obj) -> bool:
+        try:
+            proc.stdin.write(json.dumps(obj) + "\n")
+            proc.stdin.flush()
+            return True
+        except (BrokenPipeError, OSError):
+            return False
+
+    def await_id(want: int) -> dict | None:
+        while time.perf_counter() < deadline:
+            line = _readline_timeout(proc, deadline)
+            if not line:
+                return None
+            stripped = line.strip()
+            if not stripped.startswith("{"):
+                # Human banner, not protocol — but KEEP it. These lines are where
+                # implementations disclose how much they ingested ("loaded 16947
+                # matches and 18207 players"), which is the variance this
+                # measurement exists to expose.
+                if stripped and captured is not None and not captured.get("banner"):
+                    captured["banner"] = stripped[:200]
+                    m = re.search(r"(\d[\d,]{3,})\s+matches", stripped)
+                    if m:
+                        captured["rows"] = int(m.group(1).replace(",", ""))
+                continue
+            try:
+                msg = json.loads(stripped)
+            except ValueError:
+                continue
+            if msg.get("id") == want:
+                return msg
+        return None
+
+    if not send(BRAZIL_CALLS[0]):
+        return None
+    if await_id(1) is None:                  # WAIT before sending anything else
+        return None
+    if not send(BRAZIL_CALLS[1]):            # notification, no reply expected
+        return None
+    if not send(BRAZIL_CALLS[2]):
+        return None
+    listed = await_id(2)
+    if listed is None or "error" in listed:
+        return None
+    if captured is not None:
+        tools = (listed.get("result") or {}).get("tools")
+        if isinstance(tools, list):
+            captured["tool_count"] = len(tools)
+    return listed
+
+
 def _synthesize_args(schema: dict) -> dict:
     """Arguments satisfying a tool's REQUIRED properties, by parameter name."""
     props = schema.get("properties", {}) or {}
@@ -674,12 +786,9 @@ def _first_query(cmd: list[str], run_dir: Path) -> tuple[float | None, str, str]
         return None
 
     try:
-        for call in BRAZIL_CALLS:
-            if not send(call):
-                return None, "", "server closed during handshake"
-        listed = await_id(2, ITER_TIMEOUT_S)
+        listed = _mcp_handshake(proc, ITER_TIMEOUT_S)
         if not listed:
-            return None, "", "no tools/list response"
+            return None, "", "did not complete the MCP handshake"
         tools = (listed.get("result") or {}).get("tools") or []
         if not tools:
             return None, "", "server advertises no tools"
@@ -742,22 +851,7 @@ def _serve_latency(cmd: list[str], run_dir: Path) -> float | None:
         return None
     try:
         # Handshake once; the data load is paid here and excluded from the samples.
-        for call in BRAZIL_CALLS:
-            proc.stdin.write(json.dumps(call) + "\n")
-        proc.stdin.flush()
-        deadline = time.perf_counter() + ITER_TIMEOUT_S
-        while time.perf_counter() < deadline:
-            line = _readline_timeout(proc, deadline)
-            if not line:
-                return None
-            s = line.strip()
-            if s.startswith("{"):
-                try:
-                    if json.loads(s).get("id") == 2:
-                        break
-                except ValueError:
-                    continue
-        else:
+        if _mcp_handshake(proc, ITER_TIMEOUT_S) is None:
             return None
 
         samples: list[float] = []
@@ -809,11 +903,14 @@ def _probe_brazil(run_dir: Path, language: str) -> RuntimeResult:
         res.note = why or "no recognizable server entrypoint — not guessed"
         return res
 
-    payload = "\n".join(json.dumps(c) for c in BRAZIL_CALLS) + "\n"
     captured: dict = {}
+    #: Why the last one_shot() gave up. Without this the note was always the
+    #: generic "server did not answer", which is what made a harness bug and a
+    #: broken program indistinguishable in the results.
+    failure: dict = {}
 
     def one_shot() -> float | None:
-        """Start → handshake → tools/list answered, in ms. Then kill the server.
+        """Start -> handshake -> tools/list answered, in ms. Then kill the server.
 
         Deliberately does NOT wait for the process to exit. A stdio MCP server is
         a SERVER: several of these keep running after answering rather than
@@ -821,54 +918,30 @@ def _probe_brazil(run_dir: Path, language: str) -> RuntimeResult:
         server never answered" — a false negative that hid every Go, Java and
         Rust cell. Stop the clock when the reply to request id 2 arrives, which
         is the thing being measured, then terminate.
-
-        Stdout is read LINE BY LINE and non-JSON lines are skipped, because
-        implementations print human banners first (the Go one emits
-        "loaded 16947 matches ... in 134ms" before any JSON).
         """
         t0 = time.perf_counter()
+        errf = _stderr_file()
         try:
             proc = subprocess.Popen(
                 cmd, cwd=run_dir, stdin=subprocess.PIPE, stdout=subprocess.PIPE,
-                stderr=subprocess.DEVNULL, text=True, bufsize=1,
+                stderr=errf, text=True, bufsize=1,
             )
-        except (FileNotFoundError, OSError):
+        except (FileNotFoundError, OSError) as exc:
+            failure["why"] = f"could not start: {exc}"
+            errf.close()
             return None
         try:
-            proc.stdin.write(payload)
-            proc.stdin.flush()
-            deadline = time.perf_counter() + ITER_TIMEOUT_S
-            while time.perf_counter() < deadline:
-                line = _readline_timeout(proc, deadline)
-                if not line:
-                    return None
-                stripped = line.strip()
-                if not stripped.startswith("{"):
-                    # Human banner, not protocol — but KEEP it. These lines are
-                    # where implementations disclose how much they ingested
-                    # ("loaded 16947 matches and 18207 players"), which is the
-                    # variance this measurement exists to expose.
-                    if stripped and not captured.get("banner"):
-                        captured["banner"] = stripped[:200]
-                        m = re.search(r"(\d[\d,]{3,})\s+matches", stripped)
-                        if m:
-                            captured["rows"] = int(m.group(1).replace(",", ""))
-                    continue
-                try:
-                    msg = json.loads(stripped)
-                except ValueError:
-                    continue
-                if msg.get("id") == 2 and "result" in msg:
-                    tools = (msg.get("result") or {}).get("tools")
-                    if isinstance(tools, list):
-                        captured["tool_count"] = len(tools)
-                    return (time.perf_counter() - t0) * 1000.0
-                if msg.get("id") == 2 and "error" in msg:
-                    return None
-            return None
-        except (BrokenPipeError, OSError):
+            listed = _mcp_handshake(proc, ITER_TIMEOUT_S, captured)
+            if listed is None:
+                tail = _stderr_tail(errf)
+                failure["why"] = tail or "no reply to tools/list"
+                return None
+            return (time.perf_counter() - t0) * 1000.0
+        except (BrokenPipeError, OSError) as exc:
+            failure["why"] = _stderr_tail(errf) or str(exc)
             return None
         finally:
+            errf.close()
             proc.kill()
             try:
                 proc.wait(timeout=5)
@@ -877,7 +950,7 @@ def _probe_brazil(run_dir: Path, language: str) -> RuntimeResult:
 
     first = one_shot()
     if first is None:
-        res.note = "server did not answer a tools/call probe"
+        res.note = f"did not complete the MCP handshake: {failure.get('why', 'no output')}"
         return res
     res.cold_start_ms = first
 
@@ -889,7 +962,7 @@ def _probe_brazil(run_dir: Path, language: str) -> RuntimeResult:
         one_shot()
     samples = [ms for _ in range(TIMED_ITERS) if (ms := one_shot()) is not None]
     if not samples:
-        res.note = "probe answered once then stopped"
+        res.note = f"answered once then stopped: {failure.get('why', 'no output')}"
         return res
 
     # PHASE 2 — PER-REQUEST latency against ONE LIVE process.

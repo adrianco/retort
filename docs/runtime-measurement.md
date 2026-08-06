@@ -113,6 +113,22 @@ HTTP port handshake that does not exist yet.
 
 `BRAZIL_CALLS` is `initialize` → `notifications/initialized` → `tools/list`.
 
+- **Send them ONE AT A TIME, waiting for each reply.** This is the single
+  biggest source of false failures found so far. The probe used to write all
+  three in one burst and only then start reading; several implementations read
+  stdin into a buffer, parse the first message in it, and drop the rest of the
+  read. They answer `initialize` and then look dead. Measured on the same
+  binaries: batched, C and Rust answer `[1]` and stall for 15 s; one-at-a-time,
+  both answer `[1, 2]` in under 5 s. **No real MCP client pipelines the
+  handshake**, so those servers were never broken — the probe was. Fixing this
+  alone took the corpus from 30/53 to 43/53 measured and from 10 languages to
+  all 13.
+- **Capture stderr.** It used to go to `DEVNULL`, which discarded the only
+  evidence of why a server failed to start: a Java `NoClassDefFoundError`, a
+  Python `ModuleNotFoundError` and a genuinely hung Erlang server all produced
+  the identical note, "server did not answer". Use a temp FILE, not a pipe —
+  nothing drains a pipe while the handshake is in flight, so a chatty server
+  would deadlock.
 - `initialize` must carry `capabilities` **and** `clientInfo`. The TypeScript
   servers validate with zod and reject the handshake without them; omitting both
   produced a `-32603` that read as "the server never answered".
