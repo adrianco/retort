@@ -1,6 +1,6 @@
 # The Tasks: What Gets Built, and How Differently a Run Can Pass
 
-*Published 2026-07-30 · updated 2026-08-05 — Adrian Cockcroft*
+*Published 2026-07-30 · updated 2026-08-06 — Adrian Cockcroft*
 
 What retort actually asks an agent to build, and — for each task — the fastest and the slowest run that fully passed. Both mean shortest/longest `duration_seconds` among runs scoring `requirement_coverage == 1.0`, restricted to runs whose **agent log was archived**, since a record with no log can't be shown.
 
@@ -273,9 +273,64 @@ The clearest case is two runs of the *same model* on the *same task*, differing 
 
 Cold start calls these 27× apart. Time-to-first-answer calls them 2.2× apart *the other way*. Which you prefer is a real engineering choice — a CLI invoked per command wants the lazy one, a long-lived server wants the eager one — but only the second metric lets you make it.
 
-*Per-request* latency, once warm, remains microseconds in every language (0.017–0.148 ms). The narrow honest statement stands: on this task the language difference is runtime boot plus parsing, not serving latency.
+### Per-request latency: smaller numbers, far bigger spread
 
-**Ten of the 53 runs are still unmeasured, and each has a named reason** — two C# runs ship no non-test project file, an Elixir escript build fails, one Python entrypoint wants a subcommand it was never given, another needs a package version that is not installed, and single Clojure and Erlang runs still stall on `tools/list`. Each is recorded as NULL rather than zero, because a zero would enter the per-language means as *infinitely slow* and make a language whose probe merely failed look like the worst in the table.
+Start-up is paid once. Per-request is paid on every call, so it deserves equal billing — and it turns out to be where the implementations differ most. Timed against an already-warm process, repeating one real query with the data in memory:
+
+| language | n | fastest | by | slowest | by | spread |
+|---|---:|---:|---|---:|---|---:|
+| **go** | 11 | 0.072 ms | opus-5@medium | 58.900 ms | terra@max | 815× |
+| **cpp** | 3 | 0.083 ms | opus-5 | 59.539 ms | terra@default | 717× |
+| **c** | 2 | 0.113 ms | opus-5 | 3.372 ms | fable-5 | 30× |
+| **swift** | 3 | 0.124 ms | opus-5 | 116.647 ms | terra@default | 941× |
+| **rust** | 2 | 0.148 ms | opus-5 | 2.776 ms | terra@default | 19× |
+| **objc** | 3 | 0.238 ms | opus-5 | 187.793 ms | terra@default | 789× |
+| **typescript** | 3 | 0.300 ms | opus-5 | 8.756 ms | terra@default | 29× |
+| **csharp** | 3 | 0.462 ms | opus-5 | 4.516 ms | fable-5 | 10× |
+| **python** | 11 | 0.593 ms | opus-5@medium | 156.201 ms | terra@low | 264× |
+| **erlang** | 3 | 0.851 ms | opus-5 | 164.230 ms | terra@default | 193× |
+| **java** | 2 | 0.865 ms | fable-5 | 1.348 ms | opus-5 | 1.6× |
+| **clojure** | 2 | 2.618 ms | opus-5 | 5.288 ms | terra@default | 2× |
+| **elixir** | 3 | 6.826 ms | fable-5 | 300.080 ms | terra@default | 44× |
+
+**Across the corpus: 0.072 ms to 300 ms — 4,150×.** The absolute numbers are three orders of magnitude below start-up, and the spread is more than two orders of magnitude wider. Nine languages vary more between implementations *within* the language than the entire language ranking varies at start-up.
+
+And the pattern is not about languages at all. **Opus-5 is the fastest per-request implementation in 11 of the 13 languages; Terra is the slowest in 10.** By model median: opus **0.544 ms**, fable **4.516 ms**, terra **55.666 ms** — a 102× gap. Meanwhile their *cold starts* are indistinguishable (371–425 ms). Two models produce programs that boot identically and then answer queries a hundred times apart.
+
+This is the earlier design survey showing up in the milliseconds. Opus precomputed a lookup index in 22 of 23 runs; Terra in 11 of 21, and only at higher thinking levels. Grouping runs by that classification alone:
+
+| indexing | n | per-request median | cold-start median |
+|---|---:|---:|---:|
+| precomputed index | 37 | 1.099 ms | 377 ms |
+| linear scan | 14 | 6.189 ms | 453 ms |
+
+Note what is *absent*: the expected trade-off. Indexing is supposed to cost start-up to buy query speed, and here it costs nothing — the indexed runs start *faster* too. There is no tension to balance on this task; one group simply built the better program. Indexing explains about 5.6× of the difference and the models differ by 102×, so most of Terra's cost lies elsewhere — re-parsing per call is the obvious candidate, and it is not something this classification can see.
+
+**Which phase matters depends entirely on process lifetime**, and the two columns disagree about who wins. Elixir boots 116× slower than C but its median implementation serves requests faster than Go's. A CLI invoked per command should read the start-up column; a long-lived server answering a million queries should read the other one and would be badly misled by the first.
+
+*A caveat on how this number was produced, because the first version of it was wrong in an instructive way.* Per-request originally timed repeated `tools/list` calls — but that is protocol metadata whose response size scales with how many tools an implementation chose to expose, and the models differ there (median 6 tools for Terra, 16 for Opus). Measured against tool count, r = 0.37. On that metric Opus looked like the *slowest* model in 12 of 13 languages, and Go's worst case read 2.680 ms; re-measured against a real `tools/call`, the same run is 0.259 ms and the model ranking inverts. A metric that ranks the field backwards while looking perfectly consistent is the recurring hazard of this whole exercise.
+
+### All three phases, together
+
+| language | n | cold start | + first query | = first answer | per-request |
+|---|---:|---:|---:|---:|---:|
+| **c** | 3 | 29 ms | 2 ms | 33 ms | 1.742 ms |
+| **cpp** | 3 | 245 ms | 1 ms | 245 ms | 0.686 ms |
+| **csharp** | 3 | 295 ms | 9 ms | 305 ms | 0.891 ms |
+| **swift** | 3 | 322 ms | 0 ms | 322 ms | 0.139 ms |
+| **python** | 11 | 348 ms | 83 ms | 727 ms | 2.329 ms |
+| **rust** | 2 | 375 ms | 2 ms | 377 ms | 1.462 ms |
+| **go** | 11 | 377 ms | 4 ms | 381 ms | 2.534 ms |
+| **java** | 3 | 420 ms | 10 ms | 657 ms | 1.107 ms |
+| **typescript** | 3 | 473 ms | 6 ms | 479 ms | 5.023 ms |
+| **clojure** | 2 | 1,081 ms | 16 ms | 1,097 ms | 3.953 ms |
+| **objc** | 3 | 1,158 ms | 6 ms | 1,163 ms | 5.558 ms |
+| **erlang** | 3 | 1,415 ms | 14 ms | 1,606 ms | 7.090 ms |
+| **elixir** | 3 | 3,381 ms | 333 ms | 3,395 ms | 27.718 ms |
+
+Medians per language. The within-language spread is 2.6× at the median — the *implementation* moving the number with the language held fixed.
+
+**All 53 runs now measure, in all 13 languages.** Getting there meant fixing ten launch failures, and nine of the ten were the harness imposing a per-language convention on a project that had *declared* the answer in its own manifest — the C Makefile said `SERVER := bin/brsoccer-mcp`, `rebar.config` said `escript_main_app`, `deps.edn` said `:mcp {:main-opts [...]}` — and said it again in its README. The probe now reads those manifests, and falls back to the command the project's README documents, accepting it only if it completes the handshake. The tenth was not a harness fault and is the more interesting one: a Python run declares `mcp>=1.2` and imports `mcp.server.fastmcp`, which mcp 2.0 removed, so an implementation that was correct when written no longer starts. Open-ended dependency constraints make an archive perishable; the probe now retries with a capped major version. A run that still cannot be measured is recorded as NULL rather than zero, because a zero would enter the per-language means as *infinitely slow*.
 
 *Three measurement bugs worth recording, because all of them looked exactly like results.* Every compiled language initially reported "server did not answer" — a **relative binary path** executed with `cwd=run_dir`, so `FileNotFoundError` was caught and reported as silence; Rust had been answering hand-run probes the whole time. Then Python measured only 2 of 11 runs, because the probe looked for a top-level `server.py` and ran it on the system interpreter — which excluded every package-structured run (relative imports need `-m`) and every project that declared a dependency. The survivors were the implementations with nothing to import, which is the fastest-starting subset by construction. Then the largest one: the probe **pipelined the MCP handshake**, writing `initialize`, `notifications/initialized` and `tools/list` in a single burst before reading anything. Several implementations read stdin into a buffer, parse the first message, and drop the rest of that read — so they answered `initialize` and went silent. Batched, C and Rust stall for 15 s; sent one at a time, both answer in under 5 s. No real MCP client pipelines the handshake, so those servers had been correct the whole time. That single change took the corpus from 30 measured runs to 43, and from 10 languages to all 13. Java needed a second fix — it was launched with `java -cp target/classes`, which omits every Maven dependency, so it died with `NoClassDefFoundError` after loading 16,733 matches, even though `mvn package` had already built a self-contained jar the probe never used.
 
