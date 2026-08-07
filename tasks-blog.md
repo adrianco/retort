@@ -248,78 +248,99 @@ Build cost is not run cost. A `runtime` scorer starts the produced program and t
 
 Process launch through to a genuine `tools/call` — the tool and its arguments synthesized from each server's own advertised schema, since MCP does not pin tool names.
 
+<!-- GEN:first-answer-table -->
 | language | n | fastest | by | slowest | by | spread |
 |---|---:|---:|---|---:|---|---:|
-| **c** | 2 | 29 ms | opus-5 | 37 ms | fable-5 | 1.3× |
-| **cpp** | 3 | 142 ms | fable-5 | 391 ms | terra@default | 2.8× |
-| **csharp** | 3 | 215 ms | terra@default | 1,151 ms | opus-5 | 5.4× |
-| **objc** | 3 | 240 ms | opus-5 | 1,703 ms | terra@default | 7.1× |
-| **go** | 11 | 277 ms | opus-5@low | 900 ms | opus-5@high | 3.2× |
-| **swift** | 3 | 297 ms | fable-5 | 1,923 ms | terra@default | 6.5× |
-| **rust** | 2 | 328 ms | terra@default | 426 ms | opus-5 | 1.3× |
-| **python** | 11 | 344 ms | terra@high | 1,252 ms | opus-5@xhigh | 3.6× |
-| **typescript** | 3 | 386 ms | terra@default | 479 ms | opus-5 | 1.2× |
-| **java** | 2 | 424 ms | fable-5 | 889 ms | opus-5 | 2.1× |
-| **elixir** | 3 | 509 ms | opus-5 | 4,220 ms | terra@default | 8.3× |
-| **clojure** | 2 | 952 ms | terra@default | 1,242 ms | opus-5 | 1.3× |
-| **erlang** | 3 | 1,349 ms | fable-5 | 2,651 ms | opus-5 | 2.0× |
+| **c** | 2 | 31 ms | opus-5 | 36 ms | fable-5 | 1.2× |
+| **cpp** | 3 | 143 ms | fable-5 | 402 ms | terra@default | 2.8× |
+| **csharp** | 3 | 218 ms | terra@default | 1,218 ms | opus-5 | 5.6× |
+| **objc** | 3 | 264 ms | opus-5 | 1,714 ms | terra@default | 6.5× |
+| **swift** | 3 | 297 ms | fable-5 | 1,915 ms | terra@default | 6.4× |
+| **go** | 11 | 308 ms | opus-5 | 824 ms | opus-5@high | 2.7× |
+| **python** | 11 | 351 ms | terra@high | 1,287 ms | opus-5@xhigh | 3.7× |
+| **typescript** | 3 | 424 ms | terra@default | 512 ms | fable-5 | 1.2× |
+| **java** | 2 | 438 ms | fable-5 | 959 ms | opus-5 | 2.2× |
+| **rust** | 2 | 443 ms | terra@default | 444 ms | opus-5 | 1.0× |
+| **elixir** | 3 | 529 ms | opus-5 | 4,230 ms | terra@default | 8.0× |
+| **clojure** | 2 | 973 ms | terra@default | 1,428 ms | opus-5 | 1.5× |
+| **erlang** | 3 | 1,361 ms | fable-5 | 2,833 ms | opus-5 | 2.1× |
+<!-- /GEN:first-answer-table -->
 
-Across the corpus, 29 ms to 4,220 ms. The **median within-language spread is 2.8×** — that is the implementation moving the number with the language held fixed, and in four languages it is larger than the gap between neighbouring languages.
+<!-- GEN:first-answer-summary -->
+Across the corpus, 31 ms to 4,230 ms. The **median within-language spread is 2.7×** — that is the implementation moving the number with the language held fixed, and in 10 of the 13 it is larger than the gap to the next language along.
+<!-- /GEN:first-answer-summary -->
 
-**Start-up alone would rank these wrongly**, so it is not the headline. `tools/list` is protocol metadata: an implementation that parses all 42k rows at import answers it having done the work, one that streams lazily answers having done none. Two Python runs of the same model at different thinking levels make the point — the lazy one (`yield from csv.DictReader(...)`) starts in 41 ms and takes 461 ms to answer a real question; the eager one (`rows = list(csv.DictReader(...))`) starts in 1,109 ms and answers in 2 ms. Measured to first answer they are 2.2× apart; measured to start-up, 27× apart *in the opposite order*.
+<!-- GEN:lazy-eager -->
+**Start-up alone would rank these wrongly**, so it is not the headline. `tools/list` is protocol metadata: an implementation that parses all 42k rows at import answers it having done the work, one that streams lazily answers having done none. Two Python runs of the same model at different thinking levels make the point — the lazy one (`yield from csv.DictReader(...)`) starts in 42 ms and takes 467 ms to answer a real question; the eager one (`rows = list(csv.DictReader(...))`) starts in 1,229 ms and answers in 1 ms. Measured to first answer they are 2.4× apart; measured to start-up, 29× apart *in the opposite order*.
+<!-- /GEN:lazy-eager -->
 
 ### Per-request latency: smaller numbers, far bigger spread
 
 Start-up is paid once. Per-request is paid on every call, and it is where implementations differ most. Timed against an already-warm process, repeating one real query with the data in memory:
 
+<!-- GEN:per-request-table -->
 | language | n | fastest | by | slowest | by | spread |
 |---|---:|---:|---|---:|---|---:|
-| **go** | 11 | 0.072 ms | opus-5@medium | 58.900 ms | terra@max | 815× |
-| **cpp** | 3 | 0.083 ms | opus-5 | 59.539 ms | terra@default | 717× |
-| **c** | 2 | 0.113 ms | opus-5 | 3.372 ms | fable-5 | 30× |
-| **swift** | 3 | 0.124 ms | opus-5 | 116.647 ms | terra@default | 941× |
-| **rust** | 2 | 0.148 ms | opus-5 | 2.776 ms | terra@default | 19× |
-| **objc** | 3 | 0.238 ms | opus-5 | 187.793 ms | terra@default | 789× |
-| **typescript** | 3 | 0.300 ms | opus-5 | 8.756 ms | terra@default | 29× |
-| **csharp** | 3 | 0.462 ms | opus-5 | 4.516 ms | fable-5 | 10× |
-| **python** | 11 | 0.593 ms | opus-5@medium | 156.201 ms | terra@low | 264× |
-| **erlang** | 3 | 0.851 ms | opus-5 | 164.230 ms | terra@default | 193× |
-| **java** | 2 | 0.865 ms | fable-5 | 1.348 ms | opus-5 | 1.6× |
-| **clojure** | 2 | 2.618 ms | opus-5 | 5.288 ms | terra@default | 2× |
-| **elixir** | 3 | 6.826 ms | fable-5 | 300.080 ms | terra@default | 44× |
+| **go** | 11 | 0.068 ms | opus-5@medium | 60.065 ms | terra@max | 879× |
+| **cpp** | 3 | 0.089 ms | opus-5 | 59.341 ms | terra@default | 668× |
+| **c** | 2 | 0.109 ms | opus-5 | 3.359 ms | fable-5 | 31× |
+| **swift** | 3 | 0.124 ms | opus-5 | 115.121 ms | terra@default | 930× |
+| **rust** | 2 | 0.154 ms | opus-5 | 2.797 ms | terra@default | 18× |
+| **objc** | 3 | 0.238 ms | opus-5 | 188.481 ms | terra@default | 793× |
+| **typescript** | 3 | 0.314 ms | opus-5 | 8.787 ms | terra@default | 28× |
+| **csharp** | 3 | 0.502 ms | opus-5 | 4.576 ms | fable-5 | 9× |
+| **python** | 11 | 0.606 ms | opus-5@medium | 162.409 ms | terra@low | 268× |
+| **java** | 2 | 0.854 ms | fable-5 | 1.377 ms | opus-5 | 2× |
+| **erlang** | 3 | 0.922 ms | opus-5 | 170.293 ms | terra@default | 185× |
+| **clojure** | 2 | 2.776 ms | opus-5 | 5.568 ms | terra@default | 2× |
+| **elixir** | 3 | 7.422 ms | fable-5 | 269.514 ms | terra@default | 36× |
+<!-- /GEN:per-request-table -->
 
-**Across the corpus: 0.072 ms to 300 ms — 4,150×.** The absolute numbers are three orders of magnitude below start-up and the spread is two orders of magnitude wider. Nine languages vary more between their own implementations here than the entire language ranking varies at start-up.
+<!-- GEN:per-request-summary -->
+**Across the corpus: 0.068 ms to 270 ms — 3,943×.** The absolute numbers are three orders of magnitude below start-up and the spread is far wider. 6 languages vary more between their own implementations here than the entire language ranking varies at start-up (116× from c to elixir).
+<!-- /GEN:per-request-summary -->
 
-**And the pattern is not about languages.** Opus-5 produced the fastest per-request implementation in 11 of the 13 languages; Terra the slowest in 10. By model median: opus **0.544 ms**, fable **4.516 ms**, terra **55.666 ms** — a 102× gap between models whose *cold starts* are indistinguishable (371–425 ms). Two models write programs that boot the same and then answer queries a hundred times apart.
+<!-- GEN:model-pattern -->
+**And the pattern is not about languages.** Opus-5 produced the fastest per-request implementation in 11 of the 13 languages with more than one run; Terra the slowest in 10. By model median: opus **0.569 ms**, fable **4.576 ms**, terra **58.153 ms** — a 102× gap between models whose *cold starts* sit within 1.2× of each other (382–444 ms). Two models write programs that boot about the same and then answer queries a hundred times apart.
+<!-- /GEN:model-pattern -->
 
 That is the design survey showing up in the milliseconds. Opus precomputed a lookup index in 22 of 23 runs; Terra in 11 of 21, and only at higher thinking levels:
 
+<!-- GEN:indexing-table -->
 | indexing | n | per-request median | cold-start median |
 |---|---:|---:|---:|
-| precomputed index | 37 | 1.099 ms | 377 ms |
-| linear scan | 14 | 6.189 ms | 453 ms |
+| precomputed index | 38 | 1.135 ms | 382 ms |
+| linear scan | 15 | 6.791 ms | 440 ms |
+<!-- /GEN:indexing-table -->
 
-Note what is *absent* — the expected trade-off. Indexing is supposed to cost start-up to buy query speed, and here it costs nothing: the indexed runs start faster too. There is no tension to balance on this task; one group simply built the better program. Indexing accounts for about 5.6× of a 102× gap, so most of Terra's cost lies elsewhere, with re-parsing per call the obvious candidate.
+Note what is *absent* — the expected trade-off. Indexing is supposed to cost start-up to buy query speed, and here it costs nothing: the indexed runs start faster too. There is no tension to balance on this task; one group simply built the better program. <!-- GEN:indexing-ratio --> Indexing accounts for about 6.0× of a 102× gap, so most of Terra's cost lies elsewhere, with re-parsing per call the obvious candidate.
+<!-- /GEN:indexing-ratio -->
 
 ### All three phases, together
 
+<!-- GEN:three-phase-table -->
 | language | n | cold start | + first query | = first answer | per-request |
 |---|---:|---:|---:|---:|---:|
-| **c** | 3 | 29 ms | 2 ms | 33 ms | 1.742 ms |
-| **cpp** | 3 | 245 ms | 1 ms | 245 ms | 0.686 ms |
-| **csharp** | 3 | 295 ms | 9 ms | 305 ms | 0.891 ms |
-| **swift** | 3 | 322 ms | 0 ms | 322 ms | 0.139 ms |
-| **python** | 11 | 348 ms | 83 ms | 727 ms | 2.329 ms |
-| **rust** | 2 | 375 ms | 2 ms | 377 ms | 1.462 ms |
-| **go** | 11 | 377 ms | 4 ms | 381 ms | 2.534 ms |
-| **java** | 3 | 420 ms | 10 ms | 657 ms | 1.107 ms |
-| **typescript** | 3 | 473 ms | 6 ms | 479 ms | 5.023 ms |
-| **clojure** | 2 | 1,081 ms | 16 ms | 1,097 ms | 3.953 ms |
-| **objc** | 3 | 1,158 ms | 6 ms | 1,163 ms | 5.558 ms |
-| **erlang** | 3 | 1,415 ms | 14 ms | 1,606 ms | 7.090 ms |
-| **elixir** | 3 | 3,381 ms | 333 ms | 3,395 ms | 27.718 ms |
+| **c** | 3 | 30 ms | 2 ms | 33 ms | 1.734 ms |
+| **cpp** | 3 | 247 ms | 1 ms | 247 ms | 0.704 ms |
+| **csharp** | 3 | 307 ms | 9 ms | 316 ms | 0.876 ms |
+| **swift** | 3 | 318 ms | 0 ms | 318 ms | 0.134 ms |
+| **python** | 11 | 358 ms | 84 ms | 752 ms | 2.370 ms |
+| **go** | 11 | 389 ms | 3 ms | 404 ms | 3.550 ms |
+| **java** | 3 | 434 ms | 11 ms | 699 ms | 1.115 ms |
+| **rust** | 2 | 442 ms | 2 ms | 443 ms | 1.475 ms |
+| **typescript** | 3 | 498 ms | 7 ms | 500 ms | 5.211 ms |
+| **objc** | 3 | 1,180 ms | 6 ms | 1,186 ms | 5.578 ms |
+| **clojure** | 2 | 1,183 ms | 17 ms | 1,200 ms | 4.172 ms |
+| **erlang** | 3 | 1,393 ms | 15 ms | 1,576 ms | 8.015 ms |
+| **elixir** | 3 | 3,535 ms | 343 ms | 3,550 ms | 28.941 ms |
+<!-- /GEN:three-phase-table -->
 
-Medians per language. **Which column matters depends entirely on process lifetime, and the two disagree about who wins.** Elixir boots 116× slower than C, yet its median implementation serves requests faster than Go's. A CLI invoked per command should read the start-up column; a long-lived server answering a million queries should read the last one, and would be badly misled by the first.
+<!-- GEN:three-phase-summary -->
+Medians per language. **Which column matters depends entirely on process lifetime, and the two orderings disagree — 13 language pairs swap places between them.** The sharpest is c against swift: c boots **10.4× faster** (30 ms vs 318 ms) and then serves requests **12.9× slower** (1.734 ms vs 0.134 ms). A CLI invoked per command should read the start-up column; a long-lived server answering a million queries should read the last one, and would be badly misled by the first.
+
+The disagreement is not universal, and the ends of the table are stable: elixir is last on both, at 3,535 ms to boot and 28.9 ms per request.
+<!-- /GEN:three-phase-summary -->
 
 One run in the set is unreproducible rather than slow, and it is worth naming: a Python implementation declares `mcp>=1.2` and imports `mcp.server.fastmcp`, which mcp 2.0 removed. It was correct when written and does not start today against an unpinned resolve. Open-ended dependency constraints make an archive perishable — the probe now retries with a capped major version to recover the measurement.
 
@@ -327,9 +348,24 @@ One run in the set is unreproducible rather than slow, and it is worth naming: a
 
 The five brazil match files overlap on purpose, so the same fixture appears in two or three of them. **23,954 is exactly the sum of the files** — that number means no deduplication at all, and the run reporting it double-counts: its own handshake answered *"Corinthians 2022 home: 44 matches"* where the spec's worked example says 19.
 
-The Go implementation loaded **16,947** and is the correct one. It canonicalises competition names across files and merges fixtures within a one-day window, because "one source stores the local kick-off and another the UTC date". It is externally verifiable: it reports **8,404** Série A matches for 2003–2023 against **8,406** expected from real season sizes, and its own `dataset_info` tool reports no load failures.
+One Go run (Opus 5 at `effort=low`) loaded **16,947** and is the correct one. It canonicalises competition names across files and merges fixtures within a one-day window, because "one source stores the local kick-off and another the UTC date". It is externally verifiable: it reports **8,404** Série A matches for 2003–2023 against **8,406** expected from real season sizes, and its own `dataset_info` tool reports no load failures.
 
 Both scored 12/12. Deduplication is an *implicit* part of the task — you cannot compute a correct 2019 table without it — and the pinned checklist never asks, because it tests whether a capability exists and not whether its answers are right.
+
+**How often do implementations get this right?** 22 of the 53 servers announce their load in a start-up banner, and the answer is cleanly bimodal — no middle ground at all:
+
+<!-- GEN:dedup-table -->
+| | n | matches loaded |
+|---|---:|---|
+| reconciled | 18 | 16,731 – 17,052 |
+| not reconciled | 4 | 23,854 – 23,954 (file sum: 23,954) |
+<!-- /GEN:dedup-table -->
+
+<!-- GEN:dedup-summary -->
+So **4 of 22 measurable runs double-count the overlapping fixtures**, and the rest land in a tight band around 16.8k despite reconciling independently, in different languages, with different keys. That agreement across implementations is itself evidence the figure is right.
+
+It also lets the source-reading classifier used later in this post be checked: its labels agree with the measured counts on **19 of 22 runs (86%)**. Good enough to report distributions from, not good enough to hang a causal claim on — which is exactly what happened to the deduplication row in the per-request table.
+<!-- /GEN:dedup-summary -->
 
 **Do not rank on the row count alone, in either direction.** An early version of the reference script keyed only on date and team names, and on that basis the *correct* Go implementation looked like a loader that had lost 17% of the corpus. A low count can be careful merging or a broken loader, and the two are indistinguishable without the dedup key that produced them.
 
@@ -337,7 +373,9 @@ The right test is a golden answer rather than a row count: 2019 Série A is a 20
 
 ## How differently the same task got built
 
-Every run in this section scored **12/12**. The checklist tests whether a capability exists, not how it was built — so the design decisions behind these programs are invisible in every number retort records. That is worth looking at directly, because two runs of the same model at different thinking levels produced programs 27× apart in start-up that disagreed about whether the data needed deduplicating at all.
+<!-- GEN:lazy-eager-intro -->
+Every run in this section scored **12/12**. The checklist tests whether a capability exists, not how it was built — so the design decisions behind these programs are invisible in every number retort records. That is worth looking at directly, because two runs of the same model at different thinking levels produced programs 29× apart in start-up that disagreed about whether the data needed deduplicating at all.
+<!-- /GEN:lazy-eager-intro -->
 
 So all 53 archived brazil implementations were classified by reading their source along six axes: storage, loading strategy, indexing, deduplication, MCP SDK versus hand-rolled protocol, and layout ([`scripts/implementation_survey.py`](scripts/implementation_survey.py)). These are **heuristics over source text** — evidence, not proof. Read the distributions, not any single run's label.
 
@@ -368,21 +406,25 @@ The pattern extends to the all-language experiment, where terra ran at default e
 
 Whether these decisions show up in the milliseconds depends entirely on which millisecond you look at:
 
+<!-- GEN:design-choice-table -->
 | choice | n | median time to first answer | median per-request |
 |---|---:|---:|---:|
-| dedup: date-window | 14 | 351 ms | 2.236 ms |
-| dedup: key-set | 25 | 509 ms | 1.333 ms |
-| **dedup: none** | 12 | 412 ms | **63.324 ms** |
-| indexing: precomputed | 37 | 479 ms | 1.099 ms |
-| indexing: scan | 14 | 463 ms | 6.189 ms |
-| protocol: SDK | 18 | 650 ms | 0.995 ms |
-| protocol: hand-rolled | 33 | 426 ms | 5.288 ms |
+| dedup: date-window | 14 | 392 ms | 2.247 ms |
+| dedup: key-set | 26 | 529 ms | 1.365 ms |
+| dedup: none | 13 | 443 ms | 64.113 ms |
+| indexing: precomputed | 38 | 476 ms | 1.135 ms |
+| indexing: scan | 15 | 481 ms | 6.791 ms |
+| protocol: SDK | 18 | 667 ms | 1.005 ms |
+| protocol: hand-rolled | 35 | 444 ms | 5.568 ms |
+<!-- /GEN:design-choice-table -->
 
-In the first-answer column nothing separates: every gap is smaller than the within-language spread, and skipping deduplication even looks mildly *faster*, because there is less work to do at load. In the per-request column the same choices separate by 5–47×. **A run that never reconciled the overlapping files answers queries 28–47× slower than one that did** — it is scanning 23,954 rows where the others scan 17,000, on every single call, and the runs that skipped dedup are largely the same runs that skipped indexing.
+In the first-answer column nothing separates: every gap is smaller than the within-language spread. In the per-request column the same source-text classifications separate by 5–47×.
 
-So the correctness shortcut is also the performance shortcut, and both are invisible to the checklist that passed all of them.
+<!-- GEN:dedup-contradiction -->
+**But the deduplication row does not survive checking, and it is worth showing why rather than quietly dropping it.** 22 of the 53 servers announce how many matches they loaded in their own start-up banner, which is ground truth for whether they reconciled the files. Against that measured signal the direction reverses: the 18 runs that demonstrably reconciled have a per-request median of **0.442 ms**, and the 3 measurable runs that did not are **0.154 ms** — faster, not slower. The large figure in the table comes from source-text labels over all 53, and it does not hold where the truth is observable. Fewer rows to scan is a real effect and it is small; whatever those runs are paying for, it is not the row count.
+<!-- /GEN:dedup-contradiction -->
 
-Two caveats. These axes are confounded with language — C, C++ and Objective-C are hand-rolled in every run, TypeScript uses the SDK in every run — so "the SDK is 5× faster" is not a claim this data can make; the SDK runs are largely Opus's, and Opus indexed. And **the dedup labels could not be validated**: the plan was to check them against `rows_loaded`, since a run that skipped deduplication should report 23,954, exactly the sum of the five overlapping files, but that field is scraped from each server's start-up banner and is null for essentially every run here. The labels rest on source text alone.
+So: indexing survives, protocol and dedup do not. The honest summary is that one design axis tracks per-request cost and the others are confounded with model and language — C, C++ and Objective-C are hand-rolled in every run, TypeScript uses the SDK in every run, and the SDK runs are largely Opus's, which indexed.
 
 The finding that survives all of it: these are 53 implementations of one specification, all of which passed, and they disagree about storage layout, when to load, whether to index, and whether the data needs reconciling at all. A pass-proportion sees none of it, and neither does start-up time.
 

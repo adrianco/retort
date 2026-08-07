@@ -808,6 +808,29 @@ def _stderr_file():
     return tempfile.TemporaryFile(mode="w+", errors="replace")
 
 
+def _stderr_text(fh) -> str:
+    try:
+        fh.seek(0)
+        return fh.read()
+    except (OSError, ValueError):
+        return ""
+
+
+def _scrape_banner(text: str, captured: dict) -> None:
+    """Pull "loaded N matches ..." out of an implementation's own start-up log."""
+    for line in text.splitlines():
+        line = line.strip()
+        if not line or line.startswith("{"):
+            continue
+        m = re.search(r"(\d[\d,]{3,})\s+matches", line)
+        if m:
+            captured["rows"] = int(m.group(1).replace(",", ""))
+            captured.setdefault("banner", line[:200])
+            return
+        if not captured.get("banner") and "load" in line.lower():
+            captured["banner"] = line[:200]
+
+
 def _stderr_tail(fh, limit: int = 300) -> str:
     try:
         fh.seek(0)
@@ -1248,7 +1271,15 @@ def _probe_brazil(run_dir: Path, language: str) -> RuntimeResult:
                 tail = _stderr_tail(errf)
                 failure["why"] = tail or "no reply to tools/list"
                 return None
-            return (time.perf_counter() - t0) * 1000.0
+            elapsed = (time.perf_counter() - t0) * 1000.0
+            # Scrape the start-up banner from STDERR as well as stdout. A
+            # correct MCP server keeps stdout pure protocol and logs to stderr,
+            # so scanning only stdout meant `rows_loaded` was null for all 53
+            # runs -- the very field needed to check whether an implementation
+            # deduplicated the five overlapping match files.
+            if captured.get("rows") is None:
+                _scrape_banner(_stderr_text(errf), captured)
+            return elapsed
         except (BrokenPipeError, OSError) as exc:
             failure["why"] = _stderr_tail(errf) or str(exc)
             return None
