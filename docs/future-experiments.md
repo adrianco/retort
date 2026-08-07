@@ -374,7 +374,7 @@ invest in the solver dependency, master.db merge, and first-class docs.
 <!-- SCAN-HEARTBEAT: the daily scan rewrites the next line on EVERY run, including
      days it finds nothing. Do not hand-edit it. If the date is more than ~2 days
      stale, the scan is not running — see "when the heartbeat goes stale" below. -->
-**Daily scan last completed: 2026-08-06** (scanning for new 64GB-fittable coding models)
+**Daily scan last completed: 2026-08-07** (scanning for new 64GB-fittable coding models)
 
 New open-weight coding models found by the daily scan that plausibly fit 64GB at 4-bit; promote to a
 numbered experiment when prioritised.
@@ -495,11 +495,64 @@ survives the toggle, restart the Claude desktop app, which clears the in-memory 
   — weights: https://huggingface.co/CohereLabs/North-Mini-Code-1.0
   — GGUF: https://huggingface.co/unsloth/North-Mini-Code-1.0-GGUF
 
+- 2026-08-07 — **BTL-3 (Bad Theory Labs)** — *a second matched-base probe, on the 27B this time.*
+  Apache 2.0 **rank-32 PEFT LoRA adapter post-trained on `Qwen3.6-27B`** (pinned to base revision
+  `6a9e13bd…`) explicitly for coding agents, repo work and structured tool use — single, sequential
+  **and parallel** tool calls, with training aimed at recovering from failed tool results and at
+  *stopping* when no action is needed. **BFCL v4 AST 88.5%, BFCL irrelevance 91.2%** (the
+  don't-call-a-tool-you-don't-need metric, and the one that matters most for our agentic loop),
+  **LiveCodeBench v6 88.1%**, HumanEval 95.12% pass@1 in thinking mode; 262,144 context, same as our
+  35B/80B runs. **The adapter itself is 934 MB**, so merged-and-4-bit it is just the 27B base
+  (~17 GB) — fits 64GB with enormous headroom; a "Compact edition" single 8.39 GB file (<2.5 bits
+  per parameter) also ships for local inference. **Why it earns a slot:** exactly the KAT-Coder
+  argument one size class down — same architecture, same context, same serving path as the
+  Qwen3.6-27B candidate above, with **agentic post-training as the only variable** — and it pairs
+  with KAT-Coder to ask whether that effect is size-dependent. **Serving caveat, and it is the real
+  work here:** this is an *adapter*, not a model. Upstream ships Transformers/vLLM only; neither oMLX
+  nor mainline llama.cpp serves a PEFT adapter usefully, so a run needs `merge_and_unload()` onto the
+  base and then a fresh 4-bit convert — cheap, but it must happen before the cell, and the merged
+  hash must be recorded like any other tuning parameter. Also verify the Compact edition's sub-2.5-bit
+  quant does not break tool-call formatting (a malformed `<tool_call>` scores an indistinguishable
+  false zero); prefer merging at 4-bit over trusting the Compact build for a headline number. Note
+  the base, Qwen3.6-27B, is *itself* still untested here — run the base before or alongside, or the
+  comparison has no control. Released 2026-07-26.
+  Source: https://hackernoon.com/this-qwen-lora-adapter-is-built-for-autonomous-coding-agents
+  — weights: https://huggingface.co/badtheorylabs/BTL-3
+
+- 2026-08-07 — **Nanbeige4.2-3B (Nanbeige Lab / BOSS Zhipin)** — Apache 2.0, **4B total / ~3B
+  non-embedding**, and by far the smallest thing on this list — a **looped transformer**: a 22-layer
+  stack run twice with *shared* weights, so it does 44 layers of compute at 22 layers of memory.
+  Pretrained from scratch on 28T tokens and post-trained for agents. **SWE-bench Verified 63.6%** —
+  beating Qwen3.5-9B and Gemma4-12B, and within ~6 points of the 35B-A3B-derived KAT-Coder above at
+  roughly a *tenth* the weights. 262,144 context; tool-calling supported (XML format recommended —
+  **check Hermes' parser accepts that shape before a run**, it is the likeliest silent failure);
+  configurable thinking mode, so record which was used. **~2–3 GB at 4-bit.** Serving is unblocked on
+  both backends with **no arch gate-probe needed**: llama.cpp and Ollama are supported upstream, a
+  bartowski GGUF ships, and — unusually for a new arch — an **`mlx-community/Nanbeige4.2-3B-OptiQ-4bit`
+  quant already exists**, so oMLX is a straight load. **Two distinct reasons to want it:** (1) it is
+  the first candidate small enough that the *whole* 64GB stays free, which makes it the natural
+  **draft model** for the §3 speculative-decoding/MTP lever — the top speed lever, currently blocked
+  on not having one; (2) as a subject in its own right it probes the far end of the size axis, where
+  every local result so far sits at 27B–80B. Cheap to run and fast, so it costs little to find out.
+  Released 2026-07-27; technical report arXiv:2607.22083.
+  Source: https://arxiv.org/html/2607.22083
+  — weights: https://huggingface.co/Nanbeige/Nanbeige4.2-3B
+  — MLX 4-bit: https://huggingface.co/mlx-community/Nanbeige4.2-3B-OptiQ-4bit
+
 *Excluded this scan as too large for 64GB at 4-bit, recorded so they are not re-investigated:*
 Kimi K3 (2.8T MoE, 2026-07-27), Inkling-Small (276B-A12B, 2026-08-02 — ~140 GB at 4-bit despite the
 "Small" name; its parent Inkling is 975B-A41B), Tencent Hy3 (295B-A21B, 2026-07-06), and Mistral
 Leanstral 1.5 (119B-A6B, 2026-07-02 — borderline on size *and* a Lean 4 theorem-prover, not an
 agentic coder).
+
+*Also excluded 2026-08-07, same reason:* **DeepSeek-V4-Flash-0731** (284B-A13B, MIT, 2026-07-31 —
+~142 GB at 4-bit; its post-training update is explicitly coding/agent-targeted, so it is a shame
+rather than an oversight), **Solar Open 2** (Upstage, 250B-A15B, 2026-07-23 — ~125 GB), **Motif-3-Beta**
+(314B-A13B, 2026-07 — ~157 GB), and **Laguna S 2.1** (118B-A8B — ~60 GB, borderline *and* the `laguna`
+arch is still unmerged upstream, the same blocker that stopped Laguna XS 2.1). Also excluded as
+out-of-scope rather than oversized: **Qwen3.7 Flash** and **Qwen3.8 Max** (Alibaba, 2026-07-27 /
+2026-08-02) are **closed weights** — Qwen's last open general-purpose release remains Qwen3.6-27B —
+and **Antares 1B** (2026-07, security-specialised, not an agentic coder).
 
 ### Swiftlet — a third serving backend (expert streaming), NOT a model  — BUILT, NOT YET SMOKE-TESTED
 
