@@ -374,7 +374,7 @@ invest in the solver dependency, master.db merge, and first-class docs.
 <!-- SCAN-HEARTBEAT: the daily scan rewrites the next line on EVERY run, including
      days it finds nothing. Do not hand-edit it. If the date is more than ~2 days
      stale, the scan is not running — see "when the heartbeat goes stale" below. -->
-**Daily scan last completed: 2026-08-07** (scanning for new 64GB-fittable coding models)
+**Daily scan last completed: 2026-08-08** (scanning for new 64GB-fittable coding models)
 
 New open-weight coding models found by the daily scan that plausibly fit 64GB at 4-bit; promote to a
 numbered experiment when prioritised.
@@ -539,6 +539,31 @@ survives the toggle, restart the Claude desktop app, which clears the in-memory 
   — weights: https://huggingface.co/Nanbeige/Nanbeige4.2-3B
   — MLX 4-bit: https://huggingface.co/mlx-community/Nanbeige4.2-3B-OptiQ-4bit
 
+- 2026-08-08 — **Devstral Small 2 / `Devstral-Small-2-24B-Instruct-2512` (Mistral)** — *the successor
+  to the already-covered `Devstral-Small-2507`, and a different model, not a re-release.* Apache 2.0
+  **24B dense**, 262K context, multimodal (image inputs), built with All Hands AI explicitly for
+  code agents — exploring codebases, multi-file edits, tool-driven SWE loops. **SWE-bench Verified
+  68.0%** (its 123B sibling Devstral 2 hits 72.2% but is far too large here). **Q4 ≈ 14 GB → fits
+  64GB with enormous headroom**, the second-smallest entry on this list after Nanbeige. **Serving is
+  the least-blocked of any candidate here:** Mistral arch + tool parser are mainline llama.cpp (the
+  §"Serving backends" note already records that llamacpp *unblocks Devstral*), GGUFs ship from
+  ggml-org / bartowski / unsloth / lmstudio-community, **and an `mlx-community/…-2512-4bit` exists**
+  — so both retort backends are live paths. **Two caveats, both material:** (1) the mlx-community
+  4-bit has an open discussion reporting a **tokenizer bug producing gibberish** — smoke-test its
+  output *and* its `<tool_call>` formatting before trusting any number, or serve via llamacpp
+  instead (a garbled tool call scores an indistinguishable false zero); (2) this is a **2025-12-09
+  release, older than every gap entry already on this list** — it surfaced via current local-coding
+  roundups that still call it the strongest non-Qwen local coder, so it is a gap here rather than
+  news. Judge priority accordingly: below KAT-Coder and North Mini Code. **Why it still earns a
+  slot:** every other entry on this list is a Qwen derivative or an MoE; this is the only *dense*,
+  *Mistral-lineage*, coder-specialised candidate, which makes it the cleanest partner for the
+  §3 **MoE-vs-dense** question — and §3 already notes the earlier Devstral attempt failed on the
+  *wrong harness*, not the model, so this is unfinished business rather than a new idea.
+  Source: https://mistral.ai/news/devstral-2-vibe-cli/
+  — weights: https://huggingface.co/mistralai/Devstral-Small-2-24B-Instruct-2512
+  — GGUF: https://huggingface.co/bartowski/mistralai_Devstral-Small-2-24B-Instruct-2512-GGUF
+  — MLX 4-bit: https://huggingface.co/mlx-community/Devstral-Small-2-24B-Instruct-2512-4bit
+
 *Excluded this scan as too large for 64GB at 4-bit, recorded so they are not re-investigated:*
 Kimi K3 (2.8T MoE, 2026-07-27), Inkling-Small (276B-A12B, 2026-08-02 — ~140 GB at 4-bit despite the
 "Small" name; its parent Inkling is 975B-A41B), Tencent Hy3 (295B-A21B, 2026-07-06), and Mistral
@@ -553,6 +578,14 @@ arch is still unmerged upstream, the same blocker that stopped Laguna XS 2.1). A
 out-of-scope rather than oversized: **Qwen3.7 Flash** and **Qwen3.8 Max** (Alibaba, 2026-07-27 /
 2026-08-02) are **closed weights** — Qwen's last open general-purpose release remains Qwen3.6-27B —
 and **Antares 1B** (2026-07, security-specialised, not an agentic coder).
+
+*Also excluded 2026-08-08:* **Ling-3.0-flash** (inclusionAI / Ant Group, announced 2026-07-23) —
+124B-A5.1B hybrid-linear-attention MoE, coding-targeted, 256K native context, and the only genuinely
+last-cycle open-weight coding release this scan found. **~62 GB at 4-bit leaves no room for context
+or KV cache on a 64GB box** — the same borderline-oversize call as Laguna S 2.1 above. Weights were
+also gated behind a free-API window through 2026-08-03 rather than published at announcement.
+Re-open only if a sub-4-bit build with intact tool-calling appears. Source:
+https://huggingface.co/inclusionAI/Ling-3.0-flash
 
 ### Swiftlet — a third serving backend (expert streaming), NOT a model  — BUILT, NOT YET SMOKE-TESTED
 
