@@ -374,7 +374,7 @@ invest in the solver dependency, master.db merge, and first-class docs.
 <!-- SCAN-HEARTBEAT: the daily scan rewrites the next line on EVERY run, including
      days it finds nothing. Do not hand-edit it. If the date is more than ~2 days
      stale, the scan is not running — see "when the heartbeat goes stale" below. -->
-**Daily scan last completed: 2026-08-08** (scanning for new 64GB-fittable coding models)
+**Daily scan last completed: 2026-08-09** (scanning for new 64GB-fittable coding models)
 
 New open-weight coding models found by the daily scan that plausibly fit 64GB at 4-bit; promote to a
 numbered experiment when prioritised.
@@ -564,6 +564,28 @@ survives the toggle, restart the Claude desktop app, which clears the in-memory 
   — GGUF: https://huggingface.co/bartowski/mistralai_Devstral-Small-2-24B-Instruct-2512-GGUF
   — MLX 4-bit: https://huggingface.co/mlx-community/Devstral-Small-2-24B-Instruct-2512-4bit
 
+- 2026-08-09 — **Qwen3.8-27B (Alibaba)** — **ANNOUNCED, WEIGHTS NOT YET PUBLISHED — do not schedule
+  a run yet; re-check after 2026-08-10.** Listed here because it *corrects a standing note in this
+  file*: the exclusion block below records Qwen3.8 as closed-weight, and that is now out of date.
+  Alibaba announced Qwen3.8-Max (2.4T MoE) on **2026-08-03** and committed to publishing open weights
+  for **both** Max and a new **Qwen3.8-27B** during the week of **2026-08-10**, on Hugging Face and
+  ModelScope — the first time a Max-class Qwen goes open. The Max is hopelessly oversized here
+  (~1.2 TB at 4-bit); the **27B is the entry that matters**, as the direct successor to the
+  already-listed Qwen3.6-27B candidate and pitched at "Coding and Cowork". Third-party quant plans
+  put it at **~17 GB at 4-bit → fits 64GB with enormous headroom**, consistent with a 27B-class model
+  (predecessor is dense; 3.8's architecture is **not yet disclosed**). **Nothing else is confirmed
+  yet** — no license (Qwen3.6-27B was Apache 2.0, but Alibaba has not named one for the 3.8 open
+  releases), no context length, no tool-calling/agentic spec, no benchmarks, and **no HF repo**: the
+  only Qwen3.8-27B repos that exist today are reserved placeholders that say so on the card
+  (`huginnfork/Qwen3.8-27B-FP8`: "there are no weights in this repository yet"). **Why it is worth a
+  slot the moment weights land:** it would be the *third* matched-base probe on this list — the same
+  27B size class as the Qwen3.6-27B and BTL-3 entries above, but with a **generation change** rather
+  than post-training as the variable, which is the one comparison KAT-Coder and BTL-3 cannot make.
+  Verify at drop: license, dense-vs-MoE, that the arch is in mainline llama.cpp / oMLX (a new
+  generation is exactly where a Laguna-style arch gate appears), and tool-call formatting.
+  Source: https://www.latent.space/p/ainews-qwen-38-max24t-and-27b-new
+  — specs/status roundup: https://www.yottalabs.ai/post/qwen-3-8-27b-specs-hardware-requirements-how-to-run-2026
+
 *Excluded this scan as too large for 64GB at 4-bit, recorded so they are not re-investigated:*
 Kimi K3 (2.8T MoE, 2026-07-27), Inkling-Small (276B-A12B, 2026-08-02 — ~140 GB at 4-bit despite the
 "Small" name; its parent Inkling is 975B-A41B), Tencent Hy3 (295B-A21B, 2026-07-06), and Mistral
@@ -586,6 +608,14 @@ or KV cache on a 64GB box** — the same borderline-oversize call as Laguna S 2.
 also gated behind a free-API window through 2026-08-03 rather than published at announcement.
 Re-open only if a sub-4-bit build with intact tool-calling appears. Source:
 https://huggingface.co/inclusionAI/Ling-3.0-flash
+
+*Also excluded 2026-08-09, out-of-scope rather than oversized:* **MiniMax H3 / Hailuo 3.0** (weights
+published 2026-08-03, 33B dense and small enough to fit) — it is an **omni-modal video generation
+model** (text/image/audio → 4–15 s clips), not a coding LLM, and its licence excludes several
+jurisdictions. **Kimi K3** (Moonshot, weights 2026-07-27) is already recorded as oversized above;
+noted again only because it dominated this cycle's coverage — ~1.4 TB of MXFP4 weights.
+**Soofi S 30B-A3B** (2026-07-15) fits at 4-bit but is a German/English **base** foundation model with
+no agentic-coding post-training, so it fails the coding-candidate bar rather than the size bar.
 
 ### Swiftlet — a third serving backend (expert streaming), NOT a model  — BUILT, NOT YET SMOKE-TESTED
 
