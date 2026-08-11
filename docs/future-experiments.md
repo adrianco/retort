@@ -586,6 +586,44 @@ survives the toggle, restart the Claude desktop app, which clears the in-memory 
   Source: https://www.latent.space/p/ainews-qwen-38-max24t-and-27b-new
   — specs/status roundup: https://www.yottalabs.ai/post/qwen-3-8-27b-specs-hardware-requirements-how-to-run-2026
 
+- 2026-08-11 — **Muse Glimmer 30B (Meta Superintelligence Labs)** — *the first genuinely
+  last-cycle drop this list has seen in a while: weights published **2026-08-10**, yesterday.*
+  Apache 2.0, **30B dense** (a 28B text decoder + a 2B perception encoder — it is multimodal, and the
+  vision half is dead weight for retort's text-only tasks), **131,072 default context, 262,144 max**
+  — the same window as our 35B/80B runs. Distilled from Meta's larger **Muse Spark** by logit
+  distillation in pre-training, then mid-trained on longer contexts and agent-heavy data, then
+  post-trained with SFT + on-policy distillation + RL — i.e. it is *built* for agent loops rather than
+  scoring well on them incidentally. Explicitly pitched at multi-step reasoning, **reliable tool use
+  with precise schemas over extended workflows**, and *failure recovery*. **MCP Atlas 75.5** vs
+  Gemma4-31B 54.2 and Qwen3.6-27B 62.5 — both of which are candidates already on this list, so it
+  arrives with a direct head-to-head against two entries here; **SWE-bench Pro 51.2**. **~17 GB at
+  4-bit (under 20 GB), fits 64GB with enormous headroom.**
+  **Serving is unblocked on both backends and needs no Laguna-style arch gate-probe** — Meta shipped
+  optimized llama.cpp, MLX and ExecuTorch integrations at launch, official GGUFs
+  (`muse-glimmer-30B-kquant-17gb.gguf`) plus unsloth UD-Q2…Q8 builds, an Ollama entry, and an
+  `mlx-community` 4-bit.
+  **Three caveats, and the first is a live false-zero trap of exactly the kind CLAUDE.md exists for:**
+  (1) **do NOT use the `meta-models` oQ4e MLX checkpoint** — it was quantized with oMLX v0.5.8.dev1,
+  before the embed-norm fix (mlx-vlm#1839, landed in 0.5.8.dev3), and it **emits no function calls at
+  all** (it plans the call, then `</think>` → `<|eot|>`) while decoding at 9–12 tok/s instead of 38.
+  A retort cell on that checkpoint would score a clean, plausible zero with nothing in the archive
+  saying why. Use **`mlx-community/Muse-Glimmer-30B-4bit`** on **oMLX ≥ 0.5.8.dev3**, and smoke-test a
+  real `<tool_call>` before the grid. (2) Meta's **default sampling is temperature 1.0** / top_p 0.95 /
+  top_k 64 — the precise unrecorded default that cost this project half its local reliability; set and
+  verify it. (3) It has **configurable reasoning effort (low/medium/high/xhigh)** — record which was
+  used, like KAT-Coder's thinking mode. **Why it earns a high slot:** it is the first **Meta-lineage**
+  local candidate, and the first *distilled-from-a-frontier-sibling* one — a different axis from every
+  entry above, which are all either Qwen derivatives, post-training probes on a shared base, or
+  other-lineage from-scratch models. It is also a 30B dense at the same size class as the Qwen3.6-27B
+  / Gemma 4 / BTL-3 entries, so it slots straight into the §3 MoE-vs-dense question with published
+  head-to-heads against two of them already in hand.
+  Source: https://research.meta.ai/blog/introducing-muse-glimmer-open-agentic-model
+  — via: https://thenewstack.io/meta-glimmer-distillation-agents/ (user, 2026-08-11)
+  — weights: https://huggingface.co/meta-models/Muse-Glimmer-30B
+  — MLX 4-bit: https://huggingface.co/mlx-community/Muse-Glimmer-30B-4bit
+  — GGUF: https://huggingface.co/unsloth/Muse-Glimmer-30B-GGUF
+  — the broken-quant issue: https://github.com/jundot/omlx/issues/2589
+
 *Excluded this scan as too large for 64GB at 4-bit, recorded so they are not re-investigated:*
 Kimi K3 (2.8T MoE, 2026-07-27), Inkling-Small (276B-A12B, 2026-08-02 — ~140 GB at 4-bit despite the
 "Small" name; its parent Inkling is 975B-A41B), Tencent Hy3 (295B-A21B, 2026-07-06), and Mistral
