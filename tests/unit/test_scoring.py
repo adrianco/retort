@@ -71,7 +71,11 @@ class TestScorerRegistry:
         # `runtime` starts the produced program and times a fixed probe; it is
         # registered but only runs when named in an experiment's `responses:`.
         assert "runtime" in reg
-        assert len(reg) == 11
+        # `factual_accuracy` asks the produced server questions with known
+        # answers (2019 Série A) and GATES on them — a run can implement every
+        # checklist item and still double-count the overlapping match files.
+        assert "factual_accuracy" in reg
+        assert len(reg) == 12
 
     def test_register_and_get(self):
         reg = ScorerRegistry()
@@ -91,6 +95,7 @@ class TestScorerRegistry:
             "bead_usage_score",
             "code_quality",
             "defect_rate",
+            "factual_accuracy",
             "findings",
             "idiomatic",
             "maintainability",

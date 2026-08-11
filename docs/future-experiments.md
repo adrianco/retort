@@ -59,47 +59,58 @@ that the no-write guard still fires on an empty workspace.
 
 ---
 
-## 0. brazil-bench checklist gap: the requirements don't test CORRECTNESS  — OPEN (proposal, do not act unilaterally)
+## 0. brazil-bench correctness gate — BUILT (2026-08-11), needs a run
 
-Found 2026-07-30 while writing [tasks-blog.md](../tasks-blog.md), from the fastest-ever brazil pass
-(exp-55, Terra/medium/python, 3m19s, scored **12/12**).
+`REQUIREMENTS.json` asks whether a capability *exists* ("a tool filters matches by team name"),
+never whether its **numbers are right**, and the agents' own tests assert accounting identities
+(`matches == wins+draws+losses`) that stay true when every match is counted twice. So a run can
+score 12/12 with wrong answers.
 
-The six Kaggle files **overlap**: BR-Football covers 2014–2023, Brasileirao_Matches 2012–2022,
-novo_campeonato 2003–2019. `load()` concatenates them, so the same real-world match exists 2–3
-times (23,954 rows = the exact sum of the five files, i.e. no dedup anywhere). That run's own MCP
-handshake returned **Corinthians 2022 home: 44 matches** — a Brasileirão club plays **19** home
-league games; the spec's own worked example says 19. It double-counts.
+**Built:** a `factual_accuracy` scorer (`scoring/scorers/factual_accuracy.py`, registered, in the
+`retort init` template). It starts the finished server, finds a standings tool from the server's
+**own advertised schema**, and checks two externally-verifiable facts about the 2019 Série A —
+Flamengo's record is **28W-6D-4L** (which pins both 38 played and 90 points) and **all 20 clubs**
+are present. Both are stated in the task's own worked example, so this tests the spec as written
+rather than adding a requirement.
 
-It still scored 12/12 because:
+**Decision (user, 2026-08-11): it GATES.** A run that answers wrongly fails, and the failure is fed
+to the self-repair second chance with the specific wrong figure so it can fix it —
+`_seed_repair_workspace` folds `_factual.json` into `FEEDBACK.md`. **A server that cannot be started
+also fails**: an artifact that does not run is a broken deliverable, and harness faults are handled
+separately (the pipeline aborts rather than recording them). That is deliberately the opposite of
+`runtime`, which returns NULL when it cannot measure — do not harmonise them.
 
-- `REQUIREMENTS.json` asks whether a capability *exists* ("a tool filters matches by team name"),
-  never whether its **numbers are right**. The word "graph" appears 0 times too, though the spec's
-  overview asks for a "knowledge graph interface" — this solution has no graph at all, and passes.
-- The agent's own tests assert **accounting identities** (`matches == wins+draws+losses`,
-  `points == wins*3+draws`) which remain true when every match is counted twice.
-- The judge flagged the overlap but as **low/enhancement**, scoped only to `standings()` (the one
-  method the agent guarded). It is broader: `team_statistics`, `head_to_head`, `search_matches`,
-  `aggregate_statistics` all double-count.
+**`REQUIREMENTS.json` is untouched**, so `requirement_coverage` keeps its meaning across all 284
+historical brazil runs. But **pass/fail is now a different question than it was**, so brazil
+pass-proportions from before and after this change are not strictly comparable. The user has
+accepted that explicitly; say so in any write-up that pools them.
 
-**Do not just edit `REQUIREMENTS.json`.** It is pinned precisely so `requirement_coverage` has a
-constant denominator across all **284** brazil runs; changing it silently re-bases every historical
-number and makes old and new runs incomparable — the exact failure this project keeps paying for.
+**What the evidence actually shows — narrower than this entry originally claimed.** The original
+note inferred wholesale double-counting from one run's log. Measured directly across the archive:
 
-Options, cheapest first:
+- **Loading 23,954 rows does NOT imply wrong answers.** That number is exactly the sum of the five
+  overlapping match files, but the cpp and rust runs load it and still answer 2019 correctly — they
+  reconcile inside the standings computation, and cpp reports *"1562 (889 counted once after
+  de-duplication)"* itself. Loading the sum is a smell, not a defect; the row-count assertion was
+  dropped for this reason.
+- **All 13 archived languages PASS the standings check.** No archived run is wrong on 2019.
+- **The original evidence was a team match count**, not standings ("Corinthians 2022 home: 44" where
+  19 is right). Probing that across implementations, they disagree with each other and cpp's own two
+  tools disagree (58 vs 50 for 2022 all-competitions) — because the answer depends on which
+  competitions the corpus covers. There is no clean golden answer there, so the 2019 table is the
+  only fully-determined ground and is what the scorer uses.
 
-1. **Add a golden-answer scorer** as a NEW response (not a change to the existing checklist), e.g.
-   `factual_accuracy`: a handful of externally-verifiable assertions (Corinthians 2022 home = 19
-   matches; Flamengo 2019 = 90 points — already used informally). New column, old numbers intact.
-2. **Version the checklist** (`REQUIREMENTS.v2.json`) and record which version graded each run, so
-   both can coexist in `master.db`.
-3. Leave as-is and document the limitation — pass-proportion then means "implements the capability
-   list", which is what it has always meant, and tasks-blog now says so explicitly.
+**Building it produced four false failures**, each of which would have failed CORRECT work, all from
+assuming a format the implementations do not share: looking for a literal "38" (rust prints no
+played column and the points column was read instead); counting table-shaped lines for the club
+total (a trailing "Bottom four (relegation zone): …" summary counted as a 21st club); one name token
+per club (rust renders `Athletico` and `Atlético-MG`); and even with alternatives, typescript renders
+**both** Atléticos as a bare `Atletico`, so they are only checkable as a pair. 11 unit tests pin all
+of it, including fabricated double-counted / truncated / missing-club tables that must fail.
 
-Option 1 is preferred: it measures the thing that's missing without touching what's comparable.
-
-**Still to verify** (deferred — exp-55 was running, and this repo runs ONE experiment at a time):
-re-run the archived artifact and count matches per (competition, season, source) to confirm the
-duplication factor per file pair. Evidence so far is from the run's own log, not a fresh execution.
+**REMAINING:** run it. Every archived run passes, so the gate has never fired on real data — the
+first experiment that includes `factual_accuracy` in `responses:` is the real test of whether it
+changes any verdict, and of whether the repair feedback actually helps a failing run recover.
 
 ---
 

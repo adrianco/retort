@@ -108,6 +108,12 @@ def create_default_registry() -> ScorerRegistry:
     # cannot measure, never a 0 that would read as "infinitely slow".
     from retort.scoring.scorers.runtime import RuntimeScorer
     registry.register(RuntimeScorer())
+    # GATES, and deliberately unlike runtime: asks the finished server questions
+    # with externally-verifiable answers (2019 Série A) and FAILS a run that gets
+    # them wrong — or that will not start at all. See factual_accuracy.py for why
+    # a dead server scores 0 here but NULL in runtime.
+    from retort.scoring.scorers.factual_accuracy import FactualAccuracyScorer
+    registry.register(FactualAccuracyScorer())
     # build_time was removed in favor of the raw `_duration_seconds`
     # telemetry written automatically by cli._store_run_result. Use that
     # column in retort analyze / report effects for timing analysis.

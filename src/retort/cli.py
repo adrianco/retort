@@ -50,6 +50,11 @@ responses:
   # by re-scoring. Runs it cannot measure are recorded as NULL, not 0.
   # See docs/runtime-measurement.md.
   - runtime
+  # Asks the finished server questions with externally-verifiable answers and
+  # GATES on them: a run can implement every checklist item and still get the
+  # numbers wrong. Failures are fed to the self-repair second chance with the
+  # specific wrong figure. No-op (1.0) for tasks that have no golden answers.
+  - factual_accuracy
   # NOTE: `build_time` was removed — use the `_duration_seconds` telemetry
   # written automatically by every run instead.
 
@@ -1036,7 +1041,14 @@ def run_experiments(
                         except Exception as exc:
                             click.echo(f"  (spec gate crashed: {exc}; not gating)", err=True)
 
-                    run_ok = artifacts.succeeded and not tests_failed and not spec_failed
+                    # Third gate: the answers must be RIGHT, not just present.
+                    # A brazil run can implement every checklist item and still
+                    # double-count the overlapping match files; requirement_coverage
+                    # cannot see that, because it asks whether a capability exists.
+                    # Scores below 1.0 mean a golden-answer assertion failed.
+                    factual_failed = _factual_gate_failed(scores)
+                    run_ok = (artifacts.succeeded and not tests_failed
+                              and not spec_failed and not factual_failed)
                     # A run that never completed (agent crash / timeout kill /
                     # server unreachable) is not a data point — it is retried.
                     # A completed-but-gate-failed run IS a data point (progress).
@@ -1097,7 +1109,8 @@ def run_experiments(
                                 # adopt the second attempt as the recorded result
                                 artifacts, scores = a2, s2
                                 tests_failed, spec_failed, req_cov, archived = tf2, sf2, rc2, arch2
-                                run_ok = a2.succeeded and not tf2 and not sf2
+                                run_ok = (a2.succeeded and not tf2 and not sf2
+                                          and not _factual_gate_failed(s2))
                                 run_crashed = not a2.succeeded
                                 second_try = True
                         finally:
@@ -1283,6 +1296,22 @@ def _repair_prior_run(base: str, language: str, replicate: int):
     return {"dir": prior_dir, "status": status, "req_cov": req_cov}
 
 
+def _factual_gate_failed(scores) -> bool:
+    """True when a golden-answer assertion failed.
+
+    Absent (a task with no golden answers, or the scorer not requested) is NOT a
+    failure — only a recorded score below 1.0 is. The scorer itself returns 1.0
+    for tasks it does not cover, so this stays a no-op outside brazil-bench.
+    """
+    if scores is None:
+        return False
+    try:
+        value = scores.get("factual_accuracy")
+    except AttributeError:
+        return False
+    return value is not None and value < 1.0
+
+
 def _seed_repair_workspace(env_dir: Path, prior, requirements_path: Path | None) -> None:
     """Seed a provisioned playpen with a prior attempt's code + a FEEDBACK.md so
     the agent repairs rather than rebuilds. TASK.md (written by provision) stays.
@@ -1333,6 +1362,20 @@ def _seed_repair_workspace(env_dir: Path, prior, requirements_path: Path | None)
             for f in json.loads(findings_file.read_text()).get("top_findings", [])[:10]:
                 lines.append(f"- {f.get('title') or f.get('description') or f}")
         except (OSError, ValueError):
+            pass
+    # Golden-answer failures, with the specific wrong number and how to fix it.
+    # Without this the repair attempt is told only "you failed"; with it the
+    # agent is told "Flamengo shows 76 played, expected 38, deduplicate on
+    # (date, home, away)" — which is the whole point of gating on facts.
+    factual = prior["dir"] / "_factual.json"
+    if factual.exists():
+        try:
+            from retort.scoring.scorers.factual_accuracy import Assertion, FactualResult
+            raw = json.loads(factual.read_text())
+            fr = FactualResult(ok=raw.get("ok", False), note=raw.get("note", ""),
+                               assertions=[Assertion(**a) for a in raw.get("assertions", [])])
+            lines += fr.feedback_lines()
+        except (OSError, ValueError, TypeError):
             pass
     lines += ["", "Fix the existing code so every requirement above is met and the tests run and pass."]
     (env_dir / "FEEDBACK.md").write_text("\n".join(lines))
