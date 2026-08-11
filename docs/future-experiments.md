@@ -624,6 +624,48 @@ survives the toggle, restart the Claude desktop app, which clears the in-memory 
   — GGUF: https://huggingface.co/unsloth/Muse-Glimmer-30B-GGUF
   — the broken-quant issue: https://github.com/jundot/omlx/issues/2589
 
+- 2026-08-11 — **NVIDIA Nemotron 3.5 Lightning / `NVIDIA-Nemotron-3.5-Lightning-30B-A3B`** — *weights
+  published **2026-08-11**, today; and the only candidate this list has ever seen that NVIDIA says was
+  **trained for the Hermes Agent harness** — retort's exact agent.* **OpenMDW-1.1** ("fully open —
+  weights, data, and recipes"), **30B total / 3B active hybrid MoE**: interleaved **Mamba-2 + MoE**
+  layers with select Attention layers, **1M context** (four times the 262K our 35B/80B runs use).
+  Pitched at always-on agents doing high-volume specialized tasks: **up to 4× the output speed of
+  similar-sized models**, and **PinchBench 86% while completing 10,000 tasks 30% faster than
+  Qwen3.6-35B** — i.e. NVIDIA's own headline comparison is against **the exact model in our
+  hermes-lcm+35B stack**, at matching accuracy. Tool-calling is native and, usefully, the deployment
+  docs specify the **`qwen3_coder` tool-call parser** — the same parser family our 35B/80B cells
+  already run through. **~17 GB at 4-bit → fits 64GB with enormous headroom** (NVIDIA's own checkpoint
+  is **NVFP4**, W4A16 weights / FP8 activations; a BF16 checkpoint also ships).
+  **Serving is the whole risk here, and it is a Laguna-class gate — probe before scheduling anything.**
+  NVFP4 is a Blackwell/Hopper CUDA format and is **not servable on this Mac**, so a run needs either a
+  community GGUF or an MLX convert from BF16, and **neither exists yet**. Worse, the arch is
+  `nemotron-h`-MoE, and mainline llama.cpp has an **open, unresolved loading bug on the sibling
+  `Nemotron-3-Nano-30B-A3B`** — `GGML_ASSERT(d_inner % (n_group*n_embd) == 0)` at
+  `mamba-base.cpp:173`, filed 2026-03-15 and still `bug-unconfirmed` with no linked PR. That is the
+  same "arch unmerged upstream" blocker that stopped Laguna XS 2.1, and it means the **already-listed
+  Nemotron-Cascade-2-30B-A3B entry above shares this gate** — one probe settles both. Confirm oMLX
+  handles interleaved Mamba-2 + MoE, or that a working GGUF lands, before committing a cell.
+  **Two further caveats:** (1) NVIDIA's recommended sampling is **temperature 1.0 / top_p 0.95** —
+  precisely the unrecorded default that cost this project half its local reliability; set and verify
+  it per CLAUDE.md rather than inheriting it. (2) The headline speed numbers are NVIDIA's own, on
+  NVIDIA GPUs at NVFP4; nothing about 4× transfers to oMLX/Metal at 4-bit, so treat throughput as
+  unmeasured here. **Why it earns a high slot anyway:** it is the first candidate whose *vendor*
+  targeted our agent harness, its headline benchmark is a direct head-to-head with our incumbent 35B,
+  and a **`…-30B-A3B-DSpark` speculative-decoding variant ships alongside it** — which makes it the
+  only entry that arrives with a matched draft model in hand, feeding §3's speculative-decoding/MTP
+  lever, the top speed lever and currently blocked on exactly that.
+  Source: https://developer.nvidia.com/blog/nvidia-nemotron-3-5-lightning-delivers-fast-accurate-specialized-task-execution-for-long-running-agents/
+  — via: https://thenewstack.io/nvidia-nemotron-lightning-switchyard/ (user, 2026-08-11)
+  — weights (NVFP4): https://huggingface.co/nvidia/NVIDIA-Nemotron-3.5-Lightning-30B-A3B-NVFP4
+  — the llama.cpp hybrid-Mamba blocker: https://github.com/ggml-org/llama.cpp/issues/20570
+
+  *(**NeMo Switchyard**, announced in the same release, is **not a model** — it is an open-source
+  routing library that picks a model per request mid-task, claiming frontier-level completion at ~⅓
+  the cost of Opus 4.8 alone. It is out of scope for this candidate list, but it is a
+  `harness_config`-level idea and belongs next to the §"harness maturity" side-branch above if
+  cloud-orchestration work resumes. Source:
+  https://blogs.nvidia.com/blog/nemotron-lightning-switchyard-rtx-dgx/)*
+
 *Excluded this scan as too large for 64GB at 4-bit, recorded so they are not re-investigated:*
 Kimi K3 (2.8T MoE, 2026-07-27), Inkling-Small (276B-A12B, 2026-08-02 — ~140 GB at 4-bit despite the
 "Small" name; its parent Inkling is 975B-A41B), Tencent Hy3 (295B-A21B, 2026-07-06), and Mistral
