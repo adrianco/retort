@@ -1,58 +1,70 @@
-import csv
-
-from soccer_mcp import SoccerData
-
-
-def write_csv(path, name, headers, rows):
-    with (path / name).open("w", newline="", encoding="utf-8") as f:
-        writer = csv.DictWriter(f, fieldnames=headers); writer.writeheader(); writer.writerows(rows)
+import soccer_mcp
+import json
+import subprocess
+import sys
 
 
-def dataset(tmp_path):
-    write_csv(tmp_path, "Brasileirao_Matches.csv", ["datetime", "home_team", "home_team_state", "away_team", "away_team_state", "home_goal", "away_goal", "season", "round"], [
-        {"datetime":"2023-09-03", "home_team":"Flamengo-RJ", "home_team_state":"RJ", "away_team":"Fluminense-RJ", "away_team_state":"RJ", "home_goal":"2", "away_goal":"1", "season":"2023", "round":"22"},
-        {"datetime":"2023-05-28", "home_team":"Fluminense-RJ", "home_team_state":"RJ", "away_team":"Flamengo-RJ", "away_team_state":"RJ", "home_goal":"0", "away_goal":"0", "season":"2023", "round":"8"},
-    ])
-    write_csv(tmp_path, "fifa_data.csv", ["ID", "Name", "Age", "Nationality", "Overall", "Potential", "Club", "Position"], [
-        {"ID":"1", "Name":"Neymar Jr", "Age":"27", "Nationality":"Brazil", "Overall":"92", "Potential":"92", "Club":"Flamengo", "Position":"LW"},
-        {"ID":"2", "Name":"Test Player", "Age":"20", "Nationality":"Brazil", "Overall":"70", "Potential":"80", "Club":"Santos", "Position":"ST"},
-    ])
-    return SoccerData(tmp_path)
+def test_real_datasets_are_loaded():
+    db = soccer_mcp.SoccerDatabase()
+    assert len(db.matches) > 20_000
+    assert len(db.players) > 18_000
 
 
-def test_match_normalizes_state_suffix_and_date_filter(tmp_path):
-    data = dataset(tmp_path)
-    rows = data.matches(team="Flamengo", start_date="2023-06-01")
-    assert len(rows) == 1 and rows[0]["away_team"] == "Fluminense-RJ"
+def test_team_suffix_and_head_to_head_normalization():
+    db = soccer_mcp.SoccerDatabase()
+    rows = db.matches_query(team="Palmeiras", opponent="Portuguesa", season=2012)
+    assert rows and all("Palmeiras" in (r["home_team"] + r["away_team"]) or "Portuguesa" in (r["home_team"] + r["away_team"]) for r in rows)
 
 
-def test_head_to_head_and_stats(tmp_path):
-    data = dataset(tmp_path)
-    h2h = data.head_to_head("Flamengo", "Fluminense")
-    assert (h2h["team_a_wins"], h2h["draws"], h2h["team_b_wins"]) == (1, 1, 0)
-    assert data.team_stats("Flamengo") == {"team":"Flamengo", "matches":2, "wins":1, "draws":1, "losses":0, "goals_for":2, "goals_against":1, "win_rate":50.0}
+def test_team_statistics_are_consistent():
+    db = soccer_mcp.SoccerDatabase()
+    stats = db.team_stats("Palmeiras", season=2012, competition="Brasileirão")
+    assert stats["matches"] > 0
+    assert stats["wins"] + stats["draws"] + stats["losses"] == stats["matches"]
+    assert 0 <= stats["win_rate"] <= 100
 
 
-def test_players_are_filtered_and_sorted(tmp_path):
-    data = dataset(tmp_path)
-    assert data.players(nationality="Brazil", min_overall=80)[0]["Name"] == "Neymar Jr"
+def test_player_filters_and_rating_sort():
+    db = soccer_mcp.SoccerDatabase()
+    players = db.players_query(nationality="Brazil", min_overall=85, limit=10)
+    assert players
+    assert all(p["Nationality"] == "Brazil" and int(p["Overall"]) >= 85 for p in players)
+    assert [int(p["Overall"]) for p in players] == sorted((int(p["Overall"]) for p in players), reverse=True)
 
 
-def test_standings_and_statistics(tmp_path):
-    data = dataset(tmp_path)
-    table = data.standings(2023)
-    assert table[0]["team"] == "Flamengo-RJ" and table[0]["points"] == 4
-    stats = data.statistics(season=2023)
-    assert stats["matches"] == 2 and stats["average_goals"] == 1.5
+def test_standings_and_aggregates():
+    db = soccer_mcp.SoccerDatabase()
+    table = db.standings(2012)
+    assert table and table[0]["points"] >= table[-1]["points"]
+    aggregate = db.aggregate_stats(season=2012)
+    assert aggregate["matches"] > 0 and aggregate["average_goals"] >= 0
 
 
-def test_full_name_team_variant_matches(tmp_path):
-    data = dataset(tmp_path)
-    data.matches_data.append({
-        "competition": "brasileirao", "date": "2023-10-01",
-        "date_value": __import__("datetime").date(2023, 10, 1),
-        "home_team": "Sport Club Corinthians Paulista", "away_team": "Santos FC",
-        "home_goal": 1, "away_goal": 0, "season": 2023, "round": "28", "stage": "",
-    })
-    assert len(data.matches(team="Corinthians")) == 1
-    assert data.team_stats("Corinthians")["wins"] == 1
+def test_overlapping_brasileirao_sources_are_not_double_counted():
+    db = soccer_mcp.SoccerDatabase()
+    stats = db.team_stats("Flamengo", season=2019, competition="Brasileirao")
+    assert stats["matches"] == 38
+    table = db.standings(2019, "Brasileirao")
+    assert table[0]["team"] == "Flamengo"
+    assert table[0]["points"] == 90
+
+
+def test_mcp_tools_are_callable(monkeypatch, capsys):
+    # Exercise the protocol's public dispatch without starting a subprocess.
+    db = soccer_mcp.SoccerDatabase()
+    result = soccer_mcp._call(db, "statistics", {"season": 2012})
+    assert result["matches"] > 0
+
+
+def test_stdio_entrypoint_serves_tools_and_standings():
+    requests = [
+        {"jsonrpc": "2.0", "id": 1, "method": "initialize"},
+        {"jsonrpc": "2.0", "id": 2, "method": "tools/list"},
+        {"jsonrpc": "2.0", "id": 3, "method": "tools/call", "params": {"name": "standings", "arguments": {"season": 2019, "competition": "Brasileirao"}}},
+    ]
+    proc = subprocess.run([sys.executable, "soccer_mcp.py"], input="\n".join(json.dumps(r) for r in requests) + "\n", text=True, capture_output=True, check=True)
+    responses = [json.loads(line) for line in proc.stdout.splitlines()]
+    assert responses[0]["result"]["serverInfo"]["name"] == "brazilian-soccer"
+    assert any(tool["name"] == "standings" for tool in responses[1]["result"]["tools"])
+    payload = json.loads(responses[2]["result"]["content"][0]["text"])
+    assert payload[0]["team"] == "Flamengo"

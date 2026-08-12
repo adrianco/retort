@@ -1,0 +1,9 @@
+{
+  "severity_counts": {"critical": 0, "high": 0, "medium": 0, "low": 0, "info": 0},
+  "penalty_score": 1.0,
+  "top_findings": [],
+  "requirement_coverage": 1.0,
+  "model": "gpt-5.6-luna",
+  "evaluated_at": "2026-08-12T04:17:35Z",
+  "note": "min_severity=high: 2 medium + 2 info findings filtered out. requirement_coverage=1.0 (12/12) corrects a first evaluation that scored 0.8333 by wrongly marking R11 head-to-head as not-met; the Atletico conflation is a data-value defect owned by the factual gate (factual_accuracy=0.5), not a missing capability."
+}

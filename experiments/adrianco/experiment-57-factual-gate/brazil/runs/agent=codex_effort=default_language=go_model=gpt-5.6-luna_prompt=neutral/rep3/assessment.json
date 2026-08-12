@@ -1,0 +1,39 @@
+{
+  "severity_counts": {
+    "critical": 0,
+    "high": 2,
+    "medium": 0,
+    "low": 0,
+    "info": 0
+  },
+  "penalty_score": 0.8,
+  "top_findings": [
+    {
+      "id": "R11",
+      "kind": "requirement_missing",
+      "severity": "high",
+      "title": "No head-to-head tool between two named teams",
+      "evidence": "main.go:20-21 registers only search_matches, team_stats, search_players, standings, statistics; server.go:144-182 CallTool has no head_to_head case; grep for head-to-head/h2h/opponent in *.go returns nothing. The spec requires it (brazilian-soccer-mcp-guide.md:253 'Head-to-head records', :332 'Can compare teams head-to-head'). search_matches only takes home+away in one orientation and team_stats takes one team, so aggregated H2H W/L/D between two clubs is not obtainable.",
+      "suggestion": "Add a head_to_head(team_a, team_b, season?, competition?) tool that aggregates W/L/D and goals across both home/away orientations."
+    },
+    {
+      "id": "tool-schema",
+      "kind": "requirement_partial",
+      "severity": "high",
+      "title": "MCP tool inputSchemas omit properties, so schema-driven clients can't discover season/competition/team params",
+      "evidence": "main.go:20-21 declares every tool's inputSchema as {\"type\":\"object\"} with no \"properties\" (only \"required\":[\"season\"] on standings). The factual gate builds its call args from the tool schema (factual_accuracy.py:218-240 _standings_args); with no properties it cannot find the season/competition keys and falls back to standings({}). Empirically that yields season=0/competition=\"\" -> an all-time, all-competition aggregate: 659 rows, Flamengo all-time 1085 matches, 22 distinct Atletico/Athletico rows. This is why factual_accuracy=0.0. Called correctly (standings season=2019 competition=Brasileirao) the server returns the exact right table.",
+      "suggestion": "Declare properties (season:int, competition:string, team/home/away/etc.) in each tool's inputSchema so clients and the gate can pass arguments."
+    }
+  ],
+  "requirement_coverage": 0.9167,
+  "model": "gpt-5.6-luna",
+  "evaluated_at": "2026-08-12T04:53:10Z",
+  "second_opinion": {
+    "prior_requirement_coverage": 0.8333,
+    "revised_requirement_coverage": 0.9167,
+    "R9_verdict": "REFUTED \u2014 Flamengo is produced correctly (2019 Brasileirao: 38 played, 28-6-4, 90 pts); 'no Flamengo row' is a gate false-negative (blind probe + pretty-JSON line parser)",
+    "atletico_dup_verdict": "MISATTRIBUTED \u2014 2019 Brasileirao yields exactly 2 Atletico rows; the 22 is the gate's all-time/all-competition unfiltered aggregate",
+    "genuine_miss": "R11 head-to-head tool absent",
+    "root_cause_factual_0": "tool inputSchemas omit properties, so the gate calls standings() with no season/competition"
+  }
+}

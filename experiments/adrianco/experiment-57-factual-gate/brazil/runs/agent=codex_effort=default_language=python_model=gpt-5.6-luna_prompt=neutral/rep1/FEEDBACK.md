@@ -17,10 +17,11 @@ A previous attempt is already in this directory. It did NOT pass an independent 
 - [R12] Automated tests covering the query capabilities  (verify: A test suite exercises the query functions; tests execute (test_coverage > 0).)
 
 ## What went wrong last time
-- The build/tests did not fully pass (status: failed).
+- The build/tests did not fully pass (status: failed, requirement_coverage 0.92).
+- Overlapping Brasileirao files double-counted: standings/stats inflated ~2x
 
 ## Factual accuracy — your answers were checked against known results
-- The server could not be started or did not answer: no python entrypoint (no [project.scripts], package, or server.py)
+- The server could not be started or did not answer: no tool returned a 2019 Série A table naming Flamengo (tried 4 candidate tools)
 - A correct implementation must start from its documented entrypoint and serve MCP over stdio. Fix that first — nothing else can be checked.
 
 Fix the existing code so every requirement above is met and the tests run and pass.

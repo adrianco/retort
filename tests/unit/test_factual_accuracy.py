@@ -196,3 +196,30 @@ def test_feedback_for_a_dead_server_says_to_fix_startup():
 
 def test_passing_result_produces_no_feedback():
     assert _evaluate(COLUMNAR).feedback_lines() == []
+
+
+# --- the recovery path must not resurrect gated runs -------------------------
+
+def test_rescore_status_honours_the_factual_gate():
+    """`retort rescore` reclassified on test_coverage alone.
+
+    Rescoring exp-57 flipped all six runs to "completed RECOVERED", including
+    cells scoring factual_accuracy 0.00 whose 2019 table was demonstrably wrong
+    (223 rows; one club split four ways). A recovery path that resurrects runs a
+    gate rejected is worse than no recovery path — it silently launders failures
+    into the primary dataset.
+    """
+    from retort import cli
+
+    def status(scores):
+        tests_ran = scores.get("test_coverage", 0.0) > 0.0
+        facts_ok = not cli._factual_gate_failed(scores)
+        return "completed" if (tests_ran and facts_ok) else "failed"
+
+    assert status({"test_coverage": 0.9, "factual_accuracy": 1.0}) == "completed"
+    assert status({"test_coverage": 0.9, "factual_accuracy": 0.5}) == "failed"
+    assert status({"test_coverage": 0.9, "factual_accuracy": 0.0}) == "failed"
+    assert status({"test_coverage": 0.0, "factual_accuracy": 1.0}) == "failed"
+    # A task with no golden answers records no factual_accuracy at all and must
+    # still recover normally.
+    assert status({"test_coverage": 0.9}) == "completed"

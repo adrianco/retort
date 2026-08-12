@@ -1,35 +1,12 @@
 {
-  "_correction": {
-    "explanation": "This experiment ran entirely on a hosted agent. The hermes and oMLX blocks above were read from the local serving stack installed on the host and were captured unconditionally by a bug; they did not affect this run. In particular the recorded sampling (temperature/top_p/top_k) was NOT applied \u2014 a hosted model's sampling is set provider-side and is not observable from the client, so it is unknown for this run rather than being the value shown.",
-    "fields_that_do_not_describe_this_run": [
-      "agent_config.hermes",
-      "serving.omlx"
-    ],
-    "fixed_in": "provenance.capture(agents=...) \u2014 2026-08-11",
-    "issue": "provenance recorded the local stack for a cloud run",
-    "still_valid": [
-      "retort",
-      "host",
-      "harness",
-      "models",
-      "stack_presets",
-      "tools (as an inventory of what was installed, not what ran)"
-    ]
-  },
   "agent_config": {
-    "hermes": {
-      "_config_version": 33,
-      "context_engine": "lcm",
-      "context_length": 262144,
-      "context_length_top_level": 262144,
-      "context_length_unset_per_model": false,
-      "max_turns": 200,
-      "model": "mlx-community--Qwen3-Coder-Next-4bit",
-      "plugins": [
-        "hermes-lcm"
-      ],
-      "provider_api": "http://127.0.0.1:8080/v1"
+    "codex": {
+      "cli_version": "codex-cli 0.147.0",
+      "sampling": "provider-side (not observable from the client)"
     }
+  },
+  "agents": {
+    "codex": "codex"
   },
   "harness": {
     "local_agents": {
@@ -41,7 +18,7 @@
     "max_turns": 200,
     "no_write_abort_after": 3,
     "playpen_root": "/Users/adriancockcroft/.retort/work",
-    "replicates": 1,
+    "replicates": 3,
     "runner": "local",
     "stack_presets": null,
     "stall_minutes": 30,
@@ -62,37 +39,14 @@
   },
   "retort": {
     "branch": "main",
-    "commit": "eace72df052ef466cba7f4713626fb8ced17705a",
+    "commit": "69105f7b02bc34f72ca9e91523e335ecb0760d86",
     "dirty": true
   },
-  "serving": {
-    "omlx": {
-      "cache": {
-        "enabled": true,
-        "hot_cache_max_size": "0",
-        "hot_cache_only": false,
-        "initial_cache_blocks": 256,
-        "ssd_cache_dir": null,
-        "ssd_cache_max_size": "auto"
-      },
-      "model_dirs": [
-        "/Users/adriancockcroft/models"
-      ],
-      "sampling": {
-        "max_context_window": 32768,
-        "max_context_window_policy": null,
-        "max_tokens": 32768,
-        "repetition_penalty": 1.0,
-        "temperature": 0.7,
-        "top_k": 40,
-        "top_p": 0.95
-      }
-    }
-  },
+  "serving": {},
   "stack_presets": null,
   "tools": {
     "cargo": "cargo 1.96.0 (30a34c682 2026-05-25) (Homebrew)",
-    "claude": "2.1.227 (Claude Code)",
+    "claude": "2.1.228 (Claude Code)",
     "go": "go version go1.26.4 darwin/arm64",
     "hermes": null,
     "llama_server": "version: 9910 (f5525f7e7)",

@@ -1,0 +1,1 @@
+# No third-party runtime dependencies. The stdio server implements JSON-RPC MCP directly.

@@ -1,0 +1,12 @@
+{
+  "severity_counts": {"critical": 0, "high": 3, "medium": 0, "low": 0, "info": 0},
+  "penalty_score": 0.7,
+  "top_findings": [
+    {"id": "R6", "kind": "requirement_partial", "severity": "high", "title": "Team-name normalization only strips the '-sp' suffix, so state-suffixed clubs never match", "evidence": "data.go:197 teamMatch compares only a==b || TrimSuffix(a,'-sp')==TrimSuffix(b,'-sp'); data uses -RJ/-PE/-MG suffixes, so team_stats('Flamengo') matches zero rows (_factual.json).", "suggestion": "Strip any -<UF> state suffix (or use a canonical-name map), not just -sp."},
+    {"id": "R9-dedup", "kind": "requirement_partial", "severity": "high", "title": "Match files concatenated without deduplication, inflating counts", "evidence": "data.go:57-79 LoadStore appends each file's rows unconditionally; 2019 Brasileirao is in two files so counts roughly double (_factual.json: 29 Atletico/Athletico rows vs 2).", "suggestion": "Deduplicate on (date, home, away) with a +/-1 day tolerance before aggregating."},
+    {"id": "R9", "kind": "requirement_partial", "severity": "high", "title": "Standings group by the raw team string, so no canonical club row is produced", "evidence": "server.go:102-107 Standings keys the map on x.Home/x.Away verbatim; variants become distinct rows, yielding factual_accuracy=0.0 (_factual.json).", "suggestion": "Canonicalize the team name (strip state suffix, fold accents) as the map key."}
+  ],
+  "requirement_coverage": 0.75,
+  "model": "gpt-5.6-luna",
+  "evaluated_at": "2026-08-12T04:37:03Z"
+}

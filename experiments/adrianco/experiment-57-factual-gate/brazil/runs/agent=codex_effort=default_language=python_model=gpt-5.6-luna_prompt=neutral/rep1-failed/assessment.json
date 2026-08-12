@@ -1,0 +1,10 @@
+{
+  "severity_counts": {"critical": 0, "high": 1, "medium": 0, "low": 0, "info": 0},
+  "penalty_score": 0.9,
+  "top_findings": [
+    {"id": "R9", "kind": "requirement_partial", "severity": "high", "title": "Overlapping Brasileirao files double-counted: standings/stats inflated ~2x", "evidence": "soccer_mcp.py:85-105 loads Brasileirao_Matches.csv AND novo_campeonato_brasileiro.csv both under competition 'Brasileirao' with no dedup (2019 has 380 rows in each = 760); standings(2019) -> Flamengo-RJ played=76 pts=180 vs correct 38/90.", "suggestion": "Deduplicate overlapping seasons before aggregating standings/stats."}
+  ],
+  "requirement_coverage": 0.9167,
+  "model": "gpt-5.6-luna",
+  "evaluated_at": "2026-08-12T02:39:05Z"
+}

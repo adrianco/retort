@@ -1,0 +1,35 @@
+{
+  "severity_counts": {
+    "critical": 0,
+    "high": 2,
+    "medium": 0,
+    "low": 0,
+    "info": 0
+  },
+  "penalty_score": 0.8,
+  "top_findings": [
+    {
+      "id": "R11",
+      "kind": "requirement_missing",
+      "severity": "high",
+      "title": "No head-to-head tool between two named teams",
+      "evidence": "server.go:25-32 defines 5 tools; none accepts two team names. search_matches (server.go:27, soccer.go:144) and team_stats (server.go:28, soccer.go:234) each take a single `team`, so head-to-head W/L/D between two clubs cannot be requested. R11 how_to_verify unmet. First evaluator's R11 claim CONFIRMED.",
+      "suggestion": "Add a head_to_head tool taking team_a and team_b that filters matches to those two clubs and reports each side's W/L/D + goals."
+    },
+    {
+      "id": "dup-load",
+      "kind": "requirement_partial",
+      "severity": "high",
+      "title": "Brasileirão loaded twice without dedup — team_stats & competition_stats double-count 2019",
+      "evidence": "soccer.go:34-41 loads Brasileirao_Matches.csv as 'Brasileirão' and soccer.go:45 loadHistorical loads novo_campeonato_brasileiro.csv also as 'Brasileirão'; each independently holds 380 season-2019 rows (38 Flamengo matches each, verified in data). Stats() (soccer.go:234-268) and Average() (soccer.go:288-301) match by normalized substring, so team_stats('Flamengo',2019)->76 played (W56) and competition_stats(2019)->760 matches. First evaluator's dup-load claim CONFIRMED. Captured on the separate factual_accuracy axis (0.5), not as a missing capability.",
+      "suggestion": "Deduplicate matches on (season, date±1d, home, away) after normalizing team names, or scope Brasileirão aggregation to one canonical source file."
+    }
+  ],
+  "requirement_coverage": 0.9167,
+  "requirement_coverage_note": "11/12 implemented (from evaluation.md). Revised up from first evaluator's 0.8333 (10/12): R9 (standings) overturned missing->implemented (computed from matches soccer.go:179-232, tested soccer_test.go:34-37; the 19-of-20 is a factual_accuracy artifact of single-line JSON + line-based _atletico_rows). R11 (head-to-head) confirmed missing. dup-load confirmed real but is a correctness finding, not a requirement miss.",
+  "min_severity": "high",
+  "second_opinion": true,
+  "first_evaluator_requirement_coverage": 0.8333,
+  "model": "gpt-5.6-luna",
+  "evaluated_at": "2026-08-12T03:49:50Z"
+}

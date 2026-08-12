@@ -1,5 +1,19 @@
 # Brazilian Soccer MCP with spec and basic data sets
 
+## Run
+
+The implementation is in `soccer_mcp.py` and uses only the Python standard library:
+
+```bash
+python soccer_mcp.py
+```
+
+It reads newline-delimited JSON-RPC from stdin and writes MCP-compatible responses to stdout.
+The `SoccerDatabase` class can also be imported directly. Available tools are `search_matches`,
+`team_statistics`, `head_to_head`, `search_players`, `standings`, `statistics`, and `ask_soccer`.
+
+Run the tests with `python -m pytest`.
+
 ## Specification
 brazilian-soccer-mcp-guide.md
 

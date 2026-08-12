@@ -2431,11 +2431,22 @@ def _persist_rescore(db_path, run_config: dict, replicate: int,
         if cur.rowcount == 0:
             cur.execute("INSERT INTO run_results (run_id, metric_name, value) VALUES (?,?,?)",
                         (run_id, name, float(value)))
-    new_status = "completed" if scores.get("test_coverage", 0.0) > 0.0 else "failed"
+    # Reclassify against EVERY mechanical gate, not just test_coverage.
+    # Consulting test_coverage alone silently UNDID the factual gate: rescoring
+    # exp-57 flipped six runs to "completed RECOVERED", including cells scoring
+    # factual_accuracy 0.00 whose 2019 table was demonstrably wrong. A recovery
+    # path that resurrects runs a gate rejected is worse than no recovery path.
+    # requirement_coverage is NOT consulted here — it is preserved untouched and
+    # refreshed by `retort reevaluate`, which owns that gate.
+    tests_ran = scores.get("test_coverage", 0.0) > 0.0
+    facts_ok = not _factual_gate_failed(scores)
+    new_status = "completed" if (tests_ran and facts_ok) else "failed"
+    reason = (None if new_status == "completed"
+              else "tests did not run (test_coverage=0)" if not tests_ran
+              else f"answers wrong (factual_accuracy={scores.get('factual_accuracy')})")
     cur.execute(
         "UPDATE experiment_runs SET status=?, error_message=? WHERE id=?",
-        (new_status, None if new_status == "completed"
-         else "tests did not run (test_coverage=0)", run_id),
+        (new_status, reason, run_id),
     )
     con.commit()
     con.close()

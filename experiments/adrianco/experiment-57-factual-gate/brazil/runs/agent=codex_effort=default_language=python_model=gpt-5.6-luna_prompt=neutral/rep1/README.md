@@ -1,17 +1,18 @@
 # Brazilian Soccer MCP with spec and basic data sets
 
-## Run the MCP server
+## Run
 
-Install the dependencies with `python -m pip install -r requirements.txt`, then run:
+The implementation is in `soccer_mcp.py` and uses only the Python standard library:
 
-```sh
-python server.py
-# or: python -m soccer_mcp
-# or, after installing the project: brazilian-soccer-mcp
+```bash
+python soccer_mcp.py
 ```
 
-The server uses stdio transport and loads `data/kaggle/` relative to the project
-by default. A different data directory can be supplied as the first argument.
+It reads newline-delimited JSON-RPC from stdin and writes MCP-compatible responses to stdout.
+The `SoccerDatabase` class can also be imported directly. Available tools are `search_matches`,
+`team_statistics`, `head_to_head`, `search_players`, `standings`, `statistics`, and `ask_soccer`.
+
+Run the tests with `python -m pytest`.
 
 ## Specification
 brazilian-soccer-mcp-guide.md
