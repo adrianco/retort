@@ -1,6 +1,6 @@
 # The Optimal Stack
 
-*Living document — last updated 2026-08-04 (first published 2026-07-14). This records **what to run today**: the leading stacks, and the exact configuration each one needs. It is not a history. Superseded stacks and rejected configurations are not discussed here; they are retired, and retirement is the point.*
+*Living document — last updated 2026-08-12 (first published 2026-07-14). This records **what to run today**: the leading stacks, and the exact configuration each one needs. It is not a history. Superseded stacks and rejected configurations are not discussed here; they are retired, and retirement is the point.*
 
 ---
 
@@ -61,10 +61,10 @@ The machine-readable form of the table below is committed at **[`optimal.json`](
 | **erlang** | GPT-5.6 Terra @ `default` <sub>n=1</sub> | 1.00 | $0.34 | — | GPT-5.6 Terra @ `default` <sub>n=1</sub> | 1.00 | $0.49 |
 | **go** | GPT-5.6 Luna @ `default` <sub>n=3</sub> | 1.00 | $0.08 | Qwen3-Coder-Next 80B @ `default` <sub>n=3</sub> | GPT-5.6 Terra @ `low` <sub>n=1</sub> | 1.00 | $0.39 |
 | **java** | GPT-5.6 Terra @ `default` <sub>n=1</sub> | 1.00 | $0.38 | — | GPT-5.6 Terra @ `default` <sub>n=1</sub> | 1.00 | $0.49 |
-| **objc** | Opus 4.8 @ `default` <sub>n=1</sub> | 1.00 | $1.52 | — | Fable 5 @ `default` <sub>n=1</sub> | 1.00 | $13.30 |
+| **objc** | GPT-5.6 Terra @ `default` <sub>n=1</sub> | 1.00 | $0.24 | — | Fable 5 @ `default` <sub>n=1</sub> | 1.00 | $13.30 |
 | **python** | GPT-5.6 Luna @ `default` <sub>n=3</sub> | 1.00 | $0.06 | Qwen3-Coder-Next 80B @ `default` <sub>n=3</sub> | GPT-5.6 Terra @ `high` <sub>n=1</sub> | 1.00 | $0.31 |
 | **rust** | GPT-5.6 Terra @ `default` <sub>n=1</sub> | 1.00 | $0.14 | — | GPT-5.6 Terra @ `default` <sub>n=1</sub> | 1.00 | $0.37 |
-| **swift** | Opus 4.8 @ `default` <sub>n=1</sub> | 1.00 | $1.25 | — | Fable 5 @ `default` <sub>n=1</sub> | 1.00 | $9.24 |
+| **swift** | GPT-5.6 Terra @ `default` <sub>n=1</sub> | 1.00 | $0.22 | — | GPT-5.6 Terra @ `default` <sub>n=1</sub> | 1.00 | $0.37 |
 | **typescript** | GPT-5.6 Terra @ `default` <sub>n=1</sub> | 1.00 | $0.22 | Qwen3-Coder-Next 80B @ `default` <sub>n=3</sub> | GPT-5.6 Terra @ `default` <sub>n=1</sub> | 1.00 | $0.15 |
 <!-- GEN:per-language-routing END -->
 
@@ -85,8 +85,8 @@ Reliability, cost and time are all reported **per task size** — routine and ha
 |---|---:|---:|---:|
 | **Claude Opus 5** | 1.00 · 1.00 | $3.23 · $26.48 | 546 s · 2669 s |
 | **Claude Fable 5** | 1.00 · 1.00 | $1.58 · $10.47 | 166 s · 1090 s |
-| **GPT-5.6 Terra (codex)** | 1.00 · 1.00 | $0.24 · $0.81 | 163 s · 481 s |
-| **GPT-5.6 Luna (codex)** | 0.67 · — | $0.09 · — | 153 s · — |
+| **GPT-5.6 Terra (codex)** | 1.00 · 0.95 | $0.24 · $0.77 | 163 s · 457 s |
+| **GPT-5.6 Luna (codex)** | 0.67 · 0.33 | $0.09 · $0.17 | 153 s · 170 s |
 | **Claude Sonnet 5** | 1.00 · 0.93 | $1.10 · $7.64 | 237 s · 1252 s |
 | **Claude Opus 4.8** | 0.98 · 0.59 | $0.93 · $3.27 | 258 s · 608 s |
 | **Claude Opus 4.7** | 1.00 · 0.40 | $0.92 · $2.95 | 165 s · 500 s |
@@ -149,10 +149,10 @@ Reliability, cost and time are all reported **per task size** — routine and ha
 | **erlang** | 1.00 (1) | 1.00 (1) | 1.00 (1) | — | — | 1.00 (3) | 1.00 (3) | — | 0.00 (3) |
 | **go** | 1.00 (10) | 1.00 (3) | 1.00 (10) | 1.00 (3) | 1.00 (3) | 1.00 (7) | 1.00 (6) | 0.85 (27) | 1.00 (3) |
 | **java** | 1.00 (1) | 1.00 (1) | 1.00 (1) | — | — | 0.83 (6) | 1.00 (6) | — | 0.00 (3) |
-| **objc** | 1.00 (1) | 1.00 (1) | — | — | — | 1.00 (1) | — | — | — |
+| **objc** | 1.00 (1) | 1.00 (1) | 1.00 (1) | — | — | 1.00 (1) | — | — | — |
 | **python** | 1.00 (26) | 1.00 (18) | 1.00 (10) | 1.00 (3) | 1.00 (3) | 1.00 (22) | 1.00 (21) | 0.87 (30) | 1.00 (3) |
 | **rust** | 1.00 (1) | 1.00 (3) | 1.00 (1) | — | 1.00 (3) | 1.00 (6) | 1.00 (6) | 0.00 (2) | 0.33 (3) |
-| **swift** | 1.00 (1) | 1.00 (1) | — | — | — | 1.00 (1) | — | — | — |
+| **swift** | 1.00 (1) | 1.00 (1) | 1.00 (1) | — | — | 1.00 (1) | — | — | — |
 | **typescript** | 1.00 (1) | 1.00 (1) | 1.00 (1) | 0.00 (3) | 1.00 (3) | 1.00 (7) | 1.00 (6) | 0.00 (3) | 1.00 (3) |
 <!-- GEN:per-language-matrix END -->
 
@@ -283,10 +283,10 @@ These tables are regenerated from `master.db` by `retort report optimal` — run
 | **erlang** | GPT-5.6 Terra (codex) ($0.34) | 1.00 | 1 |
 | **go** | Qwen3-Coder-Next 80B (local, $0, ctx 0.9) ($0) | 1.00 | 3 |
 | **java** | GPT-5.6 Terra (codex) ($0.38) | 1.00 | 1 |
-| **objc** | Claude Opus 4.8 ($1.52) | 1.00 | 1 |
+| **objc** | GPT-5.6 Terra (codex) ($0.24) | 1.00 | 1 |
 | **python** | Qwen3-Coder-Next 80B (local, $0, ctx 0.9) ($0) | 1.00 | 3 |
 | **rust** | GPT-5.6 Terra (codex) ($0.14) | 1.00 | 1 |
-| **swift** | Claude Opus 4.8 ($1.25) | 1.00 | 1 |
+| **swift** | GPT-5.6 Terra (codex) ($0.22) | 1.00 | 1 |
 | **typescript** | Qwen3-Coder-Next 80B (local, $0, ctx 0.9) ($0) | 1.00 | 3 |
 <!-- GEN:per-language END -->
 
