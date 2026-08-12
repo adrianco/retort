@@ -224,6 +224,38 @@ KNOWN_NONFEATURED = {
 }
 
 
+#: What counts as a PASS, in SQL.
+#:
+#: A run must implement the whole checklist AND answer correctly. The second
+#: clause was missing when the factual gate shipped, so `report optimal` — which
+#: generates optimal-blog.md and optimal.json, this project's headline
+#: recommendations — counted exp-57's three wrong-answer runs as passes. The gate
+#: had already failed them in the run, in the DB status, and as a master.db
+#: column; only the metric everyone actually reads still said "pass".
+#:
+#: `factual_accuracy IS NULL` passes deliberately. It is NULL for every run
+#: predating the gate and for every task with no golden answers, so this does NOT
+#: rebase history — a run can only lose its pass if its answers were actually
+#: checked and found wrong.
+PASS_SQL = ("requirement_coverage >= 1.0 "
+            "AND (factual_accuracy IS NULL OR factual_accuracy >= 1.0)")
+
+#: The same rule for a database that predates the column. An older master.db (or
+#: a test fixture) has no `factual_accuracy` at all, and referencing a missing
+#: column is an OperationalError, not a NULL — so probe the schema rather than
+#: assume it.
+PASS_SQL_NO_FACTUAL = "requirement_coverage >= 1.0"
+
+
+def pass_sql(conn) -> str:
+    """The PASS clause this database can actually evaluate."""
+    try:
+        cols = {r[1] for r in conn.execute("PRAGMA table_info(runs)")}
+    except Exception:                                    # noqa: BLE001
+        return PASS_SQL_NO_FACTUAL
+    return PASS_SQL if "factual_accuracy" in cols else PASS_SQL_NO_FACTUAL
+
+
 def q(conn, sql, params=()):
     return conn.execute(sql, params).fetchall()
 
@@ -257,11 +289,12 @@ def metrics(conn, where, task, language=None, languages=None):
         placeholders = ",".join("?" for _ in languages)
         clause += f" AND language IN ({placeholders})"
         params.extend(languages)
+    _PASS = pass_sql(conn)
     row = q(
         conn,
         f"""
         SELECT COUNT(*) AS n,
-               AVG(CASE WHEN requirement_coverage >= 1.0 THEN 1.0 ELSE 0.0 END) AS pass,
+               AVG(CASE WHEN {_PASS} THEN 1.0 ELSE 0.0 END) AS pass,
                AVG(cost_usd) AS cost,
                AVG(duration_seconds) AS sec
         FROM runs WHERE {clause}
@@ -626,7 +659,7 @@ def prompt_method_table(conn):
             for p, n, pa in q(
                 conn,
                 f"SELECT prompt, COUNT(*), "
-                f"AVG(CASE WHEN requirement_coverage >= 1.0 THEN 1.0 ELSE 0.0 END) "
+                f"AVG(CASE WHEN {pass_sql(conn)} THEN 1.0 ELSE 0.0 END) "
                 f"FROM runs WHERE {where} GROUP BY prompt",
             )
         }
