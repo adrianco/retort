@@ -93,6 +93,34 @@ def _fold(text: str) -> str:
                    if unicodedata.category(c) != "Mn")
 
 
+def _rows_of(text: str) -> list[str]:
+    """The table as one string PER CLUB, whatever shape the server returned.
+
+    Implementations answer with a text table, a markdown table, or a single line
+    of JSON. Line-based parsing silently collapses the JSON case to ONE row, so
+    every club check saw a single row and reported "19 of 20 (1 Atletico row)"
+    for tables that were completely correct — Flamengo 38 played, 90 points, all
+    20 clubs present. Parse the structure when there is one.
+    """
+    stripped = text.strip()
+    if stripped.startswith("[") or stripped.startswith("{"):
+        try:
+            data = json.loads(stripped)
+        except ValueError:
+            data = None
+        if isinstance(data, dict):
+            for key in ("standings", "table", "rows", "teams", "result", "data"):
+                if isinstance(data.get(key), list):
+                    data = data[key]
+                    break
+        if isinstance(data, list) and data:
+            out = []
+            for item in data:
+                out.append(json.dumps(item) if isinstance(item, (dict, list)) else str(item))
+            return out
+    return text.splitlines()
+
+
 def _atletico_rows(text: str) -> int:
     """How many DISTINCT rows name an Atlético/Athletico club.
 
@@ -103,8 +131,8 @@ def _atletico_rows(text: str) -> int:
     therefore the only check the data actually supports; asking for each by name
     reported two correct implementations as missing a club.
     """
-    return sum(1 for line in text.splitlines()
-               if re.search(r"(?<![a-z])ath?letico", _fold(line)))
+    return sum(1 for row in _rows_of(text)
+               if re.search(r"(?<![a-z])ath?letico", _fold(row)))
 
 
 def _names_present(text: str, tokens: tuple[str, ...]) -> bool:
@@ -172,10 +200,10 @@ def _row_numbers(text: str, team: str) -> list[int]:
     done on a normalised, case-folded substring.
     """
     want = team.lower()
-    for line in text.splitlines():
-        if want in line.lower():
-            nums = [int(n) for n in re.findall(r"-?\d+", line)]
-            if len(nums) >= 3:            # a rank/­name line alone is not a row
+    for row in _rows_of(text):
+        if want in row.lower():
+            nums = [int(n) for n in re.findall(r"-?\d+", row)]
+            if len(nums) >= 3:            # a rank/name fragment alone is not a row
                 return nums
     return []
 
@@ -223,8 +251,14 @@ def _standings_args(schema: dict) -> list[dict]:
     or no competition parameter at all.
     """
     props = schema.get("properties", {}) or {}
-    season_key = next((k for k in props if "season" in k.lower() or "year" in k.lower()), None)
-    comp_key = next((k for k in props if "competition" in k.lower() or "league" in k.lower()
+    # Consider REQUIRED names too, not just declared properties. One server ships
+    # `{"required": ["season"], "type": "object"}` with no properties block at
+    # all; building args from properties alone sent `{}`, so it was never asked
+    # for 2019 and correctly answered with all-time standings (Flamengo: 1085
+    # played). The probe then reported a working implementation as wrong.
+    keys = list(props) + [k for k in (schema.get("required") or []) if k not in props]
+    season_key = next((k for k in keys if "season" in k.lower() or "year" in k.lower()), None)
+    comp_key = next((k for k in keys if "competition" in k.lower() or "league" in k.lower()
                      or "tournament" in k.lower()), None)
     seasons: list = [GOLDEN_SEASON]
     if season_key and (props.get(season_key, {}) or {}).get("type") == "string":

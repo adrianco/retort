@@ -467,11 +467,38 @@ def _build_then_entry(run_dir: Path, language: str) -> tuple[list[str] | None, s
         return _python_entry(run_dir)
 
     if language == "go":
-        if (run_dir / "go.mod").exists():
-            if not build(["go", "build", "-o", ".retort-bin", "."]):
-                return None, "go build failed"
-            return [str(run_dir / ".retort-bin")], ""
-        return None, "no go.mod"
+        if not (run_dir / "go.mod").exists():
+            return None, "no go.mod"
+        # ASK GO WHERE MAIN IS. `go build -o X .` assumes the module root is the
+        # main package. Half these runs use the idiomatic layout instead — a
+        # library at the root and `cmd/<name>/main.go` — and for a NON-main
+        # package `go build` emits a package ARCHIVE, exits 0, and writes it
+        # mode 0644. The probe then failed with "Permission denied" on a build
+        # it believed had succeeded. Exit status is not enough here; ask which
+        # package is main, and verify the artifact is actually executable.
+        target = "."
+        try:
+            listing = subprocess.run(
+                ["go", "list", "-f", "{{.Name}} {{.ImportPath}}", "./..."],
+                cwd=run_dir, capture_output=True, text=True, timeout=300)
+            mains = [ln.split(None, 1)[1] for ln in listing.stdout.splitlines()
+                     if ln.startswith("main ")]
+            if mains:
+                # Prefer a cmd/ path when several exist; it is the server, not a
+                # helper tool the run may also have built.
+                target = next((m for m in mains if "/cmd/" in m), mains[0])
+        except (subprocess.TimeoutExpired, OSError):
+            pass
+
+        if not build(["go", "build", "-o", ".retort-bin", target]):
+            return None, f"go build failed (target {target})"
+        exe = run_dir / ".retort-bin"
+        if not exe.is_file():
+            return None, f"go build produced nothing (target {target})"
+        if not exe.stat().st_mode & 0o111:
+            return None, (f"go build produced a non-executable archive for "
+                          f"{target} — no main package found")
+        return [str(exe)], ""
 
     if language == "rust":
         toml = run_dir / "Cargo.toml"
