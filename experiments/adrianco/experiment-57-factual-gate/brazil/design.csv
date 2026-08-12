@@ -1,0 +1,2 @@
+language,agent,prompt,model,effort
+python,codex,neutral,gpt-5.6-terra,default

@@ -121,15 +121,22 @@ present. It has never fired on real data: all 13 archived implementations pass i
 freshly generated run pass the facts as well as the checklist, and when one fails, does the repair
 feedback actually let the second chance fix it?
 
-**Hypothesis.** Terra clears `requirement_coverage` on brazil reliably (exp-55, exp-56: 18/18 at
-1.00), so cells should reach the factual gate rather than dying earlier. Prediction: **most cells
-pass both gates**, matching the archive. A cell that fails factual-but-not-checklist is the
-interesting outcome — it is a run that would have been recorded as a PASS before today.
+**Design (revised 2026-08-11, user: vary the config from exp-56 to expand coverage rather than
+re-measure).** brazil-bench × **`gpt-5.6-luna`** @ default effort × {python, go} × n=3 = **6 cells**.
 
-**Design.** brazil-bench × `gpt-5.6-terra` @ default effort × {python, go} × n=3 = **6 cells**.
-Python and go because they have the most archive data to compare against, and because exp-55 already
-measured Terra on exactly these cells *without* the factual gate — so any verdict change is
-attributable to the gate rather than to a new stack. ~$0.41/cell on exp-56 evidence → **≈ $2.50**.
+Luna has only ever run the ROUTINE task (exp-53, bookshop); **it has never been measured on
+brazil**, so this is a genuinely new model × task cell rather than a re-run of exp-55's
+terra/python+go ground. It is also the cheaper Codex model and — being the weaker one — is more
+likely to make a FACTUAL error than Terra, which is exactly what a gate that has never fired needs
+to be tested against. python+go because they are the best-supported languages, so a luna failure is
+attributable to the model rather than to language tooling. ≈ **$2–3** on exp-56 cost evidence.
+
+**Hypothesis.** Two outcomes are both informative. If luna clears the checklist, we learn whether it
+also clears the FACTS — and a cell that fails factual-but-not-checklist is a run that would have been
+recorded as a PASS before today. **Risk, stated up front:** luna may fall short of the checklist on
+the hard task and never reach the factual gate. That is still publishable (luna's brazil ceiling,
+previously unmeasured) but would leave the gate untested — in which case the follow-up is Terra at a
+non-default effort.
 
 **What is NEW in `responses:`** — and both are first-run-ever, so treat their output as unproven:
 - `factual_accuracy` — the gate under test.

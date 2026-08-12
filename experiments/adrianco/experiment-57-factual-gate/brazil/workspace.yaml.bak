@@ -1,0 +1,58 @@
+# Experiment 57 — does the factual gate change any verdict?
+#
+# QUESTION. `factual_accuracy` gates brazil runs on whether their ANSWERS are
+# right, not merely present: it starts the finished server and checks two
+# externally-verifiable facts about the 2019 Série A (Flamengo 28W-6D-4L, all 20
+# clubs). It has NEVER fired on real data — all 13 archived implementations pass
+# it — so this run is the first test of whether a freshly generated
+# implementation passes the FACTS as well as the checklist, and whether the
+# repair feedback lets a failing second chance recover.
+#
+# WHY TERRA / python+go. exp-55 measured Terra on exactly these cells WITHOUT
+# the factual gate and got 1.00 throughout, so any verdict change here is
+# attributable to the gate rather than to a new stack. Terra also clears brazil
+# reliably (exp-56: 18/18), so cells reach the factual gate instead of dying on
+# the mechanical or spec gate first — which is what makes the test informative.
+#
+# EFFORT = default, deliberately: exp-55 swept all five levels on these exact
+# cells and found Terra flat across the dial.
+#
+# JUDGE held at claude-code / opus-4.8, unchanged since exp-53, so
+# requirement_coverage still pools with every prior experiment.
+#
+# COMPARABILITY, STATED UP FRONT. Pass/fail now answers a different question
+# than it did for the 284 prior brazil runs, because a third gate can fail a run
+# the checklist passed. Accepted by the user (2026-08-11). Any pooling of
+# pass-proportions across that boundary must say so.
+experiment:
+  name: experiment-57-factual-gate-brazil
+  visibility: public
+# The factor registry requires >= 2 levels per factor; design.csv pins the one
+# actually run. Only `language` genuinely varies.
+factors:
+  language: { levels: [python, go] }
+  agent: { levels: [codex, claude-code] }          # design pins codex
+  prompt: { levels: [neutral, none] }              # design pins neutral
+  model: { levels: [gpt-5.6-terra, gpt-5.6-luna] } # design pins terra
+  effort: { levels: [default, medium] }            # design pins default
+# factual_accuracy GATES (see docs/future-experiments.md §0); runtime is
+# measurement only. BOTH run live for the first time here — runtime has only
+# ever been invoked over archives via `retort rebuild`, and its numbers here are
+# contended by the agent on the same box, so they are comparable WITHIN this
+# experiment only.
+responses: [code_quality, token_efficiency, test_coverage, defect_rate,
+            maintainability, idiomatic, factual_accuracy, runtime]
+tasks:
+  - source: github://brazil-bench/benchmark-template/brazilian-soccer-mcp-guide.md
+playpen:
+  runner: local
+  replicates: 3
+  timeout_minutes: 150
+  stall_minutes: 30
+  max_turns: 200
+  prompts_dir: prompts
+  local_agents:
+    codex: { harness: codex, model: gpt-5.6-terra }
+design: { screening_resolution: 3, significance_threshold: 0.10 }
+promotion: { screening_to_trial: { p_value: 0.10 }, trial_to_production: { posterior_confidence: 0.80 } }
+evaluation: { enabled: true, model: opus-4.8 }
