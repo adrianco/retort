@@ -114,6 +114,43 @@ changes any verdict, and of whether the repair feedback actually helps a failing
 
 ---
 
+## exp-57 — does the factual gate change any verdict?  — PLANNED, launching 2026-08-11
+
+**Question.** `factual_accuracy` (§0) gates brazil runs on whether their ANSWERS are right, not just
+present. It has never fired on real data: all 13 archived implementations pass it. So — does a
+freshly generated run pass the facts as well as the checklist, and when one fails, does the repair
+feedback actually let the second chance fix it?
+
+**Hypothesis.** Terra clears `requirement_coverage` on brazil reliably (exp-55, exp-56: 18/18 at
+1.00), so cells should reach the factual gate rather than dying earlier. Prediction: **most cells
+pass both gates**, matching the archive. A cell that fails factual-but-not-checklist is the
+interesting outcome — it is a run that would have been recorded as a PASS before today.
+
+**Design.** brazil-bench × `gpt-5.6-terra` @ default effort × {python, go} × n=3 = **6 cells**.
+Python and go because they have the most archive data to compare against, and because exp-55 already
+measured Terra on exactly these cells *without* the factual gate — so any verdict change is
+attributable to the gate rather than to a new stack. ~$0.41/cell on exp-56 evidence → **≈ $2.50**.
+
+**What is NEW in `responses:`** — and both are first-run-ever, so treat their output as unproven:
+- `factual_accuracy` — the gate under test.
+- `runtime` — has only ever run over archives via `retort rebuild`; this is its first live
+  invocation. NOTE its numbers here are contended by the agent running on the same box, so they are
+  comparable within this experiment only, not against the rebuild sweeps.
+
+**Held fixed:** judge = opus-4.8 (unchanged since exp-53, so `requirement_coverage` still pools);
+prompt = neutral; effort = default; agent = codex.
+
+**Comparability, stated up front:** pass/fail now answers a different question than it did for the
+284 prior brazil runs, because a third gate can fail a run that the checklist passed. Accepted by
+the user (2026-08-11). Any pooling of pass-proportions across that boundary must say so.
+
+**Pre-flight (CLAUDE.md: verify before the grid).** One-cell smoke first, confirming that
+`_factual.json` is written by a LIVE run, that `factual_accuracy` lands in `scores.json`, and that
+the gate value is actually honoured — a gate that is registered but not wired would silently record
+the old verdict, which is exactly the set-but-not-verified failure this repo keeps paying for.
+
+---
+
 ## 1. exp-54 — does a Codex judge agree with the Opus judge?  — SCOPED DOWN (token budget)
 
 `requirement_coverage` is an LLM's opinion, and PR #45 made the judge configurable — so it is a
