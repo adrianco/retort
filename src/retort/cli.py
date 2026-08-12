@@ -1140,8 +1140,12 @@ def run_experiments(
                                 # adopt the second attempt as the recorded result
                                 artifacts, scores = a2, s2
                                 tests_failed, spec_failed, req_cov, archived = tf2, sf2, rc2, arch2
+                                # Reassign factual_failed too — it is stored, and
+                                # leaving attempt 1's value here would record the
+                                # retry under the first attempt's verdict.
+                                factual_failed = _factual_gate_failed(s2)
                                 run_ok = (a2.succeeded and not tf2 and not sf2
-                                          and not _factual_gate_failed(s2))
+                                          and not factual_failed)
                                 run_crashed = not a2.succeeded
                                 second_try = True
                         finally:
@@ -1163,13 +1167,22 @@ def run_experiments(
                         click.echo("    gate: tests did not run (test_coverage=0) — marked failed", err=True)
                     elif spec_failed:
                         click.echo(f"    gate: spec not met (requirement_coverage={req_cov} on two evals) — marked failed", err=True)
+                    elif factual_failed:
+                        click.echo("    gate: answers wrong (factual_accuracy<1.0) — marked failed", err=True)
 
                     # Store results
                     _store_run_result(
                         session, run_config, phase, run_idx, rep,
                         artifacts, scores,
                         design_row_id=run_config_to_row_id.get(config_key),
-                        conformance_failed=(tests_failed or spec_failed),
+                        # factual_failed MUST be here. It drives `run_ok`, which
+                        # sets the console verdict and the rep<N>-failed archive
+                        # name — but the DB status comes from THIS argument, and
+                        # omitting it recorded a failing run as `completed`. The
+                        # monitor and every downstream query read the DB, so the
+                        # gate fired everywhere except the place that counts.
+                        conformance_failed=(tests_failed or spec_failed
+                                            or factual_failed),
                         requirement_coverage=req_cov,
                         # a --repair-from cell is itself a repair (2nd attempt),
                         # so it too counts at half credit.

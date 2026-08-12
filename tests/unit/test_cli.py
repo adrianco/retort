@@ -1698,6 +1698,49 @@ class TestRunExecutionPath:
         status, _ = self._db_rows(tmp_path)
         assert status == "failed"            # conformance gate: tests_did_not_run -> failed
 
+    def test_wrong_answers_are_recorded_failed_in_the_db(self, tmp_path, monkeypatch):
+        """factual_accuracy<1.0 must reach the DB status, not just the console.
+
+        The regression this pins: `factual_failed` drove `run_ok` — the console
+        verdict and the rep<N>-failed archive name — but was left out of the
+        `conformance_failed` argument that sets the stored status. A run that
+        answered the 2019 Série A table wrongly printed "— FAIL", archived as
+        `rep1-failed`, and was recorded as **completed**. The monitor and every
+        downstream query read the DB, so the gate fired everywhere except the
+        one place that counts.
+        """
+        cfg = self._ws(tmp_path, evaluation=False)
+        self._patch(monkeypatch, tmp_path,
+                    self._sv(test_coverage=1.0, code_quality=1.0, factual_accuracy=0.0))
+        result = CliRunner().invoke(
+            cli, ["run", "--phase", "screening", "--config", str(cfg),
+                  "--design", str(self._design1(tmp_path)), "--no-second-chance"])
+        assert result.exit_code == 0, result.output
+        status, _ = self._db_rows(tmp_path)
+        assert status == "failed"
+
+    def test_correct_answers_are_still_recorded_completed(self, tmp_path, monkeypatch):
+        cfg = self._ws(tmp_path, evaluation=False)
+        self._patch(monkeypatch, tmp_path,
+                    self._sv(test_coverage=1.0, code_quality=1.0, factual_accuracy=1.0))
+        result = CliRunner().invoke(
+            cli, ["run", "--phase", "screening", "--config", str(cfg),
+                  "--design", str(self._design1(tmp_path)), "--no-second-chance"])
+        assert result.exit_code == 0, result.output
+        status, _ = self._db_rows(tmp_path)
+        assert status == "completed"
+
+    def test_a_task_without_golden_answers_is_not_gated(self, tmp_path, monkeypatch):
+        """No factual_accuracy recorded at all must not fail the run."""
+        cfg = self._ws(tmp_path, evaluation=False)
+        self._patch(monkeypatch, tmp_path, self._sv(test_coverage=1.0, code_quality=1.0))
+        result = CliRunner().invoke(
+            cli, ["run", "--phase", "screening", "--config", str(cfg),
+                  "--design", str(self._design1(tmp_path)), "--no-second-chance"])
+        assert result.exit_code == 0, result.output
+        status, _ = self._db_rows(tmp_path)
+        assert status == "completed"
+
     def test_agent_crash_is_recorded_crashed(self, tmp_path, monkeypatch):
         cfg = self._ws(tmp_path, evaluation=False)
         self._patch(monkeypatch, tmp_path, self._sv(test_coverage=1.0), exit_code=1)
