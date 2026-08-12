@@ -1068,6 +1068,10 @@ class TestCostLimitEnforcement:
             "retort.scoring.collector.ScoreCollector.collect",
             lambda *a, **k: ScoreVector(scores=[]),
         )
+        # See TestRunExecutionPath._patch: `retort run` preflights the judge, and
+        # these tests are about the cost limit, not the judge.
+        monkeypatch.setattr("retort.cli._eval_tooling_preflight",
+                            lambda *a, **k: (True, "stubbed for test"))
         monkeypatch.setattr(
             "retort.playpen.task_loader.load_task",
             lambda source: TaskSpec(name="test", description="test task", prompt="Do it."),
@@ -1648,6 +1652,12 @@ class TestRunExecutionPath:
         monkeypatch.setattr("retort.playpen.task_loader.load_task",
             lambda source: TaskSpec(name="t", description="d", prompt="Do it."))
         monkeypatch.setattr("retort.cli._spec_conformance_passes", lambda *a, **k: spec)
+        # `retort run` now preflights the JUDGE — one trivial `claude -p` — so a
+        # dead judge costs nothing instead of a whole grid recorded with
+        # requirement_coverage NULL. These tests exercise the gate path, not the
+        # judge, and their temp workspace has no evaluate-run skill, so stub it.
+        monkeypatch.setattr("retort.cli._eval_tooling_preflight",
+                            lambda *a, **k: (True, "stubbed for test"))
 
     @staticmethod
     def _sv(**metrics):

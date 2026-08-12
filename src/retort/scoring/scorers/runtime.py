@@ -355,19 +355,63 @@ def _python_entry(run_dir: Path) -> tuple[list[str] | None, str]:
     if call is None and server_mod:
         module = server_mod
     if call is None and module is None:
-        for f in ("server.py", "main.py", "mcp_server.py", "app.py"):
-            if (run_dir / f).exists():
-                script = f
-                break
+        # Find a RUNNABLE top-level script rather than matching a fixed list of
+        # names. The fixed list (server.py/main.py/mcp_server.py/app.py) missed
+        # `soccer_mcp.py` — a perfectly good server with a __main__ guard — and
+        # reported "no python entrypoint", which the factual gate then recorded
+        # as a failed run. The model had done the work; the harness could not
+        # find it. Rank by name, but accept any non-test script that declares an
+        # entrypoint.
+        def script_rank(p: Path) -> tuple:
+            n = p.stem.lower()
+            for i, hint in enumerate(("server", "mcp", "main", "app", "cli")):
+                if hint in n:
+                    return (i, len(n), n)
+            return (99, len(n), n)
+
+        # A __main__ guard is a strong signal but NOT a requirement: a script
+        # that calls serve() at module level is equally runnable. Prefer guarded
+        # scripts, fall back to any non-test top-level module.
+        guarded, plain = [], []
+        for cand in sorted(run_dir.glob("*.py")):
+            n = cand.stem.lower()
+            if n.startswith("test_") or n.endswith("_test") or "conftest" in n:
+                continue
+            try:
+                has_guard = "__main__" in cand.read_text(errors="replace")
+            except OSError:
+                has_guard = False
+            (guarded if has_guard else plain).append(cand)
+        pool = guarded or plain
+        if pool:
+            script = min(pool, key=script_rank).name
     if call is None and module is None and script is None:
         return None, "no python entrypoint (no [project.scripts], package, or server.py)"
 
     # ---- build a venv, and verify the entry actually IMPORTS in it ----------
-    target = call[0] if call else (module or "")
-    attempts: list[list[str]] = [deps]
+    # A SCRIPT entry is import-checked too, via its own module name. Importing it
+    # runs its imports without running main (the __main__ guard stops that), so
+    # it exercises the same dependency surface. Skipping this for scripts made
+    # the cap-to-major retry unreachable for them: a run declaring `mcp>=1.0`
+    # resolved to mcp 2.0, which removed the module its server imports, and the
+    # server died with its own "MCP support requires the 'mcp' package" — a
+    # dependency-drift failure that the retry exists to recover.
+    target = call[0] if call else (module or (Path(script).stem if script else ""))
+    # CAPPED FIRST when a requirement is unbounded. `mcp>=1.0` is not a claim
+    # that the newest major works — it is the absence of a claim — and this code
+    # was written against whatever was current when the run happened. Resolving
+    # to the latest major instead reproduces a DIFFERENT program: one run's
+    # server imports `mcp.server.fastmcp`, which mcp 2.0 removed, so it died at
+    # run time with its own "MCP support requires the 'mcp' package" and the
+    # factual gate recorded a working implementation as a failure.
+    #
+    # An import check cannot catch this — that server's import sits inside its
+    # factory function, so the module imports cleanly and only fails when
+    # started. Preferring the capped resolve is what actually reproduces it.
     capped = _cap_majors(deps)
+    attempts: list[list[str]] = [capped] if capped != deps else [deps]
     if capped != deps:
-        attempts.append(capped)
+        attempts.append(deps)          # fall back to unbounded if the cap fails
 
     last = ""
     for attempt in attempts:

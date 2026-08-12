@@ -796,6 +796,33 @@ def run_experiments(
             else:
                 click.echo(f"Local-agent preflight: {len(_local_agents)} agent(s) OK.")
 
+        # JUDGE PREFLIGHT. `_eval_tooling_preflight` already existed for this
+        # exact purpose but was only wired into rescore/reevaluate, never into a
+        # RUN — so an experiment discovered a dead judge one cell at a time and
+        # recorded every cell with requirement_coverage NULL. That is worse than
+        # crashing: the data looks complete and cannot be pooled with anything.
+        # Costs one trivial prompt; saves a whole grid.
+        if workspace_config.evaluation.enabled:
+            _ok, _msg = _eval_tooling_preflight(
+                getattr(workspace_config.evaluation, "model", None),
+                config_dir / "runs",
+            )
+            if not _ok:
+                raise click.ClickException(
+                    f"JUDGE PREFLIGHT FAILED — {_msg}\n\n"
+                    "  requirement_coverage is this project's primary response. "
+                    "Running now would record every cell with it NULL, which "
+                    "looks like complete data and silently cannot be pooled.\n"
+                    "  If the judge is not authenticated, run `/login` at an "
+                    "interactive terminal (local-only; it does not work over "
+                    "Remote Control) and check with:\n"
+                    "      claude -p 'Reply with exactly: OK'\n"
+                    "  To run without a spec gate on purpose, set "
+                    "`evaluation: {enabled: false}` — but see the standing note "
+                    "that an ungated experiment is not comparable."
+                )
+            click.echo(f"Judge preflight: {_msg}")
+
         runner = LocalRunner(
             timeout_minutes=workspace_config.playpen.timeout_minutes,
             stall_minutes=workspace_config.playpen.stall_minutes,
@@ -1960,7 +1987,45 @@ def _run_auto_evaluation(
         )
 
     if rc != 0:
+        # An AUTH failure is different in kind from a judge that ran and could
+        # not decide. It will fail identically for every remaining cell, and
+        # "continuing" then records a whole experiment with requirement_coverage
+        # NULL — data that looks complete and silently cannot be pooled with any
+        # other run. Stop instead, so --resume can finish it after a /login.
+        if _is_auth_failure(output):
+            raise click.ClickException(
+                "JUDGE NOT AUTHENTICATED — stopping rather than recording "
+                "ungated runs.\n\n"
+                f"    {output.strip()[:200]}\n\n"
+                "  Every remaining cell would fail the same way and be recorded "
+                "with requirement_coverage NULL, which looks like complete data "
+                "and cannot be pooled with any other experiment.\n"
+                "  Fix: run `/login` at an interactive terminal (it is local-only "
+                "and does not work over Remote Control), then re-run with "
+                "--resume to finish the remaining cells.\n"
+                "  Check first with: claude -p 'Reply with exactly: OK'"
+            )
         click.echo(f"  (evaluate failed rc={rc}; continuing) {output[:200]}", err=True)
+
+
+#: Substrings that mean "the judge could not authenticate", as distinct from a
+#: judge that ran and returned nothing usable. The credential failure mode here
+#: is a BLANKED keychain entry — accessToken and refreshToken both empty strings
+#: and expiresAt 0 — which passes every presence check, so the only reliable
+#: signal is what the CLI says when it tries to use it.
+_AUTH_FAILURE_MARKERS = (
+    "failed to authenticate",
+    "oauth session expired",
+    "not logged in",
+    "please run /login",
+    "invalid api key",
+    "authentication_error",
+)
+
+
+def _is_auth_failure(output: str) -> bool:
+    low = (output or "").lower()
+    return any(m in low for m in _AUTH_FAILURE_MARKERS)
 
 
 def _read_requirement_coverage(run_dir: Path) -> float | None:
