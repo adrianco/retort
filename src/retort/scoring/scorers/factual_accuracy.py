@@ -103,6 +103,15 @@ def _rows_of(text: str) -> list[str]:
     20 clubs present. Parse the structure when there is one.
     """
     stripped = text.strip()
+    # JSON may be EMBEDDED, not the whole payload: one server answers
+    # "Competition analysis covers 380 matches.\n{ ...pretty-printed... }".
+    # That parses neither as JSON nor line-wise (the team name sits on its own
+    # line with no figures), so a correct table read as "no Flamengo row found".
+    if not (stripped.startswith("[") or stripped.startswith("{")):
+        first = min((i for i in (stripped.find("{"), stripped.find("[")) if i >= 0),
+                    default=-1)
+        if first >= 0:
+            stripped = stripped[first:]
     if stripped.startswith("[") or stripped.startswith("{"):
         try:
             data = json.loads(stripped)
@@ -119,6 +128,43 @@ def _rows_of(text: str) -> list[str]:
                 out.append(json.dumps(item) if isinstance(item, (dict, list)) else str(item))
             return out
     return text.splitlines()
+
+
+#: Field names a structured row may use for each figure, in preference order.
+_FIELD_ALIASES = {
+    "played": ("played", "matches", "matches_played", "games", "p", "mp"),
+    "wins": ("wins", "won", "w"),
+    "draws": ("draws", "drawn", "ties", "d"),
+    "losses": ("losses", "lost", "defeats", "l"),
+    "points": ("points", "pts"),
+}
+
+
+def _record_from_fields(row: str) -> dict | None:
+    """W/D/L/played/points read BY NAME from a structured row, if it is one.
+
+    Positional parsing cannot work here. One server returns
+    `{"draws": 6, "goal_difference": 49, ..., "points": 90, "wins": 28}` — every
+    figure correct, but JSON key order is alphabetical, so a check for the
+    consecutive triple [28, 6, 4] fails on a perfect answer. Read the fields.
+    """
+    row = row.strip()
+    if not row.startswith("{"):
+        return None
+    try:
+        obj = json.loads(row)
+    except ValueError:
+        return None
+    if not isinstance(obj, dict):
+        return None
+    lowered = {str(k).lower(): v for k, v in obj.items()}
+    out: dict = {}
+    for want, aliases in _FIELD_ALIASES.items():
+        for a in aliases:
+            if isinstance(lowered.get(a), (int, float)):
+                out[want] = int(lowered[a])
+                break
+    return out or None
 
 
 def _atletico_rows(text: str) -> int:
@@ -343,13 +389,25 @@ def measure(run_dir: Path, language: str) -> FactualResult:
         # matches played". A gate that fails correct work is worse than no gate.
         # The W-D-L triple appears consecutively in every format observed, and it
         # determines both 38 played and 90 points, so it is the robust check.
+        # Prefer FIELDS when the row is structured; fall back to the positional
+        # triple for text tables.
+        flam = next((r for r in _rows_of(table_text) if "flamengo" in r.lower()), "")
+        fields = _record_from_fields(flam)
         nums = _row_numbers(table_text, "Flamengo")
-        record_ok = any(nums[i:i + 3] == [28, 6, 4] for i in range(len(nums)))
+        if fields and {"wins", "draws", "losses"} <= set(fields):
+            record_ok = (fields["wins"], fields["draws"], fields["losses"]) == (28, 6, 4)
+            if "played" in fields:
+                record_ok = record_ok and fields["played"] == 38
+            if "points" in fields:
+                record_ok = record_ok and fields["points"] == 90
+        else:
+            record_ok = any(nums[i:i + 3] == [28, 6, 4] for i in range(len(nums)))
         res.assertions.append(Assertion(
             name="2019 Série A: Flamengo's record",
             expected="28W-6D-4L (= 38 played, 90 points)",
             actual=("28W-6D-4L" if record_ok else
-                    (f"row figures {nums}" if nums else "no Flamengo row found")),
+                    (f"fields {fields}" if fields else
+                     f"row figures {nums}" if nums else "no Flamengo row found")),
             passed=record_ok,
             hint=("2019 Série A is a 20-team double round-robin: every club plays "
                   "exactly 38 and Flamengo won on 90 points, as the task's own worked "
