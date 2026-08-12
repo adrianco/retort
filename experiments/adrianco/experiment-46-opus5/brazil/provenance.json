@@ -1,4 +1,21 @@
 {
+  "_correction": {
+    "explanation": "This experiment ran entirely on a hosted agent. The hermes and oMLX blocks above were read from the local serving stack installed on the host and were captured unconditionally by a bug; they did not affect this run. In particular the recorded sampling (temperature/top_p/top_k) was NOT applied \u2014 a hosted model's sampling is set provider-side and is not observable from the client, so it is unknown for this run rather than being the value shown.",
+    "fields_that_do_not_describe_this_run": [
+      "agent_config.hermes",
+      "serving.omlx"
+    ],
+    "fixed_in": "provenance.capture(agents=...) \u2014 2026-08-11",
+    "issue": "provenance recorded the local stack for a cloud run",
+    "still_valid": [
+      "retort",
+      "host",
+      "harness",
+      "models",
+      "stack_presets",
+      "tools (as an inventory of what was installed, not what ran)"
+    ]
+  },
   "agent_config": {
     "hermes": {
       "_config_version": 33,

@@ -853,6 +853,10 @@ def run_experiments(
             model_ids=[
                 str(rc.get("model")) for rc in design.run_configs() if rc.get("model")
             ],
+            # Which agents the design ACTUALLY runs, so provenance records the
+            # stack that ran rather than every stack installed on the box.
+            agents=sorted({str(rc.get("agent") or "claude-code")
+                           for rc in design.run_configs()}),
         )
         _path = _prov.write(_manifest, config_dir)
         click.echo("\nStack provenance (recorded to %s):" % _path.name)

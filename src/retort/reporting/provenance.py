@@ -127,6 +127,42 @@ def _omlx_sampling() -> dict[str, Any] | None:
     }
 
 
+def _codex_config() -> dict[str, Any] | None:
+    """What the Codex CLI actually is. Sampling is the PROVIDER's, not ours."""
+    ver = _sh(["codex", "--version"])
+    if ver is None:
+        return None
+    return {
+        "cli_version": ver,
+        # Recorded explicitly so nobody reads a local sampling block as this
+        # run's: a hosted model's temperature/top_p are set server-side and are
+        # not observable from here. Saying so beats implying a value we made up.
+        "sampling": "provider-side (not observable from the client)",
+    }
+
+
+def _claude_code_config() -> dict[str, Any] | None:
+    ver = _sh(["claude", "--version"])
+    if ver is None:
+        return None
+    return {"cli_version": ver,
+            "sampling": "provider-side (not observable from the client)"}
+
+
+def _agent_harnesses(playpen_config: Any, agents: list[str] | None) -> dict[str, str]:
+    """{agent name -> harness} for the agents this experiment ACTUALLY uses.
+
+    `claude-code` is the built-in default and is not listed under `local_agents`.
+    """
+    declared = {k: v.harness for k, v in
+                (getattr(playpen_config, "local_agents", {}) or {}).items()}
+    if not agents:
+        # Nothing told us which agents run; assume every declared one plus the
+        # built-in, which is the old always-record-everything behaviour.
+        return {**declared, "claude-code": "claude-code"}
+    return {a: declared.get(a, "claude-code") for a in agents}
+
+
 def _model_revisions(model_ids: list[str]) -> dict[str, Any]:
     """Resolve each model to its HF repo + snapshot revision + on-disk size.
 
@@ -192,8 +228,20 @@ def capture(
     playpen_config: Any = None,
     stack_presets: dict[str, Any] | None = None,
     model_ids: list[str] | None = None,
+    agents: list[str] | None = None,
 ) -> dict[str, Any]:
-    """Collect the full stack manifest for an experiment run."""
+    """Collect the stack manifest for an experiment run.
+
+    `agents` is the set of agent levels the design actually runs. It matters
+    because provenance used to record the LOCAL stack unconditionally: a Codex
+    or Claude Code experiment got `agent: hermes`, `serving: oMLX 0.5.0rc1` and a
+    sampling dict of `temperature 0.7, top_p 0.95, top_k 40` — none of which had
+    anything to do with the run. That is not a cosmetic wart. Provenance exists
+    so a result can be tied to the stack that produced it, and the whole reason
+    this file exists is that unrecorded sampling silently halved the local
+    numbers before exp-27. A manifest that confidently states the wrong
+    sampling is worse than one that states none.
+    """
     pp = playpen_config
     harness: dict[str, Any] = {}
     if pp is not None:
@@ -225,13 +273,27 @@ def capture(
     if stack_presets:
         ids += [p.get("model") for p in stack_presets.values() if p.get("model")]
 
+    # Record ONLY the stack the agents in play actually use.
+    harnesses = _agent_harnesses(pp, agents)
+    kinds = set(harnesses.values())
+    agent_config: dict[str, Any] = {}
+    serving: dict[str, Any] = {}
+    if {"hermes", "omp", "lcm"} & kinds:
+        agent_config["hermes"] = _hermes_config()
+        serving["omlx"] = _omlx_sampling()
+    if "codex" in kinds:
+        agent_config["codex"] = _codex_config()
+    if "claude-code" in kinds:
+        agent_config["claude_code"] = _claude_code_config()
+
     return {
         "retort": _git(repo),
         "host": _host(),
         "tools": _tool_versions(),
         "harness": harness,
-        "agent_config": {"hermes": _hermes_config()},
-        "serving": {"omlx": _omlx_sampling()},
+        "agents": harnesses,
+        "agent_config": agent_config,
+        "serving": serving,
         "stack_presets": stack_presets,
         "models": _model_revisions(sorted({i for i in ids if i})),
     }
@@ -249,17 +311,28 @@ def summarize(manifest: dict[str, Any]) -> list[str]:
     r = manifest.get("retort", {})
     h = manifest.get("host", {})
     t = manifest.get("tools", {})
-    s = (manifest.get("serving", {}).get("omlx") or {}).get("sampling")
-    hc = manifest.get("agent_config", {}).get("hermes") or {}
+    ac = manifest.get("agent_config", {}) or {}
     lines = [
         f"  retort   : {str(r.get('commit'))[:10]}"
         f"{' (dirty)' if r.get('dirty') else ''} on {r.get('branch')}",
         f"  host     : {h.get('machine')}  wired_limit={h.get('iogpu_wired_limit_mb')}MB",
-        f"  agent    : hermes {t.get('hermes')}  ctx={hc.get('context_length')} "
-        f"max_turns={hc.get('max_turns')} engine={hc.get('context_engine')}",
-        f"  serving  : oMLX {t.get('omlx')}",
-        f"  sampling : {s}",
     ]
+    agents = manifest.get("agents") or {}
+    if agents:
+        lines.append("  agents   : " + ", ".join(f"{a} ({k})" for a, k in sorted(agents.items())))
+    # Print each stack only when it is the one that ran. Printing the local
+    # block for a hosted run stated sampling values that were never applied.
+    hc = ac.get("hermes")
+    if hc:
+        lines.append(f"  agent    : hermes {t.get('hermes')}  ctx={hc.get('context_length')} "
+                     f"max_turns={hc.get('max_turns')} engine={hc.get('context_engine')}")
+        lines.append(f"  serving  : oMLX {t.get('omlx')}")
+        lines.append(f"  sampling : {(manifest.get('serving', {}).get('omlx') or {}).get('sampling')}")
+    for key, label in (("codex", "codex"), ("claude_code", "claude")):
+        cfg = ac.get(key)
+        if cfg:
+            lines.append(f"  agent    : {label} {cfg.get('cli_version')}")
+            lines.append(f"  sampling : {cfg.get('sampling')}")
     for mid, m in (manifest.get("models") or {}).items():
         lines.append(
             f"  model    : {mid} rev={str(m.get('revision'))[:12]} "
