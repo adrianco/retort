@@ -390,6 +390,54 @@ zero indistinguishable from a capability wall. They need
 explicitly — `retort reevaluate` otherwise falls back to the CLI's default judge, which would have
 graded them under a different model than the other 16.
 
+### exp-57 — the first correctness gate, and 3 perfect checklists that are wrong
+
+**gpt-5.6-luna × brazil × {python, go} × n=3**, judge opus-4.8, **\$1.01 / 17 min**. The first
+experiment to run the new `factual_accuracy` gate, which starts the finished server and checks two
+externally-verifiable facts about the 2019 Série A (Flamengo 28W-6D-4L, all 20 clubs) — both stated
+in the task's own worked example.
+
+**2 of 6 pass. Five of six scored `requirement_coverage` 1.00, and three of those ship a
+demonstrably wrong 2019 table** — clean passes under the old gates.
+
+| lang | rep | req_cov | factual | defect |
+|---|---|---|---|---|
+| python | 2 | 1.00 | 1.00 | — |
+| go | 2 | 1.00 | 1.00 | — |
+| go | 1 | 1.00 | 0.50 | **76 played, 180 points** — exactly double 38/90: the five overlapping match files concatenated without dedup |
+| python | 1,3 | 1.00 | 0.50 | `Athletico Paranaense` 27 + `Atletico Paranaense` 11 = 38 — one club split across two spellings, giving a 21-club division |
+| go | 3 | 0.92 | 0.00 | 223-row "standings"; Athletico Paranaense split FOUR ways (`Atletico Paranaense` 46, `Atletico-PR` 38, `Athletico Paranaense - PR` 8, `Athletico` 8); no competition filter, so it cannot produce the spec's own worked example |
+
+Every one of these implements the checklist, returns a table, and satisfies the accounting identity
+`matches == wins+draws+losses` — within each fragment. That is exactly why the pinned checklist
+cannot see it: it asks whether a capability exists, never whether its numbers are right.
+
+**The dominant defect is name normalisation, not deduplication.** §0 predicted double-counting from
+one run's log; only one cell shows it. Three show a club's season split across spellings the loader
+never canonicalised — the hazard the task text explicitly warns about (`São Paulo-SP` vs
+`Sao Paulo`). One run wrote a perfectly good normaliser and then keyed its standings map on the raw
+string.
+
+**Harness cost of getting here: 6 bugs, every one of which failed CORRECT work.** Four in the
+scorer's own parsing (literal "38" lookup reading the points column; counting table-shaped lines and
+catching a relegation-summary line as a 21st club; one name token per club; single-line JSON output
+collapsing to one row), and two outside it — `go build -o X .` emitting a package ARCHIVE at mode
+0644 for the idiomatic `cmd/<name>/main.go` layout while exiting 0, and a tool schema declaring
+`required: ["season"]` with no `properties` block, so the probe never asked for 2019 and was
+answered with all-time standings. The uncorrected run recorded 0/6; the truth is 2/6.
+
+**Two gate-plumbing bugs found the same day, both of which silently un-did the gate:**
+`factual_failed` drove `run_ok` — the console verdict and the `rep<N>-failed` archive name — but was
+omitted from the argument that sets the stored DB status, so a failing run was recorded `completed`
+and every downstream consumer saw a pass. And `retort rescore` reclassified on `test_coverage`
+alone, flipping all six runs back to `completed RECOVERED`. A recovery path that resurrects runs a
+gate rejected is worse than no recovery path.
+
+**Standing caveat:** pass/fail now answers a different question than it did for the 284 pre-gate
+brazil runs. `REQUIREMENTS.json` is untouched, so `requirement_coverage` still pools; any write-up
+that pools *pass-proportions* across that boundary must say so.
+
+
 ### exp-55b — the same sweep on the HARD task: 28× the cost, and the gap the pass metric hides
 
 The brazil half of exp-55: `{gpt-5.6-terra, claude-opus-5} × {low, medium, high, xhigh, max} ×

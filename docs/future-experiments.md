@@ -114,50 +114,6 @@ changes any verdict, and of whether the repair feedback actually helps a failing
 
 ---
 
-## exp-57 — does the factual gate change any verdict?  — PLANNED, launching 2026-08-11
-
-**Question.** `factual_accuracy` (§0) gates brazil runs on whether their ANSWERS are right, not just
-present. It has never fired on real data: all 13 archived implementations pass it. So — does a
-freshly generated run pass the facts as well as the checklist, and when one fails, does the repair
-feedback actually let the second chance fix it?
-
-**Design (revised 2026-08-11, user: vary the config from exp-56 to expand coverage rather than
-re-measure).** brazil-bench × **`gpt-5.6-luna`** @ default effort × {python, go} × n=3 = **6 cells**.
-
-Luna has only ever run the ROUTINE task (exp-53, bookshop); **it has never been measured on
-brazil**, so this is a genuinely new model × task cell rather than a re-run of exp-55's
-terra/python+go ground. It is also the cheaper Codex model and — being the weaker one — is more
-likely to make a FACTUAL error than Terra, which is exactly what a gate that has never fired needs
-to be tested against. python+go because they are the best-supported languages, so a luna failure is
-attributable to the model rather than to language tooling. ≈ **$2–3** on exp-56 cost evidence.
-
-**Hypothesis.** Two outcomes are both informative. If luna clears the checklist, we learn whether it
-also clears the FACTS — and a cell that fails factual-but-not-checklist is a run that would have been
-recorded as a PASS before today. **Risk, stated up front:** luna may fall short of the checklist on
-the hard task and never reach the factual gate. That is still publishable (luna's brazil ceiling,
-previously unmeasured) but would leave the gate untested — in which case the follow-up is Terra at a
-non-default effort.
-
-**What is NEW in `responses:`** — and both are first-run-ever, so treat their output as unproven:
-- `factual_accuracy` — the gate under test.
-- `runtime` — has only ever run over archives via `retort rebuild`; this is its first live
-  invocation. NOTE its numbers here are contended by the agent running on the same box, so they are
-  comparable within this experiment only, not against the rebuild sweeps.
-
-**Held fixed:** judge = opus-4.8 (unchanged since exp-53, so `requirement_coverage` still pools);
-prompt = neutral; effort = default; agent = codex.
-
-**Comparability, stated up front:** pass/fail now answers a different question than it did for the
-284 prior brazil runs, because a third gate can fail a run that the checklist passed. Accepted by
-the user (2026-08-11). Any pooling of pass-proportions across that boundary must say so.
-
-**Pre-flight (CLAUDE.md: verify before the grid).** One-cell smoke first, confirming that
-`_factual.json` is written by a LIVE run, that `factual_accuracy` lands in `scores.json`, and that
-the gate value is actually honoured — a gate that is registered but not wired would silently record
-the old verdict, which is exactly the set-but-not-verified failure this repo keeps paying for.
-
----
-
 ## 1. exp-54 — does a Codex judge agree with the Opus judge?  — SCOPED DOWN (token budget)
 
 `requirement_coverage` is an LLM's opinion, and PR #45 made the judge configurable — so it is a
