@@ -1,0 +1,11 @@
+{
+  "severity_counts": {"critical": 1, "high": 1, "medium": 0, "low": 0, "info": 0},
+  "penalty_score": 0.65,
+  "top_findings": [
+    {"id": "run-server-import", "kind": "build_failure", "severity": "critical", "title": "MCP server module fails to import under the resolved SDK (mcp 2.0.0)", "evidence": "brazilian_soccer_mcp/server.py:267 uses @server.list_tools(); pyproject.toml declares mcp>=1.28,<3 so a fresh install resolves 2.0.0 (confirmed latest on PyPI), which removed the low-level decorator API -> _factual.json/_runtime.json report AttributeError: 'Server' object has no attribute 'list_tools'. The decorator API IS present in the locally installed mcp 1.28.1 (lowlevel/server.py:440), so the code is not hallucinated — it is version-incompatible with 2.0.0.", "suggestion": "Pin mcp>=1.28,<2 (the version whose decorator API this code targets), or register handlers via the 2.0 API (add_request_handler) so import survives on both generations."},
+    {"id": "test-stub-false-green", "kind": "test_failure", "severity": "high", "title": "Protocol tests validate an in-test StubServer, not the real MCP SDK", "evidence": "tests/test_server.py:10-74 installs a hand-rolled StubServer that re-implements the removed 1.x decorator API whenever mcp is unimportable, then asserts against it. This is why test_coverage=0.94 is green while the real server cannot start.", "suggestion": "Add a test that imports the module with the real installed mcp and asserts server.run wiring, so an SDK-incompatible break fails CI instead of passing against a stub."}
+  ],
+  "requirement_coverage": 1.0,
+  "model": "gpt-5.6-sol",
+  "evaluated_at": "2026-08-12T20:20:47Z"
+}

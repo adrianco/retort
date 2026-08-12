@@ -438,6 +438,50 @@ brazil runs. `REQUIREMENTS.json` is untouched, so `requirement_coverage` still p
 that pools *pass-proportions* across that boundary must say so.
 
 
+### exp-58 — GPT-5.6 Sol, and the gap the checklist hides
+
+**`gpt-5.6-sol` × brazil × {python, go, rust, typescript} × n=3**, its own default effort,
+judge opus-4.8, **\$27.97 / ~75 min**. Sol is the new frontier Codex model
+(`models_cache.json`, 2026-08-12: *"Latest frontier agentic coding model"*); master.db had only
+terra and luna.
+
+**10 of 12 pass with facts checked. 11 of 12 pass the checklist alone.** Head-to-head on the hard
+task, same gate, same judge:
+
+| model | n | checklist only | with facts |
+|---|---:|---:|---:|
+| gpt-5.6-luna | 6 | 0.83 | **0.33** |
+| gpt-5.6-sol | 12 | 0.92 | **0.83** |
+
+**The checklist barely separates these models; correctness separates them 2.5x.** That is the
+clearest evidence yet for §0's premise — `requirement_coverage` measures whether a capability exists,
+and on a task where the data is messy, existence and correctness diverge sharply for the weaker
+model.
+
+**Sol's two genuine failures are both worth naming:**
+- **python rep3** declares `mcp>=1.28,<3` and uses `@server.list_tools()`, which exists in mcp 1.x
+  and was **removed in 2.0**. Its own manifest specifies a version its own code cannot run against:
+  install it as shipped and it crashes on start-up. Verified directly — `Server.list_tools` is
+  present in 1.29.0, absent in 2.0.0.
+- **typescript rep1** reports Flamengo at 55 played / 37 wins and splits Athletico across four rows.
+  It also missed the checklist (0.92), so it was the one cell the old gate would have caught anyway.
+
+**Cost and speed, versus terra:** sol runs **\$2.33/cell and 7.7 min median** against terra's
+\$0.77 and 457 s on the same task — roughly 3x the price for +0.05 checklist reliability. Seven of
+twelve cells needed the self-repair second chance (`ok*`, half credit).
+
+**Two settings recorded because they are NOT comparable across models:** sol's own default reasoning
+level is **`low`**, terra's is `medium` — "default effort" is not one setting. And a **new effort
+level `ultra`** exists above `max` on sol/terra/luna, which exp-55's sweep never saw. Both queued.
+
+**Harness cost: 2 more parser fixes, both failing CORRECT work** — a structured row whose JSON keys
+are alphabetical (so the consecutive-`[28,6,4]` check missed a perfect answer), and a response that
+puts a text preamble before pretty-printed JSON (parsing neither as JSON nor line-wise). The
+uncorrected run recorded 8/12; the truth is 10/12. That makes **eight distinct output shapes** this
+scorer has had to learn across two experiments — the format diversity across implementations of one
+specification is itself a finding.
+
+
 ### exp-55b — the same sweep on the HARD task: 28× the cost, and the gap the pass metric hides
 
 The brazil half of exp-55: `{gpt-5.6-terra, claude-opus-5} × {low, medium, high, xhigh, max} ×

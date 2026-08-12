@@ -1,0 +1,5 @@
+language,agent,prompt,model,effort
+python,codex,neutral,gpt-5.6-sol,default
+go,codex,neutral,gpt-5.6-sol,default
+rust,codex,neutral,gpt-5.6-sol,default
+typescript,codex,neutral,gpt-5.6-sol,default

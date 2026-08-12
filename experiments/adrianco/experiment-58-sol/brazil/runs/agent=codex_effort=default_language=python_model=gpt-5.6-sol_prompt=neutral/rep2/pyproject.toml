@@ -1,0 +1,39 @@
+[build-system]
+requires = ["hatchling>=1.27"]
+build-backend = "hatchling.build"
+
+[project]
+name = "brazilian-soccer-mcp"
+version = "1.0.0"
+description = "MCP knowledge graph server for the bundled Brazilian soccer datasets"
+readme = "README.md"
+requires-python = ">=3.11"
+dependencies = ["mcp>=2,<3"]
+
+[project.optional-dependencies]
+test = ["pytest>=8"]
+
+[project.scripts]
+brazilian-soccer-mcp = "server:main"
+
+[tool.hatch.build.targets.wheel]
+only-include = ["server.py", "soccer_graph.py", "query_engine.py", "data/kaggle"]
+
+[tool.hatch.build.targets.sdist]
+include = [
+  "README.md",
+  "TASK.md",
+  "brazilian-soccer-mcp-guide.md",
+  "pyproject.toml",
+  "server.py",
+  "soccer_graph.py",
+  "query_engine.py",
+  "test_server.py",
+  "test_soccer_graph.py",
+  "data/kaggle/*.csv",
+]
+
+[tool.pytest.ini_options]
+addopts = "-q"
+testpaths = ["."]
+python_files = ["test_*.py"]

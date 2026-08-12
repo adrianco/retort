@@ -1,0 +1,19 @@
+[package]
+name = "brazilian-soccer-mcp"
+version = "0.1.0"
+edition = "2024"
+description = "Dependency-free MCP server for the bundled Brazilian soccer datasets"
+license = "MIT"
+
+[lib]
+name = "brazilian_soccer_mcp"
+path = "src/lib.rs"
+
+[[bin]]
+name = "brazilian-soccer-mcp"
+path = "src/main.rs"
+
+[profile.release]
+lto = true
+strip = true
+

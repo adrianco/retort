@@ -1,0 +1,26 @@
+[build-system]
+requires = ["uv_build>=0.11.28,<0.12"]
+build-backend = "uv_build"
+
+[project]
+name = "brazilian-soccer-mcp"
+version = "1.0.0"
+description = "MCP server for querying the bundled Brazilian soccer datasets"
+readme = "README.md"
+requires-python = ">=3.10"
+dependencies = ["mcp>=1.28,<3"]
+
+[project.optional-dependencies]
+test = ["pytest>=7.4"]
+
+[project.scripts]
+brazilian-soccer-mcp = "brazilian_soccer_mcp.server:main"
+
+[tool.uv.build-backend]
+module-name = "brazilian_soccer_mcp"
+module-root = ""
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+addopts = "-q"
+pythonpath = ["."]

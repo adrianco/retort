@@ -1,0 +1,24 @@
+{
+  "severity_counts": {
+    "critical": 0,
+    "high": 1,
+    "medium": 0,
+    "low": 0,
+    "info": 0
+  },
+  "penalty_score": 0.9,
+  "top_findings": [
+    {
+      "id": "R6-factual",
+      "kind": "correctness",
+      "severity": "high",
+      "title": "team_statistics inflates season records (double-counts UTC-shifted duplicate fixtures)",
+      "evidence": "src/query.rs:163 team_statistics builds a MatchFilter with competition/season = None unless passed, then calls filtered_matches (src/query.rs:783), which deduplicates via match_signature (src/query.rs:932). match_signature keys on item.date verbatim, so the same 2019 S\u00e9rie A fixture recorded in Brasileirao_Matches.csv and in BR-Football-Dataset.csv with a \u00b11-day UTC-shifted date produces two distinct signatures and is NOT collapsed. _factual.json: expected 28W-6D-4L (38 played, 90 pts), got inflated row figures; factual_accuracy=0.5 in scores.json.",
+      "suggestion": "Route team_statistics through authoritative_competition_matches (single-source-per-competition, as R9 standings already do), and/or make match_signature tolerant of a \u00b11-day date difference. This is a factual-accuracy defect, not an absent capability \u2014 the R6 tool exists and returns aggregated W/L/D + goals."
+    }
+  ],
+  "requirement_coverage": 1.0,
+  "requirement_coverage_note": "Pinned REQUIREMENTS.json: 12/12 implemented. Second opinion: R6 is implemented (team_statistics src/query.rs:163); the first eval's 0.8 conflated the separate factual_accuracy=0.5 gate with requirement coverage.",
+  "model": "gpt-5.6-sol",
+  "evaluated_at": "2026-08-12T17:14:46Z"
+}

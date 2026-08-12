@@ -1,0 +1,23 @@
+{
+  "severity_counts": {
+    "critical": 0,
+    "high": 1,
+    "medium": 0,
+    "low": 0,
+    "info": 0
+  },
+  "penalty_score": 0.9,
+  "top_findings": [
+    {
+      "id": "R9",
+      "kind": "requirement_partial",
+      "severity": "high",
+      "title": "calculate_standings MCP tool returns protocol error -32602 on every call",
+      "evidence": "src/server.ts:8-13 result() sets structuredContent = JSON.parse(JSON.stringify(data)); src/server.ts:110-117 calculate_standings passes data = service.standings(...).slice(0, limit), a StandingRow[] (array). CallToolResultSchema in @modelcontextprotocol/sdk 1.30.0 (dist/esm/types.js:1472 structuredContent: z.object({}).loose()) validates on the client and rejects arrays. Reproduced via InMemoryTransport client.callTool('calculate_standings',{season:2019}) -> MCP error -32602 'Invalid tools/call result: expected record, received array'. Root computation is correct (service.standings(2019) -> 20 rows, leader Flamengo-RJ 90 pts) and IS reachable via competition_summary (returns fine, standings[] included), so the requirement's compute-not-hardcoded criterion is met, but the dedicated standings tool is unusable.",
+      "suggestion": "Wrap the array before returning, e.g. result(formatStandings(data), { season, competition, standings: data }) so structuredContent is an object. Same latent risk exists only where data is an array; all other tools return objects and pass."
+    }
+  ],
+  "requirement_coverage": 0.9166666666666666,
+  "model": "gpt-5.6-sol",
+  "evaluated_at": "2026-08-12T21:44:14Z"
+}

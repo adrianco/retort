@@ -1,0 +1,11 @@
+{
+  "severity_counts": {"critical": 0, "high": 2, "medium": 0, "low": 0, "info": 0},
+  "penalty_score": 0.8,
+  "top_findings": [
+    {"id": "R9", "kind": "requirement_partial", "severity": "high", "title": "Standings capability implemented but output ~2x inflated by incomplete cross-file de-duplication", "evidence": "getStandings (src/soccer-service.ts:216) computes standings from matches via recordFor (not hardcoded), so the CAPABILITY exists — first evaluator's 'missing' is wrong. But _factual.json ground truth shows 2019 Flamengo expected 28W-6D-4L, got ~2x, and '4 Atlético/Athletico rows expected 2'. mergeMatches (src/data-loader.ts:154) keys on foldText(competition)|season|homeKey|awayKey|homeGoals|awayGoals within ±1 day, so team-name variants outside the alias table (src/normalize.ts:6) survive un-merged and standings double-count.", "suggestion": "Broaden team-key normalization (more aliases / fuzzy match) and relax the merge key so cross-source fixtures reconcile; assert absolute W-D-L (not just champion ordering) in tests."},
+    {"id": "R6", "kind": "requirement_partial", "severity": "high", "title": "Team W/L/D+goals capability implemented but records inflated by the same duplicate matches", "evidence": "getTeamStatistics (src/soccer-service.ts:174) + recordFor (:70) correctly aggregate W/L/D and goals from data.matches — the CAPABILITY exists, so first evaluator's 'missing' is wrong. But data.matches still contains un-de-duplicated fixtures (src/data-loader.ts:154), so getTeamStatistics('Flamengo',{season:2019}) returns ~2x the true record, consistent with _factual.json (factual_accuracy=0.0 in scores.json).", "suggestion": "Fix de-duplication at the data-loader layer (shared root cause with R9); no change needed in recordFor itself."}
+  ],
+  "requirement_coverage": 0.8333,
+  "model": "gpt-5.6-sol",
+  "evaluated_at": "2026-08-12T17:52:54Z"
+}

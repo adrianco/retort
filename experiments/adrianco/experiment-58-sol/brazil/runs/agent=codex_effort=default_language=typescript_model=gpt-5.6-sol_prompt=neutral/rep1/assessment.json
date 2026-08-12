@@ -1,0 +1,11 @@
+{
+  "severity_counts": {"critical": 1, "high": 1, "medium": 0, "low": 0, "info": 0},
+  "penalty_score": 0.65,
+  "top_findings": [
+    {"id": "R9-factual", "kind": "test_failure", "severity": "critical", "title": "Factual gate FAILS: 2019 Série A standings are numerically wrong (factual_accuracy=0.0)", "evidence": "_factual.json: Flamengo row [55,37,11,7,...] vs expected 28W-6D-4L/38 played/90 pts. Root cause R5: factual_accuracy.py:267 calls get_standings competition='serie-a' first; mcp-server.ts:214 -> getStandings(2019,'serie-a') (soccer-service.ts:216-217) aggregates Brasileirao+Libertadores+Copa do Brasil. data-loader.ts:154-185 mergeMatches DOES dedupe, so doubling is the R5 collapse, not CSV concatenation.", "suggestion": "Fix R5; getStandings(2019,'Brasileirão Série A') already yields the correct 38-game table."},
+    {"id": "R5", "kind": "requirement_partial", "severity": "high", "title": "Competition filter collapses to match-everything for the 'Série A' aliases", "evidence": "src/normalize.ts:97-103 competitionKey() strips 'serie a'/'campeonato'/'copa' so competitionKey('serie-a')=''. src/normalize.ts:145-149 matchesCompetition() returns left.includes('')==true for every match. Filter IS present and correct for Libertadores/Copa do Brasil/Brasileirao/'Brasileirão Série A' -> partial, not missing.", "suggestion": "Map aliases to a canonical token and require left===right (or guard empty right)."}
+  ],
+  "requirement_coverage": 0.9167,
+  "model": "gpt-5.6-sol",
+  "evaluated_at": "2026-08-12T18:09:21Z"
+}
