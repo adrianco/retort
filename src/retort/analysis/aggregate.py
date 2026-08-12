@@ -19,6 +19,15 @@ from pathlib import Path
 METRICS = [
     "code_quality", "test_coverage", "defect_rate", "maintainability",
     "idiomatic", "token_efficiency", "requirement_coverage",
+    # GATING metric — a run can implement every checklist item and still answer
+    # wrongly, so this must reach the pooled dataset or no analysis can see the
+    # difference. It was missing from this list when the gate shipped, and
+    # exp-57's six runs aggregated into master.db without it: the very column
+    # that decided their pass/fail was absent from the file every report reads.
+    # NULL for tasks with no golden answers, and for every run predating it.
+    "factual_accuracy",
+    # Measurement, not a gate: how fast the produced program actually runs.
+    "runtime",
 ]
 # Side-channel telemetry (underscore-prefixed in run_results) -> clean column.
 TELEMETRY = {
