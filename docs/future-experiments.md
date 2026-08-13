@@ -385,7 +385,7 @@ invest in the solver dependency, master.db merge, and first-class docs.
 <!-- SCAN-HEARTBEAT: the daily scan rewrites the next line on EVERY run, including
      days it finds nothing. Do not hand-edit it. If the date is more than ~2 days
      stale, the scan is not running — see "when the heartbeat goes stale" below. -->
-**Daily scan last completed: 2026-08-12** (scanning for new 64GB-fittable coding models)
+**Daily scan last completed: 2026-08-13** (scanning for new 64GB-fittable coding models)
 
 New open-weight coding models found by the daily scan that plausibly fit 64GB at 4-bit; promote to a
 numbered experiment when prioritised.
@@ -676,6 +676,35 @@ survives the toggle, restart the Claude desktop app, which clears the in-memory 
   `harness_config`-level idea and belongs next to the §"harness maturity" side-branch above if
   cloud-orchestration work resumes. Source:
   https://blogs.nvidia.com/blog/nemotron-lightning-switchyard-rtx-dgx/)*
+
+- 2026-08-13 — **LFM2.5-2.6B (Liquid AI)** — *the smallest entry on this list, and a **borderline
+  admit**: agentic and tool-calling native, but explicitly **not** coding-specialised.* Published
+  **2026-08-04**, inside this scan's window. **2.69B total** (30 layers: 22 double-gated short-conv
+  blocks + 8 GQA — a Liquid hybrid-conv arch, unlike every transformer/Mamba/MoE entry above),
+  trained on 34T tokens, **131,072 context**, 128K vocab. **~1.5–2 GB at 4-bit** — it leaves
+  essentially the entire 64GB free. Pitched squarely at on-device agents that "plan, call tools and
+  work through multi-step tasks", with **day-one llama.cpp / MLX / vLLM / SGLang / ONNX support and
+  official GGUF + MLX builds from Liquid themselves** — so **no arch gate-probe is needed on either
+  retort backend**, unusually for a new architecture. Fastest thing measured in its class: **220
+  tok/s decode on an M5 Max**. **Why it is only a borderline admit, stated plainly:** Liquid's own
+  post concedes "larger models keep an edge" on coding, and its **LiveCodeBench v6 is 59.41%** —
+  against 88.1% for the already-listed BTL-3 and 80.0% for Gemma 4. It also does **not** ship under
+  Apache 2.0 but under Liquid's own **`lfm1.0` open licence** — read it before use rather than
+  assuming permissive terms. **Where it could still earn a cell:** the §3 speculative-decoding/MTP
+  lever wants a draft model, and this is the smallest, fastest candidate with a first-party MLX
+  build. **But do not assume it can serve as one** — speculative decoding requires a draft sharing
+  the target's tokenizer/vocabulary, and this is a 128K Liquid vocab, not Qwen's; verify vocab
+  compatibility before treating it as a draft for the 35B/80B, or the lever stays blocked regardless.
+  As a subject in its own right it is largely dominated by the already-listed **Nanbeige4.2-3B**
+  (4B, SWE-bench Verified 63.6%, and an `mlx-community` 4-bit already shipping), which occupies the
+  same far-end-of-the-size-axis slot with better coding numbers — so judge priority **below
+  Nanbeige** and below every coder-specialised entry. Listed rather than excluded because it is
+  genuinely last-cycle, its tool-calling is native rather than inferred, and its serving path is the
+  least blocked of anything here.
+  Source: https://www.liquid.ai/blog/lfm2-5-2-6b
+  — via: https://www.marktechpost.com/2026/08/06/liquid-ai-lfm2-5-2-6b-on-device-agentic-model/
+  — weights: https://huggingface.co/LiquidAI/LFM2.5-2.6B
+  — GGUF: https://huggingface.co/LiquidAI/LFM2.5-2.6B-GGUF
 
 *Excluded this scan as too large for 64GB at 4-bit, recorded so they are not re-investigated:*
 Kimi K3 (2.8T MoE, 2026-07-27), Inkling-Small (276B-A12B, 2026-08-02 — ~140 GB at 4-bit despite the
