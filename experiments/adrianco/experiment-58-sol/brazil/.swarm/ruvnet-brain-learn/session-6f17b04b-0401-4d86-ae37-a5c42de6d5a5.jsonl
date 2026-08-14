@@ -1,3 +1,0 @@
-{"tool":"Bash","action":"cd"}
-{"tool":"Write","action":"edit findings.jsonl"}
-{"tool":"Write","action":"edit evaluation.md"}

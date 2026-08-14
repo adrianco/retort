@@ -345,3 +345,14 @@ graphify-out/
 # mentioning Opus 5, Codex and GPT-5.6 entirely while the .md moved on — so a
 # rendered copy is never committed again.
 *-blog.html
+
+# Agent/tooling scratch that lands inside experiment dirs and the repo root.
+# These are NOT retort artifacts — they are written by whatever agent stack is
+# running (agentdb/ruflo/ruvnet-brain). 15 of them were committed into the
+# results archive before this rule existed; an experiment's archive should hold
+# the code the model wrote and the scores, nothing else.
+.swarm/
+agentdb.rvf
+agentdb.rvf.lock
+# Binaries the runtime probe builds inside archived runs to measure them.
+.retort-bin
