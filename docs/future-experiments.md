@@ -144,6 +144,73 @@ set but unverified is worse than none. The smoke checks the codex invocation car
 
 ---
 
+## M1. Full code review, refactor and archive tidy-up  — QUEUED (user, 2026-08-14), do NEXT
+
+Maintenance, not an experiment — but it gates the credibility of everything else, so it runs before
+the next model. **Use Graphify** for the structural passes: it is already installed and dogfooded on
+this repo (§2 records 1361 nodes / 2833 edges from `src/` in 0.7 s, offline, \$0), and
+`graphify explain` / `query` / `path` answer relationship questions that grep cannot.
+
+**Why now.** Seven days of rapid gate work added a scorer, three gate-plumbing fixes, eight parser
+fixes and two experiments. That is exactly the shape of change that leaves dead branches, duplicated
+helpers and documentation describing a previous design.
+
+### 1. Structure — dead code and duplication
+- Build the graph (`graphify` on `src/`), then use god-node/blast-radius to find the helpers that
+  everything depends on and the ones nothing calls.
+- **Known suspect, found while auditing:** `_eval_tooling_preflight` sat unused by `retort run` for
+  its whole life while being called from `rescore` — a function whose purpose is to prevent exactly
+  the failure that then happened. Look for more of that shape: defined, tested, never wired.
+- Duplication to check specifically: `factual_accuracy.py` and `runtime.py` both build MCP calls,
+  await responses by id, and start servers. `_call`/`await_id`/`_stderr_file` are near-duplicates.
+  That divergence is how one of them learned about single-line JSON and the other did not.
+- `cli.py` is still the biggest module and holds the run pipeline plus ~20 helpers. CLAUDE.md says
+  new commands go in `commands/`; check nothing new has crept back in.
+
+### 2. Tests — missing AND unnecessary
+- **Missing:** the eight output shapes the factual parser learned are covered, but the *combination*
+  paths are not (embedded JSON + alphabetised keys; preamble + text table). The go
+  main-package-discovery fix has no unit test at all — it was verified only against one archived run.
+- **Unnecessary:** look for tests that assert the shape of a fixture rather than a behaviour, and for
+  the ones that now duplicate each other after the parser was restructured.
+- Check `tests/unit/test_scoring.py`'s exact-list assertions — they broke twice this week purely
+  because a scorer was added. An exact list is a change-detector, not a contract.
+
+### 3. Documentation vs reality
+- README claims "Eleven built-in scorers" — verify against the registry after the additions.
+- `docs/runtime-measurement.md` was written before the per-request metric changed from `tools/list`
+  to a real `tools/call`; confirm it now describes what the code does.
+- **`docs/disk-hygiene.md` is a survey with a plan that was never executed** — either execute the
+  tiers or mark it explicitly as a proposal, because it currently reads as a description of the
+  machine's state and is ~9 months stale in places.
+- CLAUDE.md's code-layout section should name the new modules.
+
+### 4. Experiment results — do they all make sense
+- Re-read every entry in `past-experiments.md` against `master.db`. Specifically: any conclusion
+  drawn from a pass-proportion computed BEFORE the factual gate existed is still valid on its own
+  terms (`requirement_coverage` is unchanged) but the prose may over-claim "passed" where it now
+  means "implemented the checklist".
+- exp-55's terra cells are the ones to look at first: they are the baseline exp-59 compares against
+  and they predate the gate.
+- Check the 4 archived runs whose `rows_loaded` is 23,854–23,954 — they answer 2019 correctly, so
+  the earlier framing of them as "double-counting" needs to be right in the prose too.
+
+### 5. Repo hygiene — PARTLY DONE 2026-08-14
+- ✅ `.swarm/`, `agentdb.rvf`, `agentdb.rvf.lock`, `.retort-bin` added to `.gitignore`; 15 `.swarm`
+  files that had been committed into `experiments/` were untracked.
+- **Still to do:** 13 `ruvector.db` and 45 `.swarm` directories exist on disk inside `experiments/`
+  (ignored now, but present) — decide whether archived runs should be swept of them. 22 `.retort-bin`
+  binaries are probe output built INTO archived runs, which means measuring an archive mutates it;
+  consider building into a temp dir instead.
+- `.git` is 69 MB — check whether anything large was committed historically and should be documented
+  (not rewritten; history rewriting is off the table).
+
+**Done-criteria:** `pytest tests/unit` green, `graphify` reports no unreferenced non-entrypoint
+symbols in `src/retort/scoring` and `src/retort/playpen`, `git status` clean after a full experiment
+run, and every claim in README/CLAUDE.md/docs traceable to code or a recorded run.
+
+---
+
 ## 1. exp-54 — does a Codex judge agree with the Opus judge?  — SCOPED DOWN (token budget)
 
 `requirement_coverage` is an LLM's opinion, and PR #45 made the judge configurable — so it is a
