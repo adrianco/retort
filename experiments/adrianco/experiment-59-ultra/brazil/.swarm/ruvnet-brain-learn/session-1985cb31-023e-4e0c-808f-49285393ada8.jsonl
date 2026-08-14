@@ -1,0 +1,4 @@
+{"tool":"Bash","action":"cd"}
+{"tool":"Bash","action":"cd"}
+{"tool":"Bash","action":"ps aux"}
+{"tool":"Bash","action":"cd"}

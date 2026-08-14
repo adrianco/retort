@@ -315,9 +315,19 @@ def _model_cli_args(model_level: str) -> list[str]:
 #: the historical baseline is a addressable cell rather than an absence.
 #: `xhigh` was missing until 2026-07-29 — `claude --help` lists it, and exp-49's
 #: sweep therefore skipped a level that exists. Codex exposes the SAME five
-#: (plus `ultra` on Sol/Terra, which Claude has no counterpart for), so these five
-#: are exactly the levels on which the two vendors can be compared like-for-like.
+#: (plus `ultra`, see CODEX_ONLY_EFFORT_LEVELS), so these five are exactly the
+#: levels on which the two vendors can be compared like-for-like.
 EFFORT_LEVELS = ("default", "low", "medium", "high", "xhigh", "max")
+
+#: Levels Codex accepts that Claude does not. `ultra` sits ABOVE `max` on Sol,
+#: Terra and Luna. It went unmeasured through exp-49 and exp-55 — both swept
+#: low..max — because nothing named it: the codex path accepted it ad hoc while
+#: this module's only list stopped at `max`. Naming it makes the gap visible to
+#: the next person reading for what has and has not been measured.
+CODEX_ONLY_EFFORT_LEVELS = ("ultra",)
+
+#: Everything the codex harness will accept.
+CODEX_EFFORT_LEVELS = EFFORT_LEVELS + CODEX_ONLY_EFFORT_LEVELS
 
 #: Levels both `claude` and `codex` support — the matched set for a cross-vendor
 #: effort comparison. `default` is excluded: it means "pass no flag", and the two
@@ -1023,10 +1033,10 @@ class LocalRunner:
             # `ultra` exists on Sol/Terra only and has no Claude counterpart.
             effort = stack.extra.get("effort", "")
             if effort and effort != "default":
-                if effort not in EFFORT_LEVELS and effort != "ultra":
+                if effort not in CODEX_EFFORT_LEVELS:
                     raise ValueError(
                         f"unknown effort level {effort!r} for codex; expected one of "
-                        f"{', '.join(EFFORT_LEVELS)} (or 'ultra' on Sol/Terra)"
+                        f"{', '.join(CODEX_EFFORT_LEVELS)}"
                     )
                 cmd.extend(["-c", f"model_reasoning_effort={effort}"])
 

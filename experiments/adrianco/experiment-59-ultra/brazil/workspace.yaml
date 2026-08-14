@@ -1,0 +1,59 @@
+# Experiment 59 — `ultra`, the effort level nobody has measured.
+#
+# A SIXTH REASONING LEVEL EXISTS AND HAS NEVER BEEN RUN. models_cache.json lists
+# low/medium/high/xhigh/max/ultra for Sol, Terra and Luna. exp-49 and exp-55
+# swept low..max; `ultra` was not in retort's EFFORT_LEVELS and nobody looked.
+# Claude has no counterpart, so this is Codex-only and sits outside
+# CROSS_VENDOR_EFFORT_LEVELS by construction.
+#
+# TERRA, not Sol: exp-55 already measured terra at all five lower levels on
+# exactly these cells, so this ADDS the missing level rather than re-measuring
+# anything (incremental-experiments). Sol would confound a new level with a new
+# model.
+#
+# HYPOTHESIS — a null is expected, and that is the point. exp-55 found terra
+# almost flat across the dial and exp-49 called thinking level "a 4x cost lever
+# that buys nothing on routine work". If ultra is another flat step, the finding
+# is that the vendor shipped a tier that does not move reliability on this task.
+# If it moves the FACTUAL gate, that is more interesting: the gate is the first
+# response here that can see correctness, and exp-58 showed frontier capability
+# buying +0.50 on facts while buying almost nothing on the checklist.
+#
+# COMPARABILITY: exp-55's terra cells predate the factual gate, so their
+# factual_accuracy is NULL and they pass it by construction. Compare on
+# requirement_coverage (which pools cleanly); report factual_accuracy for these
+# new cells on its own terms, not as a delta against a level never checked.
+#
+# JUDGE held at opus-4.8, unchanged since exp-53.
+experiment:
+  name: experiment-59-ultra-brazil
+  visibility: public
+# The factor registry requires >= 2 levels per factor; design.csv pins the one
+# actually run. Only `language` genuinely varies.
+factors:
+  language: { levels: [python, go] }
+  agent: { levels: [codex, claude-code] }          # design pins codex
+  prompt: { levels: [neutral, none] }              # design pins neutral
+  model: { levels: [gpt-5.6-terra, gpt-5.6-sol] } # design pins terra
+  effort: { levels: [ultra, max] }            # design pins ultra
+# factual_accuracy GATES (see docs/future-experiments.md §0); runtime is
+# measurement only. BOTH run live for the first time here — runtime has only
+# ever been invoked over archives via `retort rebuild`, and its numbers here are
+# contended by the agent on the same box, so they are comparable WITHIN this
+# experiment only.
+responses: [code_quality, token_efficiency, test_coverage, defect_rate,
+            maintainability, idiomatic, factual_accuracy, runtime]
+tasks:
+  - source: github://brazil-bench/benchmark-template/brazilian-soccer-mcp-guide.md
+playpen:
+  runner: local
+  replicates: 3
+  timeout_minutes: 150
+  stall_minutes: 30
+  max_turns: 200
+  prompts_dir: prompts
+  local_agents:
+    codex: { harness: codex, model: gpt-5.6-terra }
+design: { screening_resolution: 3, significance_threshold: 0.10 }
+promotion: { screening_to_trial: { p_value: 0.10 }, trial_to_production: { posterior_confidence: 0.80 } }
+evaluation: { enabled: true, model: opus-4.8 }
