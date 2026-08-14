@@ -114,6 +114,36 @@ changes any verdict, and of whether the repair feedback actually helps a failing
 
 ---
 
+## exp-59 — `ultra`, the effort level nobody has measured  — LAUNCHING 2026-08-14
+
+**A sixth reasoning level exists and has never been run.** `models_cache.json` lists
+`low, medium, high, xhigh, max, ultra` for Sol/Terra/Luna. exp-49 and exp-55 swept
+low..max — `ultra` was not in retort's `EFFORT_LEVELS` and nobody had looked. Claude has no
+counterpart, so this is Codex-only and outside `CROSS_VENDOR_EFFORT_LEVELS` by construction.
+
+**Design.** brazil × `gpt-5.6-terra` @ **ultra** × {python, go} × n=3 = **6 cells**. Terra because
+exp-55 already measured it at all five lower levels on exactly these cells, so this ADDS the missing
+level rather than re-measuring anything (incremental-experiments).
+
+**Hypothesis — expecting a null, and that is the point.** exp-55 found Terra almost flat across the
+dial (\$0.12–\$0.29 on bookshop, every cell 1.00), and exp-49 concluded thinking level is "a 4×
+cost lever that buys nothing on routine work". If `ultra` is another flat step, the finding is that
+the vendor added a tier that does not move reliability on this task — worth publishing precisely
+because the marketing implies otherwise. If it DOES move the factual gate, that is more interesting
+still: the gate is the first response here that can see correctness, and exp-58 showed frontier
+capability buying +0.50 on facts while buying almost nothing on the checklist.
+
+**Comparability, stated:** exp-55's terra cells predate the factual gate, so their
+`factual_accuracy` is NULL and they pass it by construction. Compare on `requirement_coverage`
+(which pools cleanly) and report `factual_accuracy` for the new cells separately rather than as a
+delta against a level that was never checked.
+
+**Pre-flight:** `ultra` must be shown to TAKE EFFECT, not merely be accepted — a parameter that is
+set but unverified is worse than none. The smoke checks the codex invocation carries
+`model_reasoning_effort=ultra` and that the run's own telemetry reflects a higher-effort run.
+
+---
+
 ## 1. exp-54 — does a Codex judge agree with the Opus judge?  — SCOPED DOWN (token budget)
 
 `requirement_coverage` is an LLM's opinion, and PR #45 made the judge configurable — so it is a
@@ -385,7 +415,7 @@ invest in the solver dependency, master.db merge, and first-class docs.
 <!-- SCAN-HEARTBEAT: the daily scan rewrites the next line on EVERY run, including
      days it finds nothing. Do not hand-edit it. If the date is more than ~2 days
      stale, the scan is not running — see "when the heartbeat goes stale" below. -->
-**Daily scan last completed: 2026-08-13** (scanning for new 64GB-fittable coding models)
+**Daily scan last completed: 2026-08-14** (scanning for new 64GB-fittable coding models)
 
 New open-weight coding models found by the daily scan that plausibly fit 64GB at 4-bit; promote to a
 numbered experiment when prioritised.
@@ -705,6 +735,61 @@ survives the toggle, restart the Claude desktop app, which clears the in-memory 
   — via: https://www.marktechpost.com/2026/08/06/liquid-ai-lfm2-5-2-6b-on-device-agentic-model/
   — weights: https://huggingface.co/LiquidAI/LFM2.5-2.6B
   — GGUF: https://huggingface.co/LiquidAI/LFM2.5-2.6B-GGUF
+
+- 2026-08-14 — **Macaron-V1-Tall (Mind Lab)** — *a third matched-base probe on the exact 35B in our
+  stack, and the only one that changes the **serving topology** rather than the post-training recipe.*
+  **MIT licence**, **50B total = a frozen `Qwen3.6-35B-A3B` base + four 3.7B LoRA specialists**
+  (Chat, Agent, **Coding**, GenUI) under a **Mixture-of-LoRA (MoL)** design, **262,144 context** — the
+  same base, same context and same serving path as the hermes-lcm+35B stack already in `master.db`.
+  An **L0 router picks one specialist per user turn** and the conversation then stays on that branch;
+  the pitch is continual learning (adapters added/updated without retraining the base). Evaluated on
+  SWE-Verified, DeepSWE, SWE Atlas QnA and Terminal-Bench 2.1, though **Mind Lab's own write-up names
+  coding as the area still needing work** — treat the coding numbers as unproven rather than a
+  headline. **~25–28 GB at 4-bit with all four adapters resident (~20–22 GB with only the Coding LoRA
+  merged) → fits 64GB with plenty of headroom.**
+  **Serving is the real work, and it is the BTL-3 problem one size up.** Upstream ships **vLLM /
+  SGLang / Transformers only**, and the L0 routing depends on their *native multi-LoRA* support —
+  **neither oMLX nor mainline llama.cpp routes multiple adapters at inference time**. The HF card
+  links community quantizations (llama.cpp / Ollama / LM Studio class); **no `mlx-community` 4-bit is
+  confirmed**. So a retort cell realistically means `merge_and_unload()`-ing the **Coding** LoRA onto
+  the base and converting to 4-bit — recording the merged hash like any other tuning parameter — and
+  that **measures the adapter, not the MoL router**, which is the interesting half. Say which was run.
+  **Why it earns a slot:** it is the cleanest *architecture-level* variable this list has — same base,
+  same context, same serving path as an incumbent result, with **adapter composition** as the change,
+  so it pairs with KAT-Coder (post-training on the same 35B) and BTL-3 (a single LoRA on the 27B) to
+  ask whether adapters or full post-training buy more. **Caveats:** (1) verify the merged model still
+  emits well-formed `<tool_call>` — the card documents "tool use" but no explicit tool-call format, and
+  a malformed call scores an indistinguishable false zero; (2) dates disagree — Mind Lab's blog says
+  **2026-07-21**, the arXiv paper was submitted **2026-08-11**, so treat it as recent-but-not-fresh;
+  (3) its 748B GLM-5.2-based sibling **Macaron-V1-Venti** is hopelessly oversized here — Tall is the
+  only variant in scope.
+  Source: https://macaron.im/mindlab/research/introducing-macaron-v1
+  — paper: https://arxiv.org/abs/2608.09819
+  — weights: https://huggingface.co/mindlab-research/Macaron-V1-Tall
+
+- 2026-08-14 — **Mellum2 (JetBrains)** — *a borderline admit like LFM2.5, but it is the only candidate
+  here whose vendor documents our **exact tool-call parser**.* Apache 2.0, **12B total / 2.5B active
+  MoE** (8 of 64 experts per token, GQA + sliding-window attention, 28 layers), **131,072 context**,
+  trained from scratch on natural language and code. **~7 GB at 4-bit** — second-smallest entry after
+  LFM2.5/Nanbeige, so essentially the whole 64GB stays free. **vLLM deployment supports tool-calling
+  via the `hermes` parser** — the same parser family our 35B/80B cells run through — and it ships an
+  **MTP head for speculative decoding**, which is the §3 speed lever directly. **Why it is only
+  borderline, stated plainly:** JetBrains positions it as a *focal* model — a fast sub-agent inside a
+  larger pipeline, explicitly not a standalone frontier replacement — and the coding numbers say the
+  same thing: **LiveCodeBench v6 37.2** against 88.1 for BTL-3 and 59.4 for the already-borderline
+  LFM2.5, with **BFCL v3 66.3** on tool use (EvalPlus 78.4 / MultiPL-E 67.1 are healthier, but those
+  are single-shot generation, not agent loops). On a retort task it would likely score low as a
+  *subject*. **Where it could still earn a cell:** the MTP head plus a 7 GB footprint make it the best
+  **draft-model** candidate this list has produced — better-founded than LFM2.5, whose Liquid vocab
+  almost certainly cannot pair with the Qwen targets. **Verify vocab/tokenizer compatibility with the
+  35B/80B before treating it as a draft**, exactly as for LFM2.5; trained from scratch means its vocab
+  is its own, so this is a real gate, not a formality. **Serving caveat:** only vLLM + Transformers are
+  documented — **no GGUF, MLX or Ollama build is confirmed**, so both retort backends need a
+  gate-probe (or a convert) before a cell, unlike most entries here. **Caveat on freshness: this is a
+  2026-06-01 release, not a last-cycle drop** — it surfaced via a current state-of-open-coding-models
+  roundup, so it is a gap in this list rather than news. First **JetBrains-lineage** candidate.
+  Source: https://www.marktechpost.com/2026/06/02/jetbrains-releases-mellum2-a-12b-moe-model-for-fast-specialized-tasks-in-multi-model-ai-pipelines/
+  — via: https://pub.towardsai.net/the-state-of-open-coding-ai-models-in-august-2026-b0858d798bda
 
 *Excluded this scan as too large for 64GB at 4-bit, recorded so they are not re-investigated:*
 Kimi K3 (2.8T MoE, 2026-07-27), Inkling-Small (276B-A12B, 2026-08-02 — ~140 GB at 4-bit despite the
