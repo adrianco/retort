@@ -1,0 +1,23 @@
+{
+  "severity_counts": {
+    "critical": 0,
+    "high": 1,
+    "medium": 0,
+    "low": 0,
+    "info": 0
+  },
+  "penalty_score": 0.9,
+  "top_findings": [
+    {
+      "id": "R9",
+      "kind": "requirement_partial",
+      "severity": "high",
+      "title": "Standings computed correctly but MCP text answer truncated to top-10 and omits W/D/L",
+      "evidence": "mcp_server.py:255-262 _human_readable_result formats standings as rows[:10] with only '{position}. {team} — {points} pts' (no W/D/L/GF/GA and no '… N more' note, unlike the matches branch). The computation itself is complete and correct: soccer_data.py:998-1032 competition_standings aggregates all clubs via _record_public (soccer_data.py:835 → wins/draws/losses/goals_for/goals_against) and returns the full table in structuredContent; tests confirm it (tests/test_brazilian_soccer_mcp.py:152-158 asserts the 2019 Brasileirão benchmark top-3 order, :293 asserts structuredContent['standings'][0]['team']=='Flamengo'). An MCP client reading content[].text therefore sees 10 of 20 clubs and no records → _factual.json factual_accuracy=0.0 ('no Flamengo row found', '10 of 20 clubs present').",
+      "suggestion": "Render all standings rows (no [:10] cap) and include the W-D-L record and GF/GA in the human-readable line, e.g. '1. Flamengo — 90 pts (28-6-4, GF 86 GA 37)'."
+    }
+  ],
+  "requirement_coverage": 0.9167,
+  "model": "gpt-5.6-terra",
+  "evaluated_at": "2026-08-14T15:41:21Z"
+}

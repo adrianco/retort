@@ -1,0 +1,29 @@
+# Evaluation feedback on your previous attempt
+
+A previous attempt is already in this directory. It did NOT pass an independent evaluation. Fix it.
+
+## Requirements that must ALL be met
+- [R1] Implements an MCP server (MCP protocol) exposing tools/handlers for the queries below  (verify: An MCP server entrypoint + registered tools/resources exist (server SDK usage, tool definitions).)
+- [R2] Loads and uses the provided datasets in data/kaggle/ as the data source  (verify: Code reads the supplied CSVs (matches, FIFA players) rather than hardcoding or calling external APIs only.)
+- [R3] Match query: find matches by team (home, away, or either)  (verify: A tool/function filters matches by team name.)
+- [R4] Match query: filter by date range and/or season  (verify: Matches can be filtered by season/year or date range.)
+- [R5] Match query: filter by competition (Brasileirao, Copa do Brasil, Libertadores)  (verify: Competition is a selectable filter spanning the provided competition datasets.)
+- [R6] Team query: match history with win/loss/draw record and goals for/against  (verify: A tool returns aggregated W/L/D and goals for a team.)
+- [R7] Player query: search players by name  (verify: A tool searches the FIFA player data by name.)
+- [R8] Player query: filter players by nationality and/or club, with ratings/attributes  (verify: Players filterable by nationality or club, returning ratings.)
+- [R9] Competition query: season standings calculated from match results  (verify: Standings (points/positions) are computed from matches, not hardcoded.)
+- [R10] Statistical analysis: aggregate stats (e.g. avg goals/match, home vs away, biggest wins)  (verify: At least one aggregate statistic computed over the dataset.)
+- [R11] Head-to-head records between two teams  (verify: A tool returns head-to-head W/L/D between two named teams.)
+- [R12] Automated tests covering the query capabilities  (verify: A test suite exercises the query functions; tests execute (test_coverage > 0).)
+
+## What went wrong last time
+- The build/tests did not fully pass (status: failed, requirement_coverage 0.92).
+- Standings computed from matches but cross-source dedup/normalization is incomplete, so totals double-count
+
+## Factual accuracy — your answers were checked against known results
+- **2019 Série A: Flamengo's record** — expected 28W-6D-4L (= 38 played, 90 points), got fields {'played': 50, 'wins': 38, 'draws': 7, 'losses': 5, 'points': 121}.
+  2019 Série A is a 20-team double round-robin: every club plays exactly 38 and Flamengo won on 90 points, as the task's own worked example states. Roughly double those figures means the five match files were concatenated without reconciling them — the same fixture appears in two or three of them, and 23,954 rows is exactly their sum. Deduplicate on (date, home, away) allowing a one-day difference: sources disagree on local kick-off vs UTC date.
+- **2019 Série A: all 20 clubs present** — expected 20 of 20, got 20 of 20 (5 Atlético/Athletico row(s), expected 2).
+  The 2019 Brasileirão Série A had exactly these 20 clubs. Missing ones usually mean the table was truncated for display — return the whole table — or that a club's name variant (accents, the -SP/-MG state suffix) was not normalised and so its matches were dropped.
+
+Fix the existing code so every requirement above is met and the tests run and pass.

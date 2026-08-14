@@ -1,6 +1,6 @@
 # The Optimal Stack
 
-*Living document — last updated 2026-08-12 (first published 2026-07-14). This records **what to run today**: the leading stacks, and the exact configuration each one needs. It is not a history. Superseded stacks and rejected configurations are not discussed here; they are retired, and retirement is the point.*
+*Living document — last updated 2026-08-14 (first published 2026-07-14). This records **what to run today**: the leading stacks, and the exact configuration each one needs. It is not a history. Superseded stacks and rejected configurations are not discussed here; they are retired, and retirement is the point.*
 
 ---
 
@@ -85,7 +85,7 @@ Reliability, cost and time are all reported **per task size** — routine and ha
 |---|---:|---:|---:|
 | **Claude Opus 5** | 1.00 · 1.00 | $3.23 · $26.48 | 546 s · 2669 s |
 | **Claude Fable 5** | 1.00 · 1.00 | $1.58 · $10.47 | 166 s · 1090 s |
-| **GPT-5.6 Terra (codex)** | 1.00 · 0.95 | $0.24 · $0.77 | 163 s · 457 s |
+| **GPT-5.6 Terra (codex)** | 1.00 · 0.96 | $0.24 · $1.44 | 163 s · 770 s |
 | **GPT-5.6 Luna (codex)** | 0.67 · 0.33 | $0.09 · $0.17 | 153 s · 170 s |
 | **Claude Sonnet 5** | 1.00 · 0.93 | $1.10 · $7.64 | 237 s · 1252 s |
 | **Claude Opus 4.8** | 0.98 · 0.59 | $0.93 · $3.27 | 258 s · 608 s |

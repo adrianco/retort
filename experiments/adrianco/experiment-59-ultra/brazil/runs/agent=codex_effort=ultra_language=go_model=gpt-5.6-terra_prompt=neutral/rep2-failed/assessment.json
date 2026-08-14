@@ -1,0 +1,23 @@
+{
+  "severity_counts": {
+    "critical": 0,
+    "high": 1,
+    "medium": 0,
+    "low": 0,
+    "info": 0
+  },
+  "penalty_score": 0.9,
+  "top_findings": [
+    {
+      "id": "R9",
+      "kind": "requirement_partial",
+      "severity": "high",
+      "title": "Standings computed from matches but cross-source dedup/normalization is incomplete, so totals double-count",
+      "evidence": "query.go:465-533 computes standings from match results (3/1/0, not hardcoded) over query.go:819-860 analyticsMatches, which dedups via analyticsKey (query.go:839) on exact Competition|Season|Date[:10]|HomeKey|AwayKey|HomeGoals|AwayGoals. The exact-date+score key does NOT collapse the same fixture recorded on a +/-1-day local-vs-UTC date across Brasileirao_Matches.csv, BR-Football-Dataset.csv and novo_campeonato_brasileiro.csv, nor rows whose team spelling normalize.go:24 teamAliases misses. _factual.json confirms: 2019 Serie A Flamengo played=50/points=121 (expected 38/90 ~= double), and 5 Atletico/Athletico rows vs expected 2. Server banner loaded 23954 rows = the un-reconciled sum of the overlapping files.",
+      "suggestion": "Dedup on (normalized home, normalized away) allowing a +/-1-day date tolerance and tolerating score disagreement/NULLs; extend teamAliases (normalize.go:24) to cover the remaining source spellings so Atletico-MG / Athletico-PR collapse to two rows."
+    }
+  ],
+  "requirement_coverage": 0.9166666666666666,
+  "model": "gpt-5.6-terra",
+  "evaluated_at": "2026-08-14T18:13:38Z"
+}

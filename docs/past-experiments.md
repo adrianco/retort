@@ -482,6 +482,50 @@ scorer has had to learn across two experiments — the format diversity across i
 specification is itself a finding.
 
 
+### exp-59 — `ultra`: 9.7x the cost, 8x the time, and nothing to show for it
+
+**`gpt-5.6-terra` @ `ultra` × brazil × {python, go} × n=3**, judge opus-4.8, **\$22.80 / ~3.1 h**.
+A sixth reasoning level exists on Sol/Terra/Luna above `max`. exp-49 and exp-55 both swept low..max
+and stopped — not by choice: the codex launch path accepted `ultra` through an ad-hoc exception while
+the only named list ended at `max`. **A gap nothing names is a gap nobody sees.**
+
+**6 of 6 pass, on both the checklist and the factual gate.** So does every level below it. The
+completed sweep, terra on brazil, python and go:
+
+| effort | n | checklist | avg cost | avg minutes |
+|---|---:|---:|---:|---:|
+| low | 2 | 1.00 | \$0.39 | 3.9 |
+| medium | 2 | 1.00 | \$0.39 | 4.0 |
+| high | 2 | 1.00 | \$0.50 | 5.8 |
+| xhigh | 2 | 1.00 | \$1.25 | 13.2 |
+| max | 2 | 1.00 | \$2.77 | 25.0 |
+| **ultra** | 6 | **1.00** | **\$3.80** | **31.1** |
+
+**Reliability is flat across the entire dial while cost rises 9.7x and wall-clock 8x.** One `ultra`
+cell took **50.6 minutes** and \$7.52 to reach the same 1.00 that `low` reached in 3.9 minutes for
+\$0.39. This is exp-49's "4x cost lever that buys nothing on routine work" extended to the hard task
+and to a tier the vendor added after that conclusion was drawn.
+
+**Two of six `ultra` cells still needed the self-repair second chance** (half credit), which `low`
+and `medium` did not — so the extra reasoning did not even buy first-attempt reliability.
+
+**`ultra` is the only level in this table whose answers were checked.** exp-55's cells predate the
+factual gate, so their `factual_accuracy` is NULL and they pass it by construction. The honest
+comparison is on `requirement_coverage`, which pools cleanly and is what the table reports;
+`ultra`'s own factual score is 1.00 on all 6. What is NOT established is whether the lower levels
+would also answer correctly — that is a re-run, not an inference, and the flat checklist result makes
+it a low-priority one.
+
+**Caveat on n.** The low..max rows are n=2 each (exp-55, python+go, one replicate per language);
+`ultra` is n=6. A flat line across six levels is still the cleanest reading, but the lower rows are
+thin and a single failure would move them a lot.
+
+**Harness fix that came with it:** `ultra` is now a named level —
+`CODEX_ONLY_EFFORT_LEVELS = ("ultra",)`, with `CODEX_EFFORT_LEVELS` composing it — instead of an
+`and effort != "ultra"` exception buried in the launch path. `CROSS_VENDOR_EFFORT_LEVELS` still
+excludes it: Claude has no counterpart, so it is not a like-for-like operating point.
+
+
 ### exp-55b — the same sweep on the HARD task: 28× the cost, and the gap the pass metric hides
 
 The brazil half of exp-55: `{gpt-5.6-terra, claude-opus-5} × {low, medium, high, xhigh, max} ×

@@ -1,0 +1,5 @@
+# The query/data layer itself uses only the Python standard library.
+# These packages are required to expose it as an MCP server and run the tests.
+mcp>=1.28.1,<2
+pydantic>=2.12,<3
+pytest>=8.0,<10
