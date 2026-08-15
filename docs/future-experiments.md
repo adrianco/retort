@@ -385,7 +385,7 @@ invest in the solver dependency, master.db merge, and first-class docs.
 <!-- SCAN-HEARTBEAT: the daily scan rewrites the next line on EVERY run, including
      days it finds nothing. Do not hand-edit it. If the date is more than ~2 days
      stale, the scan is not running — see "when the heartbeat goes stale" below. -->
-**Daily scan last completed: 2026-08-14** (scanning for new 64GB-fittable coding models)
+**Daily scan last completed: 2026-08-15** (scanning for new 64GB-fittable coding models)
 
 New open-weight coding models found by the daily scan that plausibly fit 64GB at 4-bit; promote to a
 numbered experiment when prioritised.
@@ -761,6 +761,44 @@ survives the toggle, restart the Claude desktop app, which clears the in-memory 
   Source: https://www.marktechpost.com/2026/06/02/jetbrains-releases-mellum2-a-12b-moe-model-for-fast-specialized-tasks-in-multi-model-ai-pipelines/
   — via: https://pub.towardsai.net/the-state-of-open-coding-ai-models-in-august-2026-b0858d798bda
 
+- 2026-08-15 — **Qwen3.8-27B — WEIGHTS ARE NOW PUBLISHED (2026-08-14).** *This supersedes the
+  2026-08-09 placeholder entry above, which said "ANNOUNCED, WEIGHTS NOT YET PUBLISHED — re-check
+  after 2026-08-10"; it is the same model, now actually runnable, not a second candidate.* Alibaba
+  published `Qwen/Qwen3.8-27B` on **2026-08-14 (15:00 UTC)** under **Apache 2.0** — the licence the
+  placeholder could not confirm — and the other unknowns now resolve as follows. **27B dense, 64
+  layers, hybrid attention (Gated DeltaNet + Gated Attention)**, **262,144 native context extensible
+  to 1M via YaRN** — the same window as our 35B/80B runs. It is **multimodal** (text/image/video);
+  as with Muse Glimmer the vision half is dead weight for retort's text-only tasks. **~17–19 GB at
+  4-bit → fits 64GB with enormous headroom** (the BF16 repo is 55.6 GB).
+  **The coding numbers are the reason this jumps the queue: Terminal-Bench 2.1 73.0 and SWE-bench Pro
+  61.7.** Every coder-specialised entry on this list is far below that on the same benchmarks —
+  KAT-Coder 41.02 and North Mini Code 36 on Terminal-Bench, Muse Glimmer 51.2 on SWE-bench Pro — so
+  on published figures this is the strongest local candidate the scan has found, and it is a
+  *general* model beating the specialists. (Agentic: CoWorkBench 70.7, OSWorld 84.3.) Tool-calling is
+  first-class: **developer-role support for agentic harnesses and explicitly improved nested-object
+  tool-argument parsing**.
+  **Serving looks unblocked on both backends, with one caveat that is a live false-zero trap.**
+  `mlx-community/Qwen3.8-27B-4bit` and `-8bit` ship, plus an lmstudio-community MLX 4-bit and unsloth
+  GGUFs (Dynamic V3.0 preview, 2-bit → BF16). **But the MLX build was converted with `mlx-vlm` 0.6.8**
+  — exactly the class of checkpoint that produced the Muse Glimmer failure two entries up, where a
+  VLM-converted quant emitted **no function calls at all** while scoring a clean, plausible zero. Smoke-test
+  a real `<tool_call>` on the specific quant before any grid. For `serving.backend: llamacpp`, Gated
+  DeltaNet needs **very recent** llama.cpp operators — pin and verify the build.
+  **Two more tuning parameters to record per CLAUDE.md:** (1) thinking is **on by default** with a
+  `reasoning_effort` knob (`xhigh`/`medium`/`low`/`none`) — record which was used, as for KAT-Coder;
+  (2) Qwen's recommended sampling is **temperature 1.0 / top_p 0.95 / top_k 20 in thinking mode**
+  (0.7 / 0.80 / 20 for direct) — the precise unrecorded default that cost this project half its local
+  reliability. Set and verify it rather than inheriting it.
+  **Why it earns the top slot the moment it is smoke-tested:** it is the third matched-size 27B probe
+  here, but the only one where the variable is a **generation change** on the same size class rather
+  than post-training (the comparison KAT-Coder and BTL-3 structurally cannot make) — and its
+  predecessor Qwen3.6-27B is itself still untested, so running both gives that comparison its control.
+  Source: https://thenewstack.io/qwen38-27b-local-inference/
+  — weights: https://huggingface.co/Qwen/Qwen3.8-27B
+  — MLX 4-bit: https://huggingface.co/mlx-community/Qwen3.8-27B-4bit
+  — GGUF: https://huggingface.co/unsloth/Qwen3.8-27B-GGUF
+  — run/quant notes: https://unsloth.ai/docs/models/qwen3.8
+
 *Excluded this scan as too large for 64GB at 4-bit, recorded so they are not re-investigated:*
 Kimi K3 (2.8T MoE, 2026-07-27), Inkling-Small (276B-A12B, 2026-08-02 — ~140 GB at 4-bit despite the
 "Small" name; its parent Inkling is 975B-A41B), Tencent Hy3 (295B-A21B, 2026-07-06), and Mistral
@@ -791,6 +829,19 @@ jurisdictions. **Kimi K3** (Moonshot, weights 2026-07-27) is already recorded as
 noted again only because it dominated this cycle's coverage — ~1.4 TB of MXFP4 weights.
 **Soofi S 30B-A3B** (2026-07-15) fits at 4-bit but is a German/English **base** foundation model with
 no agentic-coding post-training, so it fails the coding-candidate bar rather than the size bar.
+
+*Also excluded 2026-08-15, too large:* **GLM-5.3** (Z.ai / Zhipu, launched 2026-08-14) — the top
+open-weights coding model by Z.ai's own benchmarks, and a genuinely last-cycle drop, but it **reuses
+GLM-5.2's 743B-A40B MoE base unchanged and spends everything on post-training** → ~370 GB at 4-bit,
+five times what this box holds. Same size verdict as the GLM-5.2 note in the GLM-4.7-Flash entry
+above; **GLM-4.7-Flash (30B-A3B) remains the only way this lineage enters the local leaderboard.**
+Weights were also staged behind a safety review (~two weeks from launch) rather than published at
+announcement. Worth noting as *evidence* rather than as a candidate: a 50% coding gain from
+post-training alone, on a frozen base, is the same effect the KAT-Coder / BTL-3 / Macaron matched-base
+probes above exist to measure. Source: https://the-agent-report.com/2026/08/glm-5-3-zai-post-training-coding-cyber/
+*(Also seen and out of scope: Alibaba's **Qwen3.8-2.4T-A95B** open weights, 2026-08-12 — ~1.2 TB at
+4-bit; and DeepSeek's open-sourced plugin-based **agent harness**, 2026-08-13, which is a harness, not
+a model — it belongs next to the §4 harness side-branch if that work resumes.)*
 
 ### Swiftlet — a third serving backend (expert streaming), NOT a model  — BUILT, NOT YET SMOKE-TESTED
 
