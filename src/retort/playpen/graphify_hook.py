@@ -149,5 +149,59 @@ def build_graph(target_dir: Path, *, timeout: int = 300) -> dict | None:
         stats = json.loads((proc.stdout or "").strip().splitlines()[-1])
     except (ValueError, IndexError):
         stats = {}
+
+    # AN EMPTY GRAPH IS A FAILURE, NOT A GRAPH. graphify 0.9.20's extraction is
+    # INTERMITTENT on a tree this size: observed once on this repo returning 0
+    # nodes with "a process in the process pool was terminated abruptly" and all
+    # 85 files reported as producing nothing, then succeeding (1616 nodes) on a
+    # later run. graph.json is written either way, so the "did a file appear"
+    # check above passes and the run would proceed with an empty graph — making
+    # `tooling: graphify` byte-for-byte equivalent to `none` and publishing a
+    # false null, since the experiment's whole question is whether the graph
+    # helps and an empty one cannot. An intermittent failure is worse than a
+    # deterministic one here: it would corrupt some cells and not others.
+    if not stats.get("nodes"):
+        logger.warning("graphify hook: extraction produced %s nodes — retrying "
+                       "via the CLI", stats.get("nodes"))
+        stats = _build_graph_via_cli(target_dir, out_dir, timeout=timeout) or {}
+    if not stats.get("nodes"):
+        logger.error("graphify hook: no usable graph (0 nodes) — treating "
+                     "tooling:graphify as UNAVAILABLE rather than running the "
+                     "agent against an empty graph")
+        return None
     logger.info("graphify hook: built graph — %s", stats)
     return stats
+
+
+def _build_graph_via_cli(target_dir: Path, out_dir: Path, *,
+                         timeout: int = 300) -> dict | None:
+    """Extract with the `graphify` CLI, which works where the API does not.
+
+    Kept as a fallback rather than the primary so the subprocess-with-its-own-
+    interpreter arrangement (and its spawn/`__main__` workaround) stays the
+    documented path; this is what runs when that returns an empty graph.
+    """
+    exe = shutil.which("graphify") or str(Path.home() / ".local" / "bin" / "graphify")
+    if not Path(exe).exists():
+        return None
+    try:
+        proc = subprocess.run(
+            [exe, "extract", str(target_dir), "--out", str(out_dir.parent)],
+            cwd=target_dir, capture_output=True, text=True, timeout=timeout,
+            env={k: v for k, v in os.environ.items()
+                 if k not in ("GEMINI_API_KEY", "GOOGLE_API_KEY")},
+        )
+    except (subprocess.TimeoutExpired, FileNotFoundError, OSError) as exc:
+        logger.warning("graphify CLI fallback failed: %s", exc)
+        return None
+    graph = out_dir / "graph.json"
+    if not graph.is_file():
+        logger.warning("graphify CLI fallback produced no graph.json (rc=%s): %s",
+                       proc.returncode, (proc.stderr or "")[-200:])
+        return None
+    try:
+        data = json.loads(graph.read_text())
+        return {"nodes": len(data.get("nodes") or []),
+                "edges": len(data.get("edges") or [])}
+    except (OSError, ValueError):
+        return None
