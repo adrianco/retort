@@ -49,7 +49,6 @@ retort/
 │       │   ├── runner.py           # Abstract base: provision → prompt → execute → teardown
 │       │   ├── docker_runner.py    # Default: Docker container isolation
 │       │   ├── cloud_runner.py     # Optional: AWS/GCP ephemeral VMs
-│       │   └── prompt_builder.py   # Constructs agent prompts from task spec + stack config
 │       │
 │       ├── scoring/
 │       │   ├── __init__.py

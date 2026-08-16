@@ -126,9 +126,7 @@ def generate_web_report(
 ) -> int:
     """Render the experiment as static HTML. Returns number of pages written.
 
-    experiment_dir is used to locate per-run archives at
-    ``<experiment_dir>/runs/<cell>/rep<N>/summary/index.md``. Defaults to
-    the database's parent directory.
+    experiment_dir defaults to the database's parent directory.
 
     anova_path optionally points at a pre-rendered ANOVA text file (the
     output of ``retort analyze``) to inline on the index. Defaults to
@@ -230,19 +228,6 @@ def _cell_dir_name(factors: dict[str, str]) -> str:
     return "_".join(f"{k}={v}" for k, v in sorted(factors.items()))
 
 
-def _summary_link(experiment_dir: Path, factors: dict[str, str], replicate: int) -> str | None:
-    """Return a relative URL to the run-summary skill output if it exists.
-
-    Looks at <experiment_dir>/runs/<cell>/rep<N>/summary/index.md. Returns
-    a path relative to the rendered stacks/<slug>.html page, or None if no
-    summary exists.
-    """
-    cell = _cell_dir_name(factors)
-    rel = f"../../runs/{cell}/rep{replicate}/summary/index.md"
-    abs_target = experiment_dir / "runs" / cell / f"rep{replicate}" / "summary" / "index.md"
-    if abs_target.exists():
-        return rel
-    return None
 
 
 def _archive_dir(

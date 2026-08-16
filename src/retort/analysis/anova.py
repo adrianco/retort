@@ -100,16 +100,6 @@ def _sanitize_name(name: str) -> str:
     return name.replace("-", "_").replace(" ", "_").replace(".", "_")
 
 
-def _sanitize_columns(df: pd.DataFrame) -> tuple[pd.DataFrame, dict[str, str]]:
-    """Sanitize all column names and return the mapping from new to original."""
-    mapping: dict[str, str] = {}
-    renames: dict[str, str] = {}
-    for col in df.columns:
-        safe = _sanitize_name(col)
-        if safe != col:
-            renames[col] = safe
-        mapping[safe] = col
-    return df.rename(columns=renames), mapping
 
 
 def build_formula(
