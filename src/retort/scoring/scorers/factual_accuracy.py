@@ -255,27 +255,16 @@ def _row_numbers(text: str, team: str) -> list[int]:
 
 
 def _call(proc, name: str, args: dict, rid: int, budget: float) -> dict | None:
-    try:
-        proc.stdin.write(json.dumps({"jsonrpc": "2.0", "id": rid, "method": "tools/call",
-                                     "params": {"name": name, "arguments": args}}) + "\n")
-        proc.stdin.flush()
-    except (BrokenPipeError, OSError):
+    """One tools/call, via the SHARED protocol helpers in `runtime`.
+
+    This was a fourth hand-rolled copy of send-then-await-by-id. The copies had
+    already drifted — only one scraped the start-up banner — so `rows_loaded`
+    was populated on some paths and silently NULL on others.
+    """
+    if not rt.mcp_send(proc, {"jsonrpc": "2.0", "id": rid, "method": "tools/call",
+                              "params": {"name": name, "arguments": args}}):
         return None
-    deadline = time.perf_counter() + budget
-    while time.perf_counter() < deadline:
-        line = rt._readline_timeout(proc, deadline)
-        if not line:
-            return None
-        s = line.strip()
-        if not s.startswith("{"):
-            continue
-        try:
-            msg = json.loads(s)
-        except ValueError:
-            continue
-        if msg.get("id") == rid:
-            return msg
-    return None
+    return rt.mcp_await_id(proc, rid, budget)
 
 
 def _text_of(msg: dict) -> str:

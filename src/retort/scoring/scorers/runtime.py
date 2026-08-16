@@ -913,6 +913,52 @@ def _stderr_tail(fh, limit: int = 300) -> str:
     return text.splitlines()[-1][:limit]
 
 
+def mcp_send(proc, obj) -> bool:
+    """Write one JSON-RPC message to a stdio server. False if the pipe is gone."""
+    try:
+        proc.stdin.write(json.dumps(obj) + "\n")
+        proc.stdin.flush()
+        return True
+    except (BrokenPipeError, OSError):
+        return False
+
+
+def mcp_await_id(proc, want: int, budget: float,
+                 captured: dict | None = None) -> dict | None:
+    """Read until the response with id ``want`` arrives, or ``budget`` expires.
+
+    ONE implementation, deliberately. This existed three times in this module
+    and a fourth time as `_call` in factual_accuracy, and the copies had already
+    drifted: only one of them scraped the start-up banner, so `rows_loaded` was
+    populated on some paths and silently NULL on others. Duplicated protocol
+    handling is how one caller learns something and the rest do not.
+
+    Non-JSON lines are skipped but NOT discarded: implementations print a human
+    banner first ("loaded 16947 matches and 18207 players"), and that number is
+    the deduplication evidence this project reads, not noise.
+    """
+    deadline = time.perf_counter() + budget
+    while time.perf_counter() < deadline:
+        line = _readline_timeout(proc, deadline)
+        if not line:
+            return None
+        stripped = line.strip()
+        if not stripped.startswith("{"):
+            if stripped and captured is not None and not captured.get("banner"):
+                captured["banner"] = stripped[:200]
+                m = re.search(r"(\d[\d,]{3,})\s+matches", stripped)
+                if m:
+                    captured["rows"] = int(m.group(1).replace(",", ""))
+            continue
+        try:
+            msg = json.loads(stripped)
+        except ValueError:
+            continue
+        if msg.get("id") == want:
+            return msg
+    return None
+
+
 def _mcp_handshake(proc, budget: float, captured: dict | None = None) -> dict | None:
     """initialize -> initialized -> tools/list, ONE MESSAGE AT A TIME.
 
@@ -930,50 +976,16 @@ def _mcp_handshake(proc, budget: float, captured: dict | None = None) -> dict | 
 
     Returns the tools/list response, or None.
     """
-    deadline = time.perf_counter() + budget
-
-    def send(obj) -> bool:
-        try:
-            proc.stdin.write(json.dumps(obj) + "\n")
-            proc.stdin.flush()
-            return True
-        except (BrokenPipeError, OSError):
-            return False
-
-    def await_id(want: int) -> dict | None:
-        while time.perf_counter() < deadline:
-            line = _readline_timeout(proc, deadline)
-            if not line:
-                return None
-            stripped = line.strip()
-            if not stripped.startswith("{"):
-                # Human banner, not protocol — but KEEP it. These lines are where
-                # implementations disclose how much they ingested ("loaded 16947
-                # matches and 18207 players"), which is the variance this
-                # measurement exists to expose.
-                if stripped and captured is not None and not captured.get("banner"):
-                    captured["banner"] = stripped[:200]
-                    m = re.search(r"(\d[\d,]{3,})\s+matches", stripped)
-                    if m:
-                        captured["rows"] = int(m.group(1).replace(",", ""))
-                continue
-            try:
-                msg = json.loads(stripped)
-            except ValueError:
-                continue
-            if msg.get("id") == want:
-                return msg
+    if not mcp_send(proc, BRAZIL_CALLS[0]):
         return None
-
-    if not send(BRAZIL_CALLS[0]):
+    # WAIT before sending anything else — see this function's docstring.
+    if mcp_await_id(proc, 1, budget, captured) is None:
         return None
-    if await_id(1) is None:                  # WAIT before sending anything else
+    if not mcp_send(proc, BRAZIL_CALLS[1]):  # notification, no reply expected
         return None
-    if not send(BRAZIL_CALLS[1]):            # notification, no reply expected
+    if not mcp_send(proc, BRAZIL_CALLS[2]):
         return None
-    if not send(BRAZIL_CALLS[2]):
-        return None
-    listed = await_id(2)
+    listed = mcp_await_id(proc, 2, budget, captured)
     if listed is None or "error" in listed:
         return None
     if captured is not None:
@@ -1008,8 +1020,8 @@ def _synthesize_args(schema: dict) -> dict:
     return args
 
 
-def _pick_working_call(proc, listed: dict, budget: float,
-                       await_id) -> tuple[str, dict, int] | None:
+def _pick_working_call(proc, listed: dict,
+                       budget: float) -> tuple[str, dict, int] | None:
     """(tool name, arguments, next id) for a call this server actually answers.
 
     Shared by the first-query and per-request phases so both measure the same
@@ -1031,15 +1043,10 @@ def _pick_working_call(proc, listed: dict, budget: float,
         rid += 1
         name = tool.get("name", "")
         args = _synthesize_args(tool.get("inputSchema", {}) or {})
-        try:
-            proc.stdin.write(json.dumps({"jsonrpc": "2.0", "id": rid,
-                                         "method": "tools/call",
-                                         "params": {"name": name,
-                                                    "arguments": args}}) + "\n")
-            proc.stdin.flush()
-        except (BrokenPipeError, OSError):
+        if not mcp_send(proc, {"jsonrpc": "2.0", "id": rid, "method": "tools/call",
+                               "params": {"name": name, "arguments": args}}):
             return None
-        msg = await_id(rid, budget)
+        msg = mcp_await_id(proc, rid, budget)
         if msg and "error" not in msg and not (msg.get("result") or {}).get("isError"):
             return name, args, rid + 1
     return None
@@ -1071,31 +1078,6 @@ def _first_query(cmd: list[str], run_dir: Path) -> tuple[float | None, str, str]
     except (FileNotFoundError, OSError):
         return None, "", "could not start server"
 
-    def send(obj) -> bool:
-        try:
-            proc.stdin.write(json.dumps(obj) + "\n")
-            proc.stdin.flush()
-            return True
-        except (BrokenPipeError, OSError):
-            return False
-
-    def await_id(want: int, budget: float) -> dict | None:
-        deadline = time.perf_counter() + budget
-        while time.perf_counter() < deadline:
-            line = _readline_timeout(proc, deadline)
-            if not line:
-                return None
-            s = line.strip()
-            if not s.startswith("{"):
-                continue                      # start-up banner, not a response
-            try:
-                msg = json.loads(s)
-            except ValueError:
-                continue
-            if msg.get("id") == want:
-                return msg
-        return None
-
     try:
         listed = _mcp_handshake(proc, ITER_TIMEOUT_S)
         if not listed:
@@ -1120,10 +1102,10 @@ def _first_query(cmd: list[str], run_dir: Path) -> tuple[float | None, str, str]
             args = _synthesize_args(tool.get("inputSchema", {}) or {})
             rid = 500 + tried
             t0 = time.perf_counter()
-            if not send({"jsonrpc": "2.0", "id": rid, "method": "tools/call",
-                         "params": {"name": name, "arguments": args}}):
+            if not mcp_send(proc, {"jsonrpc": "2.0", "id": rid, "method": "tools/call",
+                                   "params": {"name": name, "arguments": args}}):
                 return None, "", "server closed during tools/call"
-            msg = await_id(rid, QUERY_TIMEOUT_S)
+            msg = mcp_await_id(proc, rid, QUERY_TIMEOUT_S)
             ms = (time.perf_counter() - t0) * 1000.0
             if msg is None:
                 continue
@@ -1166,23 +1148,6 @@ def _serve_latency(cmd: list[str], run_dir: Path) -> float | None:
         if listed is None:
             return None
 
-        def await_id(want: int, budget: float) -> dict | None:
-            deadline = time.perf_counter() + budget
-            while time.perf_counter() < deadline:
-                line = _readline_timeout(proc, deadline)
-                if not line:
-                    return None
-                s = line.strip()
-                if not s.startswith("{"):
-                    continue
-                try:
-                    msg = json.loads(s)
-                except ValueError:
-                    continue
-                if msg.get("id") == want:
-                    return msg
-            return None
-
         # Repeat a REAL query, not `tools/list`. tools/list is protocol
         # metadata whose response size scales with how many tools the
         # implementation chose to expose, and the models differ a lot there
@@ -1190,7 +1155,7 @@ def _serve_latency(cmd: list[str], run_dir: Path) -> float | None:
         # measured "how big is your tool catalogue" — measured r = 0.37 between
         # tool count and the old per-request figure. A real tools/call with the
         # data already in memory is the per-request work we actually mean.
-        picked = _pick_working_call(proc, listed, QUERY_TIMEOUT_S, await_id)
+        picked = _pick_working_call(proc, listed, QUERY_TIMEOUT_S)
         if picked is None:
             return None
         tool_name, tool_args, next_id = picked
@@ -1205,7 +1170,7 @@ def _serve_latency(cmd: list[str], run_dir: Path) -> float | None:
                 proc.stdin.flush()
             except (BrokenPipeError, OSError):
                 break
-            if await_id(next_id + i, ITER_TIMEOUT_S) is None:
+            if mcp_await_id(proc, next_id + i, ITER_TIMEOUT_S) is None:
                 break
             ms = (time.perf_counter() - t0) * 1000.0
             if i >= WARMUP_ITERS:          # discard warm-up
