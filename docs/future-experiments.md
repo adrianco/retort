@@ -203,6 +203,31 @@ scorer defects, all fixed before resuming (commit `eff9f0c3`):
 archive could say whether the server was wrong or the parser was, which is why this needed a live
 experiment to surface.
 
+**Mid-run finding at 6/11 — the failures split by INTERFACE, not by logic.** Every failed cell so
+far was verified from the archive (the raw capture makes this a minutes-long check rather than a
+re-run), and they are two different defects:
+
+| language | factual | reqcov | defect |
+|---|---:|---:|---|
+| java, rust, typescript | 1.00 | 1.00 | — |
+| clojure | 0.50 | 0.83 | **data**: 21 rows, Athletico Paranaense split 27 + 11 across two spellings |
+| erlang | 0.00 | **1.00** | **interface**: every tool declares `inputSchema: {type: object}` — no properties |
+| elixir | 0.00 | 0.92 | **interface**: one shared `tool/2` helper, same empty schema for every tool |
+
+Both zeros are the two servers whose tools declare no parameters, read from the source in each case
+rather than inferred. Both are BEAM languages, and both hand-roll JSON-RPC — there is no official MCP
+SDK for erlang or elixir. The query logic is correct (erlang's `requirement_coverage` is a perfect
+1.00, and its server answers `head_to_head` in 8.9 ms); the capability simply cannot be reached,
+because no client is told that `season` is a parameter. **Where no SDK exists, the model hand-rolls
+the protocol and the tool DESCRIPTORS degrade even though the logic underneath is right.** n=1 per
+language on 6 cells, so this is suggestive, not established — but it is the cleanest example the
+project has produced of the gap the factual gate exists to find: a capability that is present in the
+code, credited by the checklist, and unusable in practice.
+
+Worth noting against the new columns: `mcp_conformance` PASSES both, by design — `{type: "object"}`
+with no properties is legitimate for a genuinely no-argument tool, and the protocol alone cannot
+distinguish that from a tool hiding its parameters. `mcp_client_facts` is what catches it.
+
 **exp-57 and exp-58 were re-checked and their conclusions stand.** Every other failed verdict is
 genuine and the raw capture now names the defect: luna/go double-counts (67 and 76 played against a
 true 38), sol/typescript partially dedupes (55), and luna/python splits Athletico Paranaense across
