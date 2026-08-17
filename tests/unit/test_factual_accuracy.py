@@ -301,3 +301,41 @@ def test_an_oversized_table_is_not_graded():
     assert len(fa._rows_of(json.dumps(rows))) > fa._MAX_PLAUSIBLE_ROWS
     twenty = json.dumps(rows[:20])
     assert len(fa._rows_of(twenty)) <= fa._MAX_PLAUSIBLE_ROWS
+
+
+def test_a_numbered_table_on_one_line_is_still_a_table():
+    """exp-60's C server answers the whole standings as a single line.
+
+    "serie-a 2019 standings (20 clubs) 1. Flamengo — 90 pts (28W 6D 4L, 86:37)
+    2. Palmeiras — 74 pts …" — no newlines anywhere. splitlines() gives ONE row,
+    so no per-row check can ever count more than one of anything, and a
+    completely correct table (20 clubs in order, Flamengo on 90, BOTH Atléticos
+    present and distinguishable) was failed for "1 Atlético row, expected 2".
+    """
+    from retort.scoring.scorers import factual_accuracy as fa
+
+    line = ("serie-a 2019 standings (20 clubs) "
+            "1. Flamengo — 90 pts (28W 6D 4L, 86:37) "
+            "2. Palmeiras — 74 pts (21W 11D 6L, 61:32) "
+            "5. Athletico Paranaense — 64 pts (18W 10D 10L, 51:32) "
+            "13. Atletico Mineiro — 48 pts (13W 9D 16L, 45:49) "
+            "20. Avai — 20 pts (3W 11D 24L, 25:62)")
+    rows = fa._rows_of(line)
+    assert len(rows) > 1, "a one-line numbered table collapsed to a single row"
+    assert fa._atletico_rows(line) == 2
+
+
+def test_ordinary_multiline_text_is_untouched():
+    """The split must not fire on a table that is already one row per line."""
+    from retort.scoring.scorers import factual_accuracy as fa
+
+    text = "\n".join(f"{i}. Club{i} — {90 - i} pts" for i in range(1, 21))
+    assert len(fa._rows_of(text)) == 20
+
+
+def test_prose_containing_a_stray_number_is_not_shredded():
+    """`1. ` inside ordinary prose must not turn one sentence into many rows."""
+    from retort.scoring.scorers import factual_accuracy as fa
+
+    text = "The season had 20 clubs.\nSee note 1. It explains the tiebreak."
+    assert len(fa._rows_of(text)) == 2

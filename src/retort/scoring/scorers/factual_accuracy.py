@@ -133,7 +133,22 @@ def _rows_of(text: str) -> list[str]:
             for item in data:
                 out.append(json.dumps(item) if isinstance(item, (dict, list)) else str(item))
             return out
-    return text.splitlines()
+    # A NUMBERED TABLE ON ONE LINE is still a table. exp-60's C server answers
+    # "serie-a 2019 standings (20 clubs) 1. Flamengo — 90 pts (28W 6D 4L, 86:37)
+    # 2. Palmeiras — 74 pts …" with no newlines at all. splitlines() returns ONE
+    # row, so the per-row checks can never see more than one of anything: that
+    # table is completely correct — 20 clubs in order, Flamengo on 90, BOTH
+    # Atléticos present and distinguishable — and it was failed for having "1
+    # Atlético row, expected 2". Same shape as the JSON-collapse bug above, in a
+    # different costume, and it cost a correct C implementation its pass.
+    lines = text.splitlines()
+    numbered = re.findall(r"(?<!\d)\d{1,2}\.\s", text)
+    if len(numbered) > max(len(lines), 4):
+        parts = re.split(r"(?<!\d)(?=\d{1,2}\.\s)", text)
+        rows = [p.strip() for p in parts if p.strip()]
+        if len(rows) > len(lines):
+            return rows
+    return lines
 
 
 #: Field names a structured row may use for each figure, in preference order.
