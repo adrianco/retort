@@ -114,6 +114,47 @@ changes any verdict, and of whether the repair feedback actually helps a failing
 
 ---
 
+## M3. Make the test suite fast  — QUEUED (user, 2026-08-17), do AFTER the running experiment
+
+**Measured today: `pytest tests/unit` takes 226.6 s.** That is slow enough that it stops being run
+between edits, which is how a suite stops protecting anything.
+
+**Two tests are 33% of the total:**
+
+| test | time | share |
+|---|---:|---:|
+| `test_evaluation.py::test_auto_evaluation_swallows_skill_failure` | **53.3 s** | 23% |
+| `test_scoring.py::TestScoreCollector::test_collect_all_metrics` | **21.3 s** | 9% |
+
+**The 53 s one is a SMELL, not just a slow test.** It patches both `_invoke_claude_skill` and
+`_invoke_claude_skill_prompt` and still takes 53 seconds — so the time is going somewhere that is
+NOT the path it thinks it is stubbing. Find out where before optimising it: either the test is
+exercising a real subprocess/timeout nobody intended, or `_run_auto_evaluation` has a slow branch
+that no one has looked at. Both are worth knowing independently of speed. Do not simply add a mock
+until the 53 seconds is explained.
+
+**`test_scoring.py` dominates the rest** — 10 of the 12 slowest tests, 108 test functions, most
+shelling out to a real toolchain (pytest, go, npm) inside a temp project. Options, cheapest first:
+1. **Share fixtures.** Many build a near-identical throwaway project per test; a session-scoped
+   fixture per language would cut most of the repetition. Check they do not mutate it.
+2. **Collapse the repetitive ones.** `TestPythonEnvPreparation` and `TestTestQualityScorer` each
+   have several tests differing only in a fixture detail — parametrize.
+3. **Mark the genuinely-integration ones** `@pytest.mark.slow` and default to excluding them, with
+   CI running the full set. Keep the fast/slow split honest: a test that shells out to `go build` is
+   not a unit test, and pretending otherwise is why the suite got here.
+
+**What NOT to delete.** The recent additions are deliberately behaviour-pinning and cheap —
+`test_go_entrypoint`, `test_factual_accuracy`, `test_promotion_*`, `test_pass_definition` are all
+sub-second and each pins a bug that shipped. Low-value means *asserts a fixture's shape* or
+*duplicates another test*, not *recently added*. The exact-list registry assertions were already
+removed for exactly that reason (they were change-detectors that broke twice in a week while the
+code was correct).
+
+**Done-criteria:** `pytest tests/unit` under 60 s with the same number of behaviours covered, and no
+test that patches a path and then spends its time somewhere else.
+
+---
+
 ## 1. exp-54 — does a Codex judge agree with the Opus judge?  — SCOPED DOWN (token budget)
 
 `requirement_coverage` is an LLM's opinion, and PR #45 made the judge configurable — so it is a
