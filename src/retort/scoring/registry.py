@@ -114,6 +114,15 @@ def create_default_registry() -> ScorerRegistry:
     # a dead server scores 0 here but NULL in runtime.
     from retort.scoring.scorers.factual_accuracy import FactualAccuracyScorer
     registry.register(FactualAccuracyScorer())
+    # Would a REAL MCP client accept these replies? The probes above read
+    # `content[0].text`, which is what an integration test does and what a client
+    # does not — so nothing here has ever checked the parts of the protocol the
+    # spec actually pins down. It found a defect on its first run: exp-60's rust
+    # cell scores factual_accuracy 1.00 and yet Claude Code rejects two of its
+    # six tools outright. SCORED, NOT GATED until the archive sweep gives a base
+    # rate. See mcp_conformance.py.
+    from retort.scoring.scorers.mcp_conformance import McpConformanceScorer
+    registry.register(McpConformanceScorer())
     # build_time was removed in favor of the raw `_duration_seconds`
     # telemetry written automatically by cli._store_run_result. Use that
     # column in retort analyze / report effects for timing analysis.
