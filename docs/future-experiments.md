@@ -385,7 +385,7 @@ invest in the solver dependency, master.db merge, and first-class docs.
 <!-- SCAN-HEARTBEAT: the daily scan rewrites the next line on EVERY run, including
      days it finds nothing. Do not hand-edit it. If the date is more than ~2 days
      stale, the scan is not running — see "when the heartbeat goes stale" below. -->
-**Daily scan last completed: 2026-08-16** (scanning for new 64GB-fittable coding models)
+**Daily scan last completed: 2026-08-17** (scanning for new 64GB-fittable coding models)
 
 New open-weight coding models found by the daily scan that plausibly fit 64GB at 4-bit; promote to a
 numbered experiment when prioritised.
@@ -798,6 +798,58 @@ survives the toggle, restart the Claude desktop app, which clears the in-memory 
   — MLX 4-bit: https://huggingface.co/mlx-community/Qwen3.8-27B-4bit
   — GGUF: https://huggingface.co/unsloth/Qwen3.8-27B-GGUF
   — run/quant notes: https://unsloth.ai/docs/models/qwen3.8
+
+- 2026-08-17 — **Agents-A1 (InternScience)** — *a borderline admit in the Mellum2/LFM2.5 class: a
+  35B agentic model that fits easily and speaks our exact tool-call dialect, but coding is explicitly
+  **not** what it was post-trained for.* Apache 2.0, **35.11B total / ~3B active MoE** on the
+  `qwen3_5_moe` architecture (i.e. a **Qwen3.5** MoE base, *not* the Qwen3.6-35B-A3B our stack serves —
+  so it is a sibling-generation lineage, **not** a matched-base probe), **262,144 context** — the same
+  window as our 35B/80B runs. Multimodal, with a `--language-model-only` flag that skips the vision
+  encoder and saves KV cache (use it; the vision half is dead weight for retort's text-only tasks).
+  Trained by three-stage full-domain SFT + **multi-teacher on-policy distillation** across Long-horizon
+  Search, Engineering, Scientific Research, Instruction Following and Tool-calling. **~20–22 GB at
+  4-bit → fits 64GB with enormous headroom.** The deployment docs specify the **`qwen3_coder` tool-call
+  parser** — the same parser family our 35B/80B cells already run through, which is the single strongest
+  practical argument for a cell here.
+  **Why it is only borderline, stated plainly: it does not report SWE-bench at all.** Its headline
+  results are Seal-0 56.4, BrowseComp 75.5, GAIA 96.0, IFBench 80.6 — search, science and
+  instruction-following, not repository coding. The one coding-adjacent number is **SciCode 44.33**,
+  and the *plain* Qwen3.6-35B-A3B already in `master.db` scores **73.4 SWE-bench Verified**, so on
+  published figures there is no reason to expect this to beat our incumbent as a coder.
+  **Where it could still earn a cell — and this is the actual reason to list it:** it is the mirror
+  image of the KAT-Coder probe. KAT-Coder asks "does *coding* post-training on a 35B-A3B base beat
+  general post-training"; Agents-A1 asks the control question — **what does heavy *non-coding* agentic
+  post-training do to coding on a comparable base?** A regression here would be as informative as a
+  gain, and it is cheap to find out. Judge priority **below every coder-specialised entry** and below
+  Nanbeige; run it only once the matched-base probes (KAT-Coder, BTL-3, Macaron) have landed and there
+  is something to compare against.
+  **Serving caveat, and it is real work:** upstream ships **BF16 safetensors with vLLM / SGLang only** —
+  **no GGUF and no `mlx-community` build is confirmed** (HF's quantizations widget lists community
+  quants, but sources conflict and none were verifiable at scan time). A cell needs a 4-bit convert, and
+  the `qwen3_5_moe` arch plus the multimodal wrapper must be gate-probed on oMLX or mainline llama.cpp
+  first — the vision half is exactly where a VLM-converted quant broke tool-calling on Muse Glimmer and
+  Qwen3.8-27B above, so smoke-test a real `<tool_call>` on whatever quant is produced before any grid.
+  **Caveat on freshness: this is a 2026-06-26 release (a 4B variant followed 2026-07-14), not a
+  last-cycle drop** — it surfaced via current agentic-model coverage, so it is a gap in this list rather
+  than news. First **InternScience / Shanghai-AI-Lab-lineage** candidate.
+  Source: https://internscience.github.io/Agents-A1/
+  — paper: https://arxiv.org/pdf/2606.30616
+  — weights: https://huggingface.co/InternScience/Agents-A1
+
+*Excluded 2026-08-17, out-of-scope rather than oversized:* **Needle 2** (Cactus Compute, weights
+2026-08-13, Apache 2.0) — a **45M-parameter** tool-calling / structured-extraction model in a 14 MB
+binary with a **256-token sliding window**, built to map a sentence onto a typed function signature on
+phones and wearables. It is a tool-call *router*, not a coding model, and could not hold a retort task's
+prompt, let alone write code. Source:
+https://www.marktechpost.com/2026/08/13/cactus-compute-needle-2-45m-parameter-tool-calling-model/
+**Muse Spark 1.2** (Meta) — the frontier sibling that **Muse Glimmer was distilled from**, and Meta has
+committed to opening its weights "in the coming weeks"; but as of this scan there are **no weights, no
+disclosed parameter count and no licence**, and a model large enough for Glimmer to be its 30B
+distillate is very unlikely to fit here. Re-check when it lands and record the size before listing it —
+do not schedule anything on it. Source: https://developer.meta.com/ai/models/muse-spark/
+*(Also seen and out of scope: **Muse Code** and the **DeepSeek Harness** developer preview, 2026-08-17,
+MIT — both are agent harnesses, not models; the DeepSeek one is already noted below and belongs next to
+the §4 harness side-branch if that work resumes.)*
 
 *Excluded this scan as too large for 64GB at 4-bit, recorded so they are not re-investigated:*
 Kimi K3 (2.8T MoE, 2026-07-27), Inkling-Small (276B-A12B, 2026-08-02 — ~140 GB at 4-bit despite the
