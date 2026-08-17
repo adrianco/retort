@@ -14,6 +14,7 @@ archived run, which is why these exist.
 from __future__ import annotations
 
 import subprocess
+from pathlib import Path
 
 import pytest
 
@@ -42,11 +43,13 @@ def _patch_go(monkeypatch, list_stdout, *, make_exe=True, exe_mode=0o755,
             return _Result(stdout=list_stdout)
         if "build" in cmd:
             if make_exe:
-                out = k.get("cwd") or a[0]
+                # Honour -o, as the real toolchain does. The probe now builds
+                # OUTSIDE the archived run so measuring one does not mutate it.
                 from pathlib import Path
-                p = Path(out) / ".retort-bin"
-                p.write_bytes(b"\x7fELF fake")
-                p.chmod(exe_mode)
+                out = Path(cmd[cmd.index("-o") + 1])
+                out.parent.mkdir(parents=True, exist_ok=True)
+                out.write_bytes(b"\x7fELF fake")
+                out.chmod(exe_mode)
             return _Result(returncode=build_rc)
         return _Result()
 
@@ -63,7 +66,7 @@ def test_idiomatic_cmd_layout_builds_the_cmd_package(go_module, monkeypatch):
     cmd, note = rt._build_then_entry(go_module, "go")
 
     assert note == ""
-    assert cmd == [str(go_module / ".retort-bin")]
+    assert cmd is not None and cmd[0].endswith("/server")
     build = next(c for c in calls if "build" in c)
     assert build[-1] == "brazilian-soccer-mcp/cmd/brazilian-soccer-mcp"
 
@@ -124,12 +127,31 @@ def test_go_list_failure_falls_back_to_the_module_root(go_module, monkeypatch):
             raise OSError("go list exploded")
         if "build" in cmd:
             from pathlib import Path
-            p = Path(k.get("cwd")) / ".retort-bin"
-            p.write_bytes(b"x"); p.chmod(0o755)
+            out = Path(cmd[cmd.index("-o") + 1])
+            out.parent.mkdir(parents=True, exist_ok=True)
+            out.write_bytes(b"x"); out.chmod(0o755)
         return _Result()
     monkeypatch.setattr(subprocess, "run", fake_run)
 
     cmd, note = rt._build_then_entry(go_module, "go")
 
     assert note == ""
-    assert cmd == [str(go_module / ".retort-bin")]
+    assert cmd is not None and cmd[0].endswith("/server")
+
+
+def test_build_artifacts_stay_out_of_the_archived_run(go_module, monkeypatch):
+    """Measuring an archive must not modify it.
+
+    The probe used to build `.retort-bin` and `.retort-build/` inside the run
+    directory, so every measurement left artifacts in the results archive — 26
+    binaries and 133 MB accumulated, and a run was no longer byte-for-byte what
+    the agent produced.
+    """
+    _patch_go(monkeypatch, "main m/cmd/x\n")
+    before = {p.name for p in go_module.iterdir()}
+
+    cmd, note = rt._build_then_entry(go_module, "go")
+
+    assert note == ""
+    assert go_module not in Path(cmd[0]).parents, "artifact landed inside the run"
+    assert {p.name for p in go_module.iterdir()} == before, "run dir was modified"

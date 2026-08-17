@@ -208,6 +208,24 @@ BRAZIL_CALLS = [
 ]
 
 
+def _probe_build_dir(run_dir: Path) -> Path:
+    """Where the probe puts artifacts it builds, OUTSIDE the archived run.
+
+    Measuring an archive must not modify it. The probe used to `go build -o
+    .retort-bin` and `cmake -B .retort-build` inside the run directory, so every
+    measurement left artifacts behind in the results archive — 26 binaries and
+    133 MB of them accumulated, and a run's directory was no longer byte-for-byte
+    what the agent produced. Keyed by the run's path so concurrent measurements
+    of different runs cannot collide.
+    """
+    key = hashlib.sha1(str(run_dir.resolve()).encode()).hexdigest()[:12]
+    base = os.environ.get("RETORT_HOME")
+    root = (Path(base).expanduser() if base else Path.home() / ".retort")
+    out = root / "cache" / "probe-build" / key
+    out.mkdir(parents=True, exist_ok=True)
+    return out
+
+
 def _first_executable(*globs: Path) -> Path | None:
     for p in globs:
         if p.is_file() and p.stat().st_mode & 0o111 and "." not in p.name:
@@ -490,9 +508,9 @@ def _build_then_entry(run_dir: Path, language: str) -> tuple[list[str] | None, s
         except (subprocess.TimeoutExpired, OSError):
             pass
 
-        if not build(["go", "build", "-o", ".retort-bin", target]):
+        exe = _probe_build_dir(run_dir) / "server"
+        if not build(["go", "build", "-o", str(exe), target]):
             return None, f"go build failed (target {target})"
-        exe = run_dir / ".retort-bin"
         if not exe.is_file():
             return None, f"go build produced nothing (target {target})"
         if not exe.stat().st_mode & 0o111:
@@ -709,7 +727,7 @@ def _build_then_entry(run_dir: Path, language: str) -> tuple[list[str] | None, s
             """
             cands: list[Path] = []
             for d in (run_dir, run_dir / "bin", run_dir / "build",
-                      run_dir / ".retort-build", run_dir / "out"):
+                      _probe_build_dir(run_dir) / "cmake", run_dir / "out"):
                 if d.is_dir():
                     cands += sorted(d.glob("*"))
             return _first_executable(*cands)
@@ -746,7 +764,7 @@ def _build_then_entry(run_dir: Path, language: str) -> tuple[list[str] | None, s
             targets = [n for n in re.findall(r"add_executable\(\s*([\w.-]+)",
                                              cml.read_text(errors="replace"))
                        if "test" not in n.lower()]
-            bdir = run_dir / ".retort-build"
+            bdir = _probe_build_dir(run_dir) / "cmake"
             if targets and build(["cmake", "-S", str(run_dir), "-B", str(bdir)]) \
                     and build(["cmake", "--build", str(bdir), "--target", targets[0]]):
                 exe = _first_executable(*sorted(bdir.rglob(targets[0])))

@@ -1,8 +1,27 @@
 # Where retort's bytes live, and what to clean up
 
+> **STATUS: this is a PROPOSAL, not a description of the machine today.**
+> Surveyed 2026-08-05; the sizes below are from that date and have not been
+> re-measured. Tiers 1–3 have **not** been executed. Read it as "here is a plan
+> and its risks", never as "here is what the disk looks like".
+>
+> **Done since (2026-08-17, M1):**
+> - `.swarm/`, `agentdb.rvf`, `agentdb.rvf.lock`, `.retort-bin` added to
+>   `.gitignore`; 15 `.swarm` files that had been committed into `experiments/`
+>   were untracked.
+> - **218 MB of stray artifacts swept from `experiments/`** — 13 `ruvector.db`,
+>   53 `.swarm` directories, 26 `.retort-bin` binaries. All gitignored, none
+>   tracked, archives verified intact afterwards.
+> - **The cause is fixed, not just the symptom:** the runtime probe used to build
+>   `.retort-bin` and `.retort-build/` INSIDE the archived run, so measuring an
+>   archive mutated it. Artifacts now build under `~/.retort/cache/probe-build/`,
+>   keyed by run path, and a test asserts the run directory is byte-identical
+>   after a measurement.
+> - §4's loose credential was resolved by its owner (now mode 600).
+
 Survey of this machine on 2026-08-05, with a proposed layout and a staged cleanup.
-**Nothing here has been executed.** Every destructive step is listed with its size,
-its risk, and how to verify before running it.
+Every destructive step is listed with its size, its risk, and how to verify
+before running it.
 
 Headline: `$HOME` holds ~**400 GB** of retort-adjacent state, of which roughly
 **200 GB is recoverable** without losing a single experiment result. Separately —
