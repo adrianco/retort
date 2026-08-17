@@ -356,3 +356,8 @@ agentdb.rvf
 agentdb.rvf.lock
 # Binaries the runtime probe builds inside archived runs to measure them.
 .retort-bin
+
+# Written by `retort promote`: stack lifecycle + its append-only changelog.
+# NOT ignored — it is the audit trail of every promotion decision and belongs in
+# review like the rest of this repo's evidence.
+!lifecycle.json

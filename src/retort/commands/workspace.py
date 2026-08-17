@@ -231,9 +231,23 @@ def promote(
             f"Valid transitions: screening→trial, trial→production, production→retired."
         )
 
-    # Parse evidence.
+    # Parse evidence. With none supplied, COMPUTE it from master.db rather than
+    # leaving the gate unsatisfiable: nothing else in the codebase produced these
+    # keys, so `trial_to_production` (posterior_confidence 0.80 by schema
+    # default) reported "missing from evidence" for every stack, forever.
     if evidence is None:
-        evidence_dict: dict[str, float] = {}
+        from retort.promotion.evidence import compute_evidence
+        db = cli.Path("master.db")
+        evidence_dict: dict[str, float] = compute_evidence(db, stack_id)
+        if evidence_dict:
+            n = evidence_dict.pop("n_runs", 0)
+            click.echo(f"Evidence computed from {db} over {n:.0f} run(s): " + ", ".join(
+                f"{k}={v:.3f}" for k, v in sorted(evidence_dict.items())))
+            if n < 3:
+                click.echo("  (n < 3 — the posterior is wide; treat with care)", err=True)
+        else:
+            click.echo(f"No evidence computable from {db} for {stack_id!r} "
+                       "(needs >=2 runs); pass --evidence to supply it.", err=True)
     else:
         try:
             evidence_dict = cli.json.loads(evidence)
@@ -257,10 +271,54 @@ def promote(
 
     result = evaluate_gate(gate_name, evidence_dict, promo_config)
 
+    # ACTUALLY PROMOTE. The lifecycle state machine and its append-only
+    # changelog were both written and tested, and nothing ever called them:
+    # `promote` evaluated a gate and echoed the verdict, so no stack ever had a
+    # recorded state and no transition was ever logged. Evaluating a gate is not
+    # promoting; this is the other half.
+    from retort.promotion.lifecycle import InvalidTransition, LifecycleState
+    from retort.promotion import store as _store
+
+    life = _store.load(_store.DEFAULT_PATH)
+    if stack_id not in life.stacks:
+        # Backfill to the phase the caller says the stack is already in, so the
+        # history starts from reality rather than from `candidate`. Recorded
+        # with NO gate: these transitions were never evaluated, and stamping the
+        # current gate's result onto them would claim screening_to_trial passed
+        # when nobody ever checked it. An audit log that invents verdicts is
+        # worse than no audit log.
+        life.register(stack_id)
+        for state in ("screening", "trial", "production"):
+            if life.state(stack_id).value == from_phase:
+                break
+            life._states[stack_id] = LifecycleState(state)
+            _store.record_transition(
+                life.changelog, stack_id=stack_id,
+                from_state=None, to_state=state, gate_result=None,
+                reason=f"backfilled to --from {from_phase} (gate not evaluated)")
+
     if result.passed:
         click.echo(f"PASS: {stack_id} may advance {from_phase} → {to_phase}")
+        try:
+            new_state = life.promote(stack_id, result,
+                                     reason=f"gate {gate_name} passed")
+            path = _store.save(life, _store.DEFAULT_PATH)
+            click.echo(f"  promoted to {new_state.value}; recorded in {path}")
+        except (InvalidTransition, KeyError, ValueError) as exc:
+            click.echo(f"  NOT recorded: {exc}", err=True)
     else:
         click.echo(f"FAIL: {stack_id} does not pass {from_phase} → {to_phase}")
+        # A refusal belongs in the audit trail too. "We looked and said no" is
+        # evidence; logging only successes makes the record useless for asking
+        # why a stack never advanced.
+        _store.record_transition(
+            life.changelog, stack_id=stack_id,
+            from_state=from_phase, to_state=from_phase,
+            gate_result=result, reason="gate refused")
+        try:
+            _store.save(life, _store.DEFAULT_PATH)
+        except ValueError as exc:
+            click.echo(f"  (changelog not written: {exc})", err=True)
     click.echo(f"  {result.detail}")
 
 
