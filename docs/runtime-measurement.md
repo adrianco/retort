@@ -86,6 +86,48 @@ the output — the only defence is to keep them in different columns.
 
 When a run is not measured, `note` in `_runtime.json` says why.
 
+## One budget, and a hang is terminal
+
+Every phase of one run's measurement draws on a single `_Budget`
+(`PROBE_BUDGET_S`, plus `FACTUAL_BUDGET_S` for the factual check). The
+per-iteration timeouts do not bound their own sum: 13 relaunches at
+`ITER_TIMEOUT_S`, plus `first_query`, `serve_latency` and the factual probe's six
+candidate calls, is **~19 minutes of scoring for one cell whose server never
+answers** — longer than the agent took to write it. An 11-cell experiment can
+spend more wall-clock scoring than running. A phase that runs out of budget
+yields the samples it collected; the rest are non-results, never zeros.
+
+**A timeout is evidence, not bad luck.** Measured cold starts here run 40 ms to
+~3 s. A server given 30 s to answer `tools/list` is not slow, it is a program
+that will not answer, and relaunching the identical command twelve more times
+cannot turn that into a measurement. One timeout stops the loop. A *fast*
+failure is different and is treated differently: a crash or `FileNotFoundError`
+means the **command** was wrong, so the project's own README command is tried; a
+hang means the **server** is at fault, so it is not.
+
+## Kill the process group, not the launcher
+
+`proc.kill()` kills the process it was handed. For `npm start` that is npm, not
+the node server npm forked; for `mix run` it is mix, not the BEAM. The server is
+reparented to init and keeps running — this repo had a C MCP server from exp-56
+still alive **thirteen days** after the probe that started it.
+
+A leaked server holds memory and a port while later cells are being *timed*, so
+it corrupts the wall-clock numbers invisibly — the same failure the
+one-experiment-at-a-time rule in `CLAUDE.md` exists to prevent. Launch through
+`_spawn` (`start_new_session=True`) and tear down through `_reap` (SIGKILL to the
+group).
+
+## The monitor can see scoring
+
+`retort monitor` finds in-flight work by looking for the **agent** process under
+`retort run`. The probes have no agent — they launch the model's own program — so
+for the whole scoring phase the monitor saw a live run with no recognizable child
+and reported a working cell as *not started*. `scoring/probe_status.py` leaves a
+breadcrumb keyed by the run pid, and the monitor renders the named phase
+("measuring runtime (go)") where it would otherwise say "running". Stale
+breadcrumbs from a crashed run are ignored rather than believed.
+
 ## Adding a language
 
 `_build_then_entry(run_dir, language)` returns `(command, note)`. Rules, each
