@@ -342,7 +342,23 @@ The gap-fill for exp-55: `gpt-5.6-terra` via codex at **default effort** (its ow
 1 replicate, across the nine languages Terra had never been run on, on **both** tasks. Judge held at
 opus-4.8.
 
-**18/18 at `requirement_coverage` 1.00. Total spend: \$7.44.**
+**18/18 at `requirement_coverage` 1.00 as originally run. Total spend: \$7.44.**
+
+**Corrected 2026-08-17 (M1 review).** That 18/18 was accurate for the design as run, which
+DELIBERATELY excluded swift and objc — `xcode-select` pointed at CommandLineTools, so either would
+have scored a harness false zero. After the Xcode fix those four arms were added via `--resume`, and
+the experiment now stands at **21 of 22**:
+
+| | result |
+|---|---|
+| bookshop | 11/11 |
+| brazil | 10/11 — **objc fails the MECHANICAL gate** (`tests did not run, test_coverage=0`) |
+
+The headline "clears every remaining language, both tasks" is therefore true of bookshop and of ten
+of eleven brazil languages, not of all of them. **The objc failure is not a Terra capability wall
+and should not be read as one:** exp-46 scored objc 1.00 on this same task with Opus 5, so the
+language and its scorer both work here. It is an unexplained mechanical-gate failure in this cell
+and wants `retort diagnose`, not a conclusion.
 
 | language | bookshop | brazil |
 |---|---:|---:|
