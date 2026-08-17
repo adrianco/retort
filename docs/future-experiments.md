@@ -114,6 +114,45 @@ changes any verdict, and of whether the repair feedback actually helps a failing
 
 ---
 
+## M2. Wire the promotion gate to evidence it can actually compute  — QUEUED (found in M1)
+
+**The promotion machinery is half-built and cannot pass today.** `retort promote` evaluates a gate
+against an `--evidence` JSON string that a human types by hand, and `gates.py` checks three keys:
+
+| gate key | what should supply it | today |
+|---|---|---|
+| `p_value` | `retort analyze` (ANOVA) | computed, never plumbed to `promote` |
+| `posterior_confidence` | `bayesian.NormalInverseGamma` posteriors | **nothing computes it** |
+| `dominated_confidence` | `pareto.prob_pareto_non_dominated` | **nothing computes it** |
+
+Every `workspace.yaml` carries `trial_to_production: { posterior_confidence: 0.80 }` — it is the
+schema default — so that gate currently reports **"posterior_confidence: missing from evidence"**
+for every stack, forever. A gate nothing can satisfy is not a gate.
+
+**The naming already tells us the design.** `dominated_confidence` IS P(non-dominated), which is
+exactly `prob_pareto_non_dominated`'s return value. The function was written as this gate's evidence
+source and never connected — M1 found it unused, and it is now covered by five tests, so the
+statistics are known good.
+
+**Proposed:** `retort promote` computes its own evidence from `master.db` unless `--evidence`
+overrides it —
+1. group replicate scores by (stack, metric),
+2. fit `NormalInverseGamma` per cell → `posterior_confidence` for the pass-proportion,
+3. feed those posteriors to `prob_pareto_non_dominated` over quality × cost × speed →
+   `dominated_confidence`,
+4. take `p_value` from the stored ANOVA if present.
+
+**Why it matters here specifically:** retort's cells are n=1–3. That is precisely the regime where a
+point-estimate frontier picks a winner out of noise, and `report pareto` currently does exactly that
+— it uses `pareto_analysis` on means with no uncertainty at all. The Bayesian path is the honest
+version of the same question, and this project's whole thesis is that unquantified variance is how
+you publish a wrong conclusion.
+
+**Also worth deciding:** whether `report pareto` should gain a `--bayesian` flag using the same
+machinery, so the published frontier carries confidence rather than implying certainty from n=1.
+
+---
+
 ## 1. exp-54 — does a Codex judge agree with the Opus judge?  — SCOPED DOWN (token budget)
 
 `requirement_coverage` is an LLM's opinion, and PR #45 made the judge configurable — so it is a
