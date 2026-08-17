@@ -113,19 +113,11 @@ class ParetoResult:
     metric_names: list[str]
     ranks: np.ndarray
 
-    @property
-    def frontier_labels(self) -> list[str]:
-        """Labels of rank-0 (Pareto-optimal) solutions."""
-        return [self.labels[i] for i in range(len(self.labels)) if self.ranks[i] == 0]
 
     @property
     def frontier_mask(self) -> np.ndarray:
         return self.ranks == 0
 
-    def is_dominated(self, label: str) -> bool:
-        """True if *label* is dominated (rank > 0)."""
-        idx = self.labels.index(label)
-        return bool(self.ranks[idx] > 0)
 
 
 def pareto_analysis(
