@@ -65,6 +65,22 @@ and "that one's local, this one's cloud" are both wrong.
 turns/tokens/cost survived — those are properties of the model's work — but its wall-clock
 time had to be thrown away.)*
 
+**Checking for a live `retort run` is not enough — check for ORPHANS.** A previous run's
+children can outlive it and keep working, and an orphan is invisible to every check that
+looks for `retort run`:
+
+    pgrep -fl "retort|codex|claude -p|scripts/" | grep -v grep   # anything still alive?
+    ps -eo pid,etime,command | grep retort/experiments | grep -v grep
+
+Found on 2026-08-17: `scripts/brazil_dedup_verdict.py` had been running **14 days**,
+orphaned to init (ppid 1), wedged on a server that never answered and holding one MCP
+server process resident the whole time — through every experiment in that window. It sat
+at 0% CPU, so nothing looked wrong; it was the resident server, not the CPU, that
+contended. Separately, the runtime probe leaked its own servers because `proc.kill()`
+kills `npm`, not the `node` it forked (fixed: `start_new_session=True` + `killpg`).
+
+Kill orphans before launching, and prefer a driver script that reaps its children.
+
 ## Publishing: blogs are ONE LINE PER PARAGRAPH
 
 The `*-blog.md` files are published to dev.to, which treats a hard-wrapped source
