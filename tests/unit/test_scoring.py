@@ -75,7 +75,10 @@ class TestScorerRegistry:
         # answers (2019 Série A) and GATES on them — a run can implement every
         # checklist item and still double-count the overlapping match files.
         assert "factual_accuracy" in reg
-        assert len(reg) == 12
+        # NOT `len(reg) == N`. That assertion broke twice in one week purely
+        # because a scorer was added, both times reporting a failure where
+        # nothing was wrong — a change-detector, not a contract. What matters is
+        # that the required scorers are present and the removed ones stay gone.
 
     def test_register_and_get(self):
         reg = ScorerRegistry()
@@ -88,23 +91,31 @@ class TestScorerRegistry:
         with pytest.raises(KeyError, match="Unknown scorer"):
             reg.get("nonexistent")
 
-    def test_available(self):
+    def test_available_is_sorted_and_contains_the_required_set(self):
+        """A CONTRACT, not a snapshot.
+
+        The previous version asserted the exact list, so adding a scorer failed
+        this test — twice in one week — while the code was correct. Assert what
+        callers actually depend on: `available()` is sorted (ScoreCollector uses
+        it as the default metric order) and every required scorer is present.
+        """
         reg = create_default_registry()
         avail = reg.available()
-        assert avail == [
-            "bead_usage_score",
-            "code_quality",
-            "defect_rate",
-            "factual_accuracy",
-            "findings",
-            "idiomatic",
-            "maintainability",
-            "no_regression",
-            "runtime",
-            "test_coverage",
-            "test_quality",
-            "token_efficiency",
-        ]
+
+        assert avail == sorted(avail), "available() must be sorted"
+        assert len(avail) == len(set(avail)), "no duplicate scorer names"
+
+        required = {
+            "bead_usage_score", "code_quality", "defect_rate", "factual_accuracy",
+            "findings", "idiomatic", "maintainability", "no_regression",
+            "runtime", "test_coverage", "test_quality", "token_efficiency",
+        }
+        missing = required - set(avail)
+        assert not missing, f"required scorers missing from the registry: {sorted(missing)}"
+
+        # Removed scorers must not come back: `build_time` was replaced by the
+        # `_duration_seconds` telemetry every run records automatically.
+        assert "build_time" not in avail
 
 
 class TestBeadUsageScorer:
