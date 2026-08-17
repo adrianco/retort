@@ -36,7 +36,14 @@ deliverable**, not the score.
 | `cold_start_ms` | process launch → answers `tools/list` |
 | `first_query_ms` | → answers a real `tools/call` |
 | `total_to_answer_ms` | the sum. **This is the comparable one.** |
-| `request_median_ms` | per-request latency against one warm process |
+| `request_median_ms` | per-request latency against one warm process, **repeating a real `tools/call`** |
+
+**`request_median_ms` repeats a real query, not `tools/list`.** It used to repeat
+`tools/list`, whose response size scales with how many tools an implementation
+chose to expose — median 6 for Terra, 16 for Opus — so it partly measured
+catalogue size rather than per-call work (r = 0.37 against tool count). The worst
+outlier fell from 2.680 ms to 0.259 ms once measured properly, and the model
+ranking inverted.
 
 **Cold start alone is not comparable across implementations.** `tools/list` is
 protocol metadata. An implementation that loads all 42k rows at import answers it

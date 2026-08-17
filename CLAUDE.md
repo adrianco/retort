@@ -117,7 +117,7 @@ and the click **group definitions** (`main`, `report`, `design`, `export`, `task
 Every **other command lives in `src/retort/commands/<area>.py`** — `scoring` (evaluate/
 reevaluate/rescore/diagnose/recover), `reporting` (report *), `analysis` (analyze/aggregate/
 maturity), `workspace` (init/visibility-check/design generate/promote/intake), `monitoring`,
-`utility` (plugin/export/tasks). cli.py imports these at its **bottom** (after the groups +
+`utility` (plugin/export/tasks), `rebuild` (rebuild/report runtime). cli.py imports these at its **bottom** (after the groups +
 helpers are defined, so it isn't circular) and re-exports moved names for back-compat.
 
 **Adding a command: put it in the matching `commands/` module, not cli.py** (keep cli.py to
