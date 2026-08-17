@@ -123,6 +123,15 @@ def create_default_registry() -> ScorerRegistry:
     # rate. See mcp_conformance.py.
     from retort.scoring.scorers.mcp_conformance import McpConformanceScorer
     registry.register(McpConformanceScorer())
+    # The golden answers as read by a REAL MCP client rather than by a parser
+    # here: hands the server to Claude Code, asks in a prompt, and computes the
+    # verdict from the TRANSCRIPT (a run whose transcript shows no MCP tool call
+    # answered from the model's memory of a famous league table, not from the
+    # artifact). Costs a judge call, so list it in `responses:` deliberately.
+    # Reported BESIDE factual_accuracy, not instead of it. See
+    # mcp_client_facts.py for why a client-driven check is more lenient.
+    from retort.scoring.scorers.mcp_client_facts import McpClientFactsScorer
+    registry.register(McpClientFactsScorer())
     # build_time was removed in favor of the raw `_duration_seconds`
     # telemetry written automatically by cli._store_run_result. Use that
     # column in retort analyze / report effects for timing analysis.
