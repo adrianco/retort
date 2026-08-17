@@ -1654,6 +1654,22 @@ def test_venv_is_not_archived(tmp_path):
     assert "app.py" not in skipped
 
 
+def test_hook_debris_is_not_archived():
+    """Agent/editor plugins write their own state into the playpen.
+
+    `.swarm/`, `.claude-flow/` and a 1.5 MB `ruvector.db` per run are not the
+    model's work and retort does not use any of them, but they were being copied
+    into the archive — where a scorer walking the tree sees files no agent wrote.
+    49 such directories had accumulated across the experiments/ tree.
+    """
+    from retort.cli import _ignore_archive_noise
+
+    names = [".swarm", ".claude-flow", "ruvector.db", ".hive-mind", "main.rs"]
+    skipped = _ignore_archive_noise("/w", names)
+    assert set(names) - {"main.rs"} <= skipped
+    assert "main.rs" not in skipped
+
+
 def test_refuses_to_run_an_agent_outside_the_playpen_root(tmp_path, monkeypatch):
     """A workspace outside the root is a startup failure, not a silent success.
 

@@ -1598,6 +1598,12 @@ _ARCHIVE_NOISE = {
     # makes rescoring correct: `find_venv` then misses, and the scorer builds a
     # fresh working venv instead of activating a dead one.
     "venv", ".venv",
+    # Hook debris. Editor/agent plugins active on this machine write their own
+    # state INTO the playpen — `.swarm/`, `.claude-flow/` and a 1.5 MB
+    # `ruvector.db` per run. None of it is the model's work, retort does not use
+    # any of it, and copying it makes the archive both larger and less honest:
+    # a scorer walking the tree sees files no agent wrote.
+    ".swarm", ".claude-flow", "ruvector.db", ".hive-mind",
 }
 
 
