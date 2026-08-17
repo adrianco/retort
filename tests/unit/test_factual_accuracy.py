@@ -22,6 +22,8 @@ The formats below are copied from real servers for exactly that reason.
 """
 from __future__ import annotations
 
+import json
+
 from retort.scoring.scorers import factual_accuracy as fa
 
 # --- real output shapes, three different implementations ---------------------
@@ -223,3 +225,78 @@ def test_rescore_status_honours_the_factual_gate():
     # A task with no golden answers records no factual_accuracy at all and must
     # still recover normally.
     assert status({"test_coverage": 0.9}) == "completed"
+
+
+def test_a_nested_record_object_is_read_not_reported_as_missing():
+    """exp-60's rust cell: the CORRECT table, with the record under a sub-object.
+
+    `{"team":"Flamengo-RJ","points":90,"record":{"matches":38,"wins":28,...}}`
+    read as `{'points': 90}` and the gate reported "expected 28W-6D-4L, got
+    fields {'points': 90}" — failing a right answer, and then spending a
+    self-repair attempt telling a correct implementation to fix itself. The
+    scorer was measuring JSON SHAPE and calling it a fact error.
+    """
+    from retort.scoring.scorers.factual_accuracy import _record_from_fields
+
+    row = json.dumps({"team": "Flamengo-RJ", "points": 90, "goal_difference": 49,
+                      "record": {"matches": 38, "wins": 28, "draws": 6,
+                                 "losses": 4, "goals_for": 86, "goals_against": 37}})
+    rec = _record_from_fields(row)
+    assert rec == {"played": 38, "wins": 28, "draws": 6, "losses": 4, "points": 90}
+
+
+def test_a_top_level_field_beats_a_nested_one_of_the_same_name():
+    """Flattening must not let a nested figure override the row's own."""
+    from retort.scoring.scorers.factual_accuracy import _record_from_fields
+
+    row = json.dumps({"points": 90, "home": {"points": 45, "wins": 15},
+                      "wins": 28, "draws": 6, "losses": 4, "matches": 38})
+    rec = _record_from_fields(row)
+    assert rec["points"] == 90 and rec["wins"] == 28
+
+
+def test_the_verdict_records_the_servers_own_answer():
+    """A verdict with no raw capture cannot be audited from the archive.
+
+    exp-60's rust failure said "got fields {'points': 90}" and nothing on disk
+    could settle whether the server was wrong or the parser was. It was the
+    parser. Keep the evidence in the same file as the conclusion.
+    """
+    from retort.scoring.scorers.factual_accuracy import FactualResult
+
+    res = FactualResult(ok=False, score=0.0, raw='[{"team":"Flamengo"}]',
+                        tool="get_standings")
+    d = res.as_dict()
+    assert d["raw"].startswith("[{") and d["tool"] == "get_standings"
+
+
+def test_the_corpus_own_competition_spelling_is_asked_for():
+    """"Brasileirão" — with the tilde — is the string the data itself uses.
+
+    Its absence meant every filtered call missed, the probe fell back to
+    season-only, and the server correctly answered with ALL 2019 competitions:
+    Série A and Série B in one table (Bragantino, five Atléticos). The gate then
+    graded the model on the answer to a question the probe never meant to ask.
+    """
+    from retort.scoring.scorers.factual_accuracy import _standings_args
+
+    schema = {"properties": {"season": {"type": "integer"},
+                             "competition": {"type": "string"}}}
+    comps = [a.get("competition") for a in _standings_args(schema) if "competition" in a]
+    assert "Brasileirão" in comps
+
+
+def test_an_oversized_table_is_not_graded():
+    """A 40-row answer is a different question's answer, not a wrong one.
+
+    2019 Série A has 20 clubs. When a response is far larger, the probe asked
+    too broadly — judging it fails correct work, so keep looking instead.
+    """
+    from retort.scoring.scorers import factual_accuracy as fa
+
+    rows = [{"team": f"Club {i}", "points": 40, "record": {"matches": 38}}
+            for i in range(40)]
+    rows[0]["team"] = "Flamengo"
+    assert len(fa._rows_of(json.dumps(rows))) > fa._MAX_PLAUSIBLE_ROWS
+    twenty = json.dumps(rows[:20])
+    assert len(fa._rows_of(twenty)) <= fa._MAX_PLAUSIBLE_ROWS

@@ -59,6 +59,11 @@ _STANDINGS_HINTS = ("standing", "table", "league_table", "season_table",
 #: The season the golden answers describe.
 GOLDEN_SEASON = 2019
 
+#: Most rows a 2019 Série A answer can plausibly have. The league has 20 clubs;
+#: the slack absorbs a header or summary row. Beyond this the response is a
+#: different question's answer (all competitions that season), not a wrong one.
+_MAX_PLAUSIBLE_ROWS = 26
+
 #: The 20 clubs of the 2019 Brasileirão Série A, each with a DISTINCTIVE token to
 #: match on. Tokens rather than full names because the corpus and the
 #: implementations disagree about accents and the state suffix
@@ -148,6 +153,16 @@ def _record_from_fields(row: str) -> dict | None:
     `{"draws": 6, "goal_difference": 49, ..., "points": 90, "wins": 28}` — every
     figure correct, but JSON key order is alphabetical, so a check for the
     consecutive triple [28, 6, 4] fails on a perfect answer. Read the fields.
+
+    NESTED rows count too. The rust implementation in exp-60 answers
+    `{"team": "Flamengo-RJ", "points": 90, "record": {"matches": 38, "wins": 28,
+    "draws": 6, "losses": 4, ...}}` — the correct table, with the record under a
+    sub-object. Reading only top-level keys found `points` and nothing else, so
+    the gate reported "expected 28W-6D-4L, got fields {'points': 90}" and FAILED
+    a run whose answer was right. That is the project's oldest bug wearing a new
+    hat: the scorer was measuring JSON SHAPE and reporting it as a fact error.
+    Flattening one level is enough for every shape seen so far, and a nested key
+    never overrides a top-level one of the same name.
     """
     row = row.strip()
     if not row.startswith("{"):
@@ -159,6 +174,10 @@ def _record_from_fields(row: str) -> dict | None:
     if not isinstance(obj, dict):
         return None
     lowered = {str(k).lower(): v for k, v in obj.items()}
+    for value in list(obj.values()):
+        if isinstance(value, dict):
+            for k, v in value.items():
+                lowered.setdefault(str(k).lower(), v)
     out: dict = {}
     for want, aliases in _FIELD_ALIASES.items():
         for a in aliases:
@@ -215,9 +234,17 @@ class FactualResult:
     score: float = 0.0
     note: str = ""
     assertions: list[Assertion] = field(default_factory=list)
+    #: The server's OWN answer, verbatim (truncated). Without it a verdict is
+    #: unauditable: exp-60's rust cell failed with "expected 28W-6D-4L, got
+    #: fields {'points': 90}" and nothing in the archive could say whether the
+    #: server was wrong or the parser was — it was the parser. A failing program
+    #: and a broken measurement must not look identical in the output.
+    raw: str = ""
+    tool: str = ""
 
     def as_dict(self) -> dict:
         return {"ok": self.ok, "score": self.score, "note": self.note,
+                "tool": self.tool, "raw": self.raw,
                 "assertions": [a.as_dict() for a in self.assertions]}
 
     def feedback_lines(self) -> list[str]:
@@ -300,7 +327,16 @@ def _standings_args(schema: dict) -> list[dict]:
     if season_key and (props.get(season_key, {}) or {}).get("type") == "string":
         seasons = [str(GOLDEN_SEASON)]
     out: list[dict] = []
-    comps = ["serie-a", "Serie A", "Série A", "Campeonato Brasileiro Série A", "Brasileirao"]
+    # "Brasileirão" — WITH the tilde — is the string the corpus itself uses, and
+    # its absence here cost a correct run a pass: every filtered call missed, the
+    # probe fell back to season-only, and the server correctly answered with ALL
+    # 2019 competitions. That table has Série A and Série B in it (Bragantino,
+    # five Atléticos), and the gate judged the model on it. Asking the wrong
+    # question and grading the right answer is the harness's error, not the
+    # model's.
+    comps = ["serie-a", "Serie A", "Série A", "Brasileirão", "Brasileirao",
+             "Brasileirão Série A", "Campeonato Brasileiro Série A",
+             "Campeonato Brasileiro"]
     for s in seasons:
         if comp_key:
             for c in comps:
@@ -360,6 +396,9 @@ def _measure(run_dir: Path, language: str, budget_s: float) -> FactualResult:
             return len(_STANDINGS_HINTS)
 
         table_text = ""
+        #: A Flamengo-naming answer that was too large to be the 2019 Série A
+        #: table. Kept only so the note can say what happened.
+        oversized = ""
         rid = 800
         for tool in sorted(tools, key=rank)[:4]:
             if rank(tool) == len(_STANDINGS_HINTS):
@@ -375,8 +414,22 @@ def _measure(run_dir: Path, language: str, budget_s: float) -> FactualResult:
                 if (msg.get("result") or {}).get("isError"):
                     continue
                 text = _text_of(msg)
-                if "flamengo" in text.lower():
+                if "flamengo" not in text.lower():
+                    continue
+                # A 2019 Série A table has 20 rows. A much bigger one is not the
+                # answer to the question asked — it is every competition that
+                # season merged — so keep looking rather than grade it. Judging
+                # an answer to a question you did not ask is how a correct
+                # implementation gets failed.
+                if len(_rows_of(text)) > _MAX_PLAUSIBLE_ROWS:
+                    oversized = oversized or text
+                    continue
+                if True:
                     table_text = text
+                    # Keep the answer itself, so a verdict can be checked
+                    # against what the server actually said rather than trusted.
+                    res.raw = text[:8000]
+                    res.tool = tool.get("name", "")
                     break
             if table_text:
                 break
@@ -384,6 +437,14 @@ def _measure(run_dir: Path, language: str, budget_s: float) -> FactualResult:
         if not table_text:
             if budget.spent():
                 res.note = "probe budget exhausted before any tool answered"
+                return res
+            if oversized:
+                res.note = (
+                    f"no tool returned a 20-row 2019 Série A table; the closest "
+                    f"had {len(_rows_of(oversized))} rows, i.e. every competition "
+                    "that season merged — the probe could not ask the question "
+                    "narrowly enough to grade this server")
+                res.raw = oversized[:8000]
                 return res
             res.note = ("no tool returned a 2019 Série A table naming Flamengo "
                         f"(tried {min(len(tools), 4)} candidate tools)")
