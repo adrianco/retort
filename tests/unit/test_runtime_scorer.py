@@ -22,6 +22,10 @@ extreme runs is eager-vs-lazy DATA loading; see the tools/call section below.
 """
 from __future__ import annotations
 
+import os
+import sys
+import time
+
 from pathlib import Path
 
 import pytest
@@ -220,3 +224,88 @@ def test_data_touching_tools_are_tried_before_metadata_tools():
 
     assert sorted(names, key=rank)[0] == "team_stats"
     assert rank("ping") == len(rt._QUERY_PREFERENCE)
+
+
+# --- a hang is terminal, and the monitor can see the probe -------------------
+
+def test_budget_bounds_every_phase_of_one_measurement():
+    """The per-iteration timeouts alone permit 24 minutes per cell.
+
+    3 warm-up + 10 timed launches at ITER_TIMEOUT_S, plus first_query,
+    serve_latency and the factual check at their own timeouts, is 24 minutes of
+    scoring for ONE run that will not answer — longer than the agent took to
+    write it. The shared budget is what keeps a stalled server from turning
+    scoring into the experiment.
+    """
+    from retort.scoring.scorers import factual_accuracy as fa
+    from retort.scoring.scorers import runtime as rt
+
+    # cold-start relaunches + first_query + serve_latency + the factual probe's
+    # own handshake and its six candidate tool calls, each at its own timeout.
+    unbounded = (
+        (rt.WARMUP_ITERS + rt.TIMED_ITERS) * rt.ITER_TIMEOUT_S   # relaunch loop
+        + rt.QUERY_TIMEOUT_S * 2                                 # first_query, serve
+        + rt.ITER_TIMEOUT_S + rt.QUERY_TIMEOUT_S * 6             # factual
+    )
+    bounded = rt.PROBE_BUDGET_S + fa.FACTUAL_BUDGET_S
+    assert unbounded > 20 * 60, "the ceiling this bounds is per CELL, not per run"
+    assert bounded < unbounded / 4
+
+
+def test_budget_slice_never_exceeds_what_is_left():
+    from retort.scoring.scorers.runtime import _Budget
+
+    b = _Budget(0.5)
+    assert b.slice(30.0) <= 0.5
+    assert b.slice(0.1) == pytest.approx(0.1, abs=0.05)
+    b.deadline -= 10.0                      # pretend it elapsed
+    assert b.spent() and b.slice(30.0) == 0.0
+
+
+def test_a_hung_server_is_not_relaunched_thirteen_times(tmp_path, monkeypatch):
+    """One timeout is enough evidence. Retrying spends six minutes re-proving it."""
+    from retort.scoring.scorers import runtime as rt
+
+    (tmp_path / "package.json").write_text(
+        '{"name": "s", "scripts": {"start": "node server.js"}}')
+    launches = []
+
+    def _never_answers(proc, timeout, captured=None):
+        launches.append(timeout)
+        time.sleep(min(timeout, 0.05))      # burn the whole (tiny) window
+        return None
+
+    monkeypatch.setattr(rt, "ITER_TIMEOUT_S", 0.05)
+    monkeypatch.setattr(rt, "_mcp_handshake", _never_answers)
+    monkeypatch.setattr(rt, "_build_then_entry",
+                        lambda d, l: ([sys.executable, "-c", "import time;time.sleep(9)"], ""))
+    res = rt._probe_brazil(tmp_path, "typescript", rt._Budget(30.0))
+
+    assert res.ok is False
+    # One launch, not WARMUP_ITERS + TIMED_ITERS + README candidates.
+    assert len(launches) == 1, f"relaunched a hung server {len(launches)} times"
+    assert res.cold_start_ms is None        # a non-result, never a zero
+
+
+def test_probe_status_lets_the_monitor_see_scoring(tmp_path):
+    """Scoring launches the model's program, not an agent — so it must announce."""
+    from retort.scoring import probe_status
+
+    base = str(tmp_path)
+    assert probe_status.read(os.getpid(), base) is None
+    with probe_status.announcing("measuring runtime (go)", "go", base) as update:
+        crumb = probe_status.read(os.getpid(), base)
+        assert crumb["phase"] == "measuring runtime (go)"
+        update("checking answers (go)")
+        assert probe_status.read(os.getpid(), base)["phase"] == "checking answers (go)"
+    assert probe_status.read(os.getpid(), base) is None
+
+
+def test_probe_status_ignores_a_crashed_runs_leftover(tmp_path):
+    """A stale crumb must not report a dead process as busy scoring."""
+    from retort.scoring import probe_status
+
+    base = str(tmp_path)
+    probe_status.announce("measuring runtime (c)", "c", base)
+    assert probe_status.read(os.getpid(), base) is not None
+    assert probe_status.read(os.getpid(), base, max_age_s=-1.0) is None

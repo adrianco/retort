@@ -49,6 +49,7 @@ from dataclasses import dataclass, field
 from pathlib import Path
 
 from retort.playpen.runner import RunArtifacts, StackConfig
+from retort.scoring import probe_status
 from retort.scoring.scorers import runtime as rt
 
 #: Tool-name fragments that plausibly answer "the 2019 Série A table", best first.
@@ -309,8 +310,26 @@ def _standings_args(schema: dict) -> list[dict]:
     return out or [{}]
 
 
-def measure(run_dir: Path, language: str) -> FactualResult:
-    """Start the server and check its answers against known 2019 results."""
+#: Total wall clock for one factual check. Same reasoning as runtime's
+#: PROBE_BUDGET_S: four tool attempts at the query timeout plus a handshake is
+#: 8.5 minutes per cell on a server that will not answer, and inline that turns
+#: scoring into the experiment.
+FACTUAL_BUDGET_S = 120.0
+
+
+def measure(run_dir: Path, language: str,
+            budget_s: float = FACTUAL_BUDGET_S) -> FactualResult:
+    """Start the server and check its answers against known 2019 results.
+
+    Announced to the live monitor for its whole duration — this phase launches
+    the model's program, not an agent, so it is otherwise invisible.
+    """
+    with probe_status.announcing(f"checking answers ({language})", language):
+        return _measure(run_dir, language, budget_s)
+
+
+def _measure(run_dir: Path, language: str, budget_s: float) -> FactualResult:
+    budget = rt._Budget(budget_s)
     res = FactualResult()
     cmd, why = rt._build_then_entry(run_dir, language)
     if cmd is None:
@@ -328,7 +347,7 @@ def measure(run_dir: Path, language: str) -> FactualResult:
 
     try:
         captured: dict = {}
-        listed = rt._mcp_handshake(proc, rt.ITER_TIMEOUT_S, captured)
+        listed = rt._mcp_handshake(proc, budget.slice(rt.ITER_TIMEOUT_S), captured)
         if listed is None:
             res.note = rt._stderr_tail(errf) or "did not complete the MCP handshake"
             return res
@@ -347,8 +366,11 @@ def measure(run_dir: Path, language: str) -> FactualResult:
             if rank(tool) == len(_STANDINGS_HINTS):
                 break                                  # nothing standings-shaped left
             for args in _standings_args(tool.get("inputSchema", {}) or {})[:6]:
+                if budget.spent():
+                    break
                 rid += 1
-                msg = _call(proc, tool.get("name", ""), args, rid, rt.QUERY_TIMEOUT_S)
+                msg = _call(proc, tool.get("name", ""), args, rid,
+                            budget.slice(rt.QUERY_TIMEOUT_S))
                 if not msg or "error" in msg:
                     continue
                 if (msg.get("result") or {}).get("isError"):
@@ -361,6 +383,9 @@ def measure(run_dir: Path, language: str) -> FactualResult:
                 break
 
         if not table_text:
+            if budget.spent():
+                res.note = "probe budget exhausted before any tool answered"
+                return res
             res.note = ("no tool returned a 2019 Série A table naming Flamengo "
                         f"(tried {min(len(tools), 4)} candidate tools)")
             return res

@@ -2944,6 +2944,7 @@ def _discover_active_runs(db_path: Path) -> list[dict]:
     import json as _json
     import os
     import subprocess
+    import time
 
     # Agent CLIs retort shells out to. The active job is one of these — NOT just
     # `claude`: a local-model cell runs `omp`/`hermes`/`gemini`/`opencode`, so
@@ -2987,7 +2988,25 @@ def _discover_active_runs(db_path: Path) -> list[dict]:
 
     active: list[dict] = []
     seen: set[str] = set()
+    # A cell being SCORED has no agent child — the runtime and factual probes
+    # launch the program the model wrote (`npm start`, a Rust binary, a JVM).
+    # The probe leaves a breadcrumb keyed by the `retort run` pid; without it the
+    # monitor showed a live run with no recognizable child and reported a working
+    # cell as not started.
+    from retort.scoring import probe_status as _ps
     for rpid in run_pids:
+        crumb = _ps.read(int(rpid)) if str(rpid).isdigit() else None
+        if crumb:
+            active.append({
+                "label": crumb.get("label") or "scoring",
+                "replicate": None,
+                "elapsed_s": max(0.0, time.time() - float(crumb["updated"])),
+                "evaluating": False,
+                "phase": crumb.get("phase") or "scoring",
+                "context_tokens": None,
+                "context_peak": None,
+                "second_try": False,
+            })
         for cpid in _agent_candidate_pids(rpid):
             psc = _run(["ps", "-o", "command=", "-p", cpid])
             cmd = psc.stdout.strip() if psc else ""

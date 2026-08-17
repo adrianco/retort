@@ -61,6 +61,7 @@ from dataclasses import dataclass, field
 from pathlib import Path
 
 from retort.playpen.runner import RunArtifacts, StackConfig
+from retort.scoring import probe_status
 
 #: Iterations run and thrown away before timing starts (JIT/page-cache warm-up).
 WARMUP_ITERS = 3
@@ -75,6 +76,38 @@ QUERY_TIMEOUT_S = 120
 STARTUP_TIMEOUT_S = 60
 #: Milliseconds at which the normalized score reaches 0.0.
 SLOW_MS = 1000.0
+
+#: TOTAL wall-clock budget for measuring one run, across every phase.
+#:
+#: The per-iteration timeouts alone permit 24 MINUTES per cell — 14 server
+#: starts at 30 s, plus first-query at 120 s, plus the warm loop, plus the
+#: factual probe's four tool attempts. Inline that is not a measurement cost, it
+#: is the experiment: exp-60's eleven cells would have spent 4.5 hours scoring on
+#: top of the agent time, and the monitor sat at 0/11 for twelve minutes on the
+#: first cell while a TypeScript server that would not answer was restarted
+#: thirteen times.
+#:
+#: A fast server finishes well inside this. A slow one yields whatever samples it
+#: managed, which is a real measurement of a slow program rather than a stall.
+PROBE_BUDGET_S = 180.0
+
+
+class _Budget:
+    """Wall-clock budget shared by every phase of one run's measurement."""
+
+    def __init__(self, seconds: float = PROBE_BUDGET_S) -> None:
+        self.deadline = time.perf_counter() + seconds
+        self.seconds = seconds
+
+    def left(self) -> float:
+        return max(0.0, self.deadline - time.perf_counter())
+
+    def spent(self) -> bool:
+        return self.left() <= 0.0
+
+    def slice(self, want: float) -> float:
+        """`want` seconds, or whatever remains — never more than the budget."""
+        return max(0.0, min(want, self.left()))
 
 
 @dataclass
@@ -1070,7 +1103,8 @@ def _pick_working_call(proc, listed: dict,
     return None
 
 
-def _first_query(cmd: list[str], run_dir: Path) -> tuple[float | None, str, str]:
+def _first_query(cmd: list[str], run_dir: Path,
+                 budget: "_Budget | None" = None) -> tuple[float | None, str, str]:
     """(ms to answer a REAL data question, tool name, note).
 
     This exists because cold-start-to-`tools/list` is NOT comparable across
@@ -1123,7 +1157,7 @@ def _first_query(cmd: list[str], run_dir: Path) -> tuple[float | None, str, str]
             if not mcp_send(proc, {"jsonrpc": "2.0", "id": rid, "method": "tools/call",
                                    "params": {"name": name, "arguments": args}}):
                 return None, "", "server closed during tools/call"
-            msg = mcp_await_id(proc, rid, QUERY_TIMEOUT_S)
+            msg = mcp_await_id(proc, rid, budget.slice(QUERY_TIMEOUT_S))
             ms = (time.perf_counter() - t0) * 1000.0
             if msg is None:
                 continue
@@ -1143,7 +1177,8 @@ def _first_query(cmd: list[str], run_dir: Path) -> tuple[float | None, str, str]
             pass
 
 
-def _serve_latency(cmd: list[str], run_dir: Path) -> float | None:
+def _serve_latency(cmd: list[str], run_dir: Path,
+                   budget: "_Budget | None" = None) -> float | None:
     """Median per-request latency against ONE already-warm process, in ms.
 
     Distinct from cold start on purpose. Cold start measures runtime boot + data
@@ -1162,7 +1197,8 @@ def _serve_latency(cmd: list[str], run_dir: Path) -> float | None:
         return None
     try:
         # Handshake once; the data load is paid here and excluded from the samples.
-        listed = _mcp_handshake(proc, ITER_TIMEOUT_S)
+        budget = budget or _Budget()
+        listed = _mcp_handshake(proc, budget.slice(ITER_TIMEOUT_S))
         if listed is None:
             return None
 
@@ -1173,7 +1209,7 @@ def _serve_latency(cmd: list[str], run_dir: Path) -> float | None:
         # measured "how big is your tool catalogue" — measured r = 0.37 between
         # tool count and the old per-request figure. A real tools/call with the
         # data already in memory is the per-request work we actually mean.
-        picked = _pick_working_call(proc, listed, QUERY_TIMEOUT_S)
+        picked = _pick_working_call(proc, listed, budget.slice(QUERY_TIMEOUT_S))
         if picked is None:
             return None
         tool_name, tool_args, next_id = picked
@@ -1188,7 +1224,9 @@ def _serve_latency(cmd: list[str], run_dir: Path) -> float | None:
                 proc.stdin.flush()
             except (BrokenPipeError, OSError):
                 break
-            if mcp_await_id(proc, next_id + i, ITER_TIMEOUT_S) is None:
+            if budget.spent():
+                break
+            if mcp_await_id(proc, next_id + i, budget.slice(ITER_TIMEOUT_S)) is None:
                 break
             ms = (time.perf_counter() - t0) * 1000.0
             if i >= WARMUP_ITERS:          # discard warm-up
@@ -1284,8 +1322,15 @@ def _readme_commands(run_dir: Path) -> list[list[str]]:
     return out
 
 
-def _probe_brazil(run_dir: Path, language: str) -> RuntimeResult:
-    """Time N identical MCP tool calls, plus the one-off data load."""
+def _probe_brazil(run_dir: Path, language: str,
+                  budget: _Budget | None = None) -> RuntimeResult:
+    """Time N identical MCP tool calls, plus the one-off data load.
+
+    Every phase draws on one shared wall-clock budget, so a server that will not
+    answer costs seconds rather than the 24 minutes the per-iteration timeouts
+    permit on their own.
+    """
+    budget = budget or _Budget()
     res = RuntimeResult(task="brazil-soccer-mcp", language=language, ok=False)
     cmd, why = _build_then_entry(run_dir, language)
     if cmd is None:
@@ -1309,6 +1354,7 @@ def _probe_brazil(run_dir: Path, language: str) -> RuntimeResult:
         is the thing being measured, then terminate.
         """
         t0 = time.perf_counter()
+        window = budget.slice(ITER_TIMEOUT_S)
         errf = _stderr_file()
         try:
             proc = subprocess.Popen(
@@ -1320,10 +1366,22 @@ def _probe_brazil(run_dir: Path, language: str) -> RuntimeResult:
             errf.close()
             return None
         try:
-            listed = _mcp_handshake(proc, ITER_TIMEOUT_S, captured)
+            listed = _mcp_handshake(proc, window, captured)
             if listed is None:
+                waited = time.perf_counter() - t0
+                # A HANG is terminal, not retryable. This server has been given
+                # ITER_TIMEOUT_S to answer `tools/list`; measured cold starts in
+                # this corpus run 40 ms to ~3 s, so 30 s of silence is two orders
+                # of magnitude past "slow" — it is a program that will not
+                # answer. Launching the identical command 12 more times cannot
+                # turn that into a measurement, it only spends six more minutes
+                # proving the same thing. Flag it so the caller stops.
+                if window > 0 and waited >= window * 0.9:
+                    failure["hung"] = True
                 tail = _stderr_tail(errf)
-                failure["why"] = tail or "no reply to tools/list"
+                failure["why"] = tail or (
+                    f"no reply to tools/list within {window:.0f}s"
+                    if failure.get("hung") else "no reply to tools/list")
                 return None
             elapsed = (time.perf_counter() - t0) * 1000.0
             # Scrape the start-up banner from STDERR as well as stdout. A
@@ -1357,7 +1415,12 @@ def _probe_brazil(run_dir: Path, language: str) -> RuntimeResult:
 
     first = None
     for candidate in candidates:
+        failure.pop("hung", None)
         first = one_shot(candidate)
+        if first is None and failure.get("hung"):
+            # It started and then went silent — that is the program, not the
+            # incantation. A different documented command starts the same server.
+            break
         if first is not None:
             if candidate is not cmd:
                 res.note = ("launched via the command documented in the "
@@ -1373,9 +1436,30 @@ def _probe_brazil(run_dir: Path, language: str) -> RuntimeResult:
     # boot the runtime, parse the CSVs, answer once, die. This is the number that
     # separates a native binary from an interpreter, because it is dominated by
     # runtime start-up plus parsing ~24k rows — not by the trivial round-trip.
+    hung = False
     for _ in range(WARMUP_ITERS):
+        if budget.spent() or hung:
+            break
+        failure.pop("hung", None)
         one_shot(cmd)
-    samples = [ms for _ in range(TIMED_ITERS) if (ms := one_shot(cmd)) is not None]
+        hung = bool(failure.get("hung"))
+    samples = []
+    for _ in range(TIMED_ITERS):
+        if budget.spent() or hung:
+            break
+        failure.pop("hung", None)
+        ms = one_shot(cmd)
+        if ms is not None:
+            samples.append(ms)
+        else:
+            # Same reasoning as the first launch: one timeout is enough evidence.
+            # Keep whatever samples were collected — a server that answered 4
+            # times and then hung is a real, reportable result.
+            hung = bool(failure.get("hung"))
+    if hung:
+        res.note = ((res.note + "; ") if res.note else "") + (
+            f"stopped after a hang ({failure.get('why', 'no reply')}) — "
+            f"{len(samples)} of {TIMED_ITERS} timed launches answered")
     if not samples:
         res.note = f"answered once then stopped: {failure.get('why', 'no output')}"
         return res
@@ -1385,8 +1469,14 @@ def _probe_brazil(run_dir: Path, language: str) -> RuntimeResult:
     # "steady median" was just the cold start measured again — python read 267 ms
     # cold and 260 ms "steady", which is the same number twice, not two metrics.
     # Serving latency needs the process kept alive and asked repeatedly.
-    res.request_median_ms = _serve_latency(cmd, run_dir)
-    res.first_query_ms, res.first_query_tool, q_note = _first_query(cmd, run_dir)
+    # Later phases get whatever the budget still holds. Skipped is a NON-result
+    # (None), never a zero — a phase we ran out of time for is not "instant".
+    if not budget.spent():
+        res.request_median_ms = _serve_latency(cmd, run_dir, budget)
+    if not budget.spent():
+        res.first_query_ms, res.first_query_tool, q_note = _first_query(cmd, run_dir, budget)
+    else:
+        q_note = "skipped: probe budget exhausted"
     if res.first_query_ms is None and q_note and not res.note:
         res.note = f"cold start measured; first-query not: {q_note}"
 
@@ -1444,7 +1534,11 @@ def measure(run_dir: Path, task: str, language: str, *,
     if probe is None:
         return RuntimeResult(task=task, language=language, ok=False,
                              note=f"no probe defined for task {task!r}")
-    return probe(run_dir, language)
+    # Tell the monitor. Scoring launches the model's own program, not an agent
+    # CLI, so without this the live monitor sees `retort run` with no
+    # recognizable child and reports a working cell as not started.
+    with probe_status.announcing(f"measuring runtime ({language})", language):
+        return probe(run_dir, language)
 
 
 def detect_task(run_dir: Path) -> str:

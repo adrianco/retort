@@ -600,7 +600,10 @@ def render_active(active: list[dict]) -> list[str]:
         # Without this, a cell that fails the gate and enters its self-repair second
         # chance looks like it is looping: the "evaluating" clock simply resets and
         # the same cell reappears. Name the phase instead.
-        state = "evaluating" if a.get("evaluating") else "running"
+        # A named phase wins: "measuring runtime (go)" says far more than
+        # "running", and is the difference between a monitor that shows scoring
+        # in progress and one that looks stalled for the whole scoring window.
+        state = a.get("phase") or ("evaluating" if a.get("evaluating") else "running")
         if a.get("second_try"):
             state = f"{state} ↻2nd-chance"
         ctx = a.get("context_tokens")
