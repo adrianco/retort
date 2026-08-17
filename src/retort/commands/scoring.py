@@ -467,6 +467,18 @@ def rescore(experiment_dir, config, languages, only_failed, metrics_only, worker
         click.echo(f"  {label}: " + " ".join(f"{k}={v:.2f}" for k, v in scores.items())
                    + f" -> {new_status}{gate}")
 
+    # `runtime` is a WALL-CLOCK measurement, so it cannot be taken in parallel:
+    # N workers each launch a server and then time it against the others' load.
+    # docs/runtime-measurement.md says a busy machine invalidates these numbers,
+    # and a parallel rescore is a busy machine we created ourselves. Measured
+    # here: one rust cell read 264 ms inline and 152 ms under a 2-way rescore —
+    # a 42% swing from contention alone, silently overwriting the DB.
+    if "runtime" in metrics and workers > 1:
+        click.echo(f"  (runtime is a timing measurement — forcing 1 worker "
+                   f"instead of {workers}; pass --metrics without runtime to "
+                   f"rescore the static metrics in parallel)", err=True)
+        workers = 1
+
     if workers <= 1:
         for w in work:
             _handle(_score(w))

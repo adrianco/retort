@@ -1725,3 +1725,21 @@ def test_playpen_root_honours_retort_home(tmp_path, monkeypatch):
     root = lr._playpen_root()
     assert root == tmp_path / "elsewhere" / "work"
     assert root.is_dir()
+
+
+def test_rescore_never_times_runs_in_parallel():
+    """`runtime` is wall-clock, so N workers time each other's load.
+
+    docs/runtime-measurement.md refuses to measure on a busy machine — and a
+    parallel rescore is a busy machine we created ourselves. Measured on exp-60:
+    one rust cell read 264 ms inline and 152 ms under a 2-way rescore, a 42%
+    swing from contention alone, silently overwriting the DB value.
+    """
+    import inspect
+
+    from retort.commands import scoring
+
+    src = inspect.getsource(scoring.rescore.callback)
+    guard = src.split('if "runtime" in metrics and workers > 1:', 1)
+    assert len(guard) == 2, "the runtime serialization guard is gone"
+    assert "workers = 1" in guard[1].split("if workers <= 1:", 1)[0]
