@@ -155,6 +155,36 @@ test that patches a path and then spends its time somewhere else.
 
 ---
 
+## exp-60 — does "Terra clears every language" survive the correctness gate?  — LAUNCHING 2026-08-17
+
+**The question M1 raised and cannot answer from the archive.** exp-56's headline is "Terra clears
+every remaining language, both tasks" at `requirement_coverage` 1.00. Those runs predate the factual
+gate, so their `factual_accuracy` is NULL and they pass it by construction. exp-58 then showed the
+gap is real and large: on brazil, **sol 0.92 checklist → 0.83 with facts, luna 0.83 → 0.33**. Terra
+is the missing middle, and it is the model exp-56's conclusion is about.
+
+**Design.** brazil × `gpt-5.6-terra` @ default × the languages exp-56 ran × **n=1** = **11 cells**,
+≈ **\$8.50** at exp-56's measured \$0.77/cell. n=1 deliberately: this re-measures exp-56's own
+cells with one gate added, so the comparison is cell-by-cell against a known result rather than a
+new pass-proportion. Judge held at opus-4.8, prompt neutral, effort default — every factor identical
+to exp-56 except the gate.
+
+**Hypothesis.** Terra's checklist score should reproduce exp-56 (it is the same stack), and the
+interesting number is how many of those 1.00 cells fail on facts. exp-58's sol lost 0.09 and luna
+lost 0.50; terra sits between them on capability, so somewhere in that range is expected. **A null —
+terra passing facts everywhere — would be the strongest possible defence of the pre-gate corpus**,
+and is worth publishing for that reason alone.
+
+**Also settles an M1 loose end:** exp-56's objc/brazil cell fails the MECHANICAL gate (tests did not
+run), which is NOT a Terra capability wall — exp-46 scored objc 1.00 on this task with Opus 5. This
+run re-measures it on the current harness, which has had several launch fixes since.
+
+**No new tuning parameters**, so no parameter-verification smoke is required: the stack, effort,
+prompt and judge are all exactly exp-56's. The gate itself is already proven — it has fired on real
+data (exp-57, exp-58) and has 14 regression tests.
+
+---
+
 ## 1. exp-54 — does a Codex judge agree with the Opus judge?  — SCOPED DOWN (token budget)
 
 `requirement_coverage` is an LLM's opinion, and PR #45 made the judge configurable — so it is a
