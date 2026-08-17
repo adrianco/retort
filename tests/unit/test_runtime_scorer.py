@@ -278,7 +278,7 @@ def test_a_hung_server_is_not_relaunched_thirteen_times(tmp_path, monkeypatch):
     monkeypatch.setattr(rt, "ITER_TIMEOUT_S", 0.05)
     monkeypatch.setattr(rt, "_mcp_handshake", _never_answers)
     monkeypatch.setattr(rt, "_build_then_entry",
-                        lambda d, l: ([sys.executable, "-c", "import time;time.sleep(9)"], ""))
+                        lambda d, l, r=None: ([sys.executable, "-c", "import time;time.sleep(9)"], ""))
     res = rt._probe_brazil(tmp_path, "typescript", rt._Budget(30.0))
 
     assert res.ok is False
@@ -363,3 +363,91 @@ def test_phase_helpers_default_their_own_budget(fn, tmp_path, monkeypatch):
     monkeypatch.setattr(rt, "_pick_working_call", lambda *a, **k: None)
     result = getattr(rt, fn)([sys.executable, "-c", "pass"], tmp_path)
     assert result is None or result[0] is None      # a non-result, not a crash
+
+
+def test_the_verdict_records_what_was_actually_installed(tmp_path, monkeypatch):
+    """A declared requirement and a resolved version are different facts.
+
+    An archived run declares `mcp>=1.28,<3`. That HAS an upper bound, so
+    _cap_majors leaves it alone, mcp 2.x is installed, and the server dies with
+    `AttributeError: 'Server' object has no attribute 'list_tools'` — an API
+    that exists in 1.x. Whether that is the model's defect (its own manifest
+    claims 2.x works) or an artifact of resolving years later is undecidable
+    from the traceback. Record the versions and it becomes decidable.
+    """
+    from retort.scoring.scorers import runtime as rt
+
+    (tmp_path / "pyproject.toml").write_text(
+        '[project]\nname = "s"\ndependencies = ["mcp>=1.28,<3"]\n'
+        '[project.scripts]\ns = "s.server:main"\n')
+    pkg = tmp_path / "s"
+    pkg.mkdir()
+    (pkg / "__init__.py").write_text("")
+    (pkg / "server.py").write_text("def main():\n    pass\n")
+
+    fake_py = tmp_path / "venv" / "bin" / "python"
+    fake_py.parent.mkdir(parents=True)
+    fake_py.write_text("")
+    monkeypatch.setattr(rt, "_probe_venv", lambda deps: fake_py)
+    monkeypatch.setattr(rt, "_venv_freeze", lambda py: ["mcp==2.1.0", "anyio==4.6.0"])
+    monkeypatch.setattr(rt, "_importable", lambda py, d, t: "")
+
+    resolved: dict = {}
+    cmd, note = rt._python_entry(tmp_path, resolved)
+    assert cmd is not None
+    assert resolved["declared"] == ["mcp>=1.28,<3"]
+    assert resolved["capped"] is False        # the run's OWN bound, left alone
+    assert "mcp==2.1.0" in resolved["installed"]
+
+
+def test_deps_reach_the_json_the_reader_actually_opens():
+    """Recording it internally is useless if it never lands in the archive."""
+    from retort.scoring.scorers.factual_accuracy import FactualResult
+    from retort.scoring.scorers.runtime import RuntimeResult
+
+    rt_res = RuntimeResult(task="t", language="python", ok=False,
+                           deps={"installed": ["mcp==2.1.0"]})
+    fa_res = FactualResult(deps={"installed": ["mcp==2.1.0"]})
+    assert rt_res.as_dict()["deps"]["installed"] == ["mcp==2.1.0"]
+    assert fa_res.as_dict()["deps"]["installed"] == ["mcp==2.1.0"]
+
+
+def test_an_unresolvable_dep_set_is_recorded_too(tmp_path, monkeypatch):
+    """A venv that could not be built is the most important case to record.
+
+    "could not build a venv" and "the program is broken" are different facts,
+    and the note alone has never been enough to separate them.
+    """
+    from retort.scoring.scorers import runtime as rt
+
+    (tmp_path / "pyproject.toml").write_text(
+        '[project]\nname = "s"\ndependencies = ["mcp>=1.28,<3"]\n'
+        '[project.scripts]\ns = "s.server:main"\n')
+    pkg = tmp_path / "s"
+    pkg.mkdir()
+    (pkg / "__init__.py").write_text("")
+    (pkg / "server.py").write_text("def main():\n    pass\n")
+    monkeypatch.setattr(rt, "_probe_venv", lambda deps: None)
+
+    resolved: dict = {}
+    cmd, note = rt._python_entry(tmp_path, resolved)
+    assert cmd is None
+    assert resolved["declared"] == ["mcp>=1.28,<3"]
+    assert resolved["attempts"] and resolved["attempts"][0]["built"] is False
+    assert resolved["installed"] == []
+
+
+def test_a_declared_upper_bound_is_left_alone():
+    """`mcp>=1.2` is the absence of a claim; `mcp>=1.28,<3` is a claim.
+
+    Capping the second would overrule the run's own stated constraint and hide a
+    real defect: exp-58 rep3 declares `<3`, uses the low-level API mcp 2.0
+    removed, and fails — while rep1 (`<2`, 1.x code) and rep2 (`>=2,<3`, 2.x
+    code) both pass. The model can match its manifest to its code and did, in
+    both directions. See docs/runtime-measurement.md before changing this.
+    """
+    from retort.scoring.scorers.runtime import _cap_majors
+
+    assert _cap_majors(["mcp>=1.2"]) == ["mcp>=1.2,<2"]      # no claim -> cap
+    assert _cap_majors(["mcp>=1.28,<3"]) == ["mcp>=1.28,<3"]  # a claim -> keep
+    assert _cap_majors(["mcp>=2,<3"]) == ["mcp>=2,<3"]

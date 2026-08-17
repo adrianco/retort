@@ -173,7 +173,8 @@ def test_a_server_that_cannot_start_scores_zero(tmp_path, monkeypatch):
     "did not answer" are failures of the artifact. Harness faults are handled
     separately: the run pipeline aborts on them rather than recording a score.
     """
-    monkeypatch.setattr(fa.rt, "_build_then_entry", lambda d, l: (None, "no entrypoint"))
+    monkeypatch.setattr(fa.rt, "_build_then_entry",
+                        lambda d, l, resolved=None: (None, "no entrypoint"))
     res = fa.measure(tmp_path, "python")
     assert res.score == 0.0
     assert not res.ok

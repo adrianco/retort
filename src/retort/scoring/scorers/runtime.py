@@ -128,6 +128,11 @@ class RuntimeResult:
     first_query_ms: float | None = None
     first_query_tool: str = ""
     note: str = ""
+    #: What the probe ACTUALLY installed to run this, and what the run declared.
+    #: A declared requirement and a resolved version are different facts, and
+    #: only the second one explains a failure — see _venv_freeze. Empty for
+    #: languages whose entry needs no provisioning step.
+    deps: dict = field(default_factory=dict)
     samples_ms: list[float] = field(default_factory=list)
     #: How much data this implementation actually ingested, scraped from its own
     #: start-up banner. NOT a caveat on the timing — a dimension of the result,
@@ -187,6 +192,11 @@ class RuntimeResult:
             # + 461 ms first answer; eager = 1109 ms cold + 2 ms first answer.
             "first_query_ms": self.first_query_ms,
             "first_query_tool": self.first_query_tool,
+            # What the probe installed to run this. A failing program and a
+            # broken measurement must not look identical in the output, and a
+            # dependency resolved years after the code was written is exactly
+            # the case where they do.
+            "deps": self.deps,
             "total_to_answer_ms": (
                 self.cold_start_ms + self.first_query_ms
                 if self.cold_start_ms is not None and self.first_query_ms is not None
@@ -320,6 +330,41 @@ def _probe_venv(deps: list[str]) -> Path | None:
     return py
 
 
+def _venv_freeze(py: Path) -> list[str]:
+    """What is ACTUALLY installed in the probe venv, `pip freeze` style.
+
+    The declared requirement and the resolved version are different facts, and
+    only the second one explains a failure. One archived run declares
+    `mcp>=1.28,<3`; that has an upper bound, so _cap_majors leaves it alone, mcp
+    2.x is installed, and the server dies with `AttributeError: 'Server' object
+    has no attribute 'list_tools'` — an API that exists in 1.x. Whether that is
+    the model's defect (its own manifest claims 2.x works) or an artifact of
+    resolving years later is undecidable from the traceback alone. Record the
+    versions and it becomes decidable.
+
+    Cached beside the venv: the venv is shared by dep-set and immutable once
+    built, so this runs once rather than per measurement.
+    """
+    cache = py.parent.parent / "freeze.txt"
+    try:
+        return [ln for ln in cache.read_text().splitlines() if ln.strip()]
+    except OSError:
+        pass
+    try:
+        r = subprocess.run([str(py), "-m", "pip", "freeze"],
+                           capture_output=True, text=True, timeout=120)
+    except (subprocess.TimeoutExpired, OSError):
+        return []
+    if r.returncode != 0:
+        return []
+    lines = [ln.strip() for ln in r.stdout.splitlines() if ln.strip()]
+    try:
+        cache.write_text("\n".join(lines))
+    except OSError:
+        pass
+    return lines
+
+
 def _cap_majors(deps: list[str]) -> list[str]:
     """Add an upper major bound to each unbounded `>=` requirement.
 
@@ -351,7 +396,8 @@ def _importable(py: Path, run_dir: Path, module: str) -> str:
     return (r.stderr.strip().splitlines() or ["import failed"])[-1][:160]
 
 
-def _python_entry(run_dir: Path) -> tuple[list[str] | None, str]:
+def _python_entry(run_dir: Path,
+                  resolved: dict | None = None) -> tuple[list[str] | None, str]:
     """Start command for a Python MCP server, in declared-entrypoint order.
 
     Order matters twice over.
@@ -466,11 +512,21 @@ def _python_entry(run_dir: Path) -> tuple[list[str] | None, str]:
         attempts.append(deps)          # fall back to unbounded if the cap fails
 
     last = ""
+    if resolved is not None:
+        resolved.update({"declared": list(deps), "capped": capped != deps,
+                         "attempts": [], "installed": []})
     for attempt in attempts:
         py = _probe_venv(attempt)
         if py is None:
             last = f"could not build a venv for deps: {', '.join(attempt) or 'none'}"
+            if resolved is not None:
+                resolved["attempts"].append({"requested": attempt, "built": False})
             continue
+        installed = _venv_freeze(py)
+        if resolved is not None:
+            resolved["attempts"].append({"requested": attempt, "built": True})
+            resolved["installed"] = installed
+            resolved["used"] = attempt
         if target:
             last = _importable(py, run_dir, target)
             if last:
@@ -484,7 +540,8 @@ def _python_entry(run_dir: Path) -> tuple[list[str] | None, str]:
     return None, last or "python entry could not be imported"
 
 
-def _build_then_entry(run_dir: Path, language: str) -> tuple[list[str] | None, str]:
+def _build_then_entry(run_dir: Path, language: str,
+                      resolved: dict | None = None) -> tuple[list[str] | None, str]:
     """(command that starts the stdio server, note) — building first if needed.
 
     The BUILD IS UNTIMED and runs once, before any measurement: charging a
@@ -516,7 +573,7 @@ def _build_then_entry(run_dir: Path, language: str) -> tuple[list[str] | None, s
             return False
 
     if language == "python":
-        return _python_entry(run_dir)
+        return _python_entry(run_dir, resolved)
 
     if language == "go":
         if not (run_dir / "go.mod").exists():
@@ -1359,7 +1416,7 @@ def _probe_brazil(run_dir: Path, language: str,
     """
     budget = budget or _Budget()
     res = RuntimeResult(task="brazil-soccer-mcp", language=language, ok=False)
-    cmd, why = _build_then_entry(run_dir, language)
+    cmd, why = _build_then_entry(run_dir, language, res.deps)
     if cmd is None:
         res.note = why or "no recognizable server entrypoint — not guessed"
         return res

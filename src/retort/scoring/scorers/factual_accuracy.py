@@ -241,10 +241,15 @@ class FactualResult:
     #: and a broken measurement must not look identical in the output.
     raw: str = ""
     tool: str = ""
+    #: What the probe actually installed to run this — see runtime._venv_freeze.
+    #: A run here fails with `AttributeError: 'Server' object has no attribute
+    #: 'list_tools'`, and whether that is the model's defect or an artifact of
+    #: resolving its dependencies years later cannot be told from the traceback.
+    deps: dict = field(default_factory=dict)
 
     def as_dict(self) -> dict:
         return {"ok": self.ok, "score": self.score, "note": self.note,
-                "tool": self.tool, "raw": self.raw,
+                "tool": self.tool, "raw": self.raw, "deps": self.deps,
                 "assertions": [a.as_dict() for a in self.assertions]}
 
     def feedback_lines(self) -> list[str]:
@@ -367,7 +372,7 @@ def measure(run_dir: Path, language: str,
 def _measure(run_dir: Path, language: str, budget_s: float) -> FactualResult:
     budget = rt._Budget(budget_s)
     res = FactualResult()
-    cmd, why = rt._build_then_entry(run_dir, language)
+    cmd, why = rt._build_then_entry(run_dir, language, res.deps)
     if cmd is None:
         res.note = why or "no runnable entrypoint"
         return res

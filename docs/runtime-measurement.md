@@ -105,6 +105,44 @@ failure is different and is treated differently: a crash or `FileNotFoundError`
 means the **command** was wrong, so the project's own README command is tried; a
 hang means the **server** is at fault, so it is not.
 
+## Dependency resolution — record it, don't override a declared bound
+
+`_cap_majors` adds an upper major bound to **unbounded** `>=` requirements only.
+`mcp>=1.2` is not a claim that the newest major works, it is the *absence* of a
+claim, and the code was written against whatever was current at the time —
+resolving to the latest major reproduces a different program. Capping preserves
+the era.
+
+**A declared upper bound is a claim, and it is left alone.** This was tested
+against a real failure. exp-58's sol/python rep3 declares `mcp>=1.28,<3`, uses
+the low-level `@server.list_tools()` decorator, resolves to mcp 2.0.0 — which
+removed both `Server.list_tools` and `Server.call_tool` — and dies with
+`AttributeError`. Recorded as a factual_accuracy failure.
+
+That verdict **stands**, and its two siblings are the proof. Same model, same
+task, same day, same probe:
+
+| rep | declared | resolved | verdict |
+|---|---|---|---|
+| rep1 | `mcp>=1.2,<2` | 1.29.0 | passes |
+| rep2 | `mcp>=2,<3` | 2.0.0 | passes — wrote 2.x code *and* pinned 2.x |
+| rep3 | `mcp>=1.28,<3` | 2.0.0 | fails — wrote 1.x code, permitted 2.x |
+
+exp-59's two python reps both declare `mcp>=1.28.1,<2` and pass. The model can
+write a manifest that matches its code, and demonstrably did, in both
+directions. rep3 shipped a version range its own code does not satisfy — a real
+reproducibility defect in the deliverable, not an artifact of resolving late.
+Capping it to `<2` would have hidden that by overruling the run's own stated
+constraint, which is the opposite of what the unbounded case justifies.
+
+**So the versions are RECORDED, not overridden.** `_venv_freeze` writes what was
+actually installed into `deps` in both `_runtime.json` and `_factual.json`,
+alongside the declared requirement, whether the cap applied, and each attempt.
+Before this, the verdict held only the `AttributeError`, so a reader could not
+tell a model defect from a resolver artifact — the same reason the factual gate
+now stores the server's raw answer. **If you change `_cap_majors`' policy, write
+the justification here first.**
+
 ## Kill the process group, not the launcher
 
 `proc.kill()` kills the process it was handed. For `npm start` that is npm, not
