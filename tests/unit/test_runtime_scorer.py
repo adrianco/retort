@@ -341,3 +341,25 @@ def test_probe_kills_the_whole_process_tree_not_just_the_launcher(tmp_path):
     time.sleep(0.3)
     with pytest.raises(OSError):          # ESRCH — the grandchild died with the group
         os.kill(grandchild, 0)
+
+
+@pytest.mark.parametrize("fn", ["_first_query", "_serve_latency"])
+def test_phase_helpers_default_their_own_budget(fn, tmp_path, monkeypatch):
+    """Called without a budget they must still work, not raise AttributeError.
+
+    Both take `budget=None` and call `budget.slice(...)`. _probe_brazil always
+    passes one, so this only breaks for a direct caller — which is exactly the
+    kind of latent crash that surfaces during a run, at the worst moment.
+    """
+    from retort.scoring.scorers import runtime as rt
+
+    # The handshake must SUCCEED, or the function returns before it ever touches
+    # the budget and the test passes while the bug is still there — which is
+    # exactly what the first version of this test did.
+    monkeypatch.setattr(rt, "_mcp_handshake", lambda *a, **k: {
+        "result": {"tools": [{"name": "get_team", "inputSchema": {}}]}})
+    monkeypatch.setattr(rt, "mcp_send", lambda *a, **k: True)   # must SUCCEED
+    monkeypatch.setattr(rt, "mcp_await_id", lambda *a, **k: None)
+    monkeypatch.setattr(rt, "_pick_working_call", lambda *a, **k: None)
+    result = getattr(rt, fn)([sys.executable, "-c", "pass"], tmp_path)
+    assert result is None or result[0] is None      # a non-result, not a crash

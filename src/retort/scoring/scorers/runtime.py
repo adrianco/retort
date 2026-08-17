@@ -1162,7 +1162,8 @@ def _first_query(cmd: list[str], run_dir: Path,
         return None, "", "could not start server"
 
     try:
-        listed = _mcp_handshake(proc, ITER_TIMEOUT_S)
+        budget = budget or _Budget()
+        listed = _mcp_handshake(proc, budget.slice(ITER_TIMEOUT_S))
         if not listed:
             return None, "", "did not complete the MCP handshake"
         tools = (listed.get("result") or {}).get("tools") or []
