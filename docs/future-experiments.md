@@ -183,6 +183,32 @@ run re-measures it on the current harness, which has had several launch fixes si
 prompt and judge are all exactly exp-56's. The gate itself is already proven — it has fired on real
 data (exp-57, exp-58) and has 14 regression tests.
 
+**Stopped and restarted at 2/11 (2026-08-17) — the gate was failing correct work.** The rust cell
+scored `factual_accuracy=0.0` with `requirement_coverage=1.00`. Re-probed, that implementation is
+right: 20 rows, all 20 real 2019 Série A clubs, Flamengo 38 played and 90 points. Three separate
+scorer defects, all fixed before resuming (commit `eff9f0c3`):
+
+1. **Nested records were unreadable.** rust answers `{"team":…,"points":90,"record":{"matches":38,
+   "wins":28,…}}`; reading only top-level keys found `points` and reported "expected 28W-6D-4L, got
+   fields {'points': 90}". The gate was measuring JSON *shape* and calling it a fact error.
+2. **The probe asked the wrong question.** Its competition candidates had `Brasileirao` but not
+   `Brasileirão` — the accented spelling the corpus itself uses. Every filtered call missed, it fell
+   back to season-only, and the server correctly returned *all* 2019 competitions: Série A and Série
+   B merged (hence Bragantino, five Atléticos). The gate graded the answer to a question it never
+   meant to ask.
+3. **An oversized table was graded rather than rejected.** A 40-row response is a different
+   question's answer, not a wrong one.
+
+`_factual.json` now stores the server's own answer beside the verdict — without it nothing in the
+archive could say whether the server was wrong or the parser was, which is why this needed a live
+experiment to surface.
+
+**exp-57 and exp-58 were re-checked and their conclusions stand.** Every other failed verdict is
+genuine and the raw capture now names the defect: luna/go double-counts (67 and 76 played against a
+true 38), sol/typescript partially dedupes (55), and luna/python splits Athletico Paranaense across
+two rows (27 played + 11) instead of reconciling the spelling variants. Only exp-60's rust cell was
+a false negative; it rescored to 1.00 and both completed cells were recovered.
+
 ---
 
 ## 1. exp-54 — does a Codex judge agree with the Opus judge?  — SCOPED DOWN (token budget)
