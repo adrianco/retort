@@ -49,6 +49,7 @@ import hashlib
 import json
 import os
 import re
+import signal
 import selectors
 import shutil
 import statistics
@@ -1103,6 +1104,39 @@ def _pick_working_call(proc, listed: dict,
     return None
 
 
+def _spawn(cmd: list[str], cwd: Path, stderr) -> subprocess.Popen:
+    """Launch a server in its OWN process group, so it can actually be killed.
+
+    `proc.kill()` kills the process it was handed — which for `npm start` is
+    npm, not the node server npm forked; for `mix run`, mix and not the BEAM.
+    The child is reparented to init and keeps running: this repo has a C MCP
+    server from exp-56 that outlived its probe by thirteen days. A leaked server
+    is not merely untidy — it holds memory and a port while later runs are being
+    TIMED, which is the one thing wall-clock measurement cannot tolerate.
+
+    `start_new_session=True` makes the child a process-group leader; `_reap`
+    then signals the whole group.
+    """
+    return subprocess.Popen(
+        cmd, cwd=cwd, stdin=subprocess.PIPE, stdout=subprocess.PIPE,
+        stderr=stderr, text=True, bufsize=1, start_new_session=True,
+    )
+
+
+def _reap(proc: subprocess.Popen, grace: float = 5.0) -> None:
+    """Kill the server AND everything it spawned. Never raises."""
+    try:
+        os.killpg(os.getpgid(proc.pid), signal.SIGKILL)
+    except (ProcessLookupError, PermissionError, OSError):
+        try:
+            _reap(proc)
+        except Exception:  # noqa: BLE001
+            pass
+    try:
+        proc.wait(timeout=grace)
+    except Exception:  # noqa: BLE001
+        pass
+
 def _first_query(cmd: list[str], run_dir: Path,
                  budget: "_Budget | None" = None) -> tuple[float | None, str, str]:
     """(ms to answer a REAL data question, tool name, note).
@@ -1123,10 +1157,7 @@ def _first_query(cmd: list[str], run_dir: Path,
     from the server's OWN advertised schema.
     """
     try:
-        proc = subprocess.Popen(
-            cmd, cwd=run_dir, stdin=subprocess.PIPE, stdout=subprocess.PIPE,
-            stderr=subprocess.DEVNULL, text=True, bufsize=1,
-        )
+        proc = _spawn(cmd, run_dir, subprocess.DEVNULL)
     except (FileNotFoundError, OSError):
         return None, "", "could not start server"
 
@@ -1172,7 +1203,7 @@ def _first_query(cmd: list[str], run_dir: Path,
         return None, "", "server died during query"
     finally:
         try:
-            proc.kill()
+            _reap(proc)
         except OSError:
             pass
 
@@ -1189,10 +1220,7 @@ def _serve_latency(cmd: list[str], run_dir: Path,
     versus interpreted".
     """
     try:
-        proc = subprocess.Popen(
-            cmd, cwd=run_dir, stdin=subprocess.PIPE, stdout=subprocess.PIPE,
-            stderr=subprocess.DEVNULL, text=True, bufsize=1,
-        )
+        proc = _spawn(cmd, run_dir, subprocess.DEVNULL)
     except (FileNotFoundError, OSError):
         return None
     try:
@@ -1235,11 +1263,7 @@ def _serve_latency(cmd: list[str], run_dir: Path,
     except (BrokenPipeError, OSError):
         return None
     finally:
-        proc.kill()
-        try:
-            proc.wait(timeout=5)
-        except subprocess.TimeoutExpired:
-            pass
+        _reap(proc)
 
 
 #: Words that mark a documented command as BUILD/TEST rather than "start it".
@@ -1322,6 +1346,8 @@ def _readme_commands(run_dir: Path) -> list[list[str]]:
     return out
 
 
+
+
 def _probe_brazil(run_dir: Path, language: str,
                   budget: _Budget | None = None) -> RuntimeResult:
     """Time N identical MCP tool calls, plus the one-off data load.
@@ -1357,10 +1383,7 @@ def _probe_brazil(run_dir: Path, language: str,
         window = budget.slice(ITER_TIMEOUT_S)
         errf = _stderr_file()
         try:
-            proc = subprocess.Popen(
-                cmd, cwd=run_dir, stdin=subprocess.PIPE, stdout=subprocess.PIPE,
-                stderr=errf, text=True, bufsize=1,
-            )
+            proc = _spawn(cmd, run_dir, errf)
         except (FileNotFoundError, OSError) as exc:
             failure["why"] = f"could not start: {exc}"
             errf.close()
@@ -1397,11 +1420,7 @@ def _probe_brazil(run_dir: Path, language: str,
             return None
         finally:
             errf.close()
-            proc.kill()
-            try:
-                proc.wait(timeout=5)
-            except subprocess.TimeoutExpired:
-                pass
+            _reap(proc)
 
     # Try the manifest-derived command first, then whatever the project's OWN
     # README says. Every launch failure in this corpus was the probe imposing a

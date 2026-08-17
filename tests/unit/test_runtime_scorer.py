@@ -309,3 +309,35 @@ def test_probe_status_ignores_a_crashed_runs_leftover(tmp_path):
     probe_status.announce("measuring runtime (c)", "c", base)
     assert probe_status.read(os.getpid(), base) is not None
     assert probe_status.read(os.getpid(), base, max_age_s=-1.0) is None
+
+
+def test_probe_kills_the_whole_process_tree_not_just_the_launcher(tmp_path):
+    """`npm start` forks node; killing npm reparents the server, it doesn't stop it.
+
+    This repo has an MCP server from exp-56 that outlived its probe by thirteen
+    days. A leaked server holds memory and a port while LATER cells are being
+    timed — the one thing a wall-clock measurement cannot tolerate.
+    """
+    import subprocess
+
+    from retort.scoring.scorers import runtime as rt
+
+    marker = tmp_path / "grandchild.pid"
+    launcher = tmp_path / "launcher.py"
+    launcher.write_text(
+        "import subprocess, sys, time, pathlib\n"
+        "c = subprocess.Popen([sys.executable, '-c', 'import time; time.sleep(120)'])\n"
+        f"pathlib.Path({str(marker)!r}).write_text(str(c.pid))\n"
+        "time.sleep(120)\n"
+    )
+    proc = rt._spawn([sys.executable, str(launcher)], tmp_path, subprocess.DEVNULL)
+    for _ in range(100):
+        if marker.is_file():
+            break
+        time.sleep(0.05)
+    grandchild = int(marker.read_text())
+    rt._reap(proc)
+
+    time.sleep(0.3)
+    with pytest.raises(OSError):          # ESRCH — the grandchild died with the group
+        os.kill(grandchild, 0)

@@ -338,8 +338,7 @@ def _measure(run_dir: Path, language: str, budget_s: float) -> FactualResult:
 
     errf = rt._stderr_file()
     try:
-        proc = subprocess.Popen(cmd, cwd=run_dir.resolve(), stdin=subprocess.PIPE,
-                                stdout=subprocess.PIPE, stderr=errf, text=True, bufsize=1)
+        proc = rt._spawn(cmd, run_dir.resolve(), errf)
     except (FileNotFoundError, OSError) as exc:
         res.note = f"could not start: {exc}"
         errf.close()
@@ -474,7 +473,7 @@ def _measure(run_dir: Path, language: str, budget_s: float) -> FactualResult:
     finally:
         errf.close()
         try:
-            proc.kill()
+            rt._reap(proc)
             proc.wait(timeout=5)
         except (OSError, subprocess.TimeoutExpired):
             pass
