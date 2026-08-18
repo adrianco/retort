@@ -361,3 +361,12 @@ agentdb.rvf.lock
 # NOT ignored — it is the audit trail of every promotion decision and belongs in
 # review like the rest of this repo's evidence.
 !lifecycle.json
+
+# Build output REGENERATED INSIDE archived runs by rescoring. _ARCHIVE_NOISE
+# keeps these out of the archive at write time, but `retort rescore` rebuilds
+# from source in place, so they reappear afterwards — 689 MB for one 11-cell
+# experiment, and five of them were committed before this rule existed.
+# Swift's .build is the worst: its ModuleCache hard-codes absolute paths.
+.build/
+**/runs/**/obj/
+**/runs/**/bin/
