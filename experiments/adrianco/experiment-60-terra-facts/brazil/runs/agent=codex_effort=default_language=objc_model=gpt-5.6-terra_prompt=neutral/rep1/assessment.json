@@ -1,0 +1,17 @@
+{
+  "severity_counts": {"critical": 0, "high": 1, "medium": 0, "low": 0, "info": 0},
+  "penalty_score": 0.9,
+  "top_findings": [
+    {
+      "id": "R9",
+      "kind": "requirement_partial",
+      "severity": "high",
+      "title": "standings splits Athletico Paranaense into two rows (name variant not reconciled)",
+      "evidence": "SoccerData.m:79-81 groups the table by the raw home/away string; Fold() (SoccerData.m:13-26) folds diacritics but does NOT reconcile 'Athletico' vs 'Atletico'. _factual.json: 2019 Serie A returns 'Athletico Paranaense' (27 matches, 48 pts) and 'Atletico Paranaense' (11 matches, 16 pts) as two clubs. Data-quality/factual defect (factual_accuracy=0.5); R9's criterion 'computed from matches, not hardcoded' IS met (SoccerData.m:76-88), so requirement_coverage is not reduced.",
+      "suggestion": "Group standings by a canonical team key (map 'athletico'->'atletico') so the same club's matches merge; reuse the same canonicalization at load time."
+    }
+  ],
+  "requirement_coverage": 1.0,
+  "model": "gpt-5.6-terra",
+  "evaluated_at": "2026-08-18T00:49:21Z"
+}

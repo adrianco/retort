@@ -1,0 +1,12 @@
+{
+  "replicate": 1,
+  "run_config": {
+    "agent": "codex",
+    "effort": "default",
+    "language": "elixir",
+    "model": "gpt-5.6-terra",
+    "prompt": "neutral"
+  },
+  "succeeded": true,
+  "visibility": "public"
+}

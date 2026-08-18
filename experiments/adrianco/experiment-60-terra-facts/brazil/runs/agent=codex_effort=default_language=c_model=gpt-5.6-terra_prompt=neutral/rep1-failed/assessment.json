@@ -1,0 +1,31 @@
+{
+  "severity_counts": {
+    "critical": 0,
+    "high": 2,
+    "medium": 0,
+    "low": 0,
+    "info": 0
+  },
+  "penalty_score": 0.8,
+  "top_findings": [
+    {
+      "id": "R9-dedup",
+      "kind": "requirement_partial",
+      "severity": "high",
+      "title": "Standings & aggregates double-count overlapping datasets (no dedup)",
+      "evidence": "soccer.c:45 loads all 5 match files (Brasileirao_Matches + novo_campeonato_brasileiro 2003-2019 + BR-Football-Dataset), whose fixtures overlap, without deduplication; total = 23954 = 4180+1337+1255+10296+6886 (test_soccer.c:5 asserts db.match_count==23954). _factual.json shows 2019 Serie A with Atletico-MG on 96 pts and Flamengo listed twice at 90 pts — roughly double a 38-game season.",
+      "suggestion": "Deduplicate matches on (date, home, away) allowing +/-1 day before aggregating, so each fixture is counted once."
+    },
+    {
+      "id": "R9-names",
+      "kind": "requirement_partial",
+      "severity": "high",
+      "title": "Standings key does not normalize -UF state suffix, splitting each club into duplicate rows",
+      "evidence": "soccer.c:56 keys teams via eq_norm (soccer.c:48) which lowercases/strips accents but NOT the trailing state suffix; soccer_team_matches (soccer.c:47) DOES strip a 2-char suffix. So 'Flamengo' and 'Flamengo-RJ' become distinct rows. _factual.json raw shows Flamengo/Flamengo-RJ, Palmeiras/Palmeiras-SP, Santos/Santos-SP all duplicated, and only 10 of 20 clubs resolved.",
+      "suggestion": "Use the suffix-stripping normalization (as in soccer_team_matches) when building the standings key so name variants collapse to one club."
+    }
+  ],
+  "requirement_coverage": 0.9167,
+  "model": "gpt-5.6-terra",
+  "evaluated_at": "2026-08-17T23:18:40Z"
+}

@@ -1,0 +1,15 @@
+{
+  "name": "retort-f17e4c73edb1",
+  "version": "1.0.0",
+  "description": "brazilian-soccer-mcp-guide.md",
+  "main": "src/server.ts",
+  "scripts": {
+    "build": "node --experimental-strip-types --input-type=module -e \"await import('./src/csv.ts'); await import('./src/normalization.ts'); await import('./src/store.ts'); await import('./src/server.ts')\"",
+    "start": "node --experimental-strip-types src/server.ts",
+    "test": "npm run build && node --test test/*.test.ts"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "type": "module"
+}

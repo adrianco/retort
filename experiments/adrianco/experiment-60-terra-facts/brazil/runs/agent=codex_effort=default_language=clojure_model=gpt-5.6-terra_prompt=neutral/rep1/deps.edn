@@ -1,0 +1,4 @@
+{:paths ["src" "test"]
+ :deps {org.clojure/data.json {:mvn/version "2.5.2"}}
+ :aliases {:run {:main-opts ["-m" "brazilian-soccer-mcp.server"]}
+           :test {:main-opts ["-m" "brazilian-soccer-mcp.test-runner"]}}}

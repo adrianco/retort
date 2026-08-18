@@ -1,0 +1,23 @@
+{
+  "severity_counts": {
+    "critical": 0,
+    "high": 1,
+    "medium": 0,
+    "low": 0,
+    "info": 0
+  },
+  "penalty_score": 0.9,
+  "top_findings": [
+    {
+      "id": "F1",
+      "kind": "test_failure",
+      "severity": "high",
+      "title": "team_statistics silently truncates aggregation to 50 matches (default limit)",
+      "evidence": "lib/brazilian_soccer_mcp/query.ex:14 calls matches(catalog, Map.put(filters,\"team\",team)) with no limit; matches/2 applies limit/2 (query.ex:134) which defaults to 50 when filters[\"limit\"] is nil. standings (query.ex:73) and competition_statistics (query.ex:83) explicitly pass limit 100_000, but team_statistics and head_to_head (query.ex:45) do not.",
+      "suggestion": "Force an unbounded limit for aggregation paths (e.g. Map.put_new(filters,\"limit\",1_000_000)) as standings/competition_statistics already do, so W/L/D and goals-for/against reflect the full match set, not just the 50 most recent."
+    }
+  ],
+  "requirement_coverage": 1.0,
+  "model": "gpt-5.6-terra",
+  "evaluated_at": "2026-08-17T22:37:17Z"
+}

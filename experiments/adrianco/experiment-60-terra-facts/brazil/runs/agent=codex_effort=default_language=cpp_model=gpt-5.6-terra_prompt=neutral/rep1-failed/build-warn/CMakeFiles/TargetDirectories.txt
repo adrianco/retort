@@ -1,0 +1,6 @@
+/Users/adriancockcroft/.retort/work/retort-local-yh6bam6b/retort-c04a23c6c03c/build-warn/CMakeFiles/soccer_core.dir
+/Users/adriancockcroft/.retort/work/retort-local-yh6bam6b/retort-c04a23c6c03c/build-warn/CMakeFiles/brazilian_soccer_mcp.dir
+/Users/adriancockcroft/.retort/work/retort-local-yh6bam6b/retort-c04a23c6c03c/build-warn/CMakeFiles/soccer_tests.dir
+/Users/adriancockcroft/.retort/work/retort-local-yh6bam6b/retort-c04a23c6c03c/build-warn/CMakeFiles/test.dir
+/Users/adriancockcroft/.retort/work/retort-local-yh6bam6b/retort-c04a23c6c03c/build-warn/CMakeFiles/edit_cache.dir
+/Users/adriancockcroft/.retort/work/retort-local-yh6bam6b/retort-c04a23c6c03c/build-warn/CMakeFiles/rebuild_cache.dir

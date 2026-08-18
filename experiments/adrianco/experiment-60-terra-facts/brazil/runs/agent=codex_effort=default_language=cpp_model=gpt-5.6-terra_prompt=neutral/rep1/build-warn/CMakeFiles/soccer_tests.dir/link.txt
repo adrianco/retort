@@ -1,0 +1,1 @@
+/usr/bin/c++ -Wall -Wextra -g -arch arm64 -Wl,-search_paths_first -Wl,-headerpad_max_install_names CMakeFiles/soccer_tests.dir/tests.cpp.o -o soccer_tests  libsoccer_core.a

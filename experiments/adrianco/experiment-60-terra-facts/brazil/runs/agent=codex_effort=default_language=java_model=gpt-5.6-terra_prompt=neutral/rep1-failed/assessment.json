@@ -1,0 +1,23 @@
+{
+  "severity_counts": {
+    "critical": 0,
+    "high": 1,
+    "medium": 0,
+    "low": 0,
+    "info": 0
+  },
+  "penalty_score": 0.9,
+  "top_findings": [
+    {
+      "id": "R9",
+      "kind": "requirement_partial",
+      "severity": "high",
+      "title": "Standings split one club into two rows (Athletico/Atletico Paranaense) — 21 rows for a 20-team season",
+      "evidence": "Normalizer.key() (Normalizer.java:10-14) strips accents (NFD + combining-mark removal) and the -XX state suffix but NOT the 'h' variant, so key('Athletico Paranaense')='athletico paranaense' != key('Atletico Paranaense')='atletico paranaense'. SoccerService.update() (SoccerService.java:32) keys the standings HashMap by Normalizer.key(team), so the two spellings become two rows. Data has both: 218 'Athletico Paranaense' vs 222 'Atletico Paranaense' + 33 'Atlético Paranaense' in data/kaggle/*.csv. _factual.json standings output: 'Athletico Paranaense' (27 matches, 48 pts) and 'Atletico Paranaense' (11 matches, 16 pts) appear separately (27+11=38 = one club's season); count=21 for a 20-team Série A; factual gate flagged '3 Atlético/Athletico rows, expected 2'.",
+      "suggestion": "Reconcile the 'h' variant in Normalizer.key() (e.g. collapse 'athletico'->'atletico', or map known club aliases) so a single club aggregates into one standings row."
+    }
+  ],
+  "requirement_coverage": 0.9167,
+  "model": "gpt-5.6-terra",
+  "evaluated_at": "2026-08-17T21:08:11Z"
+}

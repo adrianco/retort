@@ -1,0 +1,23 @@
+{
+  "severity_counts": {
+    "critical": 0,
+    "high": 1,
+    "medium": 0,
+    "low": 0,
+    "info": 0
+  },
+  "penalty_score": 0.9,
+  "top_findings": [
+    {
+      "id": "F1",
+      "kind": "factual_error",
+      "severity": "high",
+      "title": "standings(2019, serie-a) returns 21 rows: Club Athletico Paranaense split into two clubs",
+      "evidence": "_factual.json raw: rank 12 'Athletico Paranaense' (matches=27) + rank 21 'Atletico Paranaense' (matches=11) = one club, 38 matches, split by spelling. soccer.cpp:35-47 normalize() strips accents and a trailing 2-letter state suffix but does NOT unify the archaic 'Athletico' (with h) vs 'Atletico'; soccer.cpp:69-73 standings() keys the table on that normalized name, so the two spellings land in separate rows. This is a factual-accuracy defect (factual_accuracy=0.5 in scores.json), NOT a missing R9 capability.",
+      "suggestion": "Canonicalize 'athletico'->'atletico' (drop the intervocalic 'h') in normalize(), or add a club-alias map. Also extend tests.cpp:22 to exercise competition='serie-a' (currently only 'Brasileirao' is asserted), so this split is caught by the suite."
+    }
+  ],
+  "requirement_coverage": 1.0,
+  "model": "gpt-5.6-terra",
+  "evaluated_at": "2026-08-17T23:58:47Z"
+}

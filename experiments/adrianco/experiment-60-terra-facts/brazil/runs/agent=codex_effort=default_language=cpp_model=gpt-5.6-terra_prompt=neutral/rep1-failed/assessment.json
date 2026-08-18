@@ -1,0 +1,9 @@
+{
+  "severity_counts": {"critical": 0, "high": 0, "medium": 0, "low": 0, "info": 0},
+  "penalty_score": 1.0,
+  "top_findings": [],
+  "requirement_coverage": 1.0,
+  "model": "gpt-5.6-terra",
+  "evaluated_at": "2026-08-17T23:46:11Z",
+  "notes": "min_severity=high: the one finding (R9 Athletico/Atletico standings split) is medium and filtered from counts. Second opinion: R9 re-scored as implemented (capability present at soccer.cpp:65; the club-split is a factual-accuracy defect already scored by the factual gate, factual_accuracy=0.5, not a missing requirement). requirement_coverage 0.9167 -> 1.0 (12/12)."
+}

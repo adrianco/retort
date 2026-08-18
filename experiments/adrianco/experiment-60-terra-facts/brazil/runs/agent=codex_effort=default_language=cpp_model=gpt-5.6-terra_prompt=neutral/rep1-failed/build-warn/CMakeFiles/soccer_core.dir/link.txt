@@ -1,0 +1,2 @@
+/usr/bin/ar qc libsoccer_core.a CMakeFiles/soccer_core.dir/soccer.cpp.o
+/usr/bin/ranlib libsoccer_core.a

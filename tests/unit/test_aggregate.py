@@ -198,3 +198,54 @@ def test_judge_column_reaches_master_db(tmp_path: Path):
     assert "judge" in cols
     assert con.execute("SELECT judge FROM runs").fetchone()[0] == "claude-code:opus-4.8"
     con.close()
+
+
+def test_aggregate_refuses_to_replace_history_with_an_empty_table(tmp_path):
+    """A glob that matches nothing must not wipe the results history.
+
+    build_master_db deletes the output first and rebuilds from scratch, so
+    passing the wrong --experiments-dir silently replaced 1080 runs with 0 and
+    reported a cheerful "Aggregated 0 runs" at exit 0. The real layout is
+    <owner>/experiment-*/<task>/retort.db — two levels below the `experiments`
+    directory a caller naturally reaches for. Same guard, same reasoning, as
+    promotion.store refusing any write that shortens the changelog.
+    """
+    import sqlite3
+
+    import pytest
+
+    from retort.analysis.aggregate import build_master_db
+
+    master = tmp_path / "master.db"
+    con = sqlite3.connect(master)
+    con.execute("CREATE TABLE runs (experiment TEXT)")
+    con.executemany("INSERT INTO runs VALUES (?)", [("e1",), ("e2",), ("e3",)])
+    con.commit()
+    con.close()
+
+    empty = tmp_path / "nothing-here"
+    empty.mkdir()
+    with pytest.raises(RuntimeError, match="refusing to rebuild"):
+        build_master_db(empty, master)
+
+    con = sqlite3.connect(master)
+    assert con.execute("SELECT count(*) FROM runs").fetchone()[0] == 3
+    con.close()
+
+
+def test_an_intended_shrink_is_still_possible(tmp_path):
+    """The guard is a safety net, not a wall."""
+    import sqlite3
+
+    from retort.analysis.aggregate import build_master_db
+
+    master = tmp_path / "master.db"
+    con = sqlite3.connect(master)
+    con.execute("CREATE TABLE runs (experiment TEXT)")
+    con.executemany("INSERT INTO runs VALUES (?)", [("e1",), ("e2",)])
+    con.commit()
+    con.close()
+
+    empty = tmp_path / "nothing-here"
+    empty.mkdir()
+    assert build_master_db(empty, master, allow_shrink=True) == 0

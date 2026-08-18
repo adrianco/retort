@@ -1,0 +1,23 @@
+{
+  "severity_counts": {
+    "critical": 0,
+    "high": 1,
+    "medium": 0,
+    "low": 0,
+    "info": 0
+  },
+  "penalty_score": 0.9,
+  "top_findings": [
+    {
+      "id": "R9",
+      "kind": "requirement_partial",
+      "severity": "high",
+      "title": "Standings double-counts overlapping Brasileir\u00e3o data: duplicate club rows and doubled game counts",
+      "evidence": "src/lib.rs:316 standings() computes points from matches (not hardcoded, so R9's mechanism IS present), but src/lib.rs:331 groups by the raw team string with no normalization while Database::load (src/lib.rs:56 + src/lib.rs:90) concatenates Brasileirao_Matches.csv AND novo_campeonato_brasileiro.csv \u2014 both labelled 'Brasileir\u00e3o', both carrying all 380 rows of the 2019 S\u00e9rie A season, and find_matches' competition filter (src/lib.rs:218 contains()) matches both. Verified against the bundled data: the two files' 2019 team-name strings union to 39 distinct rows (only 'Botafogo-RJ' is byte-identical across both, so its counts add to 76 played on 38 real games; every other club splits into two rows, e.g. 'Flamengo-RJ' and 'Flamengo' each showing 38 played). standings(2019,'Brasileir\u00e3o') therefore returns a 39-row table for a 20-team league.",
+      "suggestion": "Dedup the two Brasileir\u00e3o sources (or drop the overlapping seasons on load) and normalize the group-by key in standings() the same way same_team()/normalize() already do elsewhere. Add a standings test \u2014 it is the only query capability with no test."
+    }
+  ],
+  "requirement_coverage": 0.9167,
+  "model": "gpt-5.6-terra",
+  "evaluated_at": "2026-08-17T20:23:23Z"
+}

@@ -283,7 +283,8 @@ def collect_runs(experiments_dir: Path) -> list[dict]:
     return rows
 
 
-def build_master_db(experiments_dir: Path, out_path: Path) -> int:
+def build_master_db(experiments_dir: Path, out_path: Path,
+                    allow_shrink: bool = False) -> int:
     """(Re)build the master DB from all experiment DBs. Returns the run count."""
     rows = collect_runs(experiments_dir)
     cols = TEXT_COLS + ["replicate"] + METRICS + list(TELEMETRY.values())
@@ -295,7 +296,27 @@ def build_master_db(experiments_dir: Path, out_path: Path) -> int:
             return "TEXT"
         return "REAL"
 
+    # REFUSE TO SHRINK. This rebuilds from scratch and deletes the old file
+    # first, so a glob that matches nothing silently replaces the entire results
+    # history with an empty table — which is exactly what happened when
+    # `--experiments-dir experiments` was passed instead of the default `.`
+    # (the layout is experiments/<owner>/experiment-*/<task>/retort.db, two
+    # levels deeper than that argument allows). 1080 runs became 0 with a
+    # cheerful "Aggregated 0 runs" and exit 0. Same guard, same reasoning as
+    # promotion.store refusing any write that shortens the changelog: a rebuild
+    # that finds less than it did last time is a bug until proven otherwise.
     if out_path.exists():
+        try:
+            with sqlite3.connect(f"file:{out_path}?mode=ro", uri=True) as old_con:
+                had = old_con.execute("SELECT count(*) FROM runs").fetchone()[0]
+        except sqlite3.Error:
+            had = 0
+        if had and len(rows) < had and not allow_shrink:
+            raise RuntimeError(
+                f"refusing to rebuild {out_path.name}: found {len(rows)} runs but it "
+                f"already holds {had}. Check --experiments-dir (the default `.` is "
+                f"usually right; the layout is <owner>/experiment-*/<task>/retort.db). "
+                f"Pass allow_shrink=True if the loss is intended.")
         out_path.unlink()
     con = sqlite3.connect(out_path)
     con.execute(f"CREATE TABLE runs ({', '.join(f'{c} {coltype(c)}' for c in cols)})")

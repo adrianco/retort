@@ -1042,3 +1042,55 @@ ceiling).
 - **Excluded — too big for 64 GB:** gpt-oss-120b (~64–65 GB, over the wired limit), GLM-4.5-Air /
   4.7-Flash (borderline), and the multi-GPU tier (MiniMax M3 428B, GLM-4.6 355B, DeepSeek-V4-Pro,
   Kimi K2.6, Qwen3-Coder-480B).
+
+## exp-60 — does "Terra clears every language" survive the correctness gate?  — DONE 2026-08-17
+
+**Answer: no, but the gate found more harness bugs than model defects.** 11 cells, brazil ×
+`gpt-5.6-terra` @ default × every language exp-56 covered, n=1, judge opus-4.8. Final:
+**4/11 pass** (c, java, rust, typescript) — against exp-56's headline of "Terra clears every
+remaining language". `requirement_coverage` is 1.00 on **five** of the seven failures, which is the
+result the experiment existed to produce: the checklist credits a capability that exists in the code
+and cannot be reached.
+
+| language | factual | reqcov | verdict |
+|---|---:|---:|---|
+| c, java, rust, typescript | 1.00 | 1.00 | pass |
+| clojure, cpp, objc | 0.50 | 0.83–1.00 | **data defect** — Athletico Paranaense split across two rows |
+| erlang, elixir, swift | 0.00 | 0.92–1.00 | **interface defect** — every tool declares an empty `inputSchema` |
+| csharp | 0.00 | — | **harness**: transient NuGet outage, needs a re-run |
+
+**Finding 1 — one club decides three of the failures.** clojure, cpp and objc each return 21 rows
+with Athletico Paranaense split in two: 27 played / 48 pts under the accented spelling and 11 played
+/ 16 pts under the unaccented one. Total matches is exactly 760 (20 clubs × 38) in every case, so
+fixture deduplication is *correct* — only club-name reconciliation fails, and only for this one pair.
+The same 27/11 split appeared in luna/python back in exp-57, so it is now **four implementations
+across two models and four languages**. It is the hardest normalisation case in the corpus and it is
+what separates a pass from a fail.
+
+**Finding 2 — three servers are unaskable.** erlang, elixir and swift each declare
+`inputSchema: {"type": "object"}` with no properties, from a single shared one-line
+`tool(name, description)` helper. The logic underneath is right — erlang scores
+`requirement_coverage` 1.00 and answers `head_to_head` in 8.9 ms — but no client is ever told that
+`season` is a parameter, so no client can ask for 2019. This is the cleanest instance the project has
+produced of *capability present, capability unreachable*. It is also what motivated the two new
+response columns (`mcp_conformance`, `mcp_client_facts`).
+
+**Finding 3 — the harness produced three false failures out of eleven cells.** All three were
+separable from real defects in minutes rather than re-runs, because `_factual.json` now stores the
+server's own answer beside the verdict:
+
+- **rust** scored 0.00 mid-run on a *correct* table: nested `record` object unread, plus the probe's
+  competition list lacked the accented `Brasileirão` so it fell back to season-only and got Série A
+  and Série B merged. Fixed, rescored to 1.00 (`eff9f0c3`). The run was stopped and restarted for it.
+- **c** scored 0.50 on a *correct* table returned as one line of prose; `splitlines()` gave one row,
+  so no per-row check could count more than one Atlético. Fixed, rescored to 1.00.
+- **swift** scored 0.00 on everything with "swift build failed". Its code compiles clean in 2.91 s —
+  the second-chance playpen had been seeded with attempt 1's `.build`, whose ModuleCache hard-codes
+  attempt 1's path. `_seed_repair_workspace` was `copytree`-ing every directory from the prior
+  attempt with no filter, so **every** self-repair inherited stale build output. Fixed; swift now
+  scores `test_coverage` 1.00 and fails only on facts (the same empty-schema defect as erlang).
+
+**Comparability.** Runtime figures are post-hoc, measured serially on a quiet machine during the
+final rescore, not inline — `retort rescore` had been re-measuring timing with 4 workers, which swung
+one rust cold start from 264 ms to 152 ms; it is now forced to 1 worker whenever runtime is in scope.
+csharp and swift should be re-run before their cells are read as capability results.

@@ -1,0 +1,17 @@
+{
+  "severity_counts": {"critical": 0, "high": 1, "medium": 0, "low": 0, "info": 0},
+  "penalty_score": 0.9,
+  "top_findings": [
+    {
+      "id": "R9",
+      "kind": "requirement_partial",
+      "severity": "high",
+      "title": "Standings double-count seasons present in both Brasileirão sources",
+      "evidence": "query.ex:74-75 standings/3 filters competition via exact_or_contains? (query.ex:119-122, a substring match); search_key(\"Brasileirão Historical\") contains search_key(\"Brasileirão\"), so the default competition matches both Brasileirao_Matches.csv and novo_campeonato_brasileiro.csv (catalog.ex:10). Both CSVs hold 380 rows for 2019 and each gives Flamengo 90pts/38 games; team_key merges Flamengo-RJ/Flamengo -> ~180pts/76 games. _factual.json score 0.0.",
+      "suggestion": "Match competition exactly (or map each source to a canonical competition id) and/or deduplicate overlapping match sources so a season is aggregated once."
+    }
+  ],
+  "requirement_coverage": 0.9167,
+  "model": "gpt-5.6-terra",
+  "evaluated_at": "2026-08-17T22:48:57Z"
+}

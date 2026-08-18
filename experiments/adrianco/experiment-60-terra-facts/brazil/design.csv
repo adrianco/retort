@@ -1,0 +1,12 @@
+language,agent,prompt,model,effort
+typescript,codex,neutral,gpt-5.6-terra,default
+rust,codex,neutral,gpt-5.6-terra,default
+java,codex,neutral,gpt-5.6-terra,default
+clojure,codex,neutral,gpt-5.6-terra,default
+erlang,codex,neutral,gpt-5.6-terra,default
+elixir,codex,neutral,gpt-5.6-terra,default
+csharp,codex,neutral,gpt-5.6-terra,default
+c,codex,neutral,gpt-5.6-terra,default
+cpp,codex,neutral,gpt-5.6-terra,default
+swift,codex,neutral,gpt-5.6-terra,default
+objc,codex,neutral,gpt-5.6-terra,default

@@ -1,0 +1,20 @@
+[package]
+name = "brazilian-soccer-mcp"
+version = "0.1.0"
+edition = "2021"
+description = "A stdio MCP server for Brazilian soccer datasets"
+
+[lib]
+name = "brazilian_soccer_mcp"
+path = "src/lib.rs"
+
+[[bin]]
+name = "brazilian-soccer-mcp"
+path = "src/main.rs"
+
+[dependencies]
+csv = "1.3"
+serde = { version = "1.0", features = ["derive"] }
+serde_json = "1.0"
+unicode-normalization = "0.1"
+
