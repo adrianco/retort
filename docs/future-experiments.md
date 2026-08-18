@@ -427,7 +427,7 @@ invest in the solver dependency, master.db merge, and first-class docs.
 <!-- SCAN-HEARTBEAT: the daily scan rewrites the next line on EVERY run, including
      days it finds nothing. Do not hand-edit it. If the date is more than ~2 days
      stale, the scan is not running — see "when the heartbeat goes stale" below. -->
-**Daily scan last completed: 2026-08-17** (scanning for new 64GB-fittable coding models)
+**Daily scan last completed: 2026-08-18** (scanning for new 64GB-fittable coding models)
 
 New open-weight coding models found by the daily scan that plausibly fit 64GB at 4-bit; promote to a
 numbered experiment when prioritised.
@@ -877,6 +877,49 @@ survives the toggle, restart the Claude desktop app, which clears the in-memory 
   Source: https://internscience.github.io/Agents-A1/
   — paper: https://arxiv.org/pdf/2606.30616
   — weights: https://huggingface.co/InternScience/Agents-A1
+
+- 2026-08-18 — **Granite 4.1 30B (IBM)** — *a borderline admit in the Mellum2/Agents-A1 class, but with
+  the **least-blocked serving path of any candidate on this list** and the first **IBM-lineage** entry.*
+  Apache 2.0, **30B dense decoder-only** (note: unlike Granite 4.0, the 4.1 language family is *dense*,
+  not the hybrid Mamba-2/transformer arch — so it carries **none** of the Nemotron/Laguna-style arch
+  gate risk), 128K production context with a 512K extension (unsloth's local guide recommends running
+  at **131,072**, the same class as our other candidates). **~17–18 GB at 4-bit → fits 64GB with
+  enormous headroom.** IBM's own framing names **tool calling and coding** as core use cases and calls
+  the 30B the variant "best for … agentic tool-calling use cases"; **BFCL v3 73.68** on the 30B — the
+  highest tool-calling number of any borderline entry here (Mellum2 66.3, Granite's own 8B 68.27).
+  **Serving is a straight load on both retort backends, with no gate-probe and no convert:** IBM ships
+  **official GGUFs** (`ibm-granite/granite-4.1-30b-GGUF`, plus unsloth builds), the Granite arch is in
+  mainline llama.cpp, **and `mlx-community/granite-4.1-30b-4bit` already exists** — the only candidate
+  on this list where both backends are confirmed-live with a first-party quant. Its recommended
+  sampling is also **temperature 0.0 / top_p 1.0 / top_k 0**, i.e. it is the one entry whose vendor
+  default is *not* the temp-1.0 trap that cost this project half its local reliability (record and
+  verify it anyway, per CLAUDE.md).
+  **Why it is only borderline, stated plainly: there is no agentic-coding evidence.** IBM publishes
+  **HumanEval 88.41–89.63 and MBPP 83–85** for the 30B — single-shot generation, not repo work — and
+  reports **no SWE-bench, no Terminal-Bench and no LiveCodeBench** at all. It is a *general enterprise*
+  family with no coder-specialised variant, and IBM deliberately chose predictable latency over
+  reasoning, so these are **non-reasoning** models: on published figures there is no reason to expect it
+  to beat the coder-specialised entries above, or our incumbent 35B, as a subject.
+  **Caveat on freshness: this is a 2026-04-29 release, older than most gap entries here** — it surfaced
+  via current open-weight comparison coverage (Granite 4.1 vs Gemma 4), so it is a gap in this list
+  rather than news. Judge priority **below every coder-specialised entry and below Nanbeige**, alongside
+  Mellum2 and Agents-A1. **Where it could still earn a cell:** it is the cheapest possible probe on this
+  list — nothing to convert, nothing to gate-probe, no thinking-mode or temperature ambiguity — which
+  makes it a useful *control* for whether "strong tool-calling + strong HumanEval, zero agentic-coding
+  post-training" is enough to pass a retort task, and it adds a fifth vendor lineage (IBM) to a
+  candidate pool that is still mostly Qwen derivatives.
+  Source: https://research.ibm.com/blog/granite-4-1-ai-foundation-models
+  — via: https://www.aimadetools.com/blog/granite-4-1-vs-gemma-4/
+  — benchmarks: https://www.creativeainews.com/articles/ibm-granite-4-1-open-llm-512k-context-coding/
+  — GGUF (official): https://huggingface.co/ibm-granite/granite-4.1-30b-GGUF
+  — MLX 4-bit: https://huggingface.co/mlx-community/granite-4.1-30b-4bit
+  — run notes: https://unsloth.ai/docs/models/ibm-granite-4.1
+
+*Excluded 2026-08-18, closed weights and oversized:* **MAI-Code-1-Flash / MAI-Code-1.1-Flash**
+(Microsoft, announced 2026-06-02) — Microsoft's first in-house coding model, 71.6% SWE-bench Verified
+and shipping in GitHub Copilot, but it is a **137B-A5B closed-weight** MoE (~69 GB at 4-bit even if it
+were published), so it fails both bars. Recorded so it is not re-investigated.
+Source: https://microsoft.ai/models/mai-code-1-flash/
 
 *Excluded 2026-08-17, out-of-scope rather than oversized:* **Needle 2** (Cactus Compute, weights
 2026-08-13, Apache 2.0) — a **45M-parameter** tool-calling / structured-extraction model in a 14 MB
