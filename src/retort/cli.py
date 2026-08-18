@@ -1364,13 +1364,32 @@ def _seed_repair_workspace(env_dir: Path, prior, requirements_path: Path | None)
 
     skip = {"TASK.md", "stack.json", "scores.json", "assessment.json", "evaluation.md",
             "findings.jsonl", "_meta.json", ".coverage", "FEEDBACK.md", "REQUIREMENTS.json"}
+    # The SAME noise filter as archiving, applied to the item ITSELF. copytree's
+    # `ignore` callback only filters a directory's CHILDREN, so passing it alone
+    # still copies `.build/` as the root of the copy — which is precisely the
+    # directory that must not travel. Measured on exp-60's swift cell: the code
+    # compiles clean in 2.9s, but the repair playpen inherited attempt 1's
+    # .build, whose ModuleCache hard-codes attempt 1's playpen path, so attempt
+    # 2 could never build and every metric recorded 0.0. A second chance that
+    # cannot compile is not a second chance.
+    noise = _ignore_archive_noise(str(prior["dir"]),
+                                  [i.name for i in prior["dir"].iterdir()])
     for item in prior["dir"].iterdir():
-        if item.name in skip or item.name.startswith("_"):
+        if item.name in skip or item.name in noise or item.name.startswith("_"):
             continue
         dst = env_dir / item.name
         try:
             if item.is_dir():
-                _shutil.copytree(item, dst, dirs_exist_ok=True)
+                # SAME filter as archiving. Without it the second chance
+                # inherits the first attempt's build output — and a build tree
+                # that hard-codes its own absolute path cannot survive the move
+                # to a new playpen. Measured on exp-60's swift cell: the agent's
+                # code compiles clean in 2.9s, but its second attempt was seeded
+                # with attempt 1's .build and could never build again, so every
+                # metric recorded 0.0. A repair attempt that cannot compile is
+                # not a second chance, it is a guaranteed failure.
+                _shutil.copytree(item, dst, dirs_exist_ok=True,
+                                 ignore=_ignore_archive_noise)
             else:
                 _shutil.copy2(item, dst)
         except OSError:
@@ -1604,6 +1623,12 @@ _ARCHIVE_NOISE = {
     # any of it, and copying it makes the archive both larger and less honest:
     # a scorer walking the tree sees files no agent wrote.
     ".swarm", ".claude-flow", "ruvector.db", ".hive-mind",
+    # Swift's build dir. Not merely large: its ModuleCache bakes ABSOLUTE paths
+    # into precompiled modules, so a copied .build actively breaks the next
+    # build — "missing required module 'SwiftShims'" — the same way a copied
+    # venv breaks. Leading dot, so it slipped past both the name list and the
+    # startswith("_") rule in _seed_repair_workspace.
+    ".build",
 }
 
 

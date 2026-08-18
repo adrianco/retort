@@ -1743,3 +1743,48 @@ def test_rescore_never_times_runs_in_parallel():
     guard = src.split('if "runtime" in metrics and workers > 1:', 1)
     assert len(guard) == 2, "the runtime serialization guard is gone"
     assert "workers = 1" in guard[1].split("if workers <= 1:", 1)[0]
+
+
+def test_swift_build_dir_is_not_archived():
+    """`.build` is not merely large — a copied one actively breaks the next build.
+
+    Swift's ModuleCache bakes ABSOLUTE paths into precompiled modules, so a
+    .build carried to a new location fails with "missing required module
+    'SwiftShims'". Same failure mode as a copied venv, and it slipped past both
+    the name list and the startswith("_") rule because of the leading dot.
+    """
+    from retort.cli import _ignore_archive_noise
+
+    skipped = _ignore_archive_noise("/w", [".build", "Sources", "Package.swift"])
+    assert ".build" in skipped
+    assert "Sources" not in skipped and "Package.swift" not in skipped
+
+
+def test_the_repair_attempt_is_not_seeded_with_a_poisoned_build_tree(tmp_path):
+    """A second chance that cannot compile is not a second chance.
+
+    Measured on exp-60's swift cell: the agent's code builds clean in 2.9s, but
+    the repair playpen was seeded with attempt 1's .build — whose ModuleCache
+    points at attempt 1's playpen path — so attempt 2 could never build and every
+    metric recorded 0.0. The repair seeding now uses the same filter as
+    archiving.
+    """
+    from retort import cli
+
+    prior_dir = tmp_path / "prior"
+    (prior_dir / ".build" / "ModuleCache").mkdir(parents=True)
+    (prior_dir / ".build" / "ModuleCache" / "SwiftShims.pcm").write_text("pinned")
+    (prior_dir / "node_modules" / "left-pad").mkdir(parents=True)
+    (prior_dir / "Sources").mkdir()
+    (prior_dir / "Sources" / "main.swift").write_text("print(1)")
+    (prior_dir / "Package.swift").write_text("// manifest")
+
+    env = tmp_path / "env"
+    env.mkdir()
+    cli._seed_repair_workspace(
+        env, {"dir": prior_dir, "status": "failed", "req_cov": 0.5}, None)
+
+    assert (env / "Sources" / "main.swift").exists(), "source must be carried over"
+    assert (env / "Package.swift").exists()
+    assert not (env / ".build").exists(), "a path-pinned build tree was copied"
+    assert not (env / "node_modules").exists()
