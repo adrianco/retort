@@ -318,16 +318,42 @@ def _probe_venv(deps: list[str]) -> Path | None:
     if py.exists():
         return py
     venv_dir.parent.mkdir(parents=True, exist_ok=True)
-    try:
-        subprocess.run([sys.executable, "-m", "venv", str(venv_dir)],
-                       capture_output=True, timeout=180, check=True)
-        if deps:
-            subprocess.run([str(py), "-m", "pip", "install", "-q", *deps],
-                           capture_output=True, timeout=900, check=True)
-    except (subprocess.CalledProcessError, subprocess.TimeoutExpired, OSError):
-        shutil.rmtree(venv_dir, ignore_errors=True)
-        return None
-    return py
+    # RETRY ONCE, and say why it failed. Building a venv reaches the network, so
+    # it fails transiently — PyPI rate-limits a sweep that builds many in quick
+    # succession. Measured: 7 python runs in one archive sweep recorded "could
+    # not build a venv" for dependency sets that resolve fine on a manual retry
+    # seconds later, and one of them had a WORKING cached venv until this
+    # function deleted it. A single blip was costing the cache entry AND marking
+    # the run unmeasurable, with no record of the cause.
+    last_err = ""
+    for attempt in range(2):
+        try:
+            subprocess.run([sys.executable, "-m", "venv", str(venv_dir)],
+                           capture_output=True, timeout=180, check=True)
+            if deps:
+                subprocess.run([str(py), "-m", "pip", "install", "-q", *deps],
+                               capture_output=True, timeout=900, check=True)
+            return py
+        except (subprocess.CalledProcessError, subprocess.TimeoutExpired, OSError) as exc:
+            err = getattr(exc, "stderr", b"") or b""
+            if isinstance(err, bytes):
+                err = err.decode(errors="replace")
+            last_err = (err.strip().splitlines() or [str(exc)])[-1][:200]
+            # Only discard a HALF-BUILT venv. A directory with a working
+            # interpreter is a cache asset; destroying it on a transient network
+            # failure is how a blip becomes a permanent loss.
+            if not py.exists():
+                shutil.rmtree(venv_dir, ignore_errors=True)
+            elif attempt == 0:
+                continue
+    _VENV_ERRORS[key] = last_err
+    return None
+
+
+#: Why the last build for a dep-set failed, so the caller's note can say more
+#: than "could not build a venv" — the message that hid seven transient
+#: network failures behind an unmeasurable verdict.
+_VENV_ERRORS: dict[str, str] = {}
 
 
 def _venv_freeze(py: Path) -> list[str]:
@@ -518,7 +544,11 @@ def _python_entry(run_dir: Path,
     for attempt in attempts:
         py = _probe_venv(attempt)
         if py is None:
-            last = f"could not build a venv for deps: {', '.join(attempt) or 'none'}"
+            why = _VENV_ERRORS.get(
+                hashlib.sha1("\n".join(attempt).encode()).hexdigest()[:12], "")
+            last = (f"could not build a venv for deps: "
+                    f"{', '.join(attempt) or 'none'}"
+                    + (f" — {why}" if why else ""))
             if resolved is not None:
                 resolved["attempts"].append({"requested": attempt, "built": False})
             continue

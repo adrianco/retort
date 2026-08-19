@@ -22,6 +22,7 @@ extreme runs is eager-vs-lazy DATA loading; see the tools/call section below.
 """
 from __future__ import annotations
 
+import hashlib
 import os
 import sys
 import time
@@ -451,3 +452,51 @@ def test_a_declared_upper_bound_is_left_alone():
     assert _cap_majors(["mcp>=1.2"]) == ["mcp>=1.2,<2"]      # no claim -> cap
     assert _cap_majors(["mcp>=1.28,<3"]) == ["mcp>=1.28,<3"]  # a claim -> keep
     assert _cap_majors(["mcp>=2,<3"]) == ["mcp>=2,<3"]
+
+
+def test_a_transient_venv_failure_does_not_destroy_a_working_cache_entry(tmp_path, monkeypatch):
+    """One network blip was costing the cached venv AND the run's measurement.
+
+    Building a venv reaches the network, so it fails transiently — PyPI
+    rate-limits a sweep that builds many in quick succession. Measured: 7 python
+    runs in one archive sweep recorded "could not build a venv" for dependency
+    sets that resolved fine on a manual retry seconds later, and one of them had
+    a working cached venv until _probe_venv deleted it on the way out.
+    """
+    import subprocess as sp
+
+    from retort.scoring.scorers import runtime as rt
+
+    monkeypatch.setenv("RETORT_HOME", str(tmp_path))
+    deps = ["mcp>=1.28,<3"]
+    key = hashlib.sha1("\n".join(deps).encode()).hexdigest()[:12]
+    venv_dir = tmp_path / "cache" / "probe-venvs" / key
+    (venv_dir / "bin").mkdir(parents=True)
+    (venv_dir / "bin" / "python").write_text("#!/bin/sh\n")   # a working entry
+
+    calls = {"n": 0}
+
+    def flaky(cmd, **kw):
+        calls["n"] += 1
+        raise sp.CalledProcessError(1, cmd, stderr=b"ERROR: 429 Too Many Requests")
+
+    monkeypatch.setattr(rt.subprocess, "run", flaky)
+    # py.exists() is True, so _probe_venv returns the cache entry without building
+    assert rt._probe_venv(deps) is not None
+    assert calls["n"] == 0, "a usable cached venv must not be rebuilt"
+    assert (venv_dir / "bin" / "python").exists(), "the cache entry was destroyed"
+
+
+def test_a_failed_venv_build_says_why(tmp_path, monkeypatch):
+    """"could not build a venv" hid seven transient network failures."""
+    import subprocess as sp
+
+    from retort.scoring.scorers import runtime as rt
+
+    monkeypatch.setenv("RETORT_HOME", str(tmp_path))
+    monkeypatch.setattr(rt.subprocess, "run", lambda cmd, **kw: (_ for _ in ()).throw(
+        sp.CalledProcessError(1, cmd, stderr=b"ERROR: 429 Too Many Requests")))
+
+    assert rt._probe_venv(["mcp>=9000"]) is None
+    key = hashlib.sha1("mcp>=9000".encode()).hexdigest()[:12]
+    assert "429" in rt._VENV_ERRORS.get(key, ""), "the cause was swallowed"
