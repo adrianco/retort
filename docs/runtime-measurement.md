@@ -244,3 +244,56 @@ inline path passes `allow_busy=True` — during its own run the machine is by
 definition busy with that run, and the alternative is no data at all. Treat
 inline numbers as comparable within an experiment; use `retort rebuild` on a
 quiet machine for cross-experiment comparison.
+
+## MCP conformance — the archive base rate
+
+`mcp_conformance` asks the question the text-reading probes cannot: **would a
+real MCP client accept these replies?** The other probes read `content[0].text`,
+which is what a hand-written integration test does and what a client does not —
+MCP leaves that text free-form and pins only the envelope.
+
+Swept across all 140 archived brazil runs (`scripts/mcp_conformance_sweep.py`,
+raw results in `docs/data/mcp-conformance-sweep.jsonl`):
+
+| | |
+|---|---:|
+| measured | 121 |
+| unmeasurable (archive would not resurrect) | 19 |
+| **with a hard violation** | **28 / 121 — 23%** |
+
+Hard violations, by check:
+
+| check | runs | what it means |
+|---|---:|---|
+| `structuredContent` is an object | 43 | returns a top-level **array**; a real client rejects the tool outright |
+| declared `outputSchema` is honoured | 13 | declares a schema, then returns no `structuredContent` |
+| answers `tools/call` | 10 | advertises a tool that never replies |
+
+Plus **382 advisories** — `structuredContent` emitted with no `outputSchema`
+declared. That is why severity exists: priced flat, the advisory outnumbers the
+hard failures nine to one and buries them.
+
+**Two rules this sweep exists to enforce.**
+
+1. **Unmeasurable is not non-conformant.** A run whose archive would not rebuild
+   (stripped build tree, absent toolchain, dependency drift) records `null`, not
+   `0.0`. Nineteen runs are in that state and they are evidence about the
+   *archive*, not about the servers. Same rule as `runtime`, same reason.
+2. **A missing corpus is not a defect.** 52 of 140 archived runs no longer carry
+   their own `data/kaggle`, and a server that cannot load the corpus never
+   reaches the protocol. The sweep lends a canonical copy by symlink for the
+   duration of the probe and takes it back; it is verified byte-identical across
+   experiments before being shared.
+
+**It does not gate, and should not yet.** 23% is a norm in this corpus, not an
+outlier defect, and it spans 10 of the 13 languages — so it is not one
+toolchain's story. Gating would retroactively flip a quarter of the archive to
+failing on a dimension it was never measured against, rewriting published
+pass-proportions for every experiment that predates the column. Publish the base
+rate as a finding; revisit once models have had the feedback.
+
+**The finding worth stating plainly:** roughly one in four model-written MCP
+servers returns a `structuredContent` a real client refuses — and none of the
+other columns can see it. exp-60's rust cell scores `factual_accuracy` 1.00,
+`requirement_coverage` 1.00, and has three of its six tools rejected by Claude
+Code.

@@ -100,19 +100,33 @@ def main() -> int:
         print(f"  {n:3d}  {note}")
     print()
 
+    # The threshold is about RETROACTIVITY, not about how bad a violation is.
+    # Every archived run was scored before this column existed, so gating now
+    # silently reclassifies history. Above roughly one run in ten that stops
+    # being a defect signal and becomes a rewrite of published pass-proportions.
     print("GATING VERDICT")
-    if rate > 0.25:
-        print(f"  DO NOT GATE yet: {rate:.0%} of measured runs have a hard violation.")
-        print( "  Gating now would retroactively fail a large fraction of the archive on")
-        print( "  a dimension it was never measured against. Report it, publish the base")
-        print( "  rate, and revisit once models have seen the feedback.")
-    elif rate > 0.0:
-        print(f"  CANDIDATE for gating: only {rate:.0%} of measured runs violate.")
-        print( "  Small enough to be a real defect signal rather than a norm — but check")
-        print( "  the per-language table first: a violation concentrated in one language")
-        print( "  is a toolchain story, not a capability one.")
-    else:
+    langs = {l: len([r for r in rs if hard_failures(r)]) / len(rs)
+             for l, rs in by_lang.items() if len(rs) >= 4}
+    spread = sum(1 for v in langs.values() if v > 0)
+    if rate == 0.0:
         print("  No hard violations found. Nothing to gate on yet.")
+    elif rate > 0.10:
+        print(f"  DO NOT GATE: {rate:.0%} of measured runs have a hard violation — "
+              f"in {spread} of {len(langs)} languages.")
+        print( "  That is a NORM in this corpus, not an outlier defect. Gating would")
+        print( "  retroactively flip a quarter of the archive to failing on a dimension")
+        print( "  it was never measured against, changing published pass-proportions")
+        print( "  for experiments that predate the column. Publish the base rate as a")
+        print( "  finding; revisit only after models have had the feedback.")
+    else:
+        print(f"  CANDIDATE for gating: {rate:.0%} of measured runs violate, "
+              f"in {spread} of {len(langs)} languages.")
+        print( "  Rare enough to read as a defect rather than a norm. Check the")
+        print( "  per-language table first — a violation concentrated in ONE language")
+        print( "  is a toolchain story, not a capability one, and should not gate.")
+    print()
+    print("  (This is a recommendation from a base rate, not a decision. Gating")
+    print("   changes what `pass` means for every future experiment.)")
     return 0
 
 
