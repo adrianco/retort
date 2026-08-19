@@ -36,6 +36,17 @@ corpus whose base rate is unknown, and turning it into a gate before the sweep
 would retroactively fail runs on a dimension they were never measured against.
 Measure first, then decide with the numbers — the same order in which the
 factual gate itself was introduced.
+
+SEVERITY IS EVIDENCE, NOT TASTE. The first version scored every check as one
+flat proportion, and the archive sweep immediately showed why that is wrong: 16
+runs trip "emits structuredContent without declaring an outputSchema" while only
+2 return a non-object `structuredContent`. Flat scoring buries the two failures
+that break clients under sixteen that do not. The score is now computed from HARD
+checks only — a real client rejecting the tool, or a server breaking a contract
+it declared itself — and advisories are reported and counted separately. The
+evidence for the split is direct: when Claude Code refused rust's tools it named
+the non-object `structuredContent` specifically and said nothing about the
+missing schema.
 """
 from __future__ import annotations
 
@@ -51,16 +62,31 @@ from retort.scoring.scorers import runtime as rt
 _CONTENT_TYPES = {"text", "image", "audio", "resource", "resource_link"}
 
 
+#: Checks are not equally severe, and scoring them as one flat proportion buries
+#: the ones that actually break a client. Measured across the archive sweep: 16
+#: runs trip "emits structuredContent without declaring an outputSchema" while
+#: only 2 return a non-object structuredContent — and when Claude Code refused
+#: rust's tools it named the NON-OBJECT problem specifically and said nothing
+#: about the missing schema. Severity is evidence, not taste.
+#:
+#:   "hard"     a real client rejects the tool, or the server breaks a contract
+#:              it declared itself. This is what may ever be allowed to gate.
+#:   "advisory" unusual or unhelpful, but no client observed refusing it.
+HARD, ADVISORY = "hard", "advisory"
+
+
 @dataclass
 class Check:
     name: str
     passed: bool
     detail: str = ""
     tool: str = ""
+    severity: str = HARD
 
     def as_dict(self) -> dict:
         return {"name": self.name, "passed": self.passed,
-                "detail": self.detail, "tool": self.tool}
+                "detail": self.detail, "tool": self.tool,
+                "severity": self.severity}
 
 
 @dataclass
@@ -69,15 +95,21 @@ class ConformanceResult:
     score: float = 0.0
     note: str = ""
     tools: int = 0
+    #: Counted separately so the two never blur: a hard failure is a client
+    #: rejecting the tool; an advisory is a style finding worth reporting.
+    hard_failures: int = 0
+    advisories: int = 0
     checks: list[Check] = field(default_factory=list)
 
     def as_dict(self) -> dict:
         return {"ok": self.ok, "score": self.score, "note": self.note,
-                "tools": self.tools,
+                "tools": self.tools, "hard_failures": self.hard_failures,
+                "advisories": self.advisories,
                 "checks": [c.as_dict() for c in self.checks]}
 
-    def add(self, name: str, passed: bool, detail: str = "", tool: str = "") -> None:
-        self.checks.append(Check(name, passed, detail, tool))
+    def add(self, name: str, passed: bool, detail: str = "", tool: str = "",
+            severity: str = HARD) -> None:
+        self.checks.append(Check(name, passed, detail, tool, severity))
 
 
 def _is_schema_object(schema: object) -> tuple[bool, str]:
@@ -143,7 +175,7 @@ def _check_result_envelope(res: ConformanceResult, tool: dict, msg: dict) -> Non
                 "outputSchema" in tool,
                 "" if "outputSchema" in tool else
                 "returns structuredContent but declares no outputSchema",
-                name)
+                name, ADVISORY)
     elif "outputSchema" in tool:
         res.add("declared outputSchema is honoured", False,
                 "declares an outputSchema but returned no structuredContent",
@@ -216,13 +248,20 @@ def measure(run_dir: Path, language: str,
         rt._reap(proc)
 
     if res.checks:
-        passed = sum(1 for c in res.checks if c.passed)
-        res.score = passed / len(res.checks)
-        res.ok = passed == len(res.checks)
-        if not res.ok:
-            failed = [c for c in res.checks if not c.passed]
+        hard = [c for c in res.checks if c.severity == HARD]
+        # The SCORE is the hard checks only. An advisory finding is reported and
+        # counted, never priced into the number a experiment reads — otherwise a
+        # server that no client would refuse scores lower than one that three
+        # clients reject, purely on volume.
+        res.score = (sum(1 for c in hard if c.passed) / len(hard)) if hard else 1.0
+        res.hard_failures = sum(1 for c in hard if not c.passed)
+        res.advisories = sum(1 for c in res.checks
+                             if c.severity == ADVISORY and not c.passed)
+        res.ok = res.hard_failures == 0
+        failed = [c for c in res.checks if not c.passed]
+        if failed:
             res.note = "; ".join(
-                f"{c.tool + ': ' if c.tool else ''}{c.name} — {c.detail}"
+                f"{c.tool + ': ' if c.tool else ''}[{c.severity}] {c.name} — {c.detail}"
                 for c in failed[:4])
     return res
 

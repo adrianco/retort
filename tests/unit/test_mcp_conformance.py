@@ -126,13 +126,18 @@ def test_a_dead_server_scores_zero_not_none(tmp_path, monkeypatch):
     assert "no entrypoint" in res.note
 
 
-def test_the_score_is_the_proportion_of_checks_passed():
+def test_the_score_is_the_proportion_of_HARD_checks_passed():
+    """Not of all checks — see TestSeverity for why the distinction is the point."""
+    from retort.scoring.scorers.mcp_conformance import ADVISORY, HARD
+
     res = ConformanceResult()
-    res.add("a", True)
-    res.add("b", False, "because")
-    res.add("c", True)
-    passed = sum(1 for c in res.checks if c.passed)
-    assert passed / len(res.checks) == pytest.approx(2 / 3)
+    res.add("a", True, severity=HARD)
+    res.add("b", False, "because", severity=HARD)
+    res.add("c", True, severity=HARD)
+    res.add("style", False, "nobody refuses this", severity=ADVISORY)
+
+    hard = [c for c in res.checks if c.severity == HARD]
+    assert sum(1 for c in hard if c.passed) / len(hard) == pytest.approx(2 / 3)
 
 
 def test_it_is_scored_but_not_gated():
@@ -147,3 +152,56 @@ def test_it_is_scored_but_not_gated():
     assert len(gate) > 1, "the gate expression moved — re-check this test"
     window = gate[1][:400]
     assert "mcp_conformance" not in window
+
+
+class TestSeverity:
+    """Flat scoring buried the failures that matter under the ones that don't."""
+
+    def test_the_score_counts_hard_checks_only(self):
+        """16 runs in the archive emit structuredContent with no outputSchema;
+        only 2 return a non-object one. Priced equally, volume wins and a server
+        no client would refuse scores below one that a client rejects."""
+        from retort.scoring.scorers.mcp_conformance import ADVISORY, ConformanceResult
+
+        res = ConformanceResult()
+        res.add("hard ok", True)
+        for i in range(8):
+            res.add(f"advisory {i}", False, severity=ADVISORY)
+        hard = [c for c in res.checks if c.severity != ADVISORY]
+        assert len(hard) == 1
+        score = sum(1 for c in hard if c.passed) / len(hard)
+        assert score == 1.0, "advisories must not drag the score down"
+
+    def test_a_non_object_structured_content_is_hard(self):
+        """Verified: Claude Code refuses the tool by name."""
+        from retort.scoring.scorers.mcp_conformance import (
+            HARD, ConformanceResult, _check_result_envelope)
+
+        res = ConformanceResult()
+        _check_result_envelope(res, {"name": "standings", "inputSchema": {}},
+                               {"result": {"content": [], "structuredContent": []}})
+        c = next(c for c in res.checks if c.name == "structuredContent is an object")
+        assert c.passed is False and c.severity == HARD
+
+    def test_a_missing_output_schema_is_advisory(self):
+        """No client was observed refusing this — it is a style finding."""
+        from retort.scoring.scorers.mcp_conformance import (
+            ADVISORY, ConformanceResult, _check_result_envelope)
+
+        res = ConformanceResult()
+        _check_result_envelope(res, {"name": "standings", "inputSchema": {}},
+                               {"result": {"content": [], "structuredContent": {"a": 1}}})
+        c = next(c for c in res.checks
+                 if c.name == "structuredContent has a declared outputSchema")
+        assert c.passed is False and c.severity == ADVISORY
+
+    def test_breaking_your_own_declared_contract_is_hard(self):
+        from retort.scoring.scorers.mcp_conformance import (
+            HARD, ConformanceResult, _check_result_envelope)
+
+        res = ConformanceResult()
+        _check_result_envelope(
+            res, {"name": "t", "inputSchema": {}, "outputSchema": {"type": "object"}},
+            {"result": {"content": []}})
+        c = next(c for c in res.checks if c.name == "declared outputSchema is honoured")
+        assert c.passed is False and c.severity == HARD
