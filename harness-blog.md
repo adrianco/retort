@@ -1,6 +1,6 @@
 # The Stack Under the Model: oMLX, llama.cpp, Hermes, and Why There Are So Many
 
-*Published 2026-07-22 · updated 2026-07-30 — Adrian Cockcroft*
+*Published 2026-07-22 · updated 2026-08-21 — Adrian Cockcroft*
 
 Most benchmarks answer "which *model* is best?" Retort insists that's the wrong unit. A coding result is produced by a whole **stack** — and the model is only one layer of it:
 
@@ -8,7 +8,7 @@ Most benchmarks answer "which *model* is best?" Retort insists that's the wrong 
 
 Change any layer and the numbers move. TypeScript went from failing to 1.00 on the local 80B by raising *one context-engine knob* — same model, same weights. So before the results make sense, you need a map of the layers. This post is that map: what each piece is, where it came from, what competes with what, how they stack, and why the zoo is so crowded. Then it explains the **metaharness** — the part of Retort that turns the harness *itself* into a variable you can measure.
 
-If you've seen `oMLX`, `llama.cpp`, `Hermes`, `GGUF`, `omp`, `lcm`, or `OpenRouter` fly past in the other blogs and nodded along without quite knowing what they are, start here.
+If you've seen `oMLX`, `llama.cpp`, `Hermes`, `GGUF`, `omp`, `lcm`, `OpenRouter` or `MetaHarness` fly past in the other blogs and nodded along without quite knowing what they are, start here.
 
 ---
 
@@ -18,6 +18,9 @@ Read this from the bottom up — each layer sits on the one below it:
 
 ```
 ┌─────────────────────────────────────────────────────────────┐
+│  MODEL SELECTION        OpenRouter (plumbing) · routers ·     │  ← which model runs,
+│                         metaharnesses  (often skipped)        │    and who decides
+├─────────────────────────────────────────────────────────────┤
 │  PROMPT / METHODOLOGY   "write tests first" · BDD · terse    │  ← how you ask
 ├─────────────────────────────────────────────────────────────┤
 │  AGENT / HARNESS        claude-code · Hermes · gemini · omp   │  ← the ReAct loop:
@@ -34,7 +37,7 @@ Read this from the bottom up — each layer sits on the one below it:
 └─────────────────────────────────────────────────────────────┘
 ```
 
-"Which model is best" only asks about one band in the middle. Retort measures the column. The rest of this post walks the layers where the confusing names live — **weights, serving, agent, context** — and then the metaharness, which makes the *agent* layer a factor you can sweep.
+"Which model is best" only asks about one band in the middle. Retort measures the column. The rest of this post walks the layers where the confusing names live — **weights, serving, agent, context**, and the model-selection layer above them all — and then the metaharness, which makes the *agent* layer a factor you can sweep.
 
 ---
 
@@ -93,6 +96,46 @@ Two smaller layers sit between the agent and the model, and they've caused more 
   Every result published before this factor existed ran at whatever the CLI chose — which, measured, is **not** any of the named levels. That is why `default` is kept as an explicit level rather than folded into `medium`: it is the historical baseline, and mislabelling it would silently rewrite the back catalogue.
 
 The lesson threaded through the whole project: **a set-but-unverified knob in one of these quiet layers produces confident, wrong results.** Retort's provenance records the *effective* value of each, because the config file's value and the value the model actually ran at have diverged more than once. The corollary is that a knob nobody *records* is worse still — thinking level was an uncontrolled variable across every experiment here until it was made a factor, and [versions-blog.md](versions-blog.md) now says so in place of the conclusion it had drawn without it.
+
+---
+
+## Above the model: picking which one runs — OpenRouter, routers, and metaharnesses
+
+Every layer above assumes somebody already decided *which model runs*. That decision is itself a layer, and it has grown its own tooling — which is where `OpenRouter`, `ruvnet`'s **MetaHarness**, and the various "LLM routers" live. They are easy to lump together and they do quite different jobs, so it is worth separating the plumbing from the deciding.
+
+### OpenRouter is plumbing, not judgement
+
+**[OpenRouter](https://openrouter.ai)** is a single API endpoint in front of many providers. You send one request format and name a model — `deepseek-v4-pro`, `glm-5.2`, `opus-4.8`, `gpt-5.2` — and it forwards to whoever serves that model, handling the per-vendor auth, request shape and quirks for you. Three things follow from that, and they are the whole value proposition:
+
+- **Swapping a model becomes a string change** rather than an integration. This is what makes a model *factor* practical at all — Retort's metaharness grid names its models as OpenRouter ids for exactly this reason.
+- **Price and latency become comparable**, because they are quoted per model through one interface instead of buried in four vendors' dashboards.
+- **Failover is somebody else's problem**: if a provider is down or rate-limiting, the request can go elsewhere without your code knowing.
+
+What OpenRouter does **not** do is tell you which model your task needs. It makes switching cheap; it has no opinion about when to switch. That opinion is the next layer up, and it is where the interesting — and unmeasured — claims live.
+
+### Routers and metaharnesses are the deciding layer
+
+A **router** sits above the plumbing and picks per request. A **metaharness** goes further: it treats the entire orchestration strategy — how many attempts, in what structure, with what memory, escalating when — as the thing being chosen. `ruvnet`'s MetaHarness is the upstream project here — Retort's `retort_metaharness` side-branch composes with it, and its maintainer owns the routing schema discussed below. The premise these systems share is that once models are close in raw capability, the wrapper around them is the remaining variable worth optimising: hold the model fixed and evolve the harness instead.
+
+The strategies in circulation are a short list, and each is a bet about where the win is:
+
+| strategy | how it picks | what it is buying |
+|---|---|---|
+| **static** | you name the model | nothing — it is the control |
+| **difficulty escalation** | a cheap model drafts; a frontier model takes over when a step looks hard or low-confidence | **cost** — frontier quality at cheap-model prices, *if* the hard-step detector is any good |
+| **self-consistency-N** | sample N independent answers, judge-select or majority-vote | **accuracy**, at N× the tokens |
+| **evolved genome** | an evolutionary loop tunes the prompt + tool policy | **fit to a task family**, at the cost of a training loop |
+| **evidence-based** | look up what actually passed, for this language and task size, at what cost | **calibration** — it is the only one not guessing |
+
+Retort's own metaharness implements the first three directly: `routing: opus` and `escalate: <alias>` turn on difficulty-based escalation to a named OpenRouter model, and `self-consistency-N` runs N attempts and keeps the best. The two that need infrastructure Retort does not have locally — persistent copy-on-write memory and the evolutionary genome — **degrade to plain ReAct and say so in the result** rather than pretending.
+
+### The part nobody measures: what the router routes *on*
+
+Every strategy in that table except the last needs a **difficulty signal**, and that signal is almost always a proxy: prompt length, task category, a token-count heuristic, or the model's own self-reported confidence. Those are guesses about how hard a problem is, made before anyone has evidence about whether this stack can do it.
+
+That is the gap Retort is shaped to fill, because measuring exactly this is the whole point of the project: it already knows which stack passes, per language, per task size, at what cost. Routing on that is routing on observed outcomes rather than on a guess about difficulty — and the plumbing to hand those measurements to a router is described in [the metaharness section below](#the-interesting-part-feeding-it-measured-results), including the honest status of what is and is not wired up.
+
+The subtlety worth carrying into that section is what a router should do when the measurements say *nothing here works*. That is a third state, distinct from "this model is best" and from "we never tried" — and a router that collapses it into "fall back to the frontier model" has quietly turned an admission of ignorance into a spending decision.
 
 ---
 
