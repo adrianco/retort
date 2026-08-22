@@ -683,6 +683,11 @@ class LocalRunner:
             if self._resolve_harness(stack) == "hermes":
                 _hb = (self.stack_manager.serving.get("hermes_bin", "hermes")
                        if self.stack_manager is not None else "hermes")
+                # Same precedence as the spawn site: a profile `bin` wins, so the
+                # transcript is exported by the SAME binary that produced it.
+                _hp = self.local_agents.get(stack.agent)
+                if _hp is not None and getattr(_hp, "bin", None):
+                    _hb = _hp.bin
                 _export_hermes_session(info.workspace, _hb)
 
             # Fast mode bills at 2× but the CLI reports the standard-rate cost —
@@ -939,9 +944,18 @@ class LocalRunner:
             # `serving.hermes_bin` (stacks.yaml) lets a workspace point at a specific
             # Hermes executable — e.g. a venv/flake binary that isn't on PATH — instead
             # of relying on a PATH shim. Defaults to the bare `hermes` on PATH.
+            # Precedence: the agent PROFILE's own `bin` wins, then
+            # `serving.hermes_bin`, then bare PATH. The profile override is what
+            # lets the hermes VERSION be a level of the agent factor — serving
+            # carries one binary per stacks file, so without it every hermes
+            # profile in a design resolves to the same executable and a
+            # version comparison silently runs one version twice.
             hermes_bin = "hermes"
             if self.stack_manager is not None:
                 hermes_bin = self.stack_manager.serving.get("hermes_bin", "hermes")
+            _profile = self.local_agents.get(stack.agent)
+            if _profile is not None and getattr(_profile, "bin", None):
+                hermes_bin = _profile.bin
             cmd = [
                 hermes_bin,
                 "--usage-file", str(usage_path),

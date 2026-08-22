@@ -200,6 +200,19 @@ class LocalAgentConfig(BaseModel):
         str | None,
         Field(default=None, description="Default model for this local agent profile"),
     ]
+    bin: Annotated[
+        str | None,
+        Field(
+            default=None,
+            description=(
+                "Absolute path to this profile's agent executable. Overrides the "
+                "stack-level `serving.<harness>_bin`, which is one value per stacks "
+                "file and therefore cannot distinguish two profiles that share a "
+                "harness. This is what makes an agent VERSION a level of the agent "
+                "factor: two hermes profiles pointing at two different binaries."
+            ),
+        ),
+    ]
     thinking: Annotated[
         ThinkingMode | None,
         Field(default=None, description="Default OMP thinking mode for this profile"),

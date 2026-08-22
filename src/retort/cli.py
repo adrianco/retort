@@ -769,6 +769,12 @@ def run_experiments(
 
             def _agent_cli(_name: str, _spec) -> str:
                 # _spec is a LocalAgentConfig (pydantic), not a dict — use getattr.
+                # A profile-level `bin` wins over the stack-level serving value —
+                # mirrors local_runner's spawn-site precedence so the preflight
+                # checks the executable that will actually run.
+                _pb = getattr(_spec, "bin", None)
+                if _pb:
+                    return _pb
                 _harness = getattr(_spec, "harness", None) or _name
                 if _harness == "hermes":
                     return _serving.get("hermes_bin", "hermes")

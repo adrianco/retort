@@ -130,6 +130,98 @@ test that patches a path and then spends its time somewhere else.
 ---
 
 
+## 0. exp-61 — does Hermes 0.20.5 change anything?  — RUNNING
+
+**Every local number in the corpus was produced by Hermes v0.18.2** (360 runs, exp-17..exp-50,
+2026-07-09 → 07-27). Upstream is now **v0.20.5** — 24,167 commits and, in the paths that actually
+run an agentic coding task, not a patch release:
+
+| Path | Δ vs 0.18.2 | Why it can move a number |
+| --- | --- | --- |
+| `agent/verify/` | **new** (recipes, runner, environment) | Detects a project's run recipe, boots it, proves it serves HTTP. Ported from grok-cli |
+| `run_agent.py` | +3,663 | The loop retort drives |
+| `agent/turn_context.py` | +990 | Context handling — our established first-order lever |
+| `agent/turn_summary.py` | **new** +310 | Turn summarization feeding context |
+| `agent/turn_finalizer.py` | +439 | When and how a turn ends |
+| `agent/transports/chat_completions.py` | +335 | The exact transport our oMLX endpoint uses |
+| `toolsets.py` | +144 | Which tools the model can reach |
+
+161 files, +64,258 / −5,777 in the agent core alone.
+
+**Hypothesis.** The turn-loop rewrite moves *turn count and duration* before it moves requirement
+coverage. Coverage is already at ceiling on the settled cells, so the detectable signal is
+efficiency; where there is headroom (Rust, brazil-go), coverage can move too.
+
+**Null result is a real result.** "Same coverage, same turns, one harness version newer" is worth
+recording — it says the 0.18.2 numbers keep their shelf life and the blogs need no asterisk.
+
+### Design — re-measure only, no re-run of 0.18.2
+
+We already own the 0.18.2 numbers; they are the baseline. **Only the 0.20.5 arm runs.** The
+comparison is `GROUP BY agent` against stored rows, which is why the new level is named for the
+version rather than reusing `hermes-local`.
+
+**Tier 1 — the instrumented four.** exp-49 and exp-50 are the *only* Hermes cells carrying a
+`turns` value (the usage parser was dropping Hermes's `api_calls` before then). Since the 0.20.5
+changes are concentrated in the turn loop, these carry most of the signal.
+
+| Cell | n | 0.18.2 cov | secs | turns | ktok | est |
+| --- | --- | --- | --- | --- | --- | --- |
+| exp-49 · rest-api-crud · python · m35 | 3 | 1.00 | 183 | 12.0 | 288 | 9 min |
+| exp-49 · rest-api-crud · python · m80 | 3 | 1.00 | 205 | 24.7 | 595 | 10 min |
+| exp-50 · brazil-soccer-mcp · python · m80 | 3 | 0.97 | 703 | 37.3 | 2,165 | 35 min |
+| exp-50 · brazil-soccer-mcp · go · m80 | 3 | 0.89 | 1,499 | 47.0 | 2,759 | 75 min |
+
+exp-49 is the right anchor twice over: its own workspace notes call those settings "the canonical
+FEATURED settings for each model … THESE are the instrumented ones." And **brazil-go is the only
+cell that is both instrumented and off-ceiling (0.89)** — the one place a gain and a regression are
+both visible.
+
+**Tier 2 — headroom.** Three of the Tier-1 cells sit at ceiling, and a ceiling only detects
+regressions. These can show a gain:
+
+| Cell | n | 0.18.2 cov | secs | est |
+| --- | --- | --- | --- | --- |
+| exp-38 · rest-api-crud · rust · m80 | 3 | 0.94 | 1,988 | 99 min |
+| exp-38 · rest-api-crud · typescript · m80 | 3 | 1.00 | 1,026 | 51 min |
+| exp-47 · rest-api-crud · typescript · gptoss | 3 | 1.00 | 111 | 6 min |
+
+Rust is the pick: it is the standing near-miss language, and converting near-misses is exactly what
+a better agent loop would do. The gptoss cell costs six minutes and buys a third model family.
+
+Tier 1 ≈ 2.2 h, Tier 2 ≈ 2.5 h.
+
+### Held fixed
+
+Replicates 3 (matching the stored rows), `neutral` prompt, `max_turns: 200`, the same oMLX serving
+block and context settings as each cell's original experiment, `evaluation.enabled: true`.
+**One variable: the Hermes binary.**
+
+### `verify_on_stop` stays OFF
+
+0.20.5 ships a real self-verification subsystem and our config sets `agent.verify_on_stop: false`.
+Leave it off here. Turning it on is a *capability* change, not version drift; mixing them produces a
+delta nobody can attribute. That is exp-62.
+
+### Two harness fixes this experiment forced
+
+1. **Provenance measured the wrong binary.** `_tool_versions` ran a bare `hermes --version` — a
+   PATH lookup — while every local experiment pins an absolute `serving.hermes_bin` precisely
+   because Hermes is usually *not* on PATH (exp-43). With two versions installed, the recorded
+   version could describe an install that never ran. Now resolves the configured binary and records
+   `hermes_bin` beside the version.
+2. **A version could not be a level.** `serving.hermes_bin` is one value per stacks file, so every
+   hermes profile in a design resolved to the same executable. `LocalAgentConfig.bin` now overrides
+   it per profile, which is what lets an agent *version* be a level of the agent factor.
+
+### Comparability caveats
+
+- Tier 2 rows have **no turns baseline** — coverage, duration and tokens only.
+- Each cell is comparable **only to its own stored baseline**. exp-38 ran full-context settings and
+  exp-49 the newer featured settings; do not read deltas across them.
+- 202 of the 360 Hermes rows (everything before exp-28) have no `model` recorded and are excluded
+  from selection for that reason.
+
 ## 1. exp-54 — does a Codex judge agree with the Opus judge?  — SCOPED DOWN (token budget)
 
 `requirement_coverage` is an LLM's opinion, and PR #45 made the judge configurable — so it is a

@@ -63,9 +63,28 @@ def _host() -> dict[str, Any]:
     }
 
 
-def _tool_versions() -> dict[str, Any]:
+def _hermes_bin_from(playpen_config: Any) -> str:
+    """The hermes executable provenance should MEASURE.
+
+    `_tool_versions` used to run a bare `hermes --version`, i.e. whatever is on
+    PATH — which is not necessarily the binary that ran. Every local experiment
+    here pins an absolute `serving.hermes_bin` precisely because hermes is often
+    NOT on PATH (exp-43), so the recorded version could describe a different
+    install than the one under test, or be null while runs succeeded.
+    """
+    for spec in (getattr(playpen_config, "local_agents", None) or {}).values():
+        candidate = getattr(spec, "bin", None)
+        if candidate:
+            return candidate
+    return "hermes"
+
+
+def _tool_versions(hermes_bin: str = "hermes") -> dict[str, Any]:
     return {
-        "hermes": _sh(["hermes", "--version"]),
+        "hermes": _sh([hermes_bin, "--version"]),
+        # Record WHICH binary was measured — a version with no path cannot be
+        # audited after the fact.
+        "hermes_bin": hermes_bin,
         "omp": _sh(["omp", "--version"]),
         "claude": _sh(["claude", "--version"]),
         "omlx": _sh(["/Applications/oMLX.app/Contents/MacOS/omlx-cli", "--version"]),
@@ -289,7 +308,7 @@ def capture(
     return {
         "retort": _git(repo),
         "host": _host(),
-        "tools": _tool_versions(),
+        "tools": _tool_versions(_hermes_bin_from(pp)),
         "harness": harness,
         "agents": harnesses,
         "agent_config": agent_config,
