@@ -234,10 +234,13 @@ def test_auto_evaluation_swallows_skill_failure(tmp_path: Path):
     (run / "source.py").write_text("x=1")
 
     cfg = EvaluationConfig(enabled=True)
-    # Patch both paths: _find_skill falls back to the package root so the real
-    # file-run-issues skill may be found, routing through _invoke_claude_skill_prompt.
-    with patch("retort.cli._invoke_claude_skill", return_value=(1, "boom")), \
-         patch("retort.cli._invoke_claude_skill_prompt", return_value=(1, "boom")):
+    # Patch the function _run_auto_evaluation ACTUALLY calls. It used to patch
+    # _invoke_claude_skill / _invoke_claude_skill_prompt, which are no longer on
+    # this path — so the stubs did nothing and the test shelled out to a REAL
+    # judge: `claude -p Follow skill at /private/var/.../pytest-851/...`, 35-59s
+    # of billed API time on every `pytest tests/unit`. The conftest guard now
+    # makes that impossible to reintroduce silently.
+    with patch("retort.cli._invoke_judge_prompt", return_value=(1, "boom")):
         # Should not raise — evaluation failure must never abort the experiment.
         _run_auto_evaluation(run, cfg, visibility="public")
 

@@ -79,6 +79,9 @@ packages = ["src/retort", "retort_metaharness"]
 testpaths = ["tests"]
 addopts = "-ra -q"
 pythonpath = ["src"]
+markers = [
+    "allow_billed_cli: test genuinely needs a real agent/judge CLI (see tests/conftest.py)",
+]
 
 [tool.ruff]
 target-version = "py311"
