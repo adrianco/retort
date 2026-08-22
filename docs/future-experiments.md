@@ -40,12 +40,60 @@ passes every presence check.
 Fixed by an interactive `/login` at the terminal; `/login` is local-only and does not work over
 Remote Control. exp-55 brazil then resumed and completed 20/20.
 
-## M3. Make the test suite fast  — QUEUED (user, 2026-08-17), do AFTER the running experiment
+## M3. Make the test suite fast  — 226.6s → 80s (2026-08-22), 20s short of the bar
 
-**Measured today: `pytest tests/unit` takes 226.6 s.** That is slow enough that it stops being run
-between edits, which is how a suite stops protecting anything.
+**Measured 2026-08-17: `pytest tests/unit` takes 226.6 s.** That is slow enough that it stops being
+run between edits, which is how a suite stops protecting anything. **Now 80 s** — same tests, none
+removed, suite green. The 60 s done-criteria is not met; what remains is described at the end.
 
-**Two tests are 33% of the total:**
+### The 53 s test was spending money, not just time
+
+M3 said to explain it before optimising it, and the explanation is worse than slow. The test patched
+`retort.cli._invoke_claude_skill` and `_invoke_claude_skill_prompt`. `_run_auto_evaluation` calls
+neither — it calls `_invoke_judge_prompt`. Both stubs did nothing, the real function ran, and it
+shelled out to a live judge. Proved by recording every subprocess the test launches:
+
+```
+35.38s  claude -p Follow skill at /private/var/.../pytest-851/test_auto_...
+```
+
+A real Claude invocation, **billed to whoever ran `pytest tests/unit`**, on every run, for weeks. The
+53 s → 58.8 s "growth" was judge latency, nothing more. Nothing ever failed, because a stub that
+silently stops matching the code it stubs is invisible — it surfaces only as a number in
+`--durations` that nobody reads.
+
+Fixed by patching the function actually called, and **guarded**: an autouse fixture in
+`tests/conftest.py` fails any test that launches `claude`/`codex`/`gemini`/`opencode`/`hermes`/`omp`,
+naming the command; integration tests opt out with `@pytest.mark.allow_billed_cli`.
+`tests/unit/test_billed_cli_guard.py` pins the guard itself.
+
+### One venv per session instead of one per test
+
+`ensure_python_env` builds a throwaway venv per call and pip-installs the project's inferred imports.
+`test_scoring.py` was creating eleven, and `successful_artifacts` writes `from fastapi import
+FastAPI` — so four tests asserting metric *names and ranges* were each paying a real `pip install
+fastapi`. A session-scoped venv is now built once and reused via a `venv` symlink.
+
+**Deliberately not applied to `TestPythonEnvPreparation`:** the reuse path skips dependency
+inference, which is the thing those tests exercise — sharing there would have made them pass without
+testing anything. And deliberately not applied in production: one shared venv across projects would
+let a project that forgot to declare a dependency pass on a neighbour's install.
+
+### What is left, and why 60 s is not free
+
+| remaining | cost | notes |
+|---|---:|---|
+| `test_runner.py` | ~24 s | many small real-toolchain provisions |
+| `TestPythonEnvPreparation` | ~15 s | irreducible — it tests venv building **by building venvs** |
+| `test_quiet_pytest_project_is_not_false_failed` | 7.4 s | runs a real pytest suite; that is the point of it |
+| `test_no_regression_actually_runs_python_suite` | 5.1 s | same |
+
+Closing the last 20 s means either sharing fixtures inside `test_runner.py`, or M3's option 3 —
+marking the genuine integration tests and excluding them by default. **Option 3 does not satisfy this
+entry's own done-criteria** ("under 60 s *with the same number of behaviours covered*"), so it needs
+a deliberate decision rather than a quiet default change.
+
+**The original profile (2026-08-17), for the record:**
 
 | test | time | share |
 |---|---:|---:|
