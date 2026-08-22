@@ -130,97 +130,29 @@ test that patches a path and then spends its time somewhere else.
 ---
 
 
-## 0. exp-61 — does Hermes 0.20.5 change anything?  — RUNNING
+## 0. exp-62 — does Hermes 0.20.5's verify-on-stop change local pass rates?  — PLANNED
 
-**Every local number in the corpus was produced by Hermes v0.18.2** (360 runs, exp-17..exp-50,
-2026-07-09 → 07-27). Upstream is now **v0.20.5** — 24,167 commits and, in the paths that actually
-run an agentic coding task, not a patch release:
+exp-61 established that Hermes 0.20.5 is a null against 0.18.2 on coverage, maintainability and
+duration. It deliberately left one thing untested: 0.20.5 ships a real self-verification subsystem
+(`agent/verify/` — recipes, runner, environment; ported from grok-cli) that detects a project's run
+recipe, boots it, and proves it serves HTTP. Our config sets `agent.verify_on_stop: false`, so none
+of exp-61 exercised it.
 
-| Path | Δ vs 0.18.2 | Why it can move a number |
-| --- | --- | --- |
-| `agent/verify/` | **new** (recipes, runner, environment) | Detects a project's run recipe, boots it, proves it serves HTTP. Ported from grok-cli |
-| `run_agent.py` | +3,663 | The loop retort drives |
-| `agent/turn_context.py` | +990 | Context handling — our established first-order lever |
-| `agent/turn_summary.py` | **new** +310 | Turn summarization feeding context |
-| `agent/turn_finalizer.py` | +439 | When and how a turn ends |
-| `agent/transports/chat_completions.py` | +335 | The exact transport our oMLX endpoint uses |
-| `toolsets.py` | +144 | Which tools the model can reach |
+That is a **capability** change, not version drift, which is why it was held back — mixing it into
+exp-61 would have produced a delta nobody could attribute.
 
-161 files, +64,258 / −5,777 in the agent core alone.
+**Hypothesis.** Verify-on-stop converts near-misses, so it should move the cells with headroom and do
+nothing to cells already at ceiling. The natural targets are the ones exp-61 could not speak to:
+rust (0.94 baseline, the standing near-miss language) and brazil-go (0.89, the only cell that is both
+instrumented and off-ceiling).
 
-**Hypothesis.** The turn-loop rewrite moves *turn count and duration* before it moves requirement
-coverage. Coverage is already at ceiling on the settled cells, so the detectable signal is
-efficiency; where there is headroom (Rust, brazil-go), coverage can move too.
+**Design.** One variable: `agent.verify_on_stop` true vs false, both arms on 0.20.5. Note both arms
+need their own Hermes config, since retort's stack manager writes `max_turns`/`context_length` into a
+single `serving.hermes_config` — running two verify settings against one config file means the second
+arm silently inherits the first. Per-arm `HERMES_HOME` is the clean way; retort does not set it today.
 
-**Null result is a real result.** "Same coverage, same turns, one harness version newer" is worth
-recording — it says the 0.18.2 numbers keep their shelf life and the blogs need no asterisk.
-
-### Design — re-measure only, no re-run of 0.18.2
-
-We already own the 0.18.2 numbers; they are the baseline. **Only the 0.20.5 arm runs.** The
-comparison is `GROUP BY agent` against stored rows, which is why the new level is named for the
-version rather than reusing `hermes-local`.
-
-**Tier 1 — the instrumented four.** exp-49 and exp-50 are the *only* Hermes cells carrying a
-`turns` value (the usage parser was dropping Hermes's `api_calls` before then). Since the 0.20.5
-changes are concentrated in the turn loop, these carry most of the signal.
-
-| Cell | n | 0.18.2 cov | secs | turns | ktok | est |
-| --- | --- | --- | --- | --- | --- | --- |
-| exp-49 · rest-api-crud · python · m35 | 3 | 1.00 | 183 | 12.0 | 288 | 9 min |
-| exp-49 · rest-api-crud · python · m80 | 3 | 1.00 | 205 | 24.7 | 595 | 10 min |
-| exp-50 · brazil-soccer-mcp · python · m80 | 3 | 0.97 | 703 | 37.3 | 2,165 | 35 min |
-| exp-50 · brazil-soccer-mcp · go · m80 | 3 | 0.89 | 1,499 | 47.0 | 2,759 | 75 min |
-
-exp-49 is the right anchor twice over: its own workspace notes call those settings "the canonical
-FEATURED settings for each model … THESE are the instrumented ones." And **brazil-go is the only
-cell that is both instrumented and off-ceiling (0.89)** — the one place a gain and a regression are
-both visible.
-
-**Tier 2 — headroom.** Three of the Tier-1 cells sit at ceiling, and a ceiling only detects
-regressions. These can show a gain:
-
-| Cell | n | 0.18.2 cov | secs | est |
-| --- | --- | --- | --- | --- |
-| exp-38 · rest-api-crud · rust · m80 | 3 | 0.94 | 1,988 | 99 min |
-| exp-38 · rest-api-crud · typescript · m80 | 3 | 1.00 | 1,026 | 51 min |
-| exp-47 · rest-api-crud · typescript · gptoss | 3 | 1.00 | 111 | 6 min |
-
-Rust is the pick: it is the standing near-miss language, and converting near-misses is exactly what
-a better agent loop would do. The gptoss cell costs six minutes and buys a third model family.
-
-Tier 1 ≈ 2.2 h, Tier 2 ≈ 2.5 h.
-
-### Held fixed
-
-Replicates 3 (matching the stored rows), `neutral` prompt, `max_turns: 200`, the same oMLX serving
-block and context settings as each cell's original experiment, `evaluation.enabled: true`.
-**One variable: the Hermes binary.**
-
-### `verify_on_stop` stays OFF
-
-0.20.5 ships a real self-verification subsystem and our config sets `agent.verify_on_stop: false`.
-Leave it off here. Turning it on is a *capability* change, not version drift; mixing them produces a
-delta nobody can attribute. That is exp-62.
-
-### Two harness fixes this experiment forced
-
-1. **Provenance measured the wrong binary.** `_tool_versions` ran a bare `hermes --version` — a
-   PATH lookup — while every local experiment pins an absolute `serving.hermes_bin` precisely
-   because Hermes is usually *not* on PATH (exp-43). With two versions installed, the recorded
-   version could describe an install that never ran. Now resolves the configured binary and records
-   `hermes_bin` beside the version.
-2. **A version could not be a level.** `serving.hermes_bin` is one value per stacks file, so every
-   hermes profile in a design resolved to the same executable. `LocalAgentConfig.bin` now overrides
-   it per profile, which is what lets an agent *version* be a level of the agent factor.
-
-### Comparability caveats
-
-- Tier 2 rows have **no turns baseline** — coverage, duration and tokens only.
-- Each cell is comparable **only to its own stored baseline**. exp-38 ran full-context settings and
-  exp-49 the newer featured settings; do not read deltas across them.
-- 202 of the 360 Hermes rows (everything before exp-28) have no `model` recorded and are excluded
-  from selection for that reason.
+**Cost note from exp-61.** Budget wall-clock, not agent time. exp-61's two-cell smoke pair took ~50
+minutes for ~5 minutes of agent work — the Opus judge pass and the 42 GB stack reload dominate.
 
 ## 1. exp-54 — does a Codex judge agree with the Opus judge?  — SCOPED DOWN (token budget)
 
@@ -493,7 +425,7 @@ invest in the solver dependency, master.db merge, and first-class docs.
 <!-- SCAN-HEARTBEAT: the daily scan rewrites the next line on EVERY run, including
      days it finds nothing. Do not hand-edit it. If the date is more than ~2 days
      stale, the scan is not running — see "when the heartbeat goes stale" below. -->
-**Daily scan last completed: 2026-08-21** (scanning for new 64GB-fittable coding models)
+**Daily scan last completed: 2026-08-22** (scanning for new 64GB-fittable coding models)
 
 New open-weight coding models found by the daily scan that plausibly fit 64GB at 4-bit; promote to a
 numbered experiment when prioritised.
@@ -981,6 +913,54 @@ survives the toggle, restart the Claude desktop app, which clears the in-memory 
   — MLX 4-bit: https://huggingface.co/mlx-community/granite-4.1-30b-4bit
   — run notes: https://unsloth.ai/docs/models/ibm-granite-4.1
 
+- 2026-08-22 — **Ornith-1.5-35B-A3B (Ornith / DeepReinforce)** — *a genuinely last-cycle drop (weights
+  **2026-08-19/20**) with the least-blocked serving path on this list and the strongest published
+  agentic-coding numbers of anything that fits 64GB.* **MIT licence**, **35B total / ~3B active MoE on a
+  Qwen3.5 MoE base** (`qwen3_5_moe`), **262,144 native context** extensible to ~1M via YaRN — the same
+  window as our 35B/80B runs. Third generation of a self-scaffolding RL recipe in which the model
+  proposes its own scaffold and then a solution, with reward flowing back to both stages — i.e. the
+  harness is *learned*, not fixed, which is an unusual thing to point at a harness-measuring project.
+  **SWE-bench Verified 80.1, Terminal-Bench 2.1 74.8** (vendor-reported). Both beat every other entry on
+  this list on the same benchmarks — the current leader here, Qwen3.8-27B, reports Terminal-Bench 73.0,
+  and the coder-specialised entries are far below (KAT-Coder 41.02, North Mini Code 36). Ornith's own
+  card claims it "significantly outperforms Qwen 3.6-35B across all coding and agentic benchmarks" —
+  i.e. its headline comparison is against **the exact model in our hermes-lcm+35B stack**.
+  **~19–21 GB at 4-bit → fits 64GB with enormous headroom** (the predecessor Ornith-1.0-35B ships a
+  21.2 GB Q4_K_M).
+  **Serving is a straight load on both backends, with no gate-probe and no convert — the only entry
+  besides Granite 4.1 where that is true, and this one is first-party on *both* formats.** Ornith
+  published day-one **`ornith-ai/Ornith-1.5-35B-A3B-MLX-4bit`** (plus 6/8-bit) **and**
+  `ornith-ai/Ornith-1.5-35B-A3B-GGUF`, with bartowski/AtomicChat mirrors and an APEX-MTP GGUF. Tool
+  calling is native, with the **`qwen3_xml` parser (`qwen3_coder` on SGLang)** — the same parser family
+  our 35B/80B cells already run through. Usefully, a working first-party MLX build of a `qwen3_5_moe`
+  model **also settles the oMLX arch question the Agents-A1 entry above flags** — one load probe covers
+  both. **Three caveats.** (1) **The numbers are vendor-reported and at least one independent run
+  contradicts them** (DeepSWE 22.0 against a much higher claim) — treat the 80.1/74.8 as a reason to
+  run it, not as a result. (2) Two tuning parameters to record per CLAUDE.md: recommended sampling is
+  **temperature 0.6 / top_p 0.95 / top_k 20**, but the card says **temperature 1.0 for benchmark
+  reproduction** — the precise unrecorded default that cost this project half its local reliability, so
+  set and verify one deliberately and say which; and reasoning is on, returned in a separate
+  `reasoning_content` field, so record the mode as for KAT-Coder and Qwen3.8-27B. (3) Smoke-test a real
+  `<tool_call>` on the specific 4-bit MLX quant before any grid, as for every entry here.
+  **Why it earns the top slot alongside Qwen3.8-27B:** it is the only candidate that is *both*
+  last-cycle *and* zero-friction to serve, it is a 35B-A3B at exactly our incumbent's size class and
+  context (so the comparison is like-for-like on everything but the base generation and post-training),
+  and the self-scaffolding recipe makes it the one model whose pitch is about the harness — the thing
+  retort measures. **A second variant is worth a cell too: `Ornith-1.5-9B` (dense, SWE-bench Verified
+  71.8, Terminal-Bench 58.3, ~5–6 GB at 4-bit, first-party MLX 4-bit + GGUF)** — it beats the already-
+  listed Nanbeige4.2-3B (63.6) at the far end of the size axis and leaves ~58 GB free, which is what
+  the §3 speculative-decoding lever wants; its vocab is Ornith/Qwen-lineage, so unlike LFM2.5 and
+  Mellum2 it is the first small entry with a *plausible* draft-model pairing for the Qwen targets —
+  verify tokenizer compatibility before assuming it. *(Predecessor **Ornith-1.0**, 2026-06-25, MIT,
+  also fits — 9B dense, **31B dense on a Gemma 4 base**, 35B MoE, 397B MoE; the 31B is the only
+  matched-base probe available on the already-listed Gemma 4 candidate. Run 1.5 first; 1.0 is a
+  fallback if 1.5's numbers do not survive contact.)*
+  Source: https://ornith.ai/ornith_1_0.html
+  — 1.5 coverage: https://www.explainx.ai/blog/ornith-1-5-self-improving-open-weight-model-august-2026
+  — weights: https://huggingface.co/ornith-ai/Ornith-1.5-35B-A3B
+  — MLX 4-bit (first-party): https://huggingface.co/ornith-ai/Ornith-1.5-35B-A3B-MLX-4bit
+  — GGUF (first-party): https://huggingface.co/ornith-ai/Ornith-1.5-35B-A3B-GGUF
+
 *Excluded 2026-08-18, closed weights and oversized:* **MAI-Code-1-Flash / MAI-Code-1.1-Flash**
 (Microsoft, announced 2026-06-02) — Microsoft's first in-house coding model, 71.6% SWE-bench Verified
 and shipping in GitHub Copilot, but it is a **137B-A5B closed-weight** MoE (~69 GB at 4-bit even if it
@@ -1045,6 +1025,19 @@ probes above exist to measure. Source: https://the-agent-report.com/2026/08/glm-
 *(Also seen and out of scope: Alibaba's **Qwen3.8-2.4T-A95B** open weights, 2026-08-12 — ~1.2 TB at
 4-bit; and DeepSeek's open-sourced plugin-based **agent harness**, 2026-08-13, which is a harness, not
 a model — it belongs next to the §4 harness side-branch if that work resumes.)*
+
+*Also excluded 2026-08-22:* **MiniMax M3** (428B-A23B multimodal MoE, 2026-06-01) — frontier coding and
+agentic performance with 1M context, but **~214 GB at 4-bit**, three times what this box holds, and it
+ships under MiniMax's own community licence rather than a permissive one. **LFM2.5-DSpark** (Liquid AI,
+2026-08-20) — ~300M speculative-decoding drafters, out of scope as *models*, and they draft **only for
+LFM2.5-1.2B / 2.6B / 8B-A1B targets**, so they do nothing for the §3 speculative-decoding lever on our
+Qwen targets; recorded because it also settles the open question in the LFM2.5-2.6B entry above —
+Liquid's own drafters are target-family-locked, which is further reason not to expect LFM2.5 to draft
+for the 35B/80B. **Muse Spark 1.2** (Meta) remains re-check-only: shipped 2026-08-05 with weights
+promised under a modified Llama Community License, but Meta still publishes **no parameter count and no
+architecture**, so there is still nothing to size. Sources:
+https://huggingface.co/MiniMaxAI/MiniMax-M3 ·
+https://www.marktechpost.com/2026/08/20/liquid-ai-releases-lfm2-5-dspark-draft-models-that-deliver-up-to-3-18x-faster-decoding/
 
 ### Swiftlet — a third serving backend (expert streaming), NOT a model  — BUILT, NOT YET SMOKE-TESTED
 

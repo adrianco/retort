@@ -1094,3 +1094,87 @@ server's own answer beside the verdict:
 final rescore, not inline — `retort rescore` had been re-measuring timing with 4 workers, which swung
 one rust cold start from 264 ms to 152 ms; it is now forced to 1 worker whenever runtime is in scope.
 csharp and swift should be re-run before their cells are read as capability results.
+
+## exp-61 — does Hermes 0.20.5 change anything?  — DONE 2026-08-22, null result
+
+**No.** Same requirement coverage, same maintainability, duration distributions that overlap almost
+exactly. The 0.18.2 numbers keep their shelf life and nothing in the blogs needs an asterisk.
+
+Every local number in the corpus (360 runs, exp-17..exp-50) was produced by Hermes v0.18.2. Upstream
+moved to v0.20.5 — 24,167 commits, 161 files and +64,258 lines in the agent core alone, a **new**
+`agent/verify/` subsystem, and a rewritten turn loop (`run_agent.py` +3,663, `turn_context.py` +990,
+`turn_summary.py` new). The hypothesis was that a rewrite that large moves turn count and duration
+before it moves coverage. It moves neither.
+
+Only the 0.20.5 arm ran; the 0.18.2 rows are exp-49's, as designed. Agent level `hermes-0205`.
+
+| stack | version | n | mean | **range** | turns | tokens |
+| --- | --- | --- | --- | --- | --- | --- |
+| m35 | 0.18.2 | 3 | 183 s | **99–343 s** | 12.0 | 288 K |
+| m35 | 0.20.5 | 3 | 203 s | **101–356 s** | 15.7 | 553 K |
+| m80 | 0.18.2 | 3 | 205 s | **137–284 s** | 24.7 | 595 K |
+| m80 | 0.20.5 | 3 | 224 s | **137–300 s** | 16.7 | 491 K |
+
+`requirement_coverage` is **1.00 on all six runs**, matching baseline exactly. Maintainability 1.00
+(m35) and 0.98 (m80), also matching.
+
+**Why this is a null and not a slowdown.** The ranges overlap nearly completely — both m80 minima are
+*identically* 137 s — and turns and tokens move in **opposite directions** across the two stacks
+(m35 up, m80 down). A real effect does not reverse sign between two stacks running the same task.
+The within-cell spread is the story: m35 ran 101 s / 179 K, then 356 s / 1,158 K, on identical
+configuration. At n=3 against that dispersion, a ~10 % mean difference is unreadable.
+
+**Read the single replicates as a cautionary tale.** The first m80 replicate came in at 13 turns
+against a 24.7 baseline and 388 K tokens against 595 K — a spectacular-looking result that was
+called out as such, and that regressed to the mean the moment replicates 2 and 3 landed. Same for
+m35's first replicate at "17 % faster". Neither survived.
+
+### What the experiment was actually worth: three harness bugs
+
+**1. Hermes ≥ 0.20 ignores the spawn cwd** and operates in `$HOME`. The first smoke run scored 0.00
+on everything with no files written; the agent explained it itself — *"The current working directory
+is /Users/… (your home directory), and there is no TASK.md file here."* Measured, same dir + prompt +
+model, only the binary differing: 0.18.2 → `/private/tmp/cwdtest`, 0.20.5 → `$HOME`. Neither
+`--in DIR` nor `--no-restore-cwd` fixes it on the `-z` oneshot path; both were tested. `TERMINAL_CWD`
+does, and `_build_env` now pins it to the playpen. `_assert_inside_playpen_root` could never have
+caught this: the spawn cwd is correct and the agent relocates itself afterwards.
+
+**2. Provenance measured the wrong binary.** `_tool_versions` ran a bare `hermes --version` off PATH
+while every local experiment pins an absolute `serving.hermes_bin` precisely because hermes is
+usually *not* on PATH (exp-43). With two versions installed, the recorded version could describe an
+install that never ran — it would have mislabelled this very experiment. Now resolves the configured
+binary and records `hermes_bin` beside the version. `LocalAgentConfig.bin` was also added so an
+agent *version* can be a level of the agent factor at all; `serving.hermes_bin` is one value per
+stacks file and cannot distinguish two profiles sharing a harness.
+
+**3. The provisioned `venv` was being scored as agent-authored source — the serious one.**
+`SKIP_PARTS` listed `.venv` but not `venv`, which is the name retort itself uses when it provisions
+a venv into each python workspace (added 2026-07-30). Run-time scoring walked
+`venv/lib/python3.x/site-packages`. Recorded vs a rescore of the *same* artifacts:
+
+```
+maintainability   0.27  ->  1.00
+token_efficiency  1.00  ->  0.02
+code_quality      0.83  ->  0.79
+```
+
+Wrong in both directions, and **the token_efficiency 1.00 is the dangerous one** — a perfect score on
+every run reads as a flawless result, not a bug. It hid because `retort rescore` was always right:
+the archived run dir has no venv, only the live playpen does, so recovery silently produced different
+numbers than the run itself. exp-49/50 predate the venv change and are unaffected — their recorded
+maintainability reproduces exactly on rescore. Post-07-30 experiments in master.db do not show the
+signature (token_efficiency 0.01–0.1, not 1.00) but have not been rescored to confirm.
+
+A fourth, smaller one: `--dry-run` rendered a naive replicate-major order while the runner actually
+groups by stack, so the preview claimed six 42 GB stack reloads for a design that performs two. The
+reload key is now computed once and shared by preview and runner.
+
+### Comparability
+
+exp-61 uses exp-49's settings verbatim — same stacks.yaml, `context_threshold` 0.9, per-model
+featured sampling, `max_turns` 200 — with one variable, the Hermes binary. `agent.verify_on_stop`
+stayed **off** in both arms: 0.20.5 ships a real self-verification subsystem, but enabling it is a
+capability change rather than version drift, and mixing the two produces a delta nobody can
+attribute. That is exp-62.
+
+All six exp-61 rows in master.db carry the **rescored** metrics, not the run-time ones.

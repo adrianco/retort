@@ -206,7 +206,7 @@ Reliability is a property of the *stack*, not the model. A leading model on a ba
 |---|---|
 | **Model** | `unsloth/Qwen3.6-35B-A3B-UD-MLX-4bit` (4-bit MLX, ~20 GB) |
 | **Serving** | oMLX 0.5.0 · served from `~/models/<name>` |
-| **Agent** | Hermes v0.18 with the `hermes-lcm` plugin (`context.engine: lcm`) |
+| **Agent** | Hermes v0.18 with the `hermes-lcm` plugin (`context.engine: lcm`). **v0.20.5 measured equivalent** — exp-61 re-ran the featured Python cells on 0.20.5 and found the same requirement coverage (1.00) and maintainability, with duration ranges that overlap the 0.18.2 baseline almost exactly (m80: 137–300 s vs 137–284 s). The figures below stand on either version. **On ≥ 0.20 you must set `TERMINAL_CWD`** to the working directory — the oneshot agent otherwise runs in `$HOME` and writes nothing to the workspace. |
 | **Context** | `context_length: 262144` — set it explicitly; the default fallback is far lower |
 | **Compaction** | `lcm.context_threshold: 0.9` **for the 80B** ("full context" — default 0.35 compacts at ~92K and causes intermittent stalls; 0.7 kills the stalls and 0.9 additionally unlocks TypeScript — see exp-34/38; env override: `LCM_CONTEXT_THRESHOLD=0.9`). The 35B is fine at 0.35. |
 | **Hardware** | Apple Silicon, 64 GB. Raise the GPU wired limit: `sudo sysctl iogpu.wired_limit_mb=57344` |
