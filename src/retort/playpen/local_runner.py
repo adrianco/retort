@@ -1105,6 +1105,18 @@ class LocalRunner:
         """Build environment variables for the agent process."""
         import os
         env = os.environ.copy()
+        # Hermes >= 0.20 ignores the spawn cwd for its terminal/file tools and
+        # operates in $HOME instead, so a playpen run finds no TASK.md, writes
+        # nothing, and the spec gate scores it 0.00 -- a harness fault that reads
+        # exactly like a model failure. Measured on 0.20.5 vs 0.18.2: same dir,
+        # same prompt, same model, 0.18.2 -> /private/tmp/cwdtest,
+        # 0.20.5 -> /Users/<user>. Neither `--in DIR` nor `--no-restore-cwd`
+        # fixes it on the `-z` oneshot path (both verified); TERMINAL_CWD does,
+        # because the terminal and code-exec tools read it directly
+        # (hermes cli.py: `os.getenv("TERMINAL_CWD", os.getcwd())`).
+        # Harmless on 0.18.2, which honours the spawn cwd anyway.
+        if workspace is not None:
+            env["TERMINAL_CWD"] = str(workspace)
         # Disable interactive features
         env["CLAUDE_CODE_NON_INTERACTIVE"] = "1"
 
