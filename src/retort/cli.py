@@ -648,26 +648,37 @@ def run_experiments(
         if skip_keys:
             click.echo(f"Resume: {len(skip_keys)} run(s) already recorded — will skip.")
 
+    # Reload-minimising order. Computed HERE rather than at the execution loop so
+    # the dry-run preview below and the real run below that are driven by the SAME
+    # value — the preview used to render a naive replicate-major order regardless,
+    # which is a lie precisely where it matters: `--dry-run` is what you reach for
+    # to check sequencing, and it showed m35/m80/m35/m80 (a reload per cell) for a
+    # design the runner actually executes grouped (one reload per stack).
+    _reload_key_fn = None
+    if workspace_config.playpen.runner == "local" and workspace_config.playpen.stack_presets:
+        _reload_key_fn = lambda rc: rc.get("stack")  # noqa: E731
+
     if dry_run:
         click.echo("\n[dry-run] Design matrix:")
         if shard_total > 1:
             click.echo(f"Shard: {shard_index}/{shard_total} — only owned cells run.")
+        if _reload_key_fn is not None:
+            click.echo("Order: grouped by stack — each serving stack loads once.")
         will_run = 0
         will_skip = 0
         will_other_shard = 0
-        for rep in range(1, reps + 1):
-            for i, run_config in enumerate(design.run_configs()):
-                config_key = json.dumps(run_config, sort_keys=True)
-                if not _shard_owns(config_key, rep, shard_index, shard_total):
-                    will_other_shard += 1
-                    click.echo(f"  [shrd] Run {i+1} rep {rep}: {run_config}")
-                    continue
-                marker = "skip" if (config_key, rep) in skip_keys else "RUN "
-                if marker == "skip":
-                    will_skip += 1
-                else:
-                    will_run += 1
-                click.echo(f"  [{marker}] Run {i+1} rep {rep}: {run_config}")
+        for rep, i, run_config in _ordered_runs(design.run_configs(), reps, _reload_key_fn):
+            config_key = json.dumps(run_config, sort_keys=True)
+            if not _shard_owns(config_key, rep, shard_index, shard_total):
+                will_other_shard += 1
+                click.echo(f"  [shrd] Run {i+1} rep {rep}: {run_config}")
+                continue
+            marker = "skip" if (config_key, rep) in skip_keys else "RUN "
+            if marker == "skip":
+                will_skip += 1
+            else:
+                will_run += 1
+            click.echo(f"  [{marker}] Run {i+1} rep {rep}: {run_config}")
         msg = f"\nWould execute {will_run} runs ({will_skip} skipped"
         if shard_total > 1:
             msg += f", {will_other_shard} owned by other shards"
@@ -920,9 +931,8 @@ def run_experiments(
     # so each stack loads exactly ONCE, and keep replicate-major *within* the
     # group. Without a reload cost, fall back to plain replicate-major (full
     # coverage first at lower replication). See _ordered_runs.
-    _reload_key_fn = None
-    if runner_type == "local" and workspace_config.playpen.stack_presets:
-        _reload_key_fn = lambda rc: rc.get("stack")  # noqa: E731
+    # _reload_key_fn is computed once, above the dry-run block, so the preview and
+    # this loop can never disagree about execution order.
 
     session = get_session(engine)
     try:
