@@ -27,7 +27,16 @@ def python_stack():
 
 
 @pytest.fixture
-def successful_artifacts(tmp_path):
+def successful_artifacts(tmp_path, shared_pytest_venv):
+    # Reuse the session venv rather than building one and pip-installing
+    # fastapi per test — `find_venv` picks this up and `ensure_python_env`
+    # skips its throwaway-venv path entirely. Four tests share this fixture and
+    # each was paying a real dependency install for a project whose assertions
+    # are about metric names and ranges, not about dependency resolution.
+    try:
+        (tmp_path / "venv").symlink_to(shared_pytest_venv, target_is_directory=True)
+    except OSError:
+        pass
     # Create a fake output directory with some Python files
     src = tmp_path / "app.py"
     src.write_text("from fastapi import FastAPI\napp = FastAPI()\n\n@app.get('/health')\ndef health():\n    return {'status': 'ok'}\n")
@@ -629,6 +638,16 @@ class TestIdiomaticScorer:
 
 
 class TestTestQualityScorer:
+    @pytest.fixture(autouse=True)
+    def _reuse_session_venv(self, tmp_path, shared_pytest_venv):
+        """These assert exact scores from FILE PRESENCE (0.0, 0.25, …), not from
+        dependency resolution — but each was building a throwaway venv anyway,
+        at ~2.9s apiece. Reuse the session one; `find_venv` picks it up."""
+        try:
+            (tmp_path / "venv").symlink_to(shared_pytest_venv, target_is_directory=True)
+        except OSError:
+            pass
+
     def test_no_output_dir_scores_zero(self, python_stack):
         scorer = TestQualityScorer()
         artifacts = RunArtifacts(stdout="", exit_code=0, duration_seconds=1.0)

@@ -116,3 +116,40 @@ def _no_billed_cli_subprocesses(request, monkeypatch):
                         lambda cmd, *a, **kw: _guard(real_run, cmd, *a, **kw))
     monkeypatch.setattr(subprocess, "Popen",
                         lambda cmd, *a, **kw: _guard(real_popen, cmd, *a, **kw))
+
+
+# ---------------------------------------------------------------------------
+# One venv for the whole session, instead of one per test
+# ---------------------------------------------------------------------------
+
+
+@pytest.fixture(scope="session")
+def shared_pytest_venv(tmp_path_factory) -> Path:
+    """A venv with pytest + pytest-cov, built ONCE for the session.
+
+    `ensure_python_env` builds a throwaway venv per call and pip-installs the
+    project's inferred imports into it. That is right in production — sharing
+    one there would let a project that forgot to declare a dependency pass on a
+    neighbour's install — but in the suite it meant a real `pip install fastapi`
+    per test, and test_scoring.py alone was creating eleven of them.
+
+    Tests reuse this by dropping a `venv` symlink into their temp project, which
+    `find_venv` picks up; `ensure_test_deps` then early-returns because pytest
+    already imports. Nothing installs into it, so it cannot accumulate state
+    between tests — the reuse path in `ensure_python_env` never installs.
+
+    NOT for tests of the venv machinery itself (`TestPythonEnvPreparation`):
+    the reuse path deliberately skips dependency inference, which is the thing
+    those tests exist to exercise.
+    """
+    import subprocess
+    import sys
+
+    root = tmp_path_factory.mktemp("shared-venv")
+    venv = root / "venv"
+    subprocess.run([sys.executable, "-m", "venv", str(venv)],
+                   capture_output=True, timeout=180, check=True)
+    subprocess.run([str(venv / "bin" / "pip"), "install", "-q",
+                    "pytest", "pytest-cov"],
+                   capture_output=True, timeout=300, check=True)
+    return venv
