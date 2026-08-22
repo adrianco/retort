@@ -23,6 +23,19 @@ SKIP_PARTS = {
     # ~1000x (measured: 834K vs ~500 authored lines), wrecking every per-file
     # metric (defect_rate, maintainability, token_efficiency, idiomatic).
     ".build",
+    # `venv` (no dot) is the venv retort itself provisions INTO each python
+    # workspace (local_runner.PYTHON_VENV_DIR, added 2026-07-30 "provision a venv
+    # per workspace"). Only the dotted `.venv` was listed, so run-time scoring
+    # walked venv/lib/python3.x/site-packages and scored the standard library as
+    # if the agent had written it -- the same failure the `.build` note above
+    # describes, from a directory we create ourselves.
+    #
+    # Measured on exp-61: maintainability recorded 0.27 where a rescore of the
+    # SAME artifacts gives 1.00, and token_efficiency recorded a perfect 1.00
+    # where the truth is 0.02. Wrong in both directions, and the 1.00 is the
+    # dangerous one -- it reads as a flawless result. `retort rescore` was always
+    # correct because the archived run dir has no venv; only the live playpen does.
+    "venv", "site-packages", ".pytest_cache", ".tox", ".mypy_cache",
 }
 
 
