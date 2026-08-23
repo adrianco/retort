@@ -29,14 +29,18 @@ cd "$REPO"
 
 # Refuse if the index already holds anything else — an interactive session may
 # have staged work we must not commit on its behalf.
+# An interactive session may have staged work. It used to be a hard refusal,
+# which meant the scan lost its whole run -- including the heartbeat, whose only
+# job is to make an outage visible. Since the commit below is pinned to
+# `-- "$FILE"`, nothing else can ride along no matter what the index holds, so
+# the guarantee is now enforced by construction rather than by giving up.
 staged_other="$(git diff --cached --name-only | grep -v "^${FILE}$" || true)"
 if [ -n "$staged_other" ]; then
-  echo "REFUSING: files other than $FILE are already staged:" >&2
-  echo "$staged_other" >&2
-  exit 1
+  echo "NOTE: other files are staged by another session; committing only $FILE:" >&2
+  echo "$staged_other" | sed 's/^/  /' >&2
 fi
 
-if git diff --quiet -- "$FILE" && git diff --cached --quiet -- "$FILE"; then
+if git diff --quiet HEAD -- "$FILE"; then
   echo "No change to $FILE — nothing to commit."
   exit 0
 fi
@@ -50,13 +54,24 @@ case "$n" in
   ''|*[!0-9]*) echo "REFUSING: candidate count must be a number, got '$n'" >&2; exit 1 ;;
 esac
 
+# COMMIT FIRST, REBASE ONLY IF THE PUSH IS REJECTED.
+#
+# The original order was: stage -> pull --rebase --autostash -> commit -> push.
+# That lost the commit every day the remote had moved and the tree was dirty.
+# `--autostash` stashes the index, rebases, then pops WITHOUT `--index`, so the
+# file staged a moment earlier comes back UNSTAGED; `git commit` found an empty
+# index, exited 1, and `set -e` killed the script before it ever pushed. The
+# pull returns 0, so the conflict check never caught it, and the edit survived
+# unstaged in the working tree -- which is why 2026-08-22's heartbeat looked
+# like it had simply not happened, and was later swept into an unrelated
+# interactive commit instead of its own.
+#
+# Committing first also means the common case (remote unchanged) touches the
+# remote once and never rebases at all, so a concurrent interactive session's
+# index is left completely alone.
 git add -- "$FILE"
-
-# Rebase onto origin first so the push is a fast-forward. --autostash protects
-# any unrelated working-tree changes; a conflict aborts rather than resolving.
-if ! git pull --rebase --autostash; then
-  echo "REFUSING: pull --rebase hit a conflict; aborting and leaving the edit staged." >&2
-  git rebase --abort 2>/dev/null || true
+if git diff --cached --quiet -- "$FILE"; then
+  echo "REFUSING: $FILE did not stage; refusing to commit blind." >&2
   exit 1
 fi
 
@@ -65,11 +80,23 @@ fi
 # nothing leaves no trace, so a silently-stopped scheduler and a slow news week
 # look identical in the file. (One went unnoticed for six days from 2026-07-28.)
 if [ "$n" -eq 0 ]; then
-  git commit -m "scan heartbeat: no new 64GB-fittable coding models this cycle"
+  git commit -m "scan heartbeat: no new 64GB-fittable coding models this cycle" -- "$FILE"
 else
-  git commit -m "candidates: ${n} new 64GB-fittable coding model(s) from daily scan"
+  git commit -m "candidates: ${n} new 64GB-fittable coding model(s) from daily scan" -- "$FILE"
 fi
-git push
+if ! git push 2>/dev/null; then
+  echo "push rejected -- remote moved; rebasing onto it and retrying once." >&2
+  if ! git pull --rebase --autostash; then
+    echo "REFUSING: pull --rebase hit a conflict. The commit is made locally but" >&2
+    echo "NOT pushed; resolve by hand and push." >&2
+    git rebase --abort 2>/dev/null || true
+    exit 1
+  fi
+  if ! git push; then
+    echo "FAILED: still could not push after rebasing. Commit is local only." >&2
+    exit 1
+  fi
+fi
 
 if [ "$n" -eq 0 ]; then
   echo "Committed and pushed the scan heartbeat (no new candidates)."
