@@ -1,0 +1,5 @@
+mcp<2,>=1.28.1
+pydantic<3,>=2.12
+
+[dev]
+pytest>=8.0

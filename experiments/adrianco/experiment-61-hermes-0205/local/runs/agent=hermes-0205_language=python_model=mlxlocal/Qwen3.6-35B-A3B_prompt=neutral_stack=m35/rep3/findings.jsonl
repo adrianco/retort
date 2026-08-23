@@ -1,0 +1,1 @@
+{"id": "R3", "kind": "enhancement", "severity": "info", "title": "?author= filter is a substring (LIKE %..%) match", "evidence": "app.py:118 'SELECT * FROM books WHERE author LIKE ?' with f'%{author}%'", "suggestion": "Acceptable per spec; note it is substring not exact match. No action required."}

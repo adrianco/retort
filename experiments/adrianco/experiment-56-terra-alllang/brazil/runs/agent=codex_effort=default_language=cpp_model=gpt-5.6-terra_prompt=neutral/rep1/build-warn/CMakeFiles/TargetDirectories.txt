@@ -1,6 +1,6 @@
-/Users/adriancockcroft/.retort/work/retort-local-jxz4n5uh/retort-3ee4a0ee2363/build-warn/CMakeFiles/soccer_core.dir
-/Users/adriancockcroft/.retort/work/retort-local-jxz4n5uh/retort-3ee4a0ee2363/build-warn/CMakeFiles/brazilian-soccer-mcp.dir
-/Users/adriancockcroft/.retort/work/retort-local-jxz4n5uh/retort-3ee4a0ee2363/build-warn/CMakeFiles/soccer_tests.dir
-/Users/adriancockcroft/.retort/work/retort-local-jxz4n5uh/retort-3ee4a0ee2363/build-warn/CMakeFiles/test.dir
-/Users/adriancockcroft/.retort/work/retort-local-jxz4n5uh/retort-3ee4a0ee2363/build-warn/CMakeFiles/edit_cache.dir
-/Users/adriancockcroft/.retort/work/retort-local-jxz4n5uh/retort-3ee4a0ee2363/build-warn/CMakeFiles/rebuild_cache.dir
+/Users/adriancockcroft/code/retort/experiments/adrianco/experiment-56-terra-alllang/brazil/runs/agent=codex_effort=default_language=cpp_model=gpt-5.6-terra_prompt=neutral/rep1/build-warn/CMakeFiles/soccer_core.dir
+/Users/adriancockcroft/code/retort/experiments/adrianco/experiment-56-terra-alllang/brazil/runs/agent=codex_effort=default_language=cpp_model=gpt-5.6-terra_prompt=neutral/rep1/build-warn/CMakeFiles/brazilian-soccer-mcp.dir
+/Users/adriancockcroft/code/retort/experiments/adrianco/experiment-56-terra-alllang/brazil/runs/agent=codex_effort=default_language=cpp_model=gpt-5.6-terra_prompt=neutral/rep1/build-warn/CMakeFiles/soccer_tests.dir
+/Users/adriancockcroft/code/retort/experiments/adrianco/experiment-56-terra-alllang/brazil/runs/agent=codex_effort=default_language=cpp_model=gpt-5.6-terra_prompt=neutral/rep1/build-warn/CMakeFiles/test.dir
+/Users/adriancockcroft/code/retort/experiments/adrianco/experiment-56-terra-alllang/brazil/runs/agent=codex_effort=default_language=cpp_model=gpt-5.6-terra_prompt=neutral/rep1/build-warn/CMakeFiles/edit_cache.dir
+/Users/adriancockcroft/code/retort/experiments/adrianco/experiment-56-terra-alllang/brazil/runs/agent=codex_effort=default_language=cpp_model=gpt-5.6-terra_prompt=neutral/rep1/build-warn/CMakeFiles/rebuild_cache.dir

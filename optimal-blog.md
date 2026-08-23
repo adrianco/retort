@@ -53,19 +53,19 @@ The machine-readable form of the table below is committed at **[`optimal.json`](
 <!-- GEN:per-language-routing START -->
 | Language | Routine → cloud | pass | $ | Routine → local | Hard → cloud | pass | $ |
 |---|---|---:|---:|---|---|---:|---:|
-| **c** | GPT-5.6 Terra @ `default` <sub>n=1</sub> | 1.00 | $0.26 | — | GPT-5.6 Terra @ `default` <sub>n=1</sub> | 1.00 | $0.40 |
-| **clojure** | GPT-5.6 Terra @ `default` <sub>n=1</sub> | 1.00 | $0.33 | — | GPT-5.6 Terra @ `default` <sub>n=1</sub> | 1.00 | $0.57 |
-| **cpp** | GPT-5.6 Terra @ `default` <sub>n=1</sub> | 1.00 | $0.26 | — | GPT-5.6 Terra @ `default` <sub>n=1</sub> | 1.00 | $0.33 |
-| **csharp** | GPT-5.6 Terra @ `default` <sub>n=1</sub> | 1.00 | $0.26 | — | GPT-5.6 Terra @ `default` <sub>n=1</sub> | 1.00 | $1.36 |
-| **elixir** | GPT-5.6 Terra @ `default` <sub>n=1</sub> | 1.00 | $0.42 | — | GPT-5.6 Terra @ `default` <sub>n=1</sub> | 1.00 | $0.67 |
-| **erlang** | GPT-5.6 Terra @ `default` <sub>n=1</sub> | 1.00 | $0.34 | — | GPT-5.6 Terra @ `default` <sub>n=1</sub> | 1.00 | $0.49 |
+| **c** | GPT-5.6 Terra @ `default` <sub>n=1</sub> | 1.00 | $0.26 | — | GPT-5.6 Terra @ `default` <sub>n=2</sub> | 1.00 | $0.57 |
+| **clojure** | GPT-5.6 Terra @ `default` <sub>n=1</sub> | 1.00 | $0.33 | — | Opus 5 @ `default` <sub>n=1</sub> | 1.00 | $2.55 |
+| **cpp** | GPT-5.6 Terra @ `default` <sub>n=1</sub> | 1.00 | $0.26 | — | Opus 5 @ `default` <sub>n=1</sub> | 1.00 | $17.50 |
+| **csharp** | GPT-5.6 Terra @ `default` <sub>n=1</sub> | 1.00 | $0.26 | — | Sonnet 5 @ `default` <sub>n=3</sub> | 1.00 | $9.96 |
+| **elixir** | GPT-5.6 Terra @ `default` <sub>n=1</sub> | 1.00 | $0.42 | — | Fable 5 @ `default` <sub>n=1</sub> | 1.00 | $13.21 |
+| **erlang** | GPT-5.6 Terra @ `default` <sub>n=1</sub> | 1.00 | $0.34 | — | Fable 5 @ `default` <sub>n=1</sub> | 1.00 | $12.06 |
 | **go** | GPT-5.6 Luna @ `default` <sub>n=3</sub> | 1.00 | $0.08 | Qwen3-Coder-Next 80B @ `default` <sub>n=3</sub> | GPT-5.6 Terra @ `low` <sub>n=1</sub> | 1.00 | $0.39 |
-| **java** | GPT-5.6 Terra @ `default` <sub>n=1</sub> | 1.00 | $0.38 | — | GPT-5.6 Terra @ `default` <sub>n=1</sub> | 1.00 | $0.49 |
+| **java** | GPT-5.6 Terra @ `default` <sub>n=1</sub> | 1.00 | $0.38 | — | GPT-5.6 Terra @ `default` <sub>n=2</sub> | 1.00 | $0.69 |
 | **objc** | GPT-5.6 Terra @ `default` <sub>n=1</sub> | 1.00 | $0.24 | — | Fable 5 @ `default` <sub>n=1</sub> | 1.00 | $13.30 |
 | **python** | GPT-5.6 Luna @ `default` <sub>n=3</sub> | 1.00 | $0.06 | Qwen3-Coder-Next 80B @ `default` <sub>n=3</sub> | GPT-5.6 Terra @ `high` <sub>n=1</sub> | 1.00 | $0.31 |
-| **rust** | GPT-5.6 Terra @ `default` <sub>n=1</sub> | 1.00 | $0.14 | — | GPT-5.6 Terra @ `default` <sub>n=1</sub> | 1.00 | $0.37 |
-| **swift** | GPT-5.6 Terra @ `default` <sub>n=1</sub> | 1.00 | $0.22 | — | GPT-5.6 Terra @ `default` <sub>n=1</sub> | 1.00 | $0.37 |
-| **typescript** | GPT-5.6 Terra @ `default` <sub>n=1</sub> | 1.00 | $0.22 | Qwen3-Coder-Next 80B @ `default` <sub>n=3</sub> | GPT-5.6 Terra @ `default` <sub>n=1</sub> | 1.00 | $0.15 |
+| **rust** | GPT-5.6 Terra @ `default` <sub>n=1</sub> | 1.00 | $0.14 | — | GPT-5.6 Terra @ `default` <sub>n=2</sub> | 1.00 | $0.36 |
+| **swift** | GPT-5.6 Terra @ `default` <sub>n=1</sub> | 1.00 | $0.22 | — | Fable 5 @ `default` <sub>n=1</sub> | 1.00 | $9.24 |
+| **typescript** | GPT-5.6 Terra @ `default` <sub>n=1</sub> | 1.00 | $0.22 | Qwen3-Coder-Next 80B @ `default` <sub>n=3</sub> | GPT-5.6 Terra @ `default` <sub>n=2</sub> | 1.00 | $0.44 |
 <!-- GEN:per-language-routing END -->
 
 > **Reading the `effort` column.** Almost every cell says `default`, and that is an honest statement rather than a recommendation: **thinking level has only ever been *varied* on one cell** (python × bookshop, exp-49). Everywhere else the corpus has exactly one measured level, so the router reports the level those runs actually used and does not imply a comparison nobody made. Where the dial *was* swept, the finding was consistent — `low` cost ~1.6× less than the CLI default at identical reliability, and the default is not the cheap end. Expect these to shift toward `low` as the sweep widens.
@@ -85,12 +85,12 @@ Reliability, cost and time are all reported **per task size** — routine and ha
 |---|---:|---:|---:|
 | **Claude Opus 5** | 1.00 · 1.00 | $3.23 · $26.48 | 546 s · 2669 s |
 | **Claude Fable 5** | 1.00 · 1.00 | $1.58 · $10.47 | 166 s · 1090 s |
-| **GPT-5.6 Terra (codex)** | 1.00 · 0.96 | $0.24 · $1.44 | 163 s · 770 s |
+| **GPT-5.6 Terra (codex)** | 1.00 · 0.79 | $0.24 · $1.18 | 163 s · 615 s |
 | **GPT-5.6 Luna (codex)** | 0.67 · 0.33 | $0.09 · $0.17 | 153 s · 170 s |
 | **Claude Sonnet 5** | 1.00 · 0.93 | $1.10 · $7.64 | 237 s · 1252 s |
 | **Claude Opus 4.8** | 0.98 · 0.59 | $0.93 · $3.27 | 258 s · 608 s |
 | **Claude Opus 4.7** | 1.00 · 0.40 | $0.92 · $2.95 | 165 s · 500 s |
-| **Qwen3.6-35B-A3B (local, $0)** | 0.86 · 0.25 | $0.00 · $0.00 | 355 s · 1542 s |
+| **Qwen3.6-35B-A3B (local, $0)** | 0.87 · 0.25 | $0.00 · $0.00 | 348 s · 1542 s |
 | **Qwen3-Coder-Next 80B (local, $0, ctx 0.9)** | 1.00 · 0.00 | $0.00 · $0.00 | 604 s · 2014 s |
 <!-- GEN:leading-stacks END -->
 
@@ -150,7 +150,7 @@ Reliability, cost and time are all reported **per task size** — routine and ha
 | **go** | 1.00 (10) | 1.00 (3) | 1.00 (10) | 1.00 (3) | 1.00 (3) | 1.00 (7) | 1.00 (6) | 0.85 (27) | 1.00 (3) |
 | **java** | 1.00 (1) | 1.00 (1) | 1.00 (1) | — | — | 0.83 (6) | 1.00 (6) | — | 0.00 (3) |
 | **objc** | 1.00 (1) | 1.00 (1) | 1.00 (1) | — | — | 1.00 (1) | — | — | — |
-| **python** | 1.00 (26) | 1.00 (18) | 1.00 (10) | 1.00 (3) | 1.00 (3) | 1.00 (22) | 1.00 (21) | 0.87 (30) | 1.00 (3) |
+| **python** | 1.00 (26) | 1.00 (18) | 1.00 (10) | 1.00 (3) | 1.00 (3) | 1.00 (22) | 1.00 (21) | 0.88 (33) | 1.00 (3) |
 | **rust** | 1.00 (1) | 1.00 (3) | 1.00 (1) | — | 1.00 (3) | 1.00 (6) | 1.00 (6) | 0.00 (2) | 0.33 (3) |
 | **swift** | 1.00 (1) | 1.00 (1) | 1.00 (1) | — | — | 1.00 (1) | — | — | — |
 | **typescript** | 1.00 (1) | 1.00 (1) | 1.00 (1) | 0.00 (3) | 1.00 (3) | 1.00 (7) | 1.00 (6) | 0.00 (3) | 1.00 (3) |

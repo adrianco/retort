@@ -1,1 +1,1 @@
-{"code_quality": 0.8333333333333334, "token_efficiency": 0.73088809814526, "test_coverage": 0.86, "defect_rate": 1.0, "maintainability": 0.2574093911852076, "idiomatic": 0.78, "factual_accuracy": 1.0, "runtime": 0.16729597887024283}
+{"code_quality": 0.8333333333333334, "token_efficiency": 0.008325434529617037, "test_coverage": 0.81, "defect_rate": 1.0, "maintainability": 0.41150189721806746, "idiomatic": 0.78, "factual_accuracy": 1.0, "runtime": 0.13367537502199411}

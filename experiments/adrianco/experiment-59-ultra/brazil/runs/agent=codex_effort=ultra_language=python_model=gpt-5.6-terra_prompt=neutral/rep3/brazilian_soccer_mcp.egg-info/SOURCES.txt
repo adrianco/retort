@@ -1,0 +1,11 @@
+README.md
+main.py
+pyproject.toml
+server.py
+soccer_knowledge_graph.py
+brazilian_soccer_mcp.egg-info/PKG-INFO
+brazilian_soccer_mcp.egg-info/SOURCES.txt
+brazilian_soccer_mcp.egg-info/dependency_links.txt
+brazilian_soccer_mcp.egg-info/entry_points.txt
+brazilian_soccer_mcp.egg-info/requires.txt
+brazilian_soccer_mcp.egg-info/top_level.txt

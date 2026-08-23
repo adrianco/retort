@@ -1,0 +1,62 @@
+# Experiment 61 (bookshop half) — Hermes 0.20.5 re-measurement.
+#
+# WHAT THIS IS. Every local number in the corpus (360 runs, exp-17..exp-50) was
+# produced by Hermes v0.18.2. Upstream is now v0.20.5 — 24,167 commits, and in the
+# paths that run an agentic coding task it is not a patch release: 161 files and
+# +64,258 lines in the agent core, a NEW agent/verify/ subsystem, and a rewritten
+# turn loop (run_agent.py +3,663, turn_context.py +990, turn_summary.py new).
+#
+# WHY THESE CELLS. exp-49 and exp-50 are the only Hermes experiments carrying a
+# `turns` value — the usage parser dropped Hermes's api_calls before then. Since
+# 0.20.5's changes are concentrated in the turn loop, turn count is the most
+# sensitive detector we have, so the instrumented cells lead. This half is the
+# exp-49 pair (python x m35, python x m80); the brazil half is separate because
+# its task source and timeouts differ.
+#
+# ONLY THE NEW ARM RUNS. We already own the 0.18.2 numbers; they ARE the baseline.
+# Re-running them would burn hours to reproduce rows we have. The comparison is a
+# GROUP BY agent against master.db, which is why the level is named for the
+# version instead of reusing `hermes-local`.
+#
+# SETTINGS ARE exp-49's VERBATIM — the canonical featured settings per model, same
+# stacks.yaml, same context_threshold 0.9, same sampling, same max_turns. One
+# variable: the Hermes binary.
+#
+# verify_on_stop STAYS OFF. 0.20.5 ships a real self-verification subsystem and our
+# config disables it. Turning it on is a capability change, not version drift;
+# mixing the two produces a delta nobody can attribute. That is exp-62.
+experiment:
+  name: experiment-61-hermes-0205-bookshop
+  visibility: public
+factors:
+  language: { levels: [python, go] }                 # design pins python
+  agent: { levels: [hermes-0205, hermes-local] }     # design pins hermes-0205
+  prompt: { levels: [neutral, none] }                # design pins neutral
+  stack: { levels: [m35, m80] }
+  model:
+    levels:
+      - mlxlocal/Qwen3.6-35B-A3B
+      - mlxlocal/mlx-community--Qwen3-Coder-Next-4bit
+responses: [code_quality, token_efficiency, test_coverage, defect_rate, maintainability, idiomatic]
+tasks:
+  - source: bundled://rest-api-crud
+playpen:
+  runner: local
+  replicates: 3
+  timeout_minutes: 60
+  stall_minutes: 25
+  max_turns: 200
+  stack_presets: stacks.yaml
+  prompts_dir: prompts
+  local_agents:
+    # `bin` pins THIS profile's executable. serving.hermes_bin is one value per
+    # stacks file, so without a per-profile override every hermes level in a
+    # design resolves to the same binary and a version comparison silently runs
+    # one version twice.
+    hermes-0205:
+      harness: hermes
+      bin: /Users/adriancockcroft/code/hermes-agent/.venv/bin/hermes
+    hermes-local: { harness: hermes }
+design: { screening_resolution: 3, significance_threshold: 0.10 }
+promotion: { screening_to_trial: { p_value: 0.10 }, trial_to_production: { posterior_confidence: 0.80 } }
+evaluation: { enabled: true, model: opus-4.8 }
