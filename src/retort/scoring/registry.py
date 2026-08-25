@@ -132,6 +132,12 @@ def create_default_registry() -> ScorerRegistry:
     # mcp_client_facts.py for why a client-driven check is more lenient.
     from retort.scoring.scorers.mcp_client_facts import McpClientFactsScorer
     registry.register(McpClientFactsScorer())
+    # Did a `tooling: graphify` run actually CONSULT the graph? Without this a
+    # cell where the agent ignored it is indistinguishable from `tooling: none`,
+    # and the experiment publishes a confident "the graph does not help" having
+    # measured nothing. NULL when there is no transcript to search.
+    from retort.scoring.scorers.graph_usage import GraphUsageScorer
+    registry.register(GraphUsageScorer())
     # build_time was removed in favor of the raw `_duration_seconds`
     # telemetry written automatically by cli._store_run_result. Use that
     # column in retort analyze / report effects for timing analysis.
