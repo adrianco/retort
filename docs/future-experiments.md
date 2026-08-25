@@ -172,6 +172,30 @@ presets:
     hermes: { verify_on_stop: true }
 ```
 
+### Smoke-test pass criterion, fixed BEFORE the results (2026-08-25)
+
+Traced how Hermes consumes the setting, so the smoke has a defined discriminator rather than a
+post-hoc judgement:
+
+- `agent/verification_stop.py::verify_on_stop_enabled()` reads `agent.verify_on_stop`, and an
+  explicit bool forces the behaviour in either direction.
+- When enabled, `build_verify_on_stop_nudge()` injects a synthetic follow-up turn whose text contains
+  **`Run the relevant verification command now (`**. That string is the fingerprint.
+
+**PASS = the string appears in the verify-ON arm's agent log and NOT in the verify-OFF arm's.** A
+turn-count delta alone is not sufficient: turns move for unrelated reasons, and exp-61 showed
+within-cell spread dominating on exactly this stack.
+
+Three hazards checked and cleared while tracing:
+
+| hazard | status |
+|---|---|
+| `HERMES_VERIFY_ON_STOP` env var **overrides the config entirely** | not set in the shell, profiles, or anywhere retort sets — config governs |
+| migration v31 rewrites `verify_on_stop` | only touches `None`/`"auto"`; an explicit bool is preserved |
+| migration v32 flips a literal `true` **to false** | version-gated and already past — live config is at `_config_version: 33`; v34-38 remain and none reference the key |
+
+That last one would have silently forced arm B to false and produced a confident null.
+
 **Still required before the grid: a smoke test that `verify_on_stop` actually takes effect** — run
 one cell per arm and confirm from the agent log that the verify subsystem ran in the `true` arm and
 did not in the `false` arm. "I set it" is not "it took effect"; that is the first principle in
