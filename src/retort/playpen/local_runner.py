@@ -441,10 +441,16 @@ class LocalRunner:
                 import yaml as _yaml
 
                 cfg = _yaml.safe_load(Path(cfg_path).read_text()) or {}
-                data["hermes"] = {
-                    k: cfg.get(k)
-                    for k in ("model", "context_length", "max_turns")
-                }
+                # Record the EFFECTIVE agent config, including any per-preset
+                # overrides. `verify_on_stop` is here because exp-62 varies it as
+                # its only factor: a setting that is not recorded cannot be
+                # verified afterwards, and CLAUDE.md's first principle is that a
+                # parameter set-but-not-verified is worse than none.
+                keys = ["model", "context_length", "max_turns", "verify_on_stop"]
+                all_presets = getattr(self.stack_manager, "presets", {}) or {}
+                overrides = (all_presets.get(preset) or {}).get("hermes") or {}
+                keys += [str(k) for k in overrides if str(k) not in keys]
+                data["hermes"] = {k: cfg.get(k) for k in keys}
             presets = getattr(self.stack_manager, "presets", {}) or {}
             if preset in presets:
                 p = presets[preset]

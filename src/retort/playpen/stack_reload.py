@@ -115,6 +115,13 @@ def _sig(preset: dict[str, Any]) -> tuple:
     between cells instead of silently reusing the previous budget.
     """
     s = preset.get("sampling", {}) or {}
+    # `hermes` overrides are in the signature for the same reason `cache_gb` is:
+    # two arms that differ ONLY in an agent setting produce an identical
+    # signature otherwise, `ensure()` returns early, and the second arm silently
+    # runs on the first arm's config. That is not a slow reload, it is a
+    # confidently wrong result — exp-62 varies `verify_on_stop` and nothing else,
+    # so without this it would measure one arm twice.
+    h = preset.get("hermes", {}) or {}
     return (
         preset.get("model"),
         preset.get("gguf"),
@@ -122,7 +129,17 @@ def _sig(preset: dict[str, Any]) -> tuple:
         preset.get("cache_gb"),
         preset.get("context_length"),
         tuple((k, s.get(k)) for k in _SAMPLING_KEYS),
+        tuple(sorted((str(k), _hashable(v)) for k, v in h.items())),
     )
+
+
+def _hashable(v: Any) -> Any:
+    """Make a nested config value usable in a signature tuple."""
+    if isinstance(v, dict):
+        return tuple(sorted((str(k), _hashable(x)) for k, x in v.items()))
+    if isinstance(v, list):
+        return tuple(_hashable(x) for x in v)
+    return v
 
 
 def make_stack_manager(registry_path: str | Path) -> "_BaseStackManager":
@@ -222,7 +239,8 @@ class _BaseStackManager:
         subprocess.Popen(cmd, stdout=log_f, stderr=log_f, start_new_session=True)
 
     def _ensure_hermes_model(
-        self, model: str, context_length: int | None, max_turns: int | None = None
+        self, model: str, context_length: int | None, max_turns: int | None = None,
+        overrides: dict[str, Any] | None = None,
     ) -> None:
         """Point Hermes at this preset's model, WITHOUT losing its context length.
 
@@ -272,6 +290,14 @@ class _BaseStackManager:
                 models[model] = entry
                 changed = True
             prov["models"] = models
+        # Arbitrary per-preset agent settings, written LAST so a preset can
+        # override anything above it. This is what lets an experiment vary an
+        # agent capability (`verify_on_stop`) as a factor instead of editing a
+        # single shared config file by hand between arms.
+        for key, value in (overrides or {}).items():
+            if cfg.get(key) != value:
+                cfg[key] = value
+                changed = True
         if changed:
             cfg_path.write_text(yaml.safe_dump(cfg, sort_keys=False))
 
@@ -320,7 +346,8 @@ class OmlxStackManager(_BaseStackManager):
     def _apply(self, preset: dict) -> None:
         self._write_sampling(preset.get("sampling", {}) or {})
         self._ensure_hermes_model(
-            preset["model"], preset.get("context_length"), self.agent_max_turns
+            preset["model"], preset.get("context_length"), self.agent_max_turns,
+            preset.get("hermes"),
         )
         self._restart_server()
         self._wait_ready(preset["model"])
@@ -366,7 +393,8 @@ class LlamaCppStackManager(_BaseStackManager):
         # llama-server takes sampling as launch-time defaults, so there is no
         # separate settings write — it's folded into the restart.
         self._ensure_hermes_model(
-            preset["model"], preset.get("context_length"), self.agent_max_turns
+            preset["model"], preset.get("context_length"), self.agent_max_turns,
+            preset.get("hermes"),
         )
         self._restart_server(preset)
         self._wait_ready(preset["model"])
@@ -437,7 +465,8 @@ class SwiftletStackManager(_BaseStackManager):
     def _apply(self, preset: dict) -> None:
         self._check_sampling(preset)
         self._ensure_hermes_model(
-            preset["model"], preset.get("context_length"), self.agent_max_turns
+            preset["model"], preset.get("context_length"), self.agent_max_turns,
+            preset.get("hermes"),
         )
         self._restart_server(preset)
         self._wait_ready(preset["model"])
