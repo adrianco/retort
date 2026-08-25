@@ -172,6 +172,27 @@ presets:
     hermes: { verify_on_stop: true }
 ```
 
+### Timeout must be raised for the grid — the confound is DIRECTIONAL (2026-08-25)
+
+Measured across hermes/bookshop runs in master.db before launching the grid:
+
+| language | n | min | avg | max |
+|---|---:|---:|---:|---:|
+| rust | 35 | 0.4 | **20.9 min** | **60.0 min** |
+| go | 79 | 0.8 | 8.9 | 32.3 |
+| python | 112 | 0.4 | 5.8 | 20.7 |
+
+Rust's max is *exactly* 60.0 — the `timeout_minutes: 60` ceiling, i.e. a truncation, not a
+completion. Only 1 of 35 (3%) actually hits it, so rust is genuinely slow rather than mass-truncated,
+and ~21 min/cell makes a 6-cell grid roughly 3 hours with judge and second chances.
+
+**But the exposure is not symmetric between the arms.** Verify-on-stop works by INJECTING a synthetic
+follow-up turn, so the ON arm is systematically longer and therefore likelier to be truncated. A
+truncated ON cell would score worse for running out of clock rather than for failing the task — the
+experiment would measure the timeout and report it as the capability. `timeout_minutes` is therefore
+raised to 90 for the grid so neither arm can be cut off. Both arms share the value, so internal
+validity is unaffected; only cross-experiment duration comparisons need the note.
+
 ### Smoke-test pass criterion, fixed BEFORE the results (2026-08-25)
 
 Traced how Hermes consumes the setting, so the smoke has a defined discriminator rather than a

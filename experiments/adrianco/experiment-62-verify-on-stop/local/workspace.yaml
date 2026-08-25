@@ -45,7 +45,13 @@ tasks:
 playpen:
   runner: local
   replicates: 3
-  timeout_minutes: 60
+  # 90, not 60. Rust averages 20.9 min on this stack and its historical MAX is
+  # exactly 60.0 — the old ceiling, i.e. a truncation. Verify-on-stop injects an
+  # extra turn, so the ON arm is systematically longer and its truncation
+  # exposure is HIGHER than the OFF arm's: a cut-off ON cell would score worse
+  # for running out of clock rather than for failing, and the experiment would
+  # report the timeout as the capability.
+  timeout_minutes: 90
   stall_minutes: 25
   max_turns: 200
   stack_presets: stacks.yaml
