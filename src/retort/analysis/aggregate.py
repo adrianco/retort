@@ -122,6 +122,46 @@ def model_from_archives(exp_dir: Path) -> str:
     return models.pop() if len(models) == 1 else ""
 
 
+def models_from_agent_profiles(exp_dir: Path) -> dict[str, str]:
+    """``{agent_profile: model}`` declared in the workspace's ``local_agents``.
+
+    The second recoverable source of a missing model, and for exp-16..exp-27 the
+    ONLY one: those runs predate the model being written into ``stack.json``
+    (verified — every archive from exp-16 to exp-27 has no ``model`` key, exp-28
+    onward has one), so ``model_from_archives`` correctly returns nothing and 251
+    rows aggregate blank. Their designs do name the model, just not as a design
+    column: ``playpen.local_agents.<name>.model``.
+
+    This is DESIGN-DECLARED, not inferred from the experiment slug — the same
+    grade of evidence as a `model` factor level, which is why it is safe to write
+    into the column rather than curate downstream.
+
+    Keyed BY AGENT because an experiment can run two models at once: exp-12
+    declares `qwen-local: lmlocal/qwen2.5-coder:7b` alongside
+    `llama-local: lmlocal/llama3.2:3b`. A single per-experiment value would
+    mis-attribute half its rows — the exact failure `model_from_archives`
+    guards against by refusing multi-model experiments.
+    """
+    out: dict[str, str] = {}
+    ws = exp_dir / "workspace.yaml"
+    if not ws.exists():
+        return out
+    try:
+        import yaml
+
+        cfg = yaml.safe_load(ws.read_text()) or {}
+    except Exception:  # noqa: BLE001 — a damaged config must not break aggregation
+        return out
+    agents = ((cfg.get("playpen") or {}).get("local_agents") or {})
+    if not isinstance(agents, dict):
+        return out
+    for name, spec in agents.items():
+        model = (spec or {}).get("model") if isinstance(spec, dict) else None
+        if isinstance(name, str) and isinstance(model, str) and model:
+            out[name] = model
+    return out
+
+
 def judge_for(exp_dir: Path) -> str:
     """Which judge graded this experiment, as ``harness:model`` (or "" if unknown).
 
@@ -243,6 +283,7 @@ def collect_runs(experiments_dir: Path) -> list[dict]:
         judge = judge_for(parent)
         # Recover a model the design didn't name as a column (see docstring).
         fallback_model = model_from_archives(parent)
+        profile_models = models_from_agent_profiles(parent)
         con = sqlite3.connect(f"file:{db}?mode=ro", uri=True)
         con.row_factory = sqlite3.Row
         try:
@@ -264,8 +305,10 @@ def collect_runs(experiments_dir: Path) -> list[dict]:
             _SEEN_FACTOR_KEYS.update(k for k in cfg if k not in _NON_FACTOR_KEYS)
             for f in FACTORS:
                 row[f] = cfg.get(f)
-            if not row.get("model") and fallback_model:
-                row["model"] = fallback_model
+            if not row.get("model"):
+                # Archives first (the effective model the runner recorded), then
+                # the design's own agent profile keyed by THIS row's agent.
+                row["model"] = fallback_model or profile_models.get(row.get("agent")) or None
             for m in METRICS:
                 row[m] = None
             for c in TELEMETRY.values():

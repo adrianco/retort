@@ -129,8 +129,18 @@ FEATURED_STACKS = [
         # 15 gpt-oss-20b runs and they were counted as 35B, moving published per-language
         # figures (go 0.87->0.84, python 0.80->0.78, ts 0.33->0.38) before the extra rows
         # gave it away. Never enumerate local stacks by exclusion; match the model.
-        # The two experiment LIKE clauses stay because exp-25/26/27 predate model
-        # recording (model IS NULL on all 60 rows) -- verified 35B-only experiments.
+        # The two experiment LIKE clauses are now REDUNDANT but retained as a belt:
+        # they existed because exp-25/26/27 had model IS NULL, which aggregate now
+        # backfills from playpen.local_agents (2026-08-25), so the model clause
+        # matches those rows on its own. An OR cannot double-count -- a row matched
+        # twice is still one row.
+        #
+        # Recovering those models also CHANGED WHAT THIS STACK COUNTS. exp-18/19/20/21
+        # are 35B experiments that matched neither LIKE clause and had no model, so
+        # they were silently outside the featured 35B's published figures; they are
+        # in now. That is the same class of bug as the exp-47 gpt-oss incident noted
+        # above, in the opposite direction: under-counting by omission rather than
+        # over-counting by exclusion.
         "name": "Qwen3.6-35B-A3B (local, $0)",
         "short": "Qwen 35B local",
         "where": (
@@ -208,7 +218,26 @@ FEATURED_STACKS = [
 # Raw model strings we knowingly do NOT feature, so --health can tell "expected legacy"
 # apart from "unmapped / new, investigate". Blank '' is the local-provenance bug.
 KNOWN_NONFEATURED = {
-    "": "local runs with blank model (provenance bug)",
+    "": "local runs with blank model (provenance bug) — should now be EMPTY: "
+        "aggregate recovers the model from playpen.local_agents.<agent>.model",
+    # Recovered 2026-08-25 by models_from_agent_profiles(). These 251 rows were
+    # blank because exp-16..exp-27 predate the model being written into
+    # stack.json; their designs declared it in the agent profile all along.
+    # Design-declared, per-agent — not inferred from the experiment slug.
+    "lmlocal/qwen3-coder-30b": "Qwen3-Coder 30B via LM Studio (exp-16) — the "
+        "context sweep that established context as the first-order lever "
+        "(0.08 @64K -> 0.33 @128K); superseded by the MLX stacks",
+    "qwen3-coder-30b": "Qwen3-Coder 30B, un-prefixed (exp-17, the first Hermes "
+        "experiment) — same weights as lmlocal/qwen3-coder-30b, before the "
+        "provider prefix was standardised",
+    "lmlocal/llama3.2:3b": "Llama 3.2 3B (exp-12) — a single early smoke row",
+    "mlxlocal/Qwen3-Coder-Next": "Qwen3-Coder-Next 80B, pre-4bit-suffix naming "
+        "(exp-22/24) — the SAME weights later recorded as "
+        "mlxlocal/mlx-community--Qwen3-Coder-Next-4bit; kept distinct because "
+        "the id is what the run actually wrote, and silently merging two "
+        "spellings is how a stack's n gets inflated",
+    "mlxlocal/devstral": "Devstral (exp-23): evaluated, not featured",
+    "gpt-5.6-sol": "GPT-5.6 Sol (exp-58/59): evaluated, not featured",
     "opus": "legacy bare 'opus' (exp-1/2)",
     "sonnet": "legacy bare 'sonnet' (exp-1/2/13/14)",
     "sonnet-4.6": "superseded by Sonnet 5",
@@ -726,11 +755,26 @@ def health_report(conn, repo_root: Path = REPO):
     disk = sorted(
         p.name for p in experiments_dir.glob("*/experiment-*") if p.is_dir()
     ) if experiments_dir.exists() else []
+    # A dir with no retort.db anywhere under it was never RUN -- exp-11 is a
+    # design that was written and shelved (workspace.yaml + design CSVs, no
+    # runs/), exp-51/52 are empty scaffolds. Reporting those as "missing from
+    # master.db" reads as lost data and trains the reader to ignore this line.
+    # The real defect is a dir that HAS results which never aggregated.
+    def _has_results(name: str) -> bool:
+        for parent in experiments_dir.glob(f"*/{name}"):
+            if any(parent.rglob("retort.db")):
+                return True
+        return False
+
     orphans = [d for d in disk if _expnum(d) not in db_nums]
-    if orphans:
-        out.append(f"- ⚠️ **Experiment dirs on disk but NOT in master.db:** {sorted(set(orphans))}")
-    elif disk:
-        out.append("- ✅ Every experiment directory on disk appears in master.db.")
+    unrun = sorted({d for d in orphans if not _has_results(d)})
+    lost = sorted({d for d in orphans if _has_results(d)})
+    if lost:
+        out.append(f"- ⚠️ **Experiment dirs WITH results but NOT in master.db:** {lost} — re-run `retort aggregate`")
+    if unrun:
+        out.append(f"- ℹ️ Never run (no retort.db, nothing to aggregate): {unrun}")
+    if disk and not lost:
+        out.append("- ✅ Every experiment directory with results appears in master.db.")
 
     return "\n".join(out)
 
