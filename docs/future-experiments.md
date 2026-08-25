@@ -205,6 +205,27 @@ gets the same fix: `max_turns` raised to 400 for the grid, high enough that neit
 exp-39 is the precedent — three brazil runs stopped at exactly 90 api_calls and the cap, not the
 model, was the thing being measured.
 
+### Smoke result, first pass: the predicted confound fired IN the smoke (2026-08-25)
+
+| arm | outcome | duration | turns |
+|---|---|---:|---:|
+| verify **OFF** | failed the spec gate, `requirement_coverage=0.917` after a second chance | 51 min | **204** (cap 200) |
+| verify **ON** | **crashed — `Timeout after 3601s (hard wall)`** | 60 min, killed | — |
+
+Arm B's config was correctly in force (`_effective_stack.json`: `preset: m80-verify-on`,
+`hermes.agent: {verify_on_stop: true}`) and it was killed at the wall before archiving a transcript,
+so the nudge criterion could not be evaluated — the checker reported **INCONCLUSIVE** rather than
+guessing, which is the behaviour it was written for.
+
+**This is the directional confound predicted above, arriving in the smoke itself.** The OFF arm
+cleared the wall the ON arm blew, and the ON arm also had the turn cap binding at 204/200. Had the
+grid run at 60 min / 200 turns, verify-on would have looked *worse* — from being truncated, not from
+failing — and the experiment would have reported the ceiling as the capability.
+
+Both limits were raised BEFORE this result (90 min, 400 turns) on the reasoning alone; the crash
+confirms the reasoning rather than prompting it. Arm B is re-running at the raised limits. Note the
+raised timeout may still not be enough: 60 min was not a near-miss, it was a hard kill mid-work.
+
 ### Smoke-test pass criterion, fixed BEFORE the results (2026-08-25)
 
 Traced how Hermes consumes the setting, so the smoke has a defined discriminator rather than a

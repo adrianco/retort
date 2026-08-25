@@ -24,14 +24,14 @@
         "model": null
       }
     },
-    "max_turns": 200,
+    "max_turns": 400,
     "no_write_abort_after": 3,
     "playpen_root": "/Users/adriancockcroft/.retort/work",
     "replicates": 1,
     "runner": "local",
     "stack_presets": "stacks.yaml",
     "stall_minutes": 25,
-    "timeout_minutes": 60
+    "timeout_minutes": 90
   },
   "host": {
     "cpu": "Apple M5 Pro",
@@ -68,7 +68,7 @@
   },
   "retort": {
     "branch": "main",
-    "commit": "f983023b5de2c77fa44bf8aeec4821b6376212bc",
+    "commit": "da201b76b363da83192a5d2d10619898a6f70e5e",
     "dirty": true
   },
   "serving": {
