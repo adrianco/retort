@@ -24,8 +24,22 @@ set -euo pipefail
 
 REPO="/Users/adriancockcroft/code/retort"
 FILE="docs/future-experiments.md"
+LOG="$HOME/.retort/scan-persist.log"
 
 cd "$REPO"
+
+# Leave a trace on EVERY invocation, success or failure. An unattended job that
+# fails silently is only detectable by the heartbeat going stale, which tells you
+# THAT something broke and nothing about WHAT. On 2026-08-24 the scan fired
+# (the scheduler recorded lastRunAt) and the heartbeat never moved, and there was
+# no way to tell whether the script had refused, the push had failed, or the
+# agent never reached the script at all -- the last of which turned out to be the
+# case, but only because the working tree happened to be clean enough to rule the
+# others out afterwards.
+mkdir -p "$(dirname "$LOG")" 2>/dev/null || true
+log() { printf '%s  %s\n' "$(date -u +%Y-%m-%dT%H:%M:%SZ)" "$*" >> "$LOG" 2>/dev/null || true; }
+trap 'rc=$?; [ "$rc" -eq 0 ] || log "EXIT $rc (failed)"; exit $rc' EXIT
+log "invoked n=${1:-<none>} head=$(git rev-parse --short HEAD 2>/dev/null)"
 
 # Refuse if the index already holds anything else — an interactive session may
 # have staged work we must not commit on its behalf.
@@ -42,6 +56,7 @@ fi
 
 if git diff --quiet HEAD -- "$FILE"; then
   echo "No change to $FILE — nothing to commit."
+  log "no-op: $FILE unchanged (the scan did not edit the heartbeat)"
   exit 0
 fi
 
@@ -103,3 +118,4 @@ if [ "$n" -eq 0 ]; then
 else
   echo "Committed and pushed ${n} new candidate(s)."
 fi
+log "OK pushed n=$n head=$(git rev-parse --short HEAD)"
