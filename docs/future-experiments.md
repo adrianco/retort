@@ -226,6 +226,35 @@ Both limits were raised BEFORE this result (90 min, 400 turns) on the reasoning 
 confirms the reasoning rather than prompting it. Arm B is re-running at the raised limits. Note the
 raised timeout may still not be enough: 60 min was not a near-miss, it was a hard kill mid-work.
 
+### The real blocker is MEMORY, not the toggle (2026-08-25)
+
+Arm B's rerun failed in 22.5s with every metric 0.00 and `API call failed after 3 retries:
+Connection error`. All-metrics-zero is the "suspect the harness before the model" signature, and the
+serving log gives the chain:
+
+```
+23:05:28  Request aborted: process memory limit exceeded (usage 51.9 GB, ceiling 54.0 GB)
+23:05:29  Scheduler shutdown            -> server died
+23:42:07  Finished server process       -> down for good
+23:55     arm B agent: "Connection error"  -> 22.5s all-zero failure
+```
+
+**The 42 GB m80 at 262144 context sits ON the memory ceiling of this 64 GB machine.** That is also
+the likeliest explanation for arm B's original 60-minute wall — not verify-on-stop being slow, but
+the server thrashing at the guard (`Prefill above max_bytes … 48.3GB > 45.9GB`, oscillating
+soft<->ok, observed live).
+
+So the earlier reading — "the ON arm blew the wall the OFF arm cleared, therefore the toggle adds
+work" — is **not safe**. A memory-starved server explains the same observation without the toggle
+doing anything, and the two are not separable from the evidence collected. Recorded as retracted
+rather than left standing.
+
+**Consequence for the design.** rust x m80 x full context has no headroom for a factor that ADDS
+context, which is precisely what verify-on-stop does. The smoke's only job is to prove the toggle
+takes effect at all, and that is model-independent — so it moves to **python x m35** (5.8 min
+average, 20 GB model, ample headroom) rather than continuing to fight the ceiling on the target cell.
+Choosing the target for the grid is a separate decision, to be made once the mechanism is proven.
+
 ### Smoke-test pass criterion, fixed BEFORE the results (2026-08-25)
 
 Traced how Hermes consumes the setting, so the smoke has a defined discriminator rather than a
