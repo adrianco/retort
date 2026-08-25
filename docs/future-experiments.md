@@ -146,10 +146,36 @@ nothing to cells already at ceiling. The natural targets are the ones exp-61 cou
 rust (0.94 baseline, the standing near-miss language) and brazil-go (0.89, the only cell that is both
 instrumented and off-ceiling).
 
-**Design.** One variable: `agent.verify_on_stop` true vs false, both arms on 0.20.5. Note both arms
-need their own Hermes config, since retort's stack manager writes `max_turns`/`context_length` into a
-single `serving.hermes_config` — running two verify settings against one config file means the second
-arm silently inherits the first. Per-arm `HERMES_HOME` is the clean way; retort does not set it today.
+**Design.** One variable: `agent.verify_on_stop` true vs false, both arms on 0.20.5.
+
+**Harness gap — CLOSED 2026-08-25 (`0704f58f`).** The entry flagged that both arms share one
+`serving.hermes_config` and the second would inherit the first. The mechanism turned out to be
+`stack_reload.ensure()`: it early-returns when `_sig(preset)` is unchanged, and `_sig` covered
+model/gguf/qpack/cache_gb/context_length/sampling but **nothing about the agent** — so two presets
+differing only in `verify_on_stop` were indistinguishable, the reload was skipped, and arm B would
+have run on arm A's config while reporting itself as arm B. Exactly the bug `cache_gb` was added to
+`_sig` to fix, per that function's own docstring.
+
+A preset can now carry a `hermes:` block of agent-config overrides; they are part of the reload
+signature, are written into the config last, and land in `stack.json` so the effective value is
+recorded. Per-arm `HERMES_HOME` is no longer needed. Two arms therefore look like:
+
+```yaml
+presets:
+  m80-verify-off:
+    model: mlx-community--Qwen3-Coder-Next-4bit
+    context_length: 262144
+    hermes: { verify_on_stop: false }
+  m80-verify-on:
+    model: mlx-community--Qwen3-Coder-Next-4bit
+    context_length: 262144
+    hermes: { verify_on_stop: true }
+```
+
+**Still required before the grid: a smoke test that `verify_on_stop` actually takes effect** — run
+one cell per arm and confirm from the agent log that the verify subsystem ran in the `true` arm and
+did not in the `false` arm. "I set it" is not "it took effect"; that is the first principle in
+CLAUDE.md and this factor is a capability toggle, exactly the kind that has silently no-op'd before.
 
 **Cost note from exp-61.** Budget wall-clock, not agent time. exp-61's two-cell smoke pair took ~50
 minutes for ~5 minutes of agent work — the Opus judge pass and the 42 GB stack reload dominate.
