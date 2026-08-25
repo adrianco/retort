@@ -1197,6 +1197,13 @@ def run_experiments(
                         # omitting it recorded a failing run as `completed`. The
                         # monitor and every downstream query read the DB, so the
                         # gate fired everywhere except the place that counts.
+                        conformance_reason=(
+                            "tests did not run (test_coverage=0)" if tests_failed
+                            else f"spec not met (requirement_coverage={req_cov})"
+                            if spec_failed
+                            else "answers wrong (factual_accuracy<1.0)"
+                            if factual_failed else None
+                        ),
                         conformance_failed=(tests_failed or spec_failed
                                             or factual_failed),
                         requirement_coverage=req_cov,
@@ -2670,6 +2677,9 @@ def _store_run_result(
     scores,
     design_row_id: int | None = None,
     conformance_failed: bool = False,
+    #: WHICH gate failed, in the run's own words. Without it the DB labels every
+    #: conformance failure "tests did not run", including spec and factual ones.
+    conformance_reason: str | None = None,
     requirement_coverage: float | None = None,
     second_try: bool = False,
 ) -> None:
@@ -2732,10 +2742,18 @@ def _store_run_result(
         status=status,
         started_at=datetime.now(timezone.utc),
         finished_at=datetime.now(timezone.utc),
+        # WHICH gate fired, not a hardcoded guess. `conformance_failed` folds
+        # three different gates into one boolean, and this line used to label
+        # every one of them "tests did not run (test_coverage=0)". A run that
+        # failed the SPEC gate was therefore recorded as having no tests — flatly
+        # false, and exactly the wrong thing to tell whoever reads the archive
+        # later. exp-62's arm A: test_coverage=1.0, requirement_coverage=0.917,
+        # error_message="tests did not run". The console had it right all along;
+        # only the DB lied.
         error_message=(
             artifacts.stderr if not artifacts.succeeded
-            else "tests did not run (test_coverage=0)" if conformance_failed
-            else None
+            else (conformance_reason or "conformance gate failed")
+            if conformance_failed else None
         ),
         run_config_json=json.dumps(run_config),
     )
