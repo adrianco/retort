@@ -53,7 +53,15 @@ playpen:
   # report the timeout as the capability.
   timeout_minutes: 90
   stall_minutes: 25
-  max_turns: 200
+  # 400, not 200. Arm A of the smoke burned 204 turns — AT the cap — where python
+  # on this stack averages 17 (max 44). Rust is an order of magnitude more
+  # turn-hungry here, so the cap binds. Verify-on-stop works by INJECTING turns,
+  # so the ON arm hits the ceiling harder than the OFF arm: it would lose real
+  # work to the cap that its comparator keeps, and the experiment would report
+  # the ceiling as the capability. Same directional confound as timeout_minutes,
+  # and the same fix — give both arms headroom neither can reach.
+  # (exp-39 has the precedent: three brazil runs stopped at exactly 90 api_calls.)
+  max_turns: 400
   stack_presets: stacks.yaml
   prompts_dir: prompts
   local_agents:

@@ -193,6 +193,18 @@ experiment would measure the timeout and report it as the capability. `timeout_m
 raised to 90 for the grid so neither arm can be cut off. Both arms share the value, so internal
 validity is unaffected; only cross-experiment duration comparisons need the note.
 
+### The TURN cap binds too, and binds asymmetrically (2026-08-25)
+
+Smoke arm A burned **204 turns against the 200 cap**. Python on this same stack averages 17 (max 44,
+n=12) — rust is an order of magnitude more turn-hungry, and no rust turn baseline existed because the
+column only populates from exp-49 onward.
+
+Verify-on-stop works by injecting turns, so the ON arm reaches the ceiling sooner than the OFF arm
+and loses real work the comparator keeps. That is the same directional confound as the timeout, so it
+gets the same fix: `max_turns` raised to 400 for the grid, high enough that neither arm can reach it.
+exp-39 is the precedent — three brazil runs stopped at exactly 90 api_calls and the cap, not the
+model, was the thing being measured.
+
 ### Smoke-test pass criterion, fixed BEFORE the results (2026-08-25)
 
 Traced how Hermes consumes the setting, so the smoke has a defined discriminator rather than a
