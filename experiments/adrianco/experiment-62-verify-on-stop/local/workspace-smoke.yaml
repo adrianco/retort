@@ -1,0 +1,62 @@
+# Experiment 62 — does Hermes 0.20.5's verify-on-stop change local pass rates?
+#
+# exp-61 established 0.20.5 is a null against 0.18.2 on coverage, maintainability
+# and duration, and DELIBERATELY left this untested: 0.20.5 ships a real
+# self-verification subsystem (agent/verify/ — recipes, runner, environment) that
+# detects a project's run recipe, boots it, and proves it serves HTTP. Our config
+# disabled it, so none of exp-61 exercised it. That is a CAPABILITY change, not
+# version drift; mixing it into exp-61 would have produced a delta nobody could
+# attribute.
+#
+# ONE VARIABLE: agent.verify_on_stop, false vs true, both arms on 0.20.5, same
+# model, same sampling, same context. Everything else is exp-61's verbatim.
+#
+# TARGET CHOSEN FOR HEADROOM. Verify-on-stop should convert NEAR-MISSES and do
+# nothing to cells already at ceiling, so a ceiling cell cannot test the
+# hypothesis. Measured over hermes runs in master.db: go/bookshop is 0.97 (n=63,
+# effectively ceiling), rust/bookshop is 0.77 (n=11) and go/brazil is 0.72 (n=9).
+# rust/bookshop is the target here. (The queue entry quoted 0.94/0.89 — a
+# different metric or subset; the ranking that matters is unchanged.)
+#
+# HARNESS PREREQUISITE, now closed. Both arms share one serving.hermes_config, and
+# stack_reload.ensure() early-returns when the preset signature is unchanged — so
+# before f983023b two arms differing only in an agent setting were
+# indistinguishable and the second would have run on the first's config. Presets
+# now carry a `hermes:` override block that is part of the signature and DEEP
+# MERGES into the config (a flat write lands a top-level key Hermes never reads,
+# which would have run both arms verify-OFF and reported a null).
+experiment:
+  name: experiment-62-verify-on-stop
+  visibility: public
+factors:
+  language: { levels: [rust, go] }                  # design pins rust
+  # Registry needs >=2 levels per factor; design.csv pins what actually runs
+  # (exp-61 does the same). Only `stack` genuinely varies here.
+  agent: { levels: [hermes-0205, hermes-local] }
+  prompt: { levels: [neutral, none] }
+  stack: { levels: [m80-verify-off, m80-verify-on] }
+  model:
+    levels:
+      - mlxlocal/mlx-community--Qwen3-Coder-Next-4bit
+      - mlxlocal/Qwen3.6-35B-A3B
+responses: [code_quality, token_efficiency, test_coverage, defect_rate, maintainability, idiomatic]
+tasks:
+  - source: bundled://rest-api-crud
+playpen:
+  runner: local
+  replicates: 1
+  timeout_minutes: 60
+  stall_minutes: 25
+  max_turns: 200
+  stack_presets: stacks.yaml
+  prompts_dir: prompts
+  local_agents:
+    # Both arms pin the SAME 0.20.5 binary: the variable is the setting, not the
+    # version. Without the pin every hermes level resolves to serving.hermes_bin
+    # and the comparison silently runs one build twice.
+    hermes-0205:
+      harness: hermes
+      bin: /Users/adriancockcroft/code/hermes-agent/.venv/bin/hermes
+design: { screening_resolution: 3, significance_threshold: 0.10 }
+promotion: { screening_to_trial: { p_value: 0.10 }, trial_to_production: { posterior_confidence: 0.80 } }
+evaluation: { enabled: true, model: opus-4.8 }
