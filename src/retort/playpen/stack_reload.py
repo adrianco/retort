@@ -133,6 +133,60 @@ def _sig(preset: dict[str, Any]) -> tuple:
     )
 
 
+def _find_nested(cfg: dict, key: str, _depth: int = 0) -> str | None:
+    """Path to ``key`` if it exists somewhere BELOW the top level, else None."""
+    if _depth > 4:
+        return None
+    for k, v in cfg.items():
+        if not isinstance(v, dict):
+            continue
+        if key in v:
+            return f"{k}.{key}"
+        found = _find_nested(v, key, _depth + 1)
+        if found:
+            return f"{k}.{found}"
+    return None
+
+
+def _warn_misnested(cfg: dict, overrides: dict) -> None:
+    """Shout when an override would create a top-level key that really lives nested.
+
+    This is the project's most expensive failure mode in miniature: a setting
+    that is written, reported as written, and silently not read. Writing
+    `hermes: {verify_on_stop: true}` puts a key at the top level while Hermes
+    reads `agent.verify_on_stop`, so the toggle no-ops and the experiment reports
+    a confident null. Caught exactly this way while preparing exp-62.
+    """
+    for key, value in overrides.items():
+        if key in cfg or isinstance(value, dict):
+            continue
+        nested = _find_nested(cfg, key)
+        if nested:
+            logger.warning(
+                "hermes override %r would create a NEW TOP-LEVEL key, but %r "
+                "already exists at %r — this almost certainly no-ops. Nest the "
+                "override to match the config: hermes: {%s: {...}}",
+                key, key, nested, nested.split(".")[0],
+            )
+
+
+def _deep_merge(dst: dict, src: dict) -> bool:
+    """Merge ``src`` into ``dst`` in place. True if anything changed.
+
+    Nested dicts merge rather than replace, so setting one key under ``agent``
+    does not delete its siblings.
+    """
+    changed = False
+    for key, value in src.items():
+        if isinstance(value, dict) and isinstance(dst.get(key), dict):
+            if _deep_merge(dst[key], value):
+                changed = True
+        elif dst.get(key) != value:
+            dst[key] = value
+            changed = True
+    return changed
+
+
 def _hashable(v: Any) -> Any:
     """Make a nested config value usable in a signature tuple."""
     if isinstance(v, dict):
@@ -294,10 +348,21 @@ class _BaseStackManager:
         # override anything above it. This is what lets an experiment vary an
         # agent capability (`verify_on_stop`) as a factor instead of editing a
         # single shared config file by hand between arms.
-        for key, value in (overrides or {}).items():
-            if cfg.get(key) != value:
-                cfg[key] = value
-                changed = True
+        #
+        # DEEP MERGE, because Hermes' settings are NESTED and a flat write is a
+        # silent no-op. The real config carries
+        #
+        #     agent:
+        #       verify_on_stop: false
+        #
+        # so assigning cfg["verify_on_stop"] adds a top-level key Hermes never
+        # reads while the nested one stays false — both arms of exp-62 would have
+        # run verify-OFF and reported a null. Mirror the config's own shape:
+        # `hermes: {agent: {verify_on_stop: true}}` merges into `agent`, leaving
+        # its siblings intact.
+        _warn_misnested(cfg, overrides or {})
+        if _deep_merge(cfg, overrides or {}):
+            changed = True
         if changed:
             cfg_path.write_text(yaml.safe_dump(cfg, sort_keys=False))
 

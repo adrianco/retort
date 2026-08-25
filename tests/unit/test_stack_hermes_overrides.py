@@ -95,3 +95,105 @@ class TestConfigWriting:
         mgr = _BaseStackManager.__new__(_BaseStackManager)
         mgr.serving = {}
         mgr._ensure_hermes_model("m", 1000, 10, {"verify_on_stop": True})
+
+
+class TestNestedOverrides:
+    """Hermes' settings are NESTED, and a flat write is a silent no-op.
+
+    The real ~/.hermes/config.yaml carries
+
+        agent:
+          verify_on_stop: false
+
+    The first version of this feature assigned cfg["verify_on_stop"] at the top
+    level. That adds a key Hermes never reads while the nested one stays false —
+    so BOTH arms of exp-62 would have run verify-OFF and the experiment would have
+    reported a confident null. Caught by writing into a copy of the real config
+    before running anything, which is what "verify the parameter takes effect"
+    means in practice.
+    """
+
+    def _cfg(self, tmp_path):
+        import yaml
+        p = tmp_path / "config.yaml"
+        p.write_text(yaml.safe_dump({
+            "model": "old", "max_turns": 50,
+            "agent": {"verify_on_stop": False, "some_sibling": "keep me"},
+        }, sort_keys=False))
+        return p
+
+    def _apply(self, cfg, overrides):
+        from retort.playpen.stack_reload import _BaseStackManager
+        mgr = _BaseStackManager.__new__(_BaseStackManager)
+        mgr.serving = {"hermes_config": str(cfg)}
+        mgr._ensure_hermes_model("qwen-80b", 262144, 200, overrides)
+        import yaml
+        return yaml.safe_load(cfg.read_text())
+
+    def test_a_nested_override_lands_where_hermes_reads_it(self, tmp_path):
+        cfg = self._cfg(tmp_path)
+        got = self._apply(cfg, {"agent": {"verify_on_stop": True}})
+        assert got["agent"]["verify_on_stop"] is True
+
+    def test_it_does_not_leave_a_stray_top_level_key(self, tmp_path):
+        """The bug's fingerprint: a top-level key that looks right and does
+        nothing, sitting beside a nested one that is still false."""
+        cfg = self._cfg(tmp_path)
+        got = self._apply(cfg, {"agent": {"verify_on_stop": True}})
+        assert "verify_on_stop" not in got, "flat write reintroduced"
+
+    def test_siblings_under_the_merged_key_survive(self, tmp_path):
+        """A nested override must merge, not replace — replacing `agent` would
+        silently drop every other agent setting."""
+        cfg = self._cfg(tmp_path)
+        got = self._apply(cfg, {"agent": {"verify_on_stop": True}})
+        assert got["agent"]["some_sibling"] == "keep me"
+
+    def test_both_arms_actually_differ_in_the_file(self, tmp_path):
+        """The end-to-end property exp-62 depends on."""
+        cfg = self._cfg(tmp_path)
+        off = self._apply(cfg, {"agent": {"verify_on_stop": False}})
+        assert off["agent"]["verify_on_stop"] is False
+        on = self._apply(cfg, {"agent": {"verify_on_stop": True}})
+        assert on["agent"]["verify_on_stop"] is True
+
+
+def test_a_misnested_override_is_warned_about(tmp_path, caplog):
+    """Writing the override FLAT is the trap that started all this.
+
+    `hermes: {verify_on_stop: true}` creates a top-level key while Hermes reads
+    `agent.verify_on_stop`. The value is written, reported as written, and never
+    read — the project's most expensive failure mode. Make it loud.
+    """
+    import logging
+
+    import yaml
+
+    from retort.playpen.stack_reload import _BaseStackManager
+
+    cfg = tmp_path / "config.yaml"
+    cfg.write_text(yaml.safe_dump({"model": "old", "agent": {"verify_on_stop": False}}))
+    mgr = _BaseStackManager.__new__(_BaseStackManager)
+    mgr.serving = {"hermes_config": str(cfg)}
+
+    with caplog.at_level(logging.WARNING):
+        mgr._ensure_hermes_model("m", 1000, 10, {"verify_on_stop": True})
+
+    assert any("no-op" in r.message or "TOP-LEVEL" in r.message
+               for r in caplog.records), "the silent no-op stayed silent"
+
+
+def test_a_correctly_nested_override_warns_about_nothing(tmp_path, caplog):
+    import logging
+
+    import yaml
+
+    from retort.playpen.stack_reload import _BaseStackManager
+
+    cfg = tmp_path / "config.yaml"
+    cfg.write_text(yaml.safe_dump({"model": "old", "agent": {"verify_on_stop": False}}))
+    mgr = _BaseStackManager.__new__(_BaseStackManager)
+    mgr.serving = {"hermes_config": str(cfg)}
+    with caplog.at_level(logging.WARNING):
+        mgr._ensure_hermes_model("m", 1000, 10, {"agent": {"verify_on_stop": True}})
+    assert not [r for r in caplog.records if "TOP-LEVEL" in r.message]
