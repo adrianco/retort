@@ -17,6 +17,11 @@ A previous attempt is already in this directory. It did NOT pass an independent 
 - [R12] At least 3 unit/integration tests  (verify: >= 3 tests exist and run (test_coverage > 0).)
 
 ## What went wrong last time
-- The build/tests did not fully pass (status: failed).
+- The build/tests did not fully pass (status: failed, requirement_coverage 0.00).
+- cargo build fails: (StatusCode, serde_json::Value) has no into_response
+- cargo build fails: axum::serve rejects Router<Arc<Mutex<..>>> (state not erased, serve not awaited)
+- Stored scores.json test_coverage=1.0 is a false pass; crate does not compile
+- No tests exist (spec requires >= 3)
+- No README.md with setup and run instructions
 
 Fix the existing code so every requirement above is met and the tests run and pass.

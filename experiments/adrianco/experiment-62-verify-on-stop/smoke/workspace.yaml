@@ -26,7 +26,7 @@
 # MERGES into the config (a flat write lands a top-level key Hermes never reads,
 # which would have run both arms verify-OFF and reported a null).
 experiment:
-  name: experiment-62-verify-on-stop
+  name: experiment-62-verify-smoke
   visibility: public
 factors:
   language: { levels: [rust, go, python] }          # design pins the target
@@ -44,7 +44,7 @@ tasks:
   - source: bundled://rest-api-crud
 playpen:
   runner: local
-  replicates: 3
+  replicates: 1
   # 90, not 60. Rust averages 20.9 min on this stack and its historical MAX is
   # exactly 60.0 — the old ceiling, i.e. a truncation. Verify-on-stop injects an
   # extra turn, so the ON arm is systematically longer and its truncation
@@ -73,4 +73,8 @@ playpen:
       bin: /Users/adriancockcroft/code/hermes-agent/.venv/bin/hermes
 design: { screening_resolution: 3, significance_threshold: 0.10 }
 promotion: { screening_to_trial: { p_value: 0.10 }, trial_to_production: { posterior_confidence: 0.80 } }
-evaluation: { enabled: true, model: opus-4.8 }
+# Mechanism check, NOT a data-producing experiment: the question is whether
+# Hermes injects the verify turn, which the transcript answers directly. The
+# judge cannot speak to it and costs ~5 min/cell. No result from this
+# workspace is a pass-proportion and none is aggregated.
+evaluation: { enabled: false }

@@ -1,5 +1,3 @@
-use axum::response::IntoResponse;
-use axum::response::Json;
 use serde::{Deserialize, Serialize};
 use sqlx::FromRow;
 use thiserror::Error;
@@ -16,7 +14,7 @@ pub enum AppError {
     Unexpected(String),
 }
 
-impl IntoResponse for AppError {
+impl axum::response::IntoResponse for AppError {
     fn into_response(self) -> axum::response::Response {
         let (status, message) = match &self {
             AppError::Database(err) => (
@@ -29,7 +27,7 @@ impl IntoResponse for AppError {
                 (axum::http::StatusCode::INTERNAL_SERVER_ERROR, msg.clone())
             }
         };
-        (status, Json(serde_json::json!({ "error": message }))).into_response()
+        (status, serde_json::json!({ "error": message })).into_response()
     }
 }
 

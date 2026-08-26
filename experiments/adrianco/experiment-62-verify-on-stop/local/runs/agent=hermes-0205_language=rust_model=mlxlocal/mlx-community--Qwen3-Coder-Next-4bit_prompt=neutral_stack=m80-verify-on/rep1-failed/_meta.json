@@ -7,6 +7,6 @@
     "prompt": "neutral",
     "stack": "m80-verify-on"
   },
-  "succeeded": false,
+  "succeeded": true,
   "visibility": "public"
 }

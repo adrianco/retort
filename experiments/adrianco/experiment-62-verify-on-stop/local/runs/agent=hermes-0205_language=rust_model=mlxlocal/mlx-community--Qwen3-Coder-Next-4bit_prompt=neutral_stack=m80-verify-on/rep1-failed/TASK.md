@@ -1,9 +1,3 @@
-# REPAIR TASK
-
-A previous attempt at the task below is ALREADY in this directory but did NOT pass an independent evaluation. Read `FEEDBACK.md` for exactly what was wrong, then FIX the existing code so it builds, all tests run and pass, and every requirement is met. Do NOT start over.
-
----
-
 Create a REST API service for managing a book collection.
 
 Requirements:

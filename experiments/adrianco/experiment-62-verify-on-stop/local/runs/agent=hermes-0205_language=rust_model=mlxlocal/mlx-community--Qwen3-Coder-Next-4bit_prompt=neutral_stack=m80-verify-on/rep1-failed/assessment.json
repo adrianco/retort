@@ -1,0 +1,14 @@
+{
+  "severity_counts": {"critical": 2, "high": 4, "medium": 0, "low": 0, "info": 0},
+  "penalty_score": 0.1,
+  "top_findings": [
+    {"id": "build-fail-1", "kind": "build_failure", "severity": "critical", "title": "cargo build fails: (StatusCode, serde_json::Value) has no into_response", "evidence": "src/models.rs:30 — error[E0599] no method named into_response for tuple (StatusCode, JsonValue); reproduced with the run's Cargo.lock.", "suggestion": "Wrap the body in axum::Json."},
+    {"id": "build-fail-2", "kind": "build_failure", "severity": "critical", "title": "cargo build fails: axum::serve rejects Router<Arc<Mutex<..>>> (state not erased, serve not awaited)", "evidence": "src/main.rs:79-90 — .with_state() before .route(); error[E0277] at src/main.rs:90.", "suggestion": "Move .with_state() after routes and .await serve."},
+    {"id": "scores-mismatch", "kind": "test_failure", "severity": "high", "title": "Stored scores.json test_coverage=1.0 is a false pass; crate does not compile", "evidence": "scores.json test_coverage=1.0 / defect_rate=0.83 but cargo build+test both fail (2 errors).", "suggestion": "Re-score: test_coverage should be 0."},
+    {"id": "R12", "kind": "requirement_missing", "severity": "high", "title": "No tests exist (spec requires >= 3)", "evidence": "No #[test]/#[tokio::test]/mod tests in src/; no tests/ dir; grep test/assert empty.", "suggestion": "Add >= 3 tests once the build is fixed."},
+    {"id": "R11", "kind": "doc_missing", "severity": "high", "title": "No README.md with setup and run instructions", "evidence": "find -iname 'readme*' (excl target/) returns nothing.", "suggestion": "Add README.md with cargo run + endpoint docs."}
+  ],
+  "requirement_coverage": 0.0,
+  "model": "mlxlocal/mlx-community--Qwen3-Coder-Next-4bit",
+  "evaluated_at": "2026-08-25T22:53:46Z"
+}

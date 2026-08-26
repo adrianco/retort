@@ -44,7 +44,7 @@ tasks:
   - source: bundled://rest-api-crud
 playpen:
   runner: local
-  replicates: 3
+  replicates: 1
   # 90, not 60. Rust averages 20.9 min on this stack and its historical MAX is
   # exactly 60.0 — the old ceiling, i.e. a truncation. Verify-on-stop injects an
   # extra turn, so the ON arm is systematically longer and its truncation
