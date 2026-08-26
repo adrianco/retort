@@ -1,3 +1,5 @@
 run,language,agent,prompt,stack,model
 0,python,hermes-0205,neutral,m35-verify-off,mlxlocal/Qwen3.6-35B-A3B
 1,python,hermes-0205,neutral,m35-verify-on,mlxlocal/Qwen3.6-35B-A3B
+2,rust,hermes-0205,neutral,m35-verify-off,mlxlocal/Qwen3.6-35B-A3B
+3,rust,hermes-0205,neutral,m35-verify-on,mlxlocal/Qwen3.6-35B-A3B

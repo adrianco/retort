@@ -7,7 +7,7 @@
       "context_length_top_level": 262144,
       "context_length_unset_per_model": false,
       "max_turns": 400,
-      "model": "mlx-community--Qwen3-Coder-Next-4bit",
+      "model": "Qwen3.6-35B-A3B",
       "plugins": [
         "hermes-lcm"
       ],
@@ -68,7 +68,7 @@
   },
   "retort": {
     "branch": "main",
-    "commit": "b91ce1b52dbc00040f5d9df6960c8d5369b03f8b",
+    "commit": "90d4d3a5cda5801e5bbb8c308c3a5302aacf87de",
     "dirty": true
   },
   "serving": {
@@ -89,8 +89,8 @@
         "max_context_window_policy": null,
         "max_tokens": 32768,
         "repetition_penalty": 1.0,
-        "temperature": 0.7,
-        "top_k": 40,
+        "temperature": 0.6,
+        "top_k": 20,
         "top_p": 0.95
       }
     }
@@ -110,6 +110,11 @@
     "m35-verify-off": {
       "context_length": 262144,
       "context_threshold": 0.9,
+      "hermes": {
+        "agent": {
+          "verify_on_stop": false
+        }
+      },
       "model": "Qwen3.6-35B-A3B",
       "sampling": {
         "repetition_penalty": 1.0,
@@ -121,6 +126,11 @@
     "m35-verify-on": {
       "context_length": 262144,
       "context_threshold": 0.9,
+      "hermes": {
+        "agent": {
+          "verify_on_stop": true
+        }
+      },
       "model": "Qwen3.6-35B-A3B",
       "sampling": {
         "repetition_penalty": 1.0,
@@ -132,11 +142,6 @@
     "m80": {
       "context_length": 262144,
       "context_threshold": 0.9,
-      "hermes": {
-        "agent": {
-          "verify_on_stop": true
-        }
-      },
       "model": "mlx-community--Qwen3-Coder-Next-4bit",
       "sampling": {
         "repetition_penalty": 1.0,
@@ -182,7 +187,7 @@
     "cargo": "cargo 1.97.1 (c980f4866 2026-06-30) (Homebrew)",
     "claude": "2.1.245 (Claude Code)",
     "go": "go version go1.26.6 darwin/arm64",
-    "hermes": "Hermes Agent v0.20.5 (2026.8.19) \u00b7 upstream 52bcfb47 \u00b7 local 261a4efb (+1 carried commit)",
+    "hermes": "Hermes Agent v0.20.5 (2026.8.19) \u00b7 upstream f277637b \u00b7 local 261a4efb (+1 carried commit)",
     "hermes_bin": "/Users/adriancockcroft/code/hermes-agent/.venv/bin/hermes",
     "llama_server": "version: 0.1.1-dev (build 10470, commit 34af94cd9)",
     "node": "v26.7.0",

@@ -255,6 +255,39 @@ takes effect at all, and that is model-independent — so it moves to **python x
 average, 20 GB model, ample headroom) rather than continuing to fight the ceiling on the target cell.
 Choosing the target for the grid is a separate decision, to be made once the mechanism is proven.
 
+### The mechanism only engages on a NEAR-MISS — smoke on python was structurally void (2026-08-26)
+
+python x m35, one cell per arm, both completed cleanly:
+
+| arm | duration | tokens | test_coverage | nudged |
+|---|---:|---:|---:|:--:|
+| verify OFF | 143 s | 283K | 0.98 | no |
+| verify ON | 820 s | 1,677K | 0.96 | **no** |
+
+**FAIL against the pre-committed criterion**, and the reason is instructive. `verify_on_stop_enabled()`
+has exactly ONE production call site (`conversation_loop.py:8111` -> `build_verify_on_stop_nudge`),
+confirmed by upstream's own test comment "the sole production caller". That builder returns `None`
+when `state == "passed"`:
+
+```python
+state = str(status.get("status") or "unverified")
+if state == "passed":
+    return None
+```
+
+So verify-on-stop is a **deliberate no-op on a cell that already verifies cleanly**. python at 0.96-0.98
+coverage is at ceiling, and the experiment's own hypothesis says the factor "should move the cells with
+headroom and do nothing to cells already at ceiling". Choosing python for speed and memory chose away
+the condition under test.
+
+**The 5.9x token gap must NOT be read as the toggle working.** The flag's only consumer produced
+nothing, and exp-61 already documented that m35's within-cell spread dominates at n=1. Two single runs
+differing 5.7x in duration is what that noise looks like.
+
+**Next cell: rust x m35** — the near-miss regime (rust is the standing near-miss language, so
+verification will not be "passed") on the 20 GB model (which fits, unlike m80 at 42 GB). It is the only
+combination that satisfies both constraints, and it was never tried.
+
 ### Smoke-test pass criterion, fixed BEFORE the results (2026-08-25)
 
 Traced how Hermes consumes the setting, so the smoke has a defined discriminator rather than a
