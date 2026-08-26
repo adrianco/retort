@@ -1174,6 +1174,47 @@ survives the toggle, restart the Claude desktop app, which clears the in-memory 
   — paper: https://arxiv.org/abs/2608.23283
   — weights: https://huggingface.co/apodex/Apodex-1.1-mini
 
+- 2026-08-26 — **JetBrains Junie Local (2026-08-24) — NOT a new model; third-party evidence about two
+  entries already on this list, and about this exact box.** JetBrains shipped a fully offline Junie
+  that runs **`Qwen3.6-27B` at 4-bit under MLX**, tuned against its own agent loop, and its stated
+  requirement is **Apple Silicon M5 + macOS 26 + 64 GB RAM** (~20 GB download, ~40 GB disk) — the same
+  hardware class retort runs on, which makes this the first outside datapoint on a candidate here at
+  our own configuration. **No weights were published** (only agent-loop changes and an int8-prefill
+  patch to `mlx-vlm`), so it is not a candidate itself.
+  **Why it matters for the queue, and it cuts against the current top-slot ordering:** JetBrains
+  evaluated the already-listed **Qwen3.8-27B** and **chose the older Qwen3.6-27B instead**, because
+  "Qwen3.8 needs reasoning enabled to work reliably, and with it on, tasks run roughly four times
+  slower." The 2026-08-15 entry above gives Qwen3.8-27B the top slot on published benchmarks while
+  noting its thinking-on-by-default `reasoning_effort` knob as a parameter to record; this is
+  independent evidence that the knob is not free — reliability and 4× wall-clock are coupled to it, on
+  Metal, in a real agent loop. On a project that already had to raise `timeout_minutes` 30 → 60 → 90
+  for local runs, a 4× multiplier is a design constraint, not a footnote. It also raises the value of
+  running the untested **Qwen3.6-27B** entry first, as the control the 3.8 comparison needs anyway.
+  **Two further reusable findings, both §3 levers:** (1) **MTP + n-gram speculative decoding on a 27B
+  under MLX "roughly doubles generation speed"** — §3 calls speculative decoding the top speed lever
+  and records it as blocked on not having a draft model; n-gram drafting needs no draft model at all,
+  so this is a cheaper first probe than any of the small-model pairings this list has been collecting.
+  (2) An **int8-prefill patch** (`JetBrains/mlx-vlm`, branch `feature/int8-prefill/research`) plus
+  ~40% more prefill throughput on M5 vs M4 — a serving lever retort does not currently have; note
+  exp-24 found our runs generation-bound rather than prefill-bound, so expect little from this one.
+  Their internal agent score was **29.5 ±2.5, level with Sonnet 4.5 (29)** and below GPT-5 (33), with
+  reasoning off against cloud comparators with it on — treat as vendor-reported, like every other
+  number here.
+  Source: https://blog.jetbrains.com/junie/2026/08/junie-local-launch/
+  — optimization write-up: https://blog.jetbrains.com/junie/2026/08/qwen-for-junie/
+  — specs: https://junie.jetbrains.com/local
+  — via: https://thenewstack.io/jetbrains-junie-local-agent/ (The New Stack, 2026-08-24)
+
+*Excluded 2026-08-26 (second scan of the day), no open weights:* **OX Alpha** — the anonymous
+reasoning/coding model with a 1M context that dominated this cycle's coverage after appearing free on
+OpenRouter and OpenCode around 2026-08-23. No vendor, no licence, **no published weights** and no
+parameter count, so it fails the open-weights bar outright and cannot be sized; its independently
+measured coding results are also mid-table rather than the headline claims. **Seed 2.1 / Seed 2.1
+Turbo** (ByteDance, 2026-06-23) — coding- and agent-targeted, but **closed weights, API-only** via
+Volcano Engine; ByteDance opens only its smaller `Seed-OSS` line. Recorded so neither is
+re-investigated. Sources: https://lmmarketcap.com/model/ox-alpha ·
+https://seed.bytedance.com/en/seed2_1
+
 *Excluded 2026-08-26, oversized or out of scope:* **DeepSeek-V4-Flash-Vision-Exp** (2026-08-21,
 284B-A13B multimodal MoE, 1M context) — proprietary/experimental *and* ~142 GB at 4-bit, the same size
 verdict as the DeepSeek-V4-Flash entry above. **GLM-5.2 Turbo** (Z.ai, 2026-08-17) — a serving variant
