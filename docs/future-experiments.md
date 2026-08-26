@@ -558,7 +558,7 @@ invest in the solver dependency, master.db merge, and first-class docs.
 <!-- SCAN-HEARTBEAT: the daily scan rewrites the next line on EVERY run, including
      days it finds nothing. Do not hand-edit it. If the date is more than ~2 days
      stale, the scan is not running — see "when the heartbeat goes stale" below. -->
-**Daily scan last completed: 2026-08-23** (scanning for new 64GB-fittable coding models)
+**Daily scan last completed: 2026-08-26** (scanning for new 64GB-fittable coding models)
 
 New open-weight coding models found by the daily scan that plausibly fit 64GB at 4-bit; promote to a
 numbered experiment when prioritised.
@@ -1093,6 +1093,94 @@ survives the toggle, restart the Claude desktop app, which clears the in-memory 
   — weights: https://huggingface.co/ornith-ai/Ornith-1.5-35B-A3B
   — MLX 4-bit (first-party): https://huggingface.co/ornith-ai/Ornith-1.5-35B-A3B-MLX-4bit
   — GGUF (first-party): https://huggingface.co/ornith-ai/Ornith-1.5-35B-A3B-GGUF
+
+- 2026-08-26 — **Granite 4.2 30B (IBM)** — *a genuinely last-cycle drop (weights **2026-08-25**,
+  yesterday) and, unusually for this list, a **matched-base probe on a candidate already sitting in
+  it**: it is post-trained from the `Granite-4.1-30B-Base` of the 2026-08-18 entry above.* Apache 2.0,
+  **30B dense decoder-only** (64 layers, GQA, 32 heads, 4096 embedding — same shape as 4.1, so it
+  carries **none** of the Nemotron/Laguna hybrid-arch gate risk), **128K native context extensible to
+  512K**. **~17–18 GB at 4-bit → fits 64GB with enormous headroom.**
+  **What 4.2 adds is exactly what the 4.1 entry above was marked down for.** That entry's stated
+  weakness was "there is no agentic-coding evidence — no SWE-bench, no Terminal-Bench, no
+  LiveCodeBench at all". 4.2 is IBM's first *reasoning* Granite family (thinking / non-thinking /
+  low-effort switch, `<think>…</think>`), post-trained SFT → foundational RL → **an agentic-RL block
+  run only on the 8B and 30B** that trains the model inside real SWE, terminal and web-search
+  environments, plus a second 30B-only SFT phase upsampling agentic/SWE/coding data and 1T tokens of
+  synthetic code (CodeAlchemy). It now reports numbers: **SWE-bench Verified 57.0, Terminal-Bench 2.1
+  29.24** (RULER-128K 81.38, AIME25 89.17, GPQA 66.41). Tool calling is native and reasoning-integrated
+  — the model reasons about *which* tool and why before emitting an **OpenAI-format** function call —
+  and IBM says it is meant as the backbone for agentic coding tools "out of the box" with popular
+  harnesses.
+  **Serving is a straight load on both retort backends with no gate-probe and no convert** — even
+  better provisioned than the 4.1 entry: **first-party `ibm-granite/granite-4.2-30b-GGUF`** plus
+  bartowski and lmstudio-community GGUFs, and **`lmstudio-community/granite-4.2-30b-MLX-4bit`** (6/8-bit
+  and an mxfp8 build too). No `mlx-community` 4-bit yet, but the lmstudio MLX build is a direct oMLX
+  load. (IBM's own mxfp4/nvfp4 checkpoints are CUDA formats — ignore them here.)
+  **Two caveats.** (1) **The recommended sampling flipped from 4.1's and it is now the trap:** 4.1's
+  vendor default was temperature 0.0 / top_p 1.0 — the one entry on this list *not* carrying the
+  temp-1.0 default. 4.2 recommends **temperature 1.0 / top_p 0.95**, precisely the unrecorded default
+  that cost this project half its local reliability. Set and verify it deliberately per CLAUDE.md, and
+  do not carry 4.1's settings across. Also note `max_new_tokens` guidance differs by mode (8192
+  thinking / 2048 non-thinking) — 2048 is far too small for an agent turn. (2) Record the thinking mode
+  as for KAT-Coder / Qwen3.8-27B, and smoke-test a real tool call on the specific quant first.
+  **Where it sits:** the coding numbers are *middling* against the leaders here — Ornith-1.5 claims
+  SWE-bench Verified 80.1 / Terminal-Bench 74.8 and Qwen3.8-27B 73.0 on Terminal-Bench, so 57.0/29.24
+  is not a headline. **But it is the cheapest and cleanest matched-base pair on the whole list**: same
+  architecture, same size, same first-party serving path, same box, with **reasoning + agentic RL as
+  the only variable** against a base already recorded here — and it costs nothing to convert or
+  gate-probe. Run it *with* 4.1 or the pair has no control; **it supersedes 4.1 as the Granite entry to
+  run first**, and the pair is the same question KAT-Coder / BTL-3 / Macaron ask on Qwen bases, asked on
+  an IBM one.
+  Source: https://research.ibm.com/blog/introducing-granite-4-2
+  — via: https://thenewstack.io/ibm-granite-reasoning-models/ (The New Stack, 2026-08-25)
+  — benchmarks: https://www.unite.ai/ibms-granite-4-2-models-learn-to-think-and-act-inside-environments/
+  — weights: https://huggingface.co/ibm-granite/granite-4.2-30b
+  — GGUF (official): https://huggingface.co/ibm-granite/granite-4.2-30b-GGUF
+  — MLX 4-bit: https://huggingface.co/lmstudio-community/granite-4.2-30b-MLX-4bit
+
+- 2026-08-26 — **Apodex 1.1 mini (Apodex)** — *a genuinely last-cycle drop (weights **2026-08-24**) and
+  a borderline admit in the exact Agents-A1 class: a 35B agentic model that fits easily and speaks our
+  **exact tool-call parser**, but coding is not what it was built for.* Apache 2.0, **~35B total / ~3B
+  active MoE on a `Qwen3.5-35B-A3B` base** — a sibling-generation lineage, **not** a matched-base probe
+  on the Qwen3.6-35B-A3B our stack serves — **262,144 context**, the same window as our 35B/80B runs.
+  (The HF card calls it "36B dense" while naming a `-35B-A3B` MoE base; treat the dense claim as a card
+  error and **confirm the config before sizing a run**.) Trained by "Agentic Coordination Scaling" —
+  decomposing long-horizon tasks, delegating parallel work, integrating async results and replanning —
+  and shipped with its own `FrontierAgent` harness (File / Search / Code / Agent Team).
+  **~20–22 GB at 4-bit → fits 64GB with enormous headroom.**
+  **The single strongest practical argument for a cell:** deployment docs specify the **`qwen3_coder`
+  tool-call parser** (with the `qwen3` reasoning parser), the same parser family our 35B/80B cells
+  already run through, and it emits the `<function=…><parameter=…>` shape natively.
+  **Why it is only borderline, stated plainly: it reports no coding benchmark at all.** Its headline
+  numbers are deep-research and professional work — APEX-Agent 27.7 (38.5 in Agent Team), GDPVal 78.8,
+  FrontierFinance 50.2/54.3, FrontierScience-Research 63.3 — with coding named only in a list of
+  domains. The plain Qwen3.6-35B-A3B already in `master.db` scores **73.4 SWE-bench Verified**, so on
+  published figures there is no reason to expect this to beat our incumbent as a coder.
+  **Where it could still earn a cell:** it is a *second* instance of the Agents-A1 control question —
+  what does heavy **non-coding** agentic post-training do to coding on a comparable base — and unlike
+  Agents-A1 it is post-trained for *multi-agent coordination and replanning* specifically, which is the
+  harness-shaped variable retort exists to measure. Run the two together or neither; a regression in
+  both would be a finding.
+  **Serving caveat, same as Agents-A1 and it is real work:** upstream documents **vLLM / SGLang only**
+  (with TP=8 recommended, i.e. nothing about single-box Metal), and **no GGUF and no MLX build is
+  confirmed** — a cell needs a 4-bit convert, and `qwen3_5_moe` must be gate-probed on oMLX first.
+  *(That probe is shared: the Ornith-1.5 entry above ships a first-party `qwen3_5_moe` MLX 4-bit, so
+  loading it settles this arch for Agents-A1 and Apodex too — do that one first.)* Recommended sampling
+  is **temperature 1.0 / top_p 0.95 / repetition_penalty 1.05** — the temp-1.0 trap again; set and
+  verify it per CLAUDE.md. Reasoning is on via the Qwen3.5 chat template — record the mode.
+  Judge priority **below every coder-specialised entry and below Nanbeige**, alongside Agents-A1,
+  Mellum2 and Granite 4.1. First **Apodex-lineage** candidate.
+  Source: https://www.apodex.com/blog/apodex-1.1-scaling-agentic-intelligence-for-complex-work
+  — paper: https://arxiv.org/abs/2608.23283
+  — weights: https://huggingface.co/apodex/Apodex-1.1-mini
+
+*Excluded 2026-08-26, oversized or out of scope:* **DeepSeek-V4-Flash-Vision-Exp** (2026-08-21,
+284B-A13B multimodal MoE, 1M context) — proprietary/experimental *and* ~142 GB at 4-bit, the same size
+verdict as the DeepSeek-V4-Flash entry above. **GLM-5.2 Turbo** (Z.ai, 2026-08-17) — a serving variant
+of the 743B-A40B GLM-5.2 base, so the GLM-5.3 size verdict applies unchanged. **Hy-MT2-30B-A3B**
+(Tencent Hunyuan, 2026-08-20) — fits at 4-bit but is a **machine-translation** model with an 8K
+context; not a coding candidate. **Muse Code** (Meta) and the **DeepSeek Harness** remain harnesses,
+not models, as already recorded above.
 
 *Excluded 2026-08-18, closed weights and oversized:* **MAI-Code-1-Flash / MAI-Code-1.1-Flash**
 (Microsoft, announced 2026-06-02) — Microsoft's first in-house coding model, 71.6% SWE-bench Verified
