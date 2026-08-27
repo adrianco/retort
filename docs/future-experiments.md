@@ -591,7 +591,7 @@ invest in the solver dependency, master.db merge, and first-class docs.
 <!-- SCAN-HEARTBEAT: the daily scan rewrites the next line on EVERY run, including
      days it finds nothing. Do not hand-edit it. If the date is more than ~2 days
      stale, the scan is not running — see "when the heartbeat goes stale" below. -->
-**Daily scan last completed: 2026-08-26** (scanning for new 64GB-fittable coding models)
+**Daily scan last completed: 2026-08-27** (scanning for new 64GB-fittable coding models)
 
 New open-weight coding models found by the daily scan that plausibly fit 64GB at 4-bit; promote to a
 numbered experiment when prioritised.
@@ -1320,6 +1320,21 @@ probes above exist to measure. Source: https://the-agent-report.com/2026/08/glm-
 *(Also seen and out of scope: Alibaba's **Qwen3.8-2.4T-A95B** open weights, 2026-08-12 — ~1.2 TB at
 4-bit; and DeepSeek's open-sourced plugin-based **agent harness**, 2026-08-13, which is a harness, not
 a model — it belongs next to the §4 harness side-branch if that work resumes.)*
+
+*Excluded 2026-08-27 — **OX Alpha is identified, and the reason for excluding it has changed.*** The
+2026-08-26 note above excluded it for having "no vendor, no licence, **no published weights** and no
+parameter count". That is now out of date: Z.ai revealed OX Alpha as **GLM-5.3-Flash** and published
+the weights on **2026-08-26** under **MIT** — 321B total / 18B active multimodal MoE (45 layers, 8 of
+288 experts per token, hybrid KDA + sparse MLA attention, native FP8, MTP, 1M context). So it now
+clears the open-weights bar and **fails the size bar instead: ~160 GB at 4-bit** (the FP8 repo alone
+is 328 GB across 62 shards; BF16 is 643 GB), roughly 2.5× what this box holds. Same verdict as the
+GLM-5.3 and GLM-5.2 Turbo notes below — **GLM-4.7-Flash (30B-A3B) remains the only way this lineage
+enters the local leaderboard.** Recorded so the corrected reason sticks and it is not re-investigated
+when the OX Alpha name resurfaces. Note the "Flash" name is not a size signal in this family:
+GLM-4.7-Flash is 30B-A3B, GLM-5.3-Flash is 321B-A18B.
+Source: https://thenewstack.io/glm-5-3-flash-chinese-chips/ (The New Stack, 2026-08-26)
+— weights: https://huggingface.co/zai-org/GLM-5.3-Flash
+— specs: https://recipes.vllm.ai/zai-org/GLM-5.3-Flash
 
 *Also excluded 2026-08-22:* **MiniMax M3** (428B-A23B multimodal MoE, 2026-06-01) — frontier coding and
 agentic performance with 1M context, but **~214 GB at 4-bit**, three times what this box holds, and it
