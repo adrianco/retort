@@ -288,6 +288,39 @@ differing 5.7x in duration is what that noise looks like.
 verification will not be "passed") on the 20 GB model (which fits, unlike m80 at 42 GB). It is the only
 combination that satisfies both constraints, and it was never tried.
 
+### SMOKE PASSES — the toggle works; my instrument was wrong (2026-08-26)
+
+| language | arm | `verification_required` | duration | tokens |
+|---|---|:--:|---:|---:|
+| python | OFF | 0 | 143 s | 283K |
+| python | **ON** | **2** | 820 s | 1,677K |
+| rust | OFF | 0 | ~? | — |
+| rust | **ON** | **2** | 1675 s | 8,806K |
+
+Perfect 4/4 separation across two languages. `agent.verify_on_stop` demonstrably takes effect, so the
+grid is unblocked.
+
+**The criterion had to be corrected, and that deserves scrutiny rather than a shrug.** I fixed it
+before the results (grep the nudge's prose, "Run the relevant verification command now ("), it
+FAILED twice, and I then changed it after seeing data — normally the definition of fitting the
+answer. It is defensible here only because of an exact code linkage:
+
+```python
+if _verify_nudge:
+    agent._verification_stop_nudges = ... + 1
+    final_msg["finish_reason"] = "verification_required"
+```
+
+`verification_required` is set INSIDE the `if _verify_nudge:` branch, so it cannot appear unless the
+nudge was built. It is a biconditional for the quantity being measured, whereas the prose string was
+a guess about persistence that proved false — the transcript records the conversation, not the
+synthetic turn's template. A better instrument for the same quantity, not a different target.
+
+**The earlier "python is at ceiling so the factor no-ops" conclusion was WRONG and is retracted.**
+python's ON arm did fire the nudge twice. The `state == "passed"` suppression is real code, but it
+was not what happened here — the nudge fired and I could not see it. Two retractions now trace to the
+same root: reading a null out of an instrument that was never pointed at the right thing.
+
 ### Smoke-test pass criterion, fixed BEFORE the results (2026-08-25)
 
 Traced how Hermes consumes the setting, so the smoke has a defined discriminator rather than a

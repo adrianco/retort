@@ -21,7 +21,25 @@ import json
 import sys
 from pathlib import Path
 
-FINGERPRINT = "Run the relevant verification command now ("
+#: The nudge's STRUCTURAL fingerprint, not its prose.
+#:
+#: The first version of this checker grepped for the nudge's text, "Run the
+#: relevant verification command now (". That text is never persisted — the
+#: transcript records the conversation, not the synthetic turn's template — so
+#: the check reported FAIL on runs where the toggle was working perfectly.
+#:
+#: `conversation_loop.py` sets this INSIDE `if _verify_nudge:`, so it cannot
+#: appear unless the nudge was actually built:
+#:
+#:     if _verify_nudge:
+#:         agent._verification_stop_nudges = ... + 1
+#:         final_msg["finish_reason"] = "verification_required"
+#:
+#: That makes it an exact biconditional for "the nudge fired", where the prose
+#: was a guess about persistence. Changing the measurement after it failed is
+#: only legitimate because of that linkage — it is a better instrument for the
+#: same quantity, not a different criterion chosen to fit the data.
+FINGERPRINT = "verification_required"
 
 
 def arm_of(run_dir: Path) -> str | None:
