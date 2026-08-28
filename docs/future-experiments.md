@@ -591,7 +591,7 @@ invest in the solver dependency, master.db merge, and first-class docs.
 <!-- SCAN-HEARTBEAT: the daily scan rewrites the next line on EVERY run, including
      days it finds nothing. Do not hand-edit it. If the date is more than ~2 days
      stale, the scan is not running — see "when the heartbeat goes stale" below. -->
-**Daily scan last completed: 2026-08-27** (scanning for new 64GB-fittable coding models)
+**Daily scan last completed: 2026-08-28** (scanning for new 64GB-fittable coding models)
 
 New open-weight coding models found by the daily scan that plausibly fit 64GB at 4-bit; promote to a
 numbered experiment when prioritised.
@@ -1237,6 +1237,53 @@ survives the toggle, restart the Claude desktop app, which clears the in-memory 
   — optimization write-up: https://blog.jetbrains.com/junie/2026/08/qwen-for-junie/
   — specs: https://junie.jetbrains.com/local
   — via: https://thenewstack.io/jetbrains-junie-local-agent/ (The New Stack, 2026-08-24)
+
+- 2026-08-28 — **Qwen3.8-Flash-Next (Alibaba)** — *a genuinely last-cycle drop (weights **2026-08-26**)
+  and the first entry admitted on the **borderline** size rule rather than comfortably under it: on
+  parameter count it belongs with the excluded models below, and only a purpose-built 64GB quant keeps
+  it in scope.* **`qwen-community-1.0` licence — NOT Apache 2.0**, unlike almost everything else here;
+  read it before use rather than assuming permissive terms. It is the **first open-weight preview of
+  the Qwen4 architecture**: a **125B multimodal MoE with 6B active** (512 experts, 11 active per token;
+  three of every four layers Gated DeltaNet, the fourth Qwen Sparse Attention), plus a separate **51B
+  N-gram embedding table** and a **4B MTP module** — ~180B of BF16 weights in total. **262,144 native
+  context, 1M via YaRN** — the same window as our 35B/80B runs. Thinking is on by default with a
+  reasoning-effort knob.
+  **Size is the whole question, and the answer is "borderline, on a build designed for exactly this
+  box".** A straight 4-bit of the 125B backbone alone is ~63 GB, which is the Ling-3.0-flash verdict
+  (excluded, "~62 GB at 4-bit leaves no room for context or KV cache"). What changes the call is that
+  the N-gram table lives in **its own shard and is memory-mappable** (the llama.cpp implementation
+  follows Gemma-3N's per-layer-embedding offload), so AtomicChat ships an **`AD-3.84bpw-IQ4_XS-M64`
+  build — 84.9 GB on disk, ~45.8 GB resident** with the table paged from SSD, reported at **36 tok/s
+  on a 64 GB M4/M5 Max**.
+  **Do not schedule a cell on that number — exp-62 (§0 above) is direct evidence against it on THIS
+  machine.** The 42 GB m80 at 262144 already sits *on* this box's memory ceiling: oMLX aborted a
+  request at `usage 51.9 GB, ceiling 54.0 GB` and the server died, producing a 22.5 s all-zero cell.
+  A ~45.8 GB resident model plus KV cache is very likely *over* that ceiling, and this box is an **M5
+  Pro, not a Max**, so neither the bandwidth nor the throughput claim transfers. Budget a memory probe
+  (and `iogpu.wired_limit_mb`) before anything else; a false zero from a dead server is exactly the
+  failure mode CLAUDE.md's "suspect the harness before the model" rule exists for.
+  **Serving: llamacpp only, and freshly so.** `serving.backend: llamacpp` is viable — the arch landed
+  in **mainline llama.cpp via PR #27742, merged 2026-08-27** (Gated DeltaNet + Qwen Sparse Attention +
+  the PLE/n-gram table), so pin a build at or after that merge. **No `mlx-community` build is
+  confirmed**, and given the Muse Glimmer / Qwen3.8-27B precedent a VLM-converted MLX quant would need
+  a tool-call smoke test anyway; oMLX is not a path here today. vLLM/SGLang have day-0 support but are
+  not options on Metal.
+  **Why it earns a slot despite all that:** its coding numbers are **DeepSWE 1.1 58.7 / SWE-bench Pro
+  62.5**, with agentic **CoWorkBench 73.9** and **Toolathlon Verified 73.5**. Set against the
+  already-listed **Qwen3.8-27B** (SWE-bench Pro 61.7, Terminal-Bench 73.0, ~17–19 GB, first-party MLX
+  4-bit), that is **essentially the same coding score at roughly three times the resident footprint and
+  a worse licence** — which is itself the finding worth recording, and the reason this ranks **below**
+  the 27B rather than above it. Its real interest is as an *architecture* probe: it is the only
+  candidate here that is a next-generation architecture rather than a post-training or size variation,
+  and the ultra-sparse 6B-active + offloadable-memory design is the same "RAM stops constraining model
+  size" bet as the Swiftlet backend section below — so a working cell would be evidence for both.
+  Judge priority: **run Qwen3.8-27B first**; treat this as a memory-and-serving probe, not a scheduled
+  grid cell.
+  Source: https://www.marktechpost.com/2026/08/26/alibabas-qwen-team-releases-qwen3-8-flash-next-a-125b-multimodal-moe-with-6b-active-parameters-previewing-the-qwen4-architecture/
+  — weights: https://huggingface.co/Qwen/Qwen3.8-Flash-Next
+  — GGUF (64GB-targeted builds): https://huggingface.co/AtomicChat/Qwen3.8-Flash-Next-GGUF
+  — local-run/memory notes: https://atomic.chat/blog/guides/how-to-run-qwen-3-8-flash-next-locally
+  — llama.cpp arch support (merged 2026-08-27): https://github.com/ggml-org/llama.cpp/pull/27742
 
 *Excluded 2026-08-26 (second scan of the day), no open weights:* **OX Alpha** — the anonymous
 reasoning/coding model with a 1M context that dominated this cycle's coverage after appearing free on
