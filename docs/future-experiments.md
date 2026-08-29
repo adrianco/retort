@@ -404,6 +404,22 @@ task** below — the regime Graphify targets.
 isolate the tooling effect from local capability noise), then repeat on the local 80B.
 n≥3/cell; pass = req-coverage.
 
+### STATUS AUDIT 2026-08-26 — most of this is already built
+
+Audited each prerequisite against the code rather than the plan's memory of it:
+
+| item | state |
+|---|---|
+| pre-run hook builds `graphify-out/` | **built** — `local_runner.py:547` calls `build_graph` for `tooling: graphify`, and the hook marks a cell UNAVAILABLE when graphify is absent rather than running as a silent no-op |
+| exposed to the agent | **built** — the prompt dispatch names `graphify-out/GRAPH_REPORT.md` and `graph.json` |
+| verify the agent actually consults it | **built 2026-08-26** — `graph_usage_score`, mirroring `bead_usage`. 1.0 consulted / 0.0 ignored / **None** when there is no transcript, because a missing log is not evidence the agent ignored it. Covers Hermes logging to `_hermes_session.jsonl` rather than stdout, which a stdout-only detector would score 0 for every local run |
+| the large-existing-codebase task | **built** — `tasks/py-catalog-reservations`, registered as `bundled://`, ships `seed/` (a `catalog/` package + its own suite) and `seed/.retort-regression.json` |
+| the no-regression gate | **built AND verified end-to-end** — the seed's baseline is 6 passing tests; injecting a regression into `catalog/service.py` scores `no_regression` **0.0**. Verified against the real seed, not a stub |
+| graphify installed | **yes**, 0.9.20 |
+
+**Genuinely outstanding:** confirm token accounting captures the claimed savings, and choose the
+model/stack for the first arm. The experiment is otherwise runnable.
+
 **Plumbing to build + VERIFY first (a set-but-unverified tool is worse than none):**
 1. A pre-run hook that builds `graphify-out/` in the playpen before the agent starts. Code-only =
    no key; the graph reflects the *seeded* code (built once for comprehension).
