@@ -288,6 +288,21 @@ differing 5.7x in duration is what that noise looks like.
 verification will not be "passed") on the 20 GB model (which fits, unlike m80 at 42 GB). It is the only
 combination that satisfies both constraints, and it was never tried.
 
+### WATCH: the grid may land at ceiling, which would be a null for a THIRD structural reason (2026-08-26)
+
+Grid cells 1 and 2 (both verify-OFF) came in at `requirement_coverage` 1.00. If all three OFF
+replicates sit at ceiling, verify-on-stop has no headroom to convert and the result is a null — for
+the same structural reason the python smoke was void, not because the factor does nothing.
+
+Historical rust on the local stacks is thin and high-variance: m80 n=5 avg 0.917, m35 n=3 spanning
+0.5 to 1.0. So rust x m35 is NOT reliably at ceiling, and this may simply be a good run. But the
+possibility must be stated BEFORE the remaining cells land, so that a null is reported with the
+caveat attached rather than as "the factor does not help".
+
+**Read the result this way:** if the OFF arm is at ceiling, the experiment is uninformative about
+the hypothesis and needs a harder cell (brazil-go at 0.72, or the funkygibbon large-repo arm), not a
+conclusion. Only an OFF arm BELOW ceiling can test "verify-on-stop converts near-misses".
+
 ### SMOKE PASSES — the toggle works; my instrument was wrong (2026-08-26)
 
 | language | arm | `verification_required` | duration | tokens |
