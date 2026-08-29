@@ -1,0 +1,55 @@
+name: funkygibbon-port
+description: |
+  MODIFY-EXISTING, LARGE-REPO task (repo-pr mode): port the FunkyGibbon MCP client
+  to a new language by EXTENDING the-goodies (~30K lines, Python + TypeScript
+  reference clients + a shared protocol spec), rather than building from scratch.
+
+  This is the arm exp-44/45 identified as the real test of the graphify tooling
+  factor: on a ~200-line seed both frontier and local models were a null, because
+  a small codebase is navigable without a map. Here navigation IS the bottleneck.
+
+# repo-pr mode: the workspace is a git WORKTREE of the base repo (sharing one
+# cached clone's object store, so no per-attempt copy of 30K lines) and the
+# deliverable is a `git format-patch` of the agent's commit. The tag is pinned so
+# every run extends the SAME tree — an unpinned ref would let the base drift
+# between cells and silently become an uncontrolled factor.
+base_repo:
+  url: https://github.com/adrianco/the-goodies
+  ref: v0.2.2
+
+prompt: |
+  Port the FunkyGibbon MCP client to {{language}} by EXTENDING the existing
+  the-goodies repository, which is ALREADY CHECKED OUT in this directory. Do not
+  clone it — you are working inside it.
+
+  Read funkygibbon-mcp-port-guide.md in full first. Then study the protocol spec
+  (inbetweenies/PROTOCOL.md) and the two reference clients — the Python
+  `blowing-off` (including blowingoff/mcp/server.py) and the TypeScript
+  `kittenkong` (rolandcanyon-cmd/the-goodies-typescript). Implement the SPEC, not
+  any one client's quirks.
+
+  Add your port as a NEW top-level directory written idiomatically in
+  {{language}}. Do NOT modify the Python or TypeScript clients. Implement:
+
+    - the inbetweenies-v2 sync client: canonical version strings, the
+      server_time delta watermark used as an EXCLUSIVE `since`, the canonical
+      conflict resolver (last-write-wins with a 1-second-window tiebreak on the
+      greater version), and tombstone deletes;
+    - a durable local graph cache of entities + relationships;
+    - a stdio MCP server exposing the 12 tools named in the guide;
+    - bearer-token auth on sync requests.
+
+  Conformance fixtures are in fixtures/ — version-strings.json,
+  knowledge-graph.json, sync-exchanges.json and mcp-tool-golden.json. Your port
+  must reproduce them exactly; they are the wire contract, not examples.
+
+  Constraints:
+  - Do NOT modify the existing Python or TypeScript clients, or the protocol spec.
+  - Your work must be additive: a new top-level directory plus its own tests.
+
+# Deliberately generous. This is the hard arm: a 30K-line repo to comprehend
+# before a line is written, and the near-miss languages on the local stack have
+# been measured at ~21 min on a GREENFIELD task an order of magnitude smaller.
+# A cap that binds would measure the ceiling instead of the capability.
+timeout_minutes: 180
+max_turns: 600

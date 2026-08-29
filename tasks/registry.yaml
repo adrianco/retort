@@ -42,7 +42,13 @@ tasks:
     description: Command-line ETL data pipeline.
 
   - name: funkygibbon-port
-    source: github://adrianco/funkygibbon-port-bench/funkygibbon-mcp-port-guide.md
+    # github://adrianco/funkygibbon-port-bench/... returns 404 — the template repo
+    # was never created. This file's own note says to use bundled:// until it
+    # exists, and as of 2026-08-26 that path works: task.yaml pins the base repo
+    # (the-goodies @ v0.2.2, tag verified present) and seed/ carries the guide +
+    # the four golden fixtures. Restore the github:// source once the template
+    # repo is published.
+    source: bundled://funkygibbon-port
     description: >-
       Port the FunkyGibbon MCP client to a new language by EXTENDING an existing
       real repo (adrianco/the-goodies): a sync client (inbetweenies-v2) + local
