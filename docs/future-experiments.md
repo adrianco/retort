@@ -552,6 +552,15 @@ The sampling tier is done (exp-27). Remaining levers, by payoff:
 - **Quant level (4-bit → 6/8-bit) and scheme (unsloth/bartowski/stock)** — tests the hard-task
   *capability* ceiling: is the last mile (Go reaches 0.92 req_cov but not 1.0) lost to 4-bit quant
   error? A 6-bit 35B (~26 GB) fits 64 GB.
+  **Readiness check 2026-08-26: this is one download away.** Every coding model on this machine is
+  **4-bit** — HF cache holds `Qwen3-Coder-Next-4bit` (42 GB), `Qwen3-Coder-30B-A3B-Instruct-4bit`,
+  `unsloth--Qwen3.6-35B-A3B-UD-MLX-4bit` and `Devstral-Small-2507-4bit`. The only non-4-bit weight
+  present is `gpt-oss-20b-MXFP4-Q8`, which is not a coder. So the quant tier cannot be run today: it
+  needs a 6-bit (or 8-bit) build of a coder model we already have a 4-bit baseline for — otherwise
+  the comparison confounds quant with model. Disk is fine: **89 GB free**, and a 6-bit 35B is ~26 GB.
+  Nothing else blocks it — the stack presets already carry per-model `context_length` and sampling,
+  so a new quant is a new preset, not new plumbing.
+
 - **MoE vs dense** (issue #40 ask) — a fair matched-size dense-vs-MoE on Hermes to isolate the
   architecture effect (the Devstral attempt was the wrong harness).
 - **Deprioritised, with reason:** K/V + context quant (memory levers; context isn't our bottleneck
