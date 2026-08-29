@@ -1,3 +1,5 @@
 run,language,agent,prompt,stack,model
 0,rust,hermes-0205,neutral,m80-verify-off,mlxlocal/mlx-community--Qwen3-Coder-Next-4bit
 1,rust,hermes-0205,neutral,m80-verify-on,mlxlocal/mlx-community--Qwen3-Coder-Next-4bit
+2,rust,hermes-0205,neutral,m35-verify-off,mlxlocal/Qwen3.6-35B-A3B
+3,rust,hermes-0205,neutral,m35-verify-on,mlxlocal/Qwen3.6-35B-A3B
