@@ -288,6 +288,35 @@ differing 5.7x in duration is what that noise looks like.
 verification will not be "passed") on the 20 GB model (which fits, unlike m80 at 42 GB). It is the only
 combination that satisfies both constraints, and it was never tried.
 
+### THE RAISED TIMEOUT WAS STILL NOT ENOUGH — pre-registered reading (2026-08-26)
+
+verify-OFF arm, all three replicates in: **1.00, 1.00, CRASHED** —
+`Timeout after 5402s (hard wall)`, i.e. exactly the 90-minute ceiling I raised it to from 60
+specifically to avoid this.
+
+The cause is visible in the serving log and is environmental, not capability:
+
+```
+Paused request … for prefill LRU eviction (reason=adaptive_prefill_throttle)
+No idle model evicted …; scheduler will fall back to throttling
+```
+
+36 throttle events in 200 log lines. oMLX cannot free memory for a large prefill, so it throttles;
+generation continues at ~1.2 KB/min instead of stopping, which is why the stall guard correctly does
+NOT fire — there is progress, just not enough of it. rust's second-chance context is large enough to
+press the memory guard even on the 20 GB m35.
+
+**Pre-registered reading, fixed BEFORE the verify-ON arm lands.** A crash scores 0.00 on every
+metric. Verify-on-stop INJECTS turns, so the ON arm carries more context and is MORE exposed to the
+throttle-then-wall path. If the ON arm crashes more often than the OFF arm's 1-in-3, the resulting
+gap is **truncation, not capability**, and must not be reported as "verify-on-stop makes things
+worse". The honest conclusion in that case is that rust x m35 on this machine cannot test this
+factor — the cell is environment-limited before it is capability-limited.
+
+Raising the ceiling again would not fix it: 60 was a hard kill, 90 is a hard kill, and the binding
+constraint is a memory-throttled prefill rather than a slow model. The next attempt should change the
+CELL (go/brazil at 0.72, ~8.9 min average) rather than the clock.
+
 ### WATCH: the grid may land at ceiling, which would be a null for a THIRD structural reason (2026-08-26)
 
 Grid cells 1 and 2 (both verify-OFF) came in at `requirement_coverage` 1.00. If all three OFF
