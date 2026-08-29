@@ -62,3 +62,26 @@ def test_a_hermes_transcript_counts_too(tmp_path):
 def test_missing_output_dir_is_NULL(tmp_path):
     a = RunArtifacts(stdout="", exit_code=1, duration_seconds=1.0)
     assert GraphUsageScorer().score(a, _stack("graphify")) is None
+
+
+def test_a_graphify_design_without_the_detector_is_warned_about():
+    """A graphify arm whose agent never opened the graph is a `none` arm.
+
+    ScoreCollector runs ONLY the metrics named in `responses:`, so a workspace
+    that varies `tooling: graphify` but omits `graph_usage_score` skips the one
+    check that makes the arm interpretable — and its null becomes unfalsifiable.
+
+    This exact shape already bit the project one level down: `agent_consulted()`
+    had the right three-state semantics and a docstring naming this use case, and
+    was wired to nothing but a test. Registering a detector is not the same as
+    running it.
+    """
+    import inspect
+
+    from retort import cli
+
+    src = inspect.getsource(cli.run_experiments.callback)
+    assert "graph_usage_score" in src, "the responses guard is gone"
+    i = src.index("graph_usage_score")
+    window = src[max(0, i - 500):i + 500]
+    assert "graphify" in window and "responses" in window
