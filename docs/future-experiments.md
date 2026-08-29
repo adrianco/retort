@@ -375,7 +375,43 @@ would CHANGE pass/fail under the other judge.
 than adopting it. Note also that exp-53's code was *written* by a Codex model, so a Codex judge
 agreeing is a same-vendor loop and weaker evidence than it looks.
 
-## 2. Graphify tooling factor + large-existing-codebase task  — PLANNED (top priority)
+## 2. Graphify — ONLY the large-repo arm remains  — READY TO RUN (top priority)
+
+**This entry was badly stale and is corrected here (2026-08-26).** It read as "PLANNED" with a
+four-item build list. In fact the plumbing is built, and the experiment has already been RUN on the
+small task:
+
+- **exp-44** (frontier, claude-opus-4-8) and **exp-45** (local 80B) both ran
+  `tooling{none, beads, graphify} x py-catalog-reservations x n=3`. Written up in
+  [past-experiments](past-experiments.md). Result: **null on correctness** — every cell
+  `requirement_coverage` 1.00 — and graphify cost slightly MORE tokens than none
+  (405,944 vs 392,740 mean; beads 718,470).
+- **That null is verified, not assumed.** Re-checked today with the new `graph_usage_score`
+  detector: all six graphify cells across both experiments had the graph **built AND consulted** —
+  cloud via `_agent_stdout.log`, local via `_hermes_session.jsonl`. So it is genuinely "used the
+  graph, didn't help", not a logging artifact.
+
+exp-44/45's own conclusion says why that is not the end of it: a ~200-line seed **is navigable
+without a map**. The real test is the large-repo arm, where navigation is the actual bottleneck.
+
+**What is actually left: the funkygibbon-port arm.** `tasks/funkygibbon-port/` ships the guide,
+`REQUIREMENTS.json` (R1-R12), `prompts.txt` and four golden fixtures (version strings, knowledge
+graph, sync exchanges, MCP tool goldens), and is in `registry.yaml`.
+
+**One real blocker, with a documented workaround.** The registry source is
+`github://adrianco/funkygibbon-port-bench/...`, which **returns 404** — the template repo was never
+created. The registry already says to use `bundled://funkygibbon-port` until it exists, and the
+underlying codebase the task extends, `github.com/adrianco/the-goodies` (~30K lines), **is live
+(HTTP 200)** and the guide has the agent clone it directly. So the arm is runnable from this repo
+today by switching the source to `bundled://`.
+
+**Also still open from the original entry:** confirm token accounting captures the claimed savings —
+partially discharged, since `_tokens` is populated for 6/6 graphify, 93/118 beads and 129/155 none
+runs, and the exp-44/45 means above are computed from it.
+
+### Original plan, retained for the design rationale
+
+
 
 Add a third level to the `tooling` factor (currently `none` / `beads`): **`graphify`** — a
 code knowledge-graph skill ([graphify.com](https://graphify.com/),
