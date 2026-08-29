@@ -244,13 +244,42 @@ class _BaseStackManager:
             return
         preset = self.presets[preset_name]
         sig = _sig(preset)
+        if sig == self._loaded_sig and self._serving():
+            return  # already the active stack AND actually serving
         if sig == self._loaded_sig:
-            return  # already the active stack — no reload at this cell
+            # The signature says this stack is loaded; the port says otherwise.
+            # `_loaded_sig` tracks INTENT, not reality, so a server that died
+            # mid-experiment was never noticed: every later cell ran against a
+            # dead port and failed with "API call failed after 3 retries:
+            # Connection error" in ~20 seconds, scoring 0.00 on every metric.
+            # That is indistinguishable from a model that cannot do the task —
+            # and it is what wrecked exp-60's arm B, where the server had been
+            # down for 13 minutes before the run that "failed".
+            logger.warning(
+                "serving stack %r is marked loaded but nothing is answering on "
+                "port %s — reloading rather than running cells against a dead "
+                "server", preset_name, self.serving.get("port", 8080),
+            )
         logger.info("reloading serving stack -> preset %s (%s)", preset_name, sig)
         self._apply(preset)
         self._loaded_sig = sig
 
     # -- peak context -------------------------------------------------------
+
+    def _serving(self) -> bool:
+        """Is something actually answering on the serving port right now?
+
+        Cheap and best-effort: a failed probe means "reload", never "abort", so a
+        transient blip costs a reload rather than an experiment.
+        """
+        host = self.serving.get("host", "127.0.0.1")
+        port = int(self.serving.get("port", 8080))
+        try:
+            with urllib.request.urlopen(
+                    f"http://{host}:{port}/v1/models", timeout=5):
+                return True
+        except Exception:  # noqa: BLE001 — any failure means "not serving"
+            return False
 
     def log_offset(self) -> int:
         """Current size of the serving log — a cursor to measure one run from."""

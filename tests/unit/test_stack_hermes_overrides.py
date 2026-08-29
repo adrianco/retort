@@ -197,3 +197,51 @@ def test_a_correctly_nested_override_warns_about_nothing(tmp_path, caplog):
     with caplog.at_level(logging.WARNING):
         mgr._ensure_hermes_model("m", 1000, 10, {"agent": {"verify_on_stop": True}})
     assert not [r for r in caplog.records if "TOP-LEVEL" in r.message]
+
+
+class TestDeadServerDetection:
+    """`_loaded_sig` tracks INTENT, not reality.
+
+    A server that dies mid-experiment was never noticed: `ensure()` early-returned
+    on a matching signature, so every later cell ran against a dead port, failed
+    with "API call failed after 3 retries: Connection error" in ~20 seconds, and
+    scored 0.00 on every metric — indistinguishable from a model that cannot do
+    the task. That is what wrecked exp-60's arm B, where the server had been down
+    for 13 minutes before the run that "failed".
+    """
+
+    def _mgr(self, serving_ok: bool):
+        from retort.playpen.stack_reload import _BaseStackManager, _sig
+
+        mgr = _BaseStackManager.__new__(_BaseStackManager)
+        mgr.serving = {"host": "127.0.0.1", "port": 8080}
+        mgr.presets = {"m35": {"model": "q", "context_length": 1000}}
+        mgr._loaded_sig = _sig(mgr.presets["m35"])
+        mgr.agent_max_turns = None
+        mgr._serving = lambda: serving_ok
+        mgr.applied = []
+        mgr._apply = lambda preset: mgr.applied.append(preset)
+        return mgr
+
+    def test_a_live_server_is_not_needlessly_reloaded(self):
+        """The early return is a real optimisation — a 42GB reload per cell is
+        the thing it exists to avoid. Do not break it."""
+        mgr = self._mgr(serving_ok=True)
+        mgr.ensure("m35")
+        assert mgr.applied == [], "reloaded a healthy, already-loaded stack"
+
+    def test_a_dead_server_forces_a_reload_despite_a_matching_signature(self):
+        mgr = self._mgr(serving_ok=False)
+        mgr.ensure("m35")
+        assert len(mgr.applied) == 1, (
+            "signature matched, so the dead server was never noticed — every "
+            "later cell would run against a dead port")
+
+    def test_the_probe_treats_any_failure_as_not_serving(self, monkeypatch):
+        """A failed probe must mean 'reload', never 'abort' — a transient blip
+        should cost a reload, not an experiment."""
+        from retort.playpen.stack_reload import _BaseStackManager
+
+        mgr = _BaseStackManager.__new__(_BaseStackManager)
+        mgr.serving = {"host": "127.0.0.1", "port": 59999}   # nothing listening
+        assert mgr._serving() is False
