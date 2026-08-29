@@ -1,0 +1,23 @@
+{
+  "severity_counts": {
+    "critical": 0,
+    "high": 1,
+    "medium": 0,
+    "low": 0,
+    "info": 0
+  },
+  "penalty_score": 0.9,
+  "top_findings": [
+    {
+      "id": "R7",
+      "kind": "requirement_missing",
+      "severity": "high",
+      "title": "Live server never initializes the books table \u2014 schema created on a discarded connection",
+      "evidence": "src/main.rs:79 binds `db` to a fresh open_in_memory() whose schema is never created; src/main.rs:80 runs TABLE_DEF via models::create_connection(\"in-memory\") on a separate file-backed connection (SQLite open() treats \"in-memory\" as a path, not :memory:) and discards it with .ok(); src/main.rs:82 wraps the schema-less `db` into app state. The on-disk `in-memory` SQLite artifact (verified: contains a `books` table) is that discarded connection's output. Every live /books route errors with `no such table: books`. Tests pass because each builds its own initialized connection.",
+      "suggestion": "Run conn.execute_batch(models::TABLE_DEF) on `db` before wrapping it (or bind db_data to the connection create_connection returns); a persistent file path would also satisfy the 'not just in-memory state' clause."
+    }
+  ],
+  "requirement_coverage": 0.9167,
+  "model": "mlxlocal/Qwen3.6-35B-A3B",
+  "evaluated_at": "2026-08-29T22:20:05Z"
+}

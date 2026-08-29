@@ -1,0 +1,23 @@
+{
+  "severity_counts": {
+    "critical": 0,
+    "high": 1,
+    "medium": 0,
+    "low": 0,
+    "info": 0
+  },
+  "penalty_score": 0.9,
+  "top_findings": [
+    {
+      "id": "R7",
+      "kind": "requirement_partial",
+      "severity": "high",
+      "title": "Live server never initializes the books table (schema created on a discarded connection)",
+      "evidence": "src/main.rs:79 serves rusqlite::Connection::open_in_memory() with no DDL; src/main.rs:80 models::create_connection(\"in-memory\").ok() creates the books table on a separate on-disk file connection that is immediately dropped. Confirmed by the stray on-disk SQLite file 'in-memory' whose .tables shows books. Every DB route fails at runtime with 'no such table: books'. Tests pass (test_coverage=1.0) only because they build their own schema-initialized connection. Exact regression FEEDBACK.md said to fix; not fixed.",
+      "suggestion": "Apply models::TABLE_DEF to the served connection in main() (or use models::create_connection with a real path) and remove the discarded create_connection(\"in-memory\").ok() call."
+    }
+  ],
+  "requirement_coverage": 0.9167,
+  "model": "mlxlocal/Qwen3.6-35B-A3B",
+  "evaluated_at": "2026-08-29T22:28:10Z"
+}

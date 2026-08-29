@@ -288,6 +288,41 @@ differing 5.7x in duration is what that noise looks like.
 verification will not be "passed") on the 20 GB model (which fits, unlike m80 at 42 GB). It is the only
 combination that satisfies both constraints, and it was never tried.
 
+### GRID RESULT: VOID, not null (2026-08-29). The server died and the harness did not notice.
+
+All 6 cells recorded. Only THREE are valid measurements:
+
+| arm | rep | reqcov | secs | verdict |
+|---|---|---|---:|---|
+| OFF | 1 | 1.00 | 1679 | valid |
+| OFF | 2 | 1.00 | 936 | valid |
+| OFF | 3 | — | 5402 | **crashed on the 90-min hard wall** (memory-throttled prefill) |
+| ON | 1 | 0.917 | — | first attempt valid; its 2nd chance hit the dead server |
+| ON | 2 | — | 22 | **void** — `API call failed after 3 retries: Connection error` |
+| ON | 3 | — | 24 | **void** — same |
+
+**What happened.** The serving log's last successful completion was at 23:14 with a **216,326-token
+prompt**, after sustained `adaptive_prefill_throttle` ("No idle model evicted; scheduler will fall
+back to throttling"). The server then died. The three ON cells ran at 23:20, 23:29 and 23:29 — all
+after the death — and failed in ~20 s apiece.
+
+**The harness did not notice, and that is a bug now fixed.** `ensure()` early-returned whenever the
+preset signature matched what it last loaded, with no check that anything was answering;
+`local_runner` health-checks nothing either. `_loaded_sig` tracked INTENT, not reality. Fixed: the
+stack manager now probes `/v1/models` before trusting the signature and forces a reload if nothing
+answers. **This is also the previously-unexplained cause of exp-60's arm B failure.**
+
+**Do NOT read this as evidence about verify-on-stop.** The one valid ON point (0.917) against two
+valid OFF points (1.00, 1.00) is n=1 versus n=2, with the OFF arm's third replicate lost to the wall
+— exactly the truncation confound pre-registered above, plus a dead server on top. The comparison
+does not exist.
+
+**Conclusion about the CELL, which is the real finding:** rust x m35 x full context on this machine is
+environment-limited before it is capability-limited. 60 min was a hard kill, 90 min was a hard kill,
+and the binding constraint is a memory-throttled prefill that eventually kills the server outright.
+Raising the clock a third time is not the fix. **Next attempt: go/brazil** (0.72 baseline, ~8.9 min
+mean), which the original plan named as its other target and which does not press the memory guard.
+
 ### THE RAISED TIMEOUT WAS STILL NOT ENOUGH — pre-registered reading (2026-08-26)
 
 verify-OFF arm, all three replicates in: **1.00, 1.00, CRASHED** —

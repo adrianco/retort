@@ -1,0 +1,12 @@
+{
+  "replicate": 3,
+  "run_config": {
+    "agent": "hermes-0205",
+    "language": "rust",
+    "model": "mlxlocal/Qwen3.6-35B-A3B",
+    "prompt": "neutral",
+    "stack": "m35-verify-off"
+  },
+  "succeeded": true,
+  "visibility": "public"
+}
