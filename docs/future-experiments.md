@@ -386,6 +386,28 @@ runs, which would confound judge disagreement with run-to-run variance.
 **Report:** per-run agreement, direction of bias, and the number that decides pooling — how many runs
 would CHANGE pass/fail under the other judge.
 
+**Readiness + a methodological caveat (2026-08-26).** Runnable: a `CodexJudgeRunner` exists and is
+registered in `available_judges()`, selected via `evaluation.judge` (NOT `--eval-model`, which only
+takes a model id). The six exp-53 inputs are present and all carry `claude-code:opus-4.8` verdicts;
+the three typescript runs are correctly excluded — two failed and the third has no
+`requirement_coverage`, so there is no Opus verdict to disagree with.
+
+But **all six exp-53 runs sit at `requirement_coverage` exactly 1.00**, which makes this a one-sided
+comparison: agreement is close to automatic, and the only disagreement the design can detect is
+DOWNWARD. A judge-agreement study wants verdicts spanning the range, not a saturated baseline.
+
+Better-spread candidate sets already exist in master.db, all opus-judged:
+
+| experiment | n | at 1.0 | below | range |
+|---|---:|---:|---:|---|
+| exp-16 qwen3coder bookshop 256k | 12 | 6 | 6 | 0.67–1.00 |
+| exp-38 alllang 80B fullctx | 15 | 10 | 5 | 0.25–1.00 |
+| exp-41 repair 80B fullctx | 5 | 0 | 5 | 0.33–0.92 |
+
+Not overriding the user's exp-53 scoping — that was a deliberate token-budget decision. Flagging
+that the same budget spent on, say, exp-41's five below-ceiling runs would answer the pooling
+question with far more power, since every one of them CAN move in either direction.
+
 **Standing decision: opus-4.8 remains the scoring judge here.** This measures the alternative rather
 than adopting it. Note also that exp-53's code was *written* by a Codex model, so a Codex judge
 agreeing is a same-vendor loop and weaker evidence than it looks.
