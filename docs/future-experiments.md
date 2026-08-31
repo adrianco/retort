@@ -786,7 +786,7 @@ invest in the solver dependency, master.db merge, and first-class docs.
 <!-- SCAN-HEARTBEAT: the daily scan rewrites the next line on EVERY run, including
      days it finds nothing. Do not hand-edit it. If the date is more than ~2 days
      stale, the scan is not running — see "when the heartbeat goes stale" below. -->
-**Daily scan last completed: 2026-08-30** (scanning for new 64GB-fittable coding models)
+**Daily scan last completed: 2026-08-31** (scanning for new 64GB-fittable coding models)
 
 New open-weight coding models found by the daily scan that plausibly fit 64GB at 4-bit; promote to a
 numbered experiment when prioritised.
@@ -1479,6 +1479,46 @@ survives the toggle, restart the Claude desktop app, which clears the in-memory 
   — GGUF (64GB-targeted builds): https://huggingface.co/AtomicChat/Qwen3.8-Flash-Next-GGUF
   — local-run/memory notes: https://atomic.chat/blog/guides/how-to-run-qwen-3-8-flash-next-locally
   — llama.cpp arch support (merged 2026-08-27): https://github.com/ggml-org/llama.cpp/pull/27742
+
+- 2026-08-31 — **Tiel-Coder-35B-A3B (`peculiar-ragdoll`) — NOT a new model; community requants of the
+  already-listed Ornith-1.5-35B-A3B, carrying three findings that change how that entry should be run.**
+  It is `ornith-ai/Ornith-1.5-35B-A3B` (the 2026-08-22 top-slot entry) re-quantized with a different
+  chat template — MIT, inherited; `Qwen35MoE`, 256 experts / 8 per token, 262K context; **21.1 GB MLX
+  4-bit (`oQ4e`) / 22.4 GB GGUF `UD-Q4_K_XL`**, i.e. the same fit verdict as the parent entry. No new
+  weights were trained, so it is not a candidate in its own right. **Why it is worth recording anyway
+  — each item bears on a scheduled decision:**
+  **(1) Ornith-1.5's MTP head was broken at launch and was FIXED UPSTREAM on 2026-08-23** — after the
+  2026-08-22 entry was written. The repo documents the replacement (a trained head, kurtosis 25.1 with
+  a 98-sigma outlier, versus the random init that shipped) and measures it on `UD-Q4_K_XL`:
+  **1.22× (94.4 tok/s) at one drafted token, 1.11× (86.0 tok/s) at three, and 0.60× — a *loss* — at
+  eight**, via llama.cpp `--spec-type draft-mtp` with `--spec-draft-n-max` / `--spec-draft-p-min`.
+  **This is the §3 speculative-decoding lever with no draft model required**, on a model already
+  queued, and it is the second such no-draft-model path after the JetBrains n-gram finding above — but
+  note the speedup is modest and *inverts* past a small draft depth, so the sweep is the experiment,
+  not the 1.22×. Verify the fix landed in whatever checkpoint we pull; a stale mirror still has the
+  random head.
+  **(2) A chat-template swap moved the scores materially, and the author attributes the delta to the
+  template rather than the quantization.** The "Sharp" template baked into these checkpoints yields
+  **SWE-bench-Live 12/25 — four more than Ornith-1.5 itself, and level with Opus 4.6 (medium)** —
+  plus MMLU-Pro 73.7 and Claw-Eval multi-turn 67.2. Per CLAUDE.md the chat template is therefore a
+  tuning parameter to **record**, not inherit: two checkpoints of identical weights are not
+  interchangeable cells. (These are the requanter's own numbers on 25 problems — a reason to control
+  for the template, not a result.)
+  **(3) A measured cross-backend gap on identical weights: 0.7 MMLU-Pro points and ~24% difference in
+  token count between the MLX and GGUF builds.** retort scores tokens as a first-class response and
+  runs both `omlx` and `llamacpp`, so this is direct evidence that a backend switch mid-grid confounds
+  the token and cost columns — pin one backend per comparison.
+  **Caveat before touching either build: neither model card documents tool-calling at all** — and the
+  parent entry's whole practical appeal is its native `qwen3_xml` / `qwen3_coder` parser. The MLX build
+  is an `oQ4e` requant, the same *class* of third-party MLX conversion that produced the Muse Glimmer
+  false zero (there it was a pre-embed-norm-fix oMLX build emitting no function calls at all); nothing
+  says this one is broken, but a real `<tool_call>` smoke test on the specific checkpoint is mandatory
+  before any grid, and **prefer the first-party `ornith-ai` MLX 4-bit / GGUF** already linked in the
+  2026-08-22 entry unless the MTP head is what is being tested.
+  Source (GGUF): https://huggingface.co/peculiar-ragdoll/Tiel-Coder-35B-A3B-GGUF
+  — MTP build + speculative-decoding numbers: https://huggingface.co/peculiar-ragdoll/Tiel-Coder-35B-A3B-GGUF-MTP
+  — MLX 4-bit: https://huggingface.co/peculiar-ragdoll/Tiel-Coder-35B-A3B-MLX-oQ4e
+  — parent entry's weights: https://huggingface.co/ornith-ai/Ornith-1.5-35B-A3B
 
 *Excluded 2026-08-26 (second scan of the day), no open weights:* **OX Alpha** — the anonymous
 reasoning/coding model with a 1M context that dominated this cycle's coverage after appearing free on
