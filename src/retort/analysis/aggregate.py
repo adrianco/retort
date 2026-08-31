@@ -11,6 +11,7 @@ program. It is rebuilt from scratch each run, so it always reflects current data
 from __future__ import annotations
 
 import json
+import os
 import re
 import sqlite3
 from pathlib import Path
@@ -201,7 +202,16 @@ def judge_for(exp_dir: Path) -> str:
 
 
 def task_for(exp_dir: Path) -> str:
-    """Best-effort task name for an experiment, from its workspace.yaml source."""
+    """Best-effort task name for an experiment, from its workspace.yaml source.
+
+    Falls back to sniffing generated run artifacts when workspace.yaml didn't
+    survive archival (some local experiments only kept their retort.db). Both
+    tasks stamp their identity into every run's output — brazil-bench's guide
+    names its MCP server "BrazilianSoccerMcp"/"brazilian_soccer_mcp" and ships
+    Kaggle CSV fixtures; rest-api-crud's book-catalog spec gets built/named
+    "bookapi"/"book-api"/"bookshop" — so a filename scan is a cheap, reliable
+    second signal even without the source config.
+    """
     wf = exp_dir / "workspace.yaml"
     if wf.exists():
         m = re.search(r"source:\s*(\S+)", wf.read_text())
@@ -212,7 +222,43 @@ def task_for(exp_dir: Path) -> str:
             if "brazil" in src or "soccer" in src:
                 return "brazil-soccer-mcp"
             return m.group(1)
-    return "unknown"
+    return _sniff_task_from_runs(exp_dir) or "unknown"
+
+
+def _sniff_task_from_runs(exp_dir: Path) -> str | None:
+    """Infer the task from generated artifact names when workspace.yaml is gone.
+
+    Scans (a bounded number of) archived run paths for each task's distinctive
+    project/binary naming. Returns None — never a guess — when neither
+    signature is found, so callers still fall back to "unknown" rather than
+    silently mislabeling.
+    """
+    runs_dir = exp_dir / "runs"
+    if not runs_dir.exists():
+        return None
+    brazil_markers = ("brazil", "soccer", "kaggle")
+    crud_markers = ("bookapi", "book-api", "bookshop")
+    # os.walk with dependency-dir pruning, not rglob()+islice(): a naive
+    # bounded rglob scan is order-dependent — os.scandir doesn't guarantee
+    # any particular entry order, so on a large archive (e.g. a 95-run
+    # experiment with full node_modules/.venv trees per rep) an arbitrary
+    # index cutoff can non-deterministically miss the marker some runs and
+    # hit it on others, observed live. Pruning the bulky non-source dirs
+    # instead keeps the walk both fast AND complete/deterministic.
+    _prune = {
+        "node_modules", ".venv", "venv", "target", "obj", "bin",
+        "__pycache__", "site-packages", "dist", "build", ".git",
+        "_build", "deps", ".rebar3", ".pytest_cache",
+    }
+    for dirpath, dirnames, filenames in os.walk(runs_dir):
+        dirnames[:] = [d for d in dirnames if d not in _prune]
+        for name in (*dirnames, *filenames):
+            low = name.lower()
+            if any(m in low for m in brazil_markers):
+                return "brazil-soccer-mcp"
+            if any(m in low for m in crud_markers):
+                return "rest-api-crud"
+    return None
 
 
 def _owner_of(db: Path, root: Path) -> str:
@@ -284,7 +330,14 @@ def collect_runs(experiments_dir: Path) -> list[dict]:
         # Recover a model the design didn't name as a column (see docstring).
         fallback_model = model_from_archives(parent)
         profile_models = models_from_agent_profiles(parent)
-        con = sqlite3.connect(f"file:{db}?mode=ro", uri=True)
+        # Absolute path required: SQLite's URI opener is unreliable with a
+        # relative `file:` path in mode=ro — it can spuriously raise
+        # "unable to open database file" depending on the DB's WAL/-shm
+        # state (observed live: it silently dropped 20 of 21 local experiment
+        # DBs from the aggregate, each swallowed by the OperationalError catch
+        # below with no error surfaced). Resolving to an absolute path avoids
+        # the failure mode entirely.
+        con = sqlite3.connect(f"file:{db.resolve()}?mode=ro", uri=True)
         con.row_factory = sqlite3.Row
         try:
             runs = con.execute(
