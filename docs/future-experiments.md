@@ -20,6 +20,46 @@ push; verify every tuning parameter takes effect with a smoke test first; after 
 
 ---
 
+## 0. Fable 5.1 — TOP PRIORITY, released 2026-09-01  — READY TO RUN (exp-65)
+
+New Fable point release. **Model id `claude-fable-5-1`**, established from the CLI's own model
+catalog (`claude-fable-5`, `claude-fable-5-1`, `claude-fable-5-mythos-5`) and confirmed with a live
+call — not guessed. Required updating Claude Code 2.1.250 -> 2.1.257; the older CLI rejects the id as
+"not described by this version's model catalog".
+
+**The response variable is TIME and COST, not pass-proportion — and that is forced by the data.**
+Fable 5 scores **1.00 on every cell it has ever run**: 13 languages x 2 tasks, 52 runs, no exceptions.
+It is 1.00 **at low effort** as well. So a reliability comparison against 5.1 is guaranteed to return
+1.00 vs 1.00 and measure nothing — the same structural null that made exp-62 unanswerable and exp-54
+not worth running. What is NOT saturated is efficiency, and the existing effort sweep shows a large,
+real spread:
+
+| Fable 5 (exp-49, rest-api-crud / python / neutral, n=3) | wall | cost | tokens | test_cov |
+|---|---|---|---|---|
+| **low** | **49 s** | **$0.909** | **131 K** | 0.977 |
+| default | 107 s | $1.207 | 352 K | 0.960 |
+
+Low effort already **dominates** default for Fable 5 — 2.2x faster, cheaper, 2.7x fewer tokens, and
+*higher* coverage. That is the interesting axis for a point release: **does 5.1 hold 1.00 reliability
+while moving time and cost?**
+
+**Design: quarter factorial (`design.fraction: 0.25`), n=5.** Four two-level factors —
+`effort{low, default}` (the focus), `language{python, go}`, `task{rest-api-crud, brazil-soccer-mcp}`,
+`prompt{neutral, none}` — is a 2^4 = 16-cell full factorial, reduced to **4 cells** at quarter
+fraction, x5 replicates = **20 runs**. n=5 rather than n=3 per exp-63's lesson: n=3 vs n=3 has a
+two-sided permutation floor of 0.10, so alpha=0.05 is unreachable by construction.
+
+**Only 5.1 runs.** Fable 5.0 is not re-run; it is compared against its existing `master.db` rows per
+the incremental principle. Recorded so the write-up can carry it: the CLI moved 2.1.250 -> 2.1.257
+between the exp-49 baseline and this run, and `claude` IS the agent in this stack, so agent version
+is formally confounded with model version. Judged immaterial for this comparison and accepted
+deliberately — not overlooked.
+
+**Smoke test before the grid:** confirm `--effort low` actually reaches the CLI and changes behaviour.
+An effort flag that is silently dropped would make both arms identical and produce a confident null —
+this factor's specific false-null, and exactly the failure CLAUDE.md's "verify it took effect" rule
+exists to catch.
+
 ## 0z. RESOLVED — the `claude` CLI credential was blanked  — 2026-07-31
 
 Kept as a diagnostic recipe, not an open item. `claude -p` returned **`Not logged in · Please run

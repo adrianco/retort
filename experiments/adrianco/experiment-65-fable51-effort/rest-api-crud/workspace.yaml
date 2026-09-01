@@ -1,0 +1,99 @@
+# Experiment 65 — Fable 5.1: does the point release move TIME and COST?
+#
+# Fable 5.1 released 2026-09-01. Model id `claude-fable-5-1`, taken from the CLI's
+# own model catalog (which lists claude-fable-5, claude-fable-5-1 and
+# claude-fable-5-mythos-5) and confirmed with a live call — not guessed. Needed
+# Claude Code 2.1.250 -> 2.1.257; the older CLI rejects the id outright.
+#
+# THE RESPONSE IS TIME AND COST, NOT PASS-PROPORTION — and the data forces that.
+# Fable 5 scores 1.00 on EVERY cell it has ever run: 13 languages x 2 tasks, 52
+# runs, no exceptions, and 1.00 at low effort too. A reliability comparison is
+# therefore guaranteed to return 1.00 vs 1.00 and measure nothing — the same
+# structural null that made exp-62 unanswerable. Efficiency is NOT saturated:
+#
+#   Fable 5, exp-49, rest-api-crud/python/neutral, n=3
+#     low      49 s   $0.909   131 K tok   cov 0.977
+#     default 107 s   $1.207   352 K tok   cov 0.960
+#
+# Low DOMINATES default for Fable 5 — 2.2x faster, cheaper, 2.7x fewer tokens, and
+# higher coverage. Whether 5.1 preserves, widens or erases that is the question.
+#
+# TASK CHOICE. rest-api-crud, because that is where the Fable 5 effort baseline
+# above lives; a different task would make the comparison indirect for no gain.
+#
+# ONLY 5.1 RUNS. 5.0 is not re-run — compared against its existing master.db rows
+# per the incremental principle (user decision, 2026-09-01). Recorded for the
+# write-up: the CLI moved 2.1.250 -> 2.1.257 between that baseline and this run, and
+# `claude` IS the agent in this stack, so agent version is formally confounded with
+# model version here. Judged immaterial and accepted deliberately, not overlooked.
+# SMOKE TEST — run 2026-09-01 BEFORE this design was launched (CLAUDE.md: verify the
+# parameter takes effect, do not merely set it). The false-null this guards against is
+# an --effort flag the new model silently ignores, which would make both arms identical
+# and return a confident null.
+#
+# Probe: one reasoning-heavy prompt (a Frobenius-number question; exp-49 records that a
+# trivial arithmetic prompt is too weak and once made 4.7 look flat), model
+# claude-fable-5-1, --output-format stream-json, reading the RESULT event's
+# usage.output_tokens_details.thinking_tokens.
+#
+#   effort=low       thinking 1089   out 1516   21.0 s   $0.6361
+#   effort=default   thinking 1310   out 1977   25.1 s   $0.6434
+#
+# The flag REACHES the model and changes its behaviour: low thinks ~17% less, emits
+# fewer output tokens and finishes faster. Note the low/default gap is far narrower
+# than Fable 5's low->max spread (342 -> 3499 out-tok, ~10x) — expected, since default
+# sits between medium and high rather than at max. n=1, non-agentic: this establishes
+# the knob is REAL and observable, which is what a smoke test is for, not what it does
+# across a full agentic run.
+
+experiment:
+  name: experiment-65-fable51-effort
+  visibility: public
+factors:
+  # THE FOCUS. `default` is not a synonym for any named level — it means "pass no
+  # --effort flag", and exp-49's probe found the CLI default landing between medium
+  # and high for Fable 5. It is the historical baseline every pre-exp-49 run used,
+  # so it is carried as its own level rather than folded into `medium`.
+  effort: { levels: [low, default] }
+  # Four languages rather than one, so a time/cost effect is not a python artifact.
+  # Spans what is cheap for a frontier model (python, go) and what is not
+  # (rust, typescript).
+  language: { levels: [python, go, rust, typescript] }
+  prompt: { levels: [neutral, none] }
+  # Registry needs >=2 levels per factor; design.csv pins that ONLY 5.1 runs.
+  model: { levels: [claude-fable-5-1, claude-fable-5] }
+responses: [code_quality, token_efficiency, test_coverage, defect_rate, maintainability, idiomatic]
+tasks:
+  - source: bundled://rest-api-crud
+playpen:
+  runner: local
+  # n=3 PER CELL, but the effort main effect pools across the 4 cells at each level,
+  # so it is measured at n=12 per arm — comfortably past exp-63's n>=5 threshold.
+  # Per-cell estimates are not the point here; the effort contrast is.
+  replicates: 3
+  timeout_minutes: 60
+  stall_minutes: 25
+  max_turns: 200
+  prompts_dir: prompts
+# HALF fraction, not quarter — and the reason is recorded because a quarter was asked
+# for. effort(2) x language(4) x prompt(2) = 16 cells full. The generator's quarter
+# fraction (4 cells) came out perfectly ALIASED on the one contrast this experiment
+# exists to measure:
+#
+#     low      python      neutral
+#     low      go          none
+#     default  rust        neutral
+#     default  typescript  none
+#
+# `low` runs only python/go and `default` only rust/typescript, so effort is fully
+# confounded with language. rust and typescript are the slower, costlier languages
+# here, so "default is slower and dearer" would have come out GUARANTEED — as an
+# artifact of which languages landed in which arm, not as an effort effect. A quarter
+# of 16 cannot cross a 2-level against a 4-level factor; 8 cells is the smallest that
+# can. This design crosses effort x language fully (each of the 8 combinations once)
+# and balances effort x prompt 2/2, so every main effect is estimable free of the
+# others. design.csv is written by hand for exactly that reason and is NOT
+# regenerated — `retort design generate` would reintroduce the confound.
+design: { screening_resolution: 3, significance_threshold: 0.10, fraction: 0.5 }
+promotion: { screening_to_trial: { p_value: 0.10 }, trial_to_production: { posterior_confidence: 0.80 } }
+evaluation: { enabled: true, model: opus-4.8 }

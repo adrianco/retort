@@ -1,0 +1,9 @@
+run,language,model,prompt,effort
+0,python,claude-fable-5-1,neutral,low
+1,python,claude-fable-5-1,none,default
+2,go,claude-fable-5-1,none,low
+3,go,claude-fable-5-1,neutral,default
+4,rust,claude-fable-5-1,neutral,low
+5,rust,claude-fable-5-1,none,default
+6,typescript,claude-fable-5-1,none,low
+7,typescript,claude-fable-5-1,neutral,default
