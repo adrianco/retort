@@ -288,6 +288,33 @@ differing 5.7x in duration is what that noise looks like.
 verification will not be "passed") on the 20 GB model (which fits, unlike m80 at 42 GB). It is the only
 combination that satisfies both constraints, and it was never tried.
 
+### typescript retry — a native-dependency flake adds noise (2026-09-01, in progress)
+
+Cell 2 failed with every metric 0.00. That all-zero signature has meant "suspect the harness" twice
+in this experiment, so it was checked rather than assumed — and this time the harness is RIGHT:
+
+- The zeroing is **documented policy**, not a bug: `ScoreCollector` zeroes every metric when
+  `test_coverage == 0`, on the stated ground that "a run where tests can't run is a failure
+  regardless of code quality". My first comparison (scoring `code_quality` directly at 0.733) was
+  misleading because calling a scorer directly bypasses that gate.
+- Rescoring the archived tree gives `test_coverage` **0.0** independently, and running the suite by
+  hand shows why: `npm install` succeeds (197 packages) but vitest reports **"1 failed (1), Tests: no
+  tests"** — `better-sqlite3` has no native bindings for **Node v26.7.0 / ABI 147**.
+
+So the agent's claim of "all 15 tests pass cleanly" is **false for the delivered tree**, and
+`test_coverage=0` is the correct verdict.
+
+**What is NOT established.** Cell 1 uses the same `better-sqlite3` and PASSED (test_coverage 0.354),
+and the pattern inverts the obvious explanation: cell 2's first attempt *did* run `npm install` and
+still zeroed, while cell 1's agent never mentions it and scored fine. Whether the difference is
+prebuild availability, a build race, or something else is unknown, and no mechanism should be
+asserted without it.
+
+**Consequence for the experiment.** 11 archived typescript runs depend on `better-sqlite3`, so this
+is a corpus-wide noise source, not a one-cell curiosity: a cell can fail for a native-build reason
+unrelated to the factor under test. If more of this grid zeroes the same way, typescript is a poor
+cell for exp-62 — not because it lacks headroom, but because its failures are not attributable.
+
 ### GRID RESULT: VOID, not null (2026-08-29). The server died and the harness did not notice.
 
 All 6 cells recorded. Only THREE are valid measurements:
