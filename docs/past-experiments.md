@@ -1234,3 +1234,78 @@ being broken; it was not, and this is the positive confirmation.
 does not fail first. Every local option has now failed environmentally, in three different ways. The
 next attempt should be a CLOUD arm, where none of memory pressure, prefill throttling, or local
 native-build variance applies.
+
+## exp-63 — does Graphify pay off on a LARGE repo?  — NULL, 2026-09-01
+
+**The last open arm of the Graphify question, and it closes it.** The small-repo arms (exp-44/45)
+found no benefit, which could always be waved away as "the repo was too small to need a knowledge
+graph". This ran the same factor against a large real codebase — porting `the-goodies` (pinned at
+tag v0.2.2) to Go as a `repo-pr` task — which is the case where a code knowledge graph is *most*
+expected to pay off. It does not.
+
+**Design:** `tooling{none, graphify} x go x funkygibbon-port x n=3`, cloud `claude-opus-4-8`,
+judge held at opus-4.8. 6 cells, **$39.998**, ~15 min/cell.
+
+| arm | test_cov | maintainability | idiomatic | tokens | cost | wall |
+|---|---|---|---|---|---|---|
+| none | 0.62 / 0.60 / 0.60 → **0.607** | 0.67 / 0.57 / 0.69 → **0.643** | **0.780** | **6.19 M** | **$6.27** | **834 s** |
+| graphify | 0.68 / 0.60 / 0.65 → **0.643** | 0.70 / 0.72 / 0.73 → **0.717** | **0.797** | **7.49 M** | **$7.07** | **901 s** |
+
+**Pass-proportion is 3/3 = 1.00 in BOTH arms.** The primary response is saturated, so it cannot
+discriminate at all; everything below is secondary metrics.
+
+### The real finding is about the design, not about Graphify
+
+**n=3 vs n=3 cannot produce a significant result at α=0.05, whatever the effect size.** There are
+only C(6,3) = 20 ways to split six runs into two arms of three, so the smallest two-sided
+permutation p-value obtainable is 2/20 = **0.10**. The α=0.05 threshold is unreachable *by
+construction*.
+
+This is not hypothetical here. `maintainability` achieved **perfect separation** — every `none` run
+(0.57, 0.67, 0.69) scored below every `graphify` run (0.70, 0.72, 0.73), with no overlap — and still
+returned p = 0.100, because that is the floor. The strongest possible evidence this design can
+generate is indistinguishable from its own noise ceiling.
+
+| metric | none | graphify | Δ | ranges overlap? | perm p |
+|---|---|---|---|---|---|
+| test_coverage | 0.607 | 0.643 | +6.0% | yes | 0.400 |
+| **maintainability** | 0.643 | 0.717 | **+11.4%** | **NO** | **0.100** (floor) |
+| idiomatic | 0.780 | 0.797 | +2.1% | yes | 0.900 |
+| tokens | 6.19 M | 7.49 M | +21.1% | yes | 0.200 |
+| cost | $6.27 | $7.07 | +12.8% | yes | 0.200 |
+| wall | 834 s | 901 s | +8.0% | yes | 0.400 |
+
+**Consequence for this project: n=3 per arm is for screening, not for claims.** Any future two-arm
+comparison that intends to *assert* a difference needs n≥5 per arm — C(10,5) = 252 gives a floor of
+2/252 = 0.008, which clears even a 6-metric Bonferroni threshold of 0.0083. Re-read past two-arm
+n=3 results in that light: they can rule effects *in* as worth pursuing, never *out*, and never
+establish one.
+
+### What can be said about Graphify
+
+Graphify costs **+21% tokens and +12.8% dollars** and buys no pass-proportion benefit, on the task
+type most favourable to it. That direction matches exp-44/45 exactly, where graphify also cost more
+tokens than none. The `maintainability` separation is the one signal worth remembering — it is the
+only metric whose arms do not overlap — but at the p-floor it is a hypothesis for a properly powered
+run, not a result. **§2 of the queue is closed on this basis:** no further Graphify arms are planned.
+
+### Two harness defects this experiment exposed
+
+1. **`test_coverage` scored a real 21-file Go port as 0.0** — and the first cell died that way before
+   the bug was caught, costing $1.47. `go test ./...` ran at the *repo root*, which for a `repo-pr`
+   task is the base repo (`the-goodies`, a Python/TypeScript codebase with no `go.mod` anywhere),
+   not the agent's new `wombat-go/` subdirectory. A greenfield task puts `go.mod` at the workspace
+   root so this had never bitten; a repo-pr task structurally cannot. In the results a perfect port
+   and an empty one were **identical**, which is the exact confusion this harness exists to prevent.
+   Fixed by `_go_module_root()`: root `go.mod` wins; else the single subdirectory module; if several,
+   stay at the root rather than guess which is the deliverable; hidden dirs ignored so a `.git`
+   worktree cannot be mistaken for the port. The remaining 5 cells would all have failed identically.
+2. **`graph_usage_score` overloads 1.0** — it means both "not applicable" (the `none` arm) and "graph
+   built and consulted" (the `graphify` arm). Both arms report 1.00 here, meaning different things.
+   Never average this column across arms; it inflates the consultation rate toward 1.0. Not fixed
+   mid-experiment on purpose, since changing a scorer while cells are running makes completed and
+   remaining cells incomparable. The fix is to return `None` for not-applicable.
+
+**Cost estimation note.** This run was projected at ~$1.47/cell from the first *failed* cell, which
+died before doing any work — an invalid basis. Real cost was ~$6.50/cell, 4.4x the estimate. Price a
+cloud experiment from a cell that ran to completion, never from one that aborted early.

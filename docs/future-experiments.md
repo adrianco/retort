@@ -174,172 +174,19 @@ question with far more power, since every one of them CAN move in either directi
 than adopting it. Note also that exp-53's code was *written* by a Codex model, so a Codex judge
 agreeing is a same-vendor loop and weaker evidence than it looks.
 
-## 2. Graphify — ONLY the large-repo arm remains  — READY TO RUN (top priority)
+## 2. RESOLVED — Graphify closed as a null  — 2026-09-01
 
-**This entry was badly stale and is corrected here (2026-08-26).** It read as "PLANNED" with a
-four-item build list. In fact the plumbing is built, and the experiment has already been RUN on the
-small task:
+All three arms are done. exp-44/45 (small repo) and **exp-63** (large repo, `the-goodies` -> Go)
+all found no pass-proportion benefit, while graphify consistently cost more tokens (+21% in exp-63).
+Written up in [`past-experiments.md`](past-experiments.md#exp-63--does-graphify-pay-off-on-a-large-repo--null-2026-09-01).
+No further Graphify arms are planned.
 
-- **exp-44** (frontier, claude-opus-4-8) and **exp-45** (local 80B) both ran
-  `tooling{none, beads, graphify} x py-catalog-reservations x n=3`. Written up in
-  [past-experiments](past-experiments.md). Result: **null on correctness** — every cell
-  `requirement_coverage` 1.00 — and graphify cost slightly MORE tokens than none
-  (405,944 vs 392,740 mean; beads 718,470).
-- **That null is verified, not assumed.** Re-checked today with the new `graph_usage_score`
-  detector: all six graphify cells across both experiments had the graph **built AND consulted** —
-  cloud via `_agent_stdout.log`, local via `_hermes_session.jsonl`. So it is genuinely "used the
-  graph, didn't help", not a logging artifact.
-
-exp-44/45's own conclusion says why that is not the end of it: a ~200-line seed **is navigable
-without a map**. The real test is the large-repo arm, where navigation is the actual bottleneck.
-
-**What is actually left: the funkygibbon-port arm.** `tasks/funkygibbon-port/` ships the guide,
-`REQUIREMENTS.json` (R1-R12), `prompts.txt` and four golden fixtures (version strings, knowledge
-graph, sync exchanges, MCP tool goldens), and is in `registry.yaml`.
-
-**One real blocker, with a documented workaround.** The registry source is
-`github://adrianco/funkygibbon-port-bench/...`, which **returns 404** — the template repo was never
-created. The registry already says to use `bundled://funkygibbon-port` until it exists, and the
-underlying codebase the task extends, `github.com/adrianco/the-goodies` (~30K lines), **is live
-(HTTP 200)** and the guide has the agent clone it directly. So the arm is runnable from this repo
-today by switching the source to `bundled://`.
-
-**Also still open from the original entry:** confirm token accounting captures the claimed savings —
-partially discharged, since `_tokens` is populated for 6/6 graphify, 93/118 beads and 129/155 none
-runs, and the exp-44/45 means above are computed from it.
-
-### Original plan, retained for the design rationale
-
-
-
-Add a third level to the `tooling` factor (currently `none` / `beads`): **`graphify`** — a
-code knowledge-graph skill ([graphify.com](https://graphify.com/),
-[GitHub](https://github.com/Graphify-Labs/graphify)). It uses Tree-sitter + LLM extraction to turn
-a repo into a queryable graph (`graph.json` + `GRAPH_REPORT.md` + god-node/blast-radius analysis)
-so the agent answers questions about *relationships* instead of grepping. **Code extraction is
-offline/no-API-key** (dogfooded on retort's own `src/`, 1292 nodes in ~20s); it ships a Claude Code
-skill (`graphify install`) and an MCP server (`graphify-mcp`) — the two integration points the
-experiment needs.
-
-**Hypothesis (task-size interaction, not a mean shift).** Graphify's value is *comprehending an
-existing large codebase*. On greenfield **bookshop** it should be a no-op/slightly negative (nothing
-to graph). It should pay off on **brazil-bench** and, most of all, on the **large-existing-codebase
-task** below — the regime Graphify targets.
-
-**The paired large-codebase task (user decisions, 2026-07-17):**
-- **Language: Python.**
-- **Scoring: BOTH** — (a) req-coverage over the *new* capabilities the modification must add,
-  layered on the seeded codebase, AND (b) a **no-regression gate**: the seed's existing test suite
-  must still pass. This is a new scorer shape (bookshop is from-scratch only) — the gate must run
-  the pre-existing suite against the modified tree and fail on any breakage. **Build/verify that
-  regression gate before trusting results.**
-
-**Design.** `task × tooling{none, beads, graphify}` on brazil-bench + the new large-codebase task
-(one bookshop arm as the negative control). Hold the model fixed at a strong cloud stack first (to
-isolate the tooling effect from local capability noise), then repeat on the local 80B.
-n≥3/cell; pass = req-coverage.
-
-### STATUS AUDIT 2026-08-26 — most of this is already built
-
-Audited each prerequisite against the code rather than the plan's memory of it:
-
-| item | state |
-|---|---|
-| pre-run hook builds `graphify-out/` | **built** — `local_runner.py:547` calls `build_graph` for `tooling: graphify`, and the hook marks a cell UNAVAILABLE when graphify is absent rather than running as a silent no-op |
-| exposed to the agent | **built** — the prompt dispatch names `graphify-out/GRAPH_REPORT.md` and `graph.json` |
-| verify the agent actually consults it | **built 2026-08-26** — `graph_usage_score`, mirroring `bead_usage`. 1.0 consulted / 0.0 ignored / **None** when there is no transcript, because a missing log is not evidence the agent ignored it. Covers Hermes logging to `_hermes_session.jsonl` rather than stdout, which a stdout-only detector would score 0 for every local run |
-| the large-existing-codebase task | **built** — `tasks/py-catalog-reservations`, registered as `bundled://`, ships `seed/` (a `catalog/` package + its own suite) and `seed/.retort-regression.json` |
-| the no-regression gate | **built AND verified end-to-end** — the seed's baseline is 6 passing tests; injecting a regression into `catalog/service.py` scores `no_regression` **0.0**. Verified against the real seed, not a stub |
-| graphify installed | **yes**, 0.9.20 |
-
-**Genuinely outstanding:** confirm token accounting captures the claimed savings, and choose the
-model/stack for the first arm. The experiment is otherwise runnable.
-
-**Plumbing to build + VERIFY first (a set-but-unverified tool is worse than none):**
-1. A pre-run hook that builds `graphify-out/` in the playpen before the agent starts. Code-only =
-   no key; the graph reflects the *seeded* code (built once for comprehension).
-2. Expose it to the agent (mount `graph.json` + `GRAPH_REPORT.md` with instructions, or wire the
-   Graphify MCP server so the agent queries it live).
-3. **Smoke-test that the agent actually consults the graph** (grep the transcript for graph
-   reads / MCP calls) — else `graphify` is silently identical to `none` and we publish a false null.
-4. Confirm token accounting captures the claimed savings.
-
-**Graph-freshness design point:** Graphify doesn't auto-update — `graphify update <path>` refreshes
-only changed files (offline, fast). The graph built pre-run is for comprehending the *existing*
-code; as the agent edits, it drifts. Default: build once at the start (the agent knows its own new
-code; it needs the map of what's already there — where ~all the value is for a modify-existing
-task). Optionally test re-running `graphify update` between turns as a second arm.
-
-*Dogfood retort itself as the first Graphify target when building this — it validates the plumbing
-and gives a maintained graph for future work.* Per incremental-experiments: add ONLY the new tooling
-level / task; don't re-run existing cells.
-
-**Groundwork VERIFIED (2026-07-22):** graphify 0.9.20 + graphify-mcp are installed (`~/.local/bin`,
-a `uv` tool → package `graphifyy`, interpreter at `~/.local/share/uv/tools/graphifyy/bin/python`).
-The offline, no-key AST extraction API is:
-```python
-from graphify.extract import collect_files, extract
-files  = collect_files(Path(target))          # walks the tree, picks code files
-result = extract(files, cache_root=Path(target))   # {nodes, edges, input_tokens, output_tokens}
-```
-Dogfooded on retort's `src/` → **1361 nodes, 2833 edges from 75 files in 0.7 s**, $0. **Gotcha
-(must handle in the hook):** `extract()` uses a `multiprocessing` pool with the `spawn` start method
-(macOS default), which re-imports the driver's `__main__` — so it MUST run from a real `.py` FILE,
-not `python -c "…"` or a heredoc/stdin (those fail with `FileNotFoundError: …/<stdin>` per worker and
-return 0 nodes). The prototype hook driver is `scratchpad/build_graph.py`. The full pipeline
-(clustering + `GRAPH_REPORT.md` + god-node/blast-radius) is Part C of the skill on top of this AST
-result; the pre-run hook can call `extract()` directly for the graph and generate the report from it.
-The MCP server is `graphify-mcp` (stdio) for the live-query arm.
-
-**PLUMBING BUILT + VERIFIED (2026-07-22) — the experiment is now runnable:**
-1. ✅ **`tooling: graphify` capability** (`playpen/graphify_hook.py` + `LocalRunner.provision` +
-   prompt injection): builds `graphify-out/{graph.json,GRAPH_REPORT.md}` on the seeded code before
-   the agent starts, and tells the agent to consult it. Subprocess w/ graphify's own interpreter
-   (isolates tree-sitter deps + the spawn gotcha). No-op if graphify absent.
-2. ✅ **`no_regression` scorer** (`scoring/scorers/no_regression.py`, registered): runs the seed's
-   existing suite (`.retort-regression.json`) under the process-group reaper + `ensure_python_env`,
-   → 1.0 pass / 0.0 regressed / 1.0 N/A. **Verified it genuinely gates** (pristine→1.0, an injected
-   bug→0.0) — an earlier version silently fell to neutral because bare `python` wasn't on PATH.
-3. ✅ **`py-catalog-reservations` modify-existing task** (`tasks/py-catalog-reservations/`): a seeded
-   `catalog/` library (models→store→loans→service) + a passing 6-test suite; TASK.md adds a
-   reservations feature (blast radius spans the modules). `task_loader` now maps a task's `seed/`
-   subdir → `support_dir`. End-to-end verified: provision seeds it → graphify builds a 45-node graph
-   naming Catalog/Store/LoanService/borrow/return_book → no_regression gates the real suite.
-
-**REMAINING (runtime, not build):**
-- ✅ **Consultation smoke PASSED (2026-07-22, exp-44 rep1):** one Opus cell, `tooling: graphify`,
-  catalog task — the transcript shows the agent genuinely used the graph (**4× read GRAPH_REPORT.md,
-  4× graph.json, ran `graphify explain` ×3 / `query` ×2 / `path` ×2**), implemented reservations, and
-  `no_regression=1.00` (existing suite still passes). graphify is NOT ≡ none — the full run is safe.
-- ✅ **Frontier arm DONE (exp-44 → past-experiments):** `tooling{none,beads,graphify} × Opus × n=3`
-  on the catalog task — all three **1.0 req_cov + 1.0 no_regression**; tooling is a pure no-op on
-  correctness (beads +67% time, graphify +9%, for zero gain). A clean null on an easy/small task, as
-  predicted — the control, not the headline.
-- ✅ **Local-80B arm DONE (exp-45 → past-experiments):** same null — all tooling 1.0 on the 80B too.
-  ✅ **Consultation now VERIFIABLE for local agents (2026-07-24):** `_export_hermes_session` writes
-  `_hermes_session.jsonl` (from Hermes' SQLite session store, keyed by `.hermes_usage.json`'s
-  `session_id`) after each Hermes run, and `agent_consulted()` greps it cross-agent. Retroactively
-  confirmed: **all 3 exp-45 graphify cells DID consult the graph** (95–115 tool_call refs) — the 80B
-  null is "used-but-didn't-help," like Opus. This unblocks the large-repo arm's consultation check.
-- **REMAINING — the real test:** the **large-repo arm** — funkygibbon-port / the-goodies (~30K lines),
-  where navigation is genuinely the bottleneck. Needs its PR-on-worktree run model built (see
-  `tasks/funkygibbon-port/README.md`) + the user's seed work. Optionally: `graphify --update` between
-  turns.
-
-**Measurement caveat for the exp-63 write-up — `graph_usage_score` overloads 1.0.** The scorer
-returns `1.0 consulted · 0.0 ignored · None unverifiable · 1.0 NOT APPLICABLE`, so the `none` arm
-and a graphify arm that genuinely consulted the graph both report **1.00**, meaning different
-things. Observed directly in exp-63 rep 1: both arms show `graph_usage_score=1.00`, but only the
-graphify one is evidence of anything. Consequence: **never average this column across arms** — it
-mixes "no graph was configured" rows into "the graph was consulted" rows and inflates the
-consultation rate toward 1.0. Read it only within `tooling=graphify` rows.
-
-Not fixed mid-experiment on purpose: changing a scorer while cells are running makes the completed
-and remaining cells incomparable, which is a worse defect than the ambiguity. The fix afterwards is
-to return `None` for not-applicable (the value already reserved for "no verdict"), so the N/A rows
-drop out of any aggregate instead of counting as successes. This is the same class of defect as the
-`test_coverage==0` gate zeroing `graph_usage_score`, which already cannot distinguish "ignored the
-graph" from "the run failed".
+**Open harness to-do left behind by exp-63:** `graph_usage_score` returns `1.0` for BOTH "not
+applicable" and "graph built and consulted", so the two are indistinguishable and averaging the
+column across arms inflates the consultation rate toward 1.0. Fix: return `None` for the
+not-applicable case, so those rows leave the aggregate instead of counting as successes. Related and
+still unfixed: the `test_coverage == 0` gate zeroes `graph_usage_score`, which already cannot
+distinguish "ignored the graph" from "the run failed".
 
 ## 3. Inference-lever sweep — remaining tiers (issue #40)  — OPEN
 
@@ -1534,6 +1381,16 @@ Metal support is weak, so it suits a CUDA box, not this Mac.
 
 ## Standing method notes
 
+- **n=3 per arm is a SCREENING size, not an evidence size** (exp-63, 2026-09-01). A two-arm
+  comparison with n=3 vs n=3 has only C(6,3)=20 permutations, so the smallest two-sided permutation
+  p it can return is 2/20 = **0.10** — α=0.05 is unreachable no matter how large the effect. exp-63
+  proved this concretely: `maintainability` separated *perfectly* (every none run below every
+  graphify run) and still scored p=0.100. **To assert a difference, use n≥5 per arm** — C(10,5)=252
+  gives a floor of 0.008, which clears even a 6-metric Bonferroni threshold. n=3 results can rule an
+  effect *in* as worth pursuing; they can never rule one *out*, and never establish one.
+- **Price a cloud experiment from a COMPLETED cell, never an aborted one** (exp-63). A cell that
+  failed early was used to project ~$1.47/cell; the real figure was ~$6.50/cell, 4.4x higher, on a
+  run that totalled $40.
 - **Incremental design:** add ONE new model/factor at a time; run only the new cells; compare
   against `master.db`. Never re-run existing baselines.
 - **Spec-gate always ON.** Clean archive bloat (truncate `_agent_stdout.log`, strip
