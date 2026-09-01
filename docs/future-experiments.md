@@ -786,7 +786,7 @@ invest in the solver dependency, master.db merge, and first-class docs.
 <!-- SCAN-HEARTBEAT: the daily scan rewrites the next line on EVERY run, including
      days it finds nothing. Do not hand-edit it. If the date is more than ~2 days
      stale, the scan is not running — see "when the heartbeat goes stale" below. -->
-**Daily scan last completed: 2026-08-31** (scanning for new 64GB-fittable coding models)
+**Daily scan last completed: 2026-09-01** (scanning for new 64GB-fittable coding models)
 
 New open-weight coding models found by the daily scan that plausibly fit 64GB at 4-bit; promote to a
 numbered experiment when prioritised.
@@ -1519,6 +1519,34 @@ survives the toggle, restart the Claude desktop app, which clears the in-memory 
   — MTP build + speculative-decoding numbers: https://huggingface.co/peculiar-ragdoll/Tiel-Coder-35B-A3B-GGUF-MTP
   — MLX 4-bit: https://huggingface.co/peculiar-ragdoll/Tiel-Coder-35B-A3B-MLX-oQ4e
   — parent entry's weights: https://huggingface.co/ornith-ai/Ornith-1.5-35B-A3B
+
+*Excluded 2026-09-01, oversized and arch-blocked — recorded because it is being loudly
+re-promoted right now:* **Laguna S 2.1 (Poolside)** — **118B-A8B MoE**, OpenMDW-1.1, 1M context,
+built for agentic coding; weights on Hugging Face. Originally released **2026-07-21**, but a fresh
+wave of "the West's most capable open-weight model" coverage on **2026-08-24** put it back at the
+top of this cycle's roundups, which is the only reason it surfaced. **It fails on both bars.**
+(1) **Size:** ~59–62 GB at 4-bit — the same verdict as the excluded Ling-3.0-flash ("leaves no room
+for context or KV cache"), and exp-62 (§0) is direct evidence against it *on this machine*: the
+42 GB m80 already hit `usage 51.9 GB, ceiling 54.0 GB` and killed the server. (2) **Arch:** it is
+the same `laguna` architecture as **Laguna XS 2.1**, gate-probed 2026-07-21 and recorded at the top
+of this section as BLOCKED — unmerged in mainline oMLX/llama.cpp. The vendor's own sizing target is
+a single DGX Spark, not a 64 GB Mac. Re-check only if the `laguna` arch merges upstream *and* a
+sub-40 GB variant ships. Sources: https://www.marktechpost.com/2026/07/21/poolside-releases-laguna-s-2-1/
+· https://www.hpcwire.com/aiwire/2026/08/24/poolside-launches-laguna-s-2-1-open-weight-coding-model/
+
+*Excluded 2026-09-01, oversized:* **GLM-5.3 / GLM-5.3-Flash** (Z.ai, weights opened 2026-08-28;
+Flash is 320B-A18B, MIT, 1M context, coding/agent-targeted) — ~160 GB at 4-bit for the Flash alone,
+so the standing GLM size verdict is unchanged; note also that the full GLM-5.3 licence is
+hyperscaler-aimed rather than Apache/MIT. **Hy4 preview** (Tencent Hunyuan, 2026-08-28, 770B-A49B,
+Apache 2.0, 1M context, long-horizon SWE-targeted) — ~385 GB at 4-bit. **Ling-3.0-flash-Fin**
+(inclusionAI, 2026-08-27, 124B-A5.1B) — a *finance*-domain variant of the already-excluded
+Ling-3.0-flash, so it fails on both domain and the same ~62 GB size verdict. **Qwen3.8-Flash**
+(Alibaba, 2026-08-26) — the **proprietary/API-only** sibling of the open `Qwen3.8-Flash-Next` entry
+above; not open weights. **Inkling / Inkling-Small** (Thinking Machines, 2026-07-15 / 07-30,
+975B-A41B and 276B-A12B, Apache 2.0) — ~490 GB and ~138 GB at 4-bit. **MiniMax H3** (2026-08-03,
+33B) — fits, but it is an omni-modal video/audio generation model, not a coder, and its licence
+excludes US/EU commercial use. Recorded so none is re-investigated.
+Sources: https://thenewstack.io/category/ai/ · https://www.llm-releases.com/
 
 *Excluded 2026-08-26 (second scan of the day), no open weights:* **OX Alpha** — the anonymous
 reasoning/coding model with a 1M context that dominated this cycle's coverage after appearing free on
