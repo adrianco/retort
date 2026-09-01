@@ -1178,3 +1178,59 @@ capability change rather than version drift, and mixing the two produces a delta
 attribute. That is exp-62.
 
 All six exp-61 rows in master.db carry the **rescored** metrics, not the run-time ones.
+
+## exp-62 — does Hermes 0.20.5's verify-on-stop change local pass rates?  — NULL (unanswerable), 2026-09-01
+
+**The factor works; the experiment could not measure it.** Three cell configurations were burned, and
+the two arms that completed both sat at ceiling.
+
+**What was delivered, and is solid:** `agent.verify_on_stop` demonstrably takes effect. Verified
+inside the grid itself, not only in a smoke: the ON arm's transcripts carry
+`finish_reason: verification_required` (2 and 1 occurrences) and all three OFF transcripts carry
+zero. Retort also gained the ability to vary an AGENT setting as a factor at all — presets now take a
+`hermes:` override block that deep-merges into the config and participates in the reload signature.
+
+**Final grid (typescript x m35, n=3/arm):**
+
+| arm | rep 1 | rep 2 | rep 3 |
+|---|---|---|---|
+| verify OFF | **1.00** (365 s) | failed — dependency | failed — dependency |
+| verify ON | **1.00** (437 s) | **1.00** (1303 s) | killed by the stall guard at 3376 s |
+
+One usable OFF point against two usable ON points, **all three at `requirement_coverage` 1.00**. The
+hypothesis is that verify-on-stop converts NEAR-MISSES; with no near-miss in the completed cells there
+is nothing for it to convert, so the null is structural rather than informative. This was
+pre-registered before the cells landed, not rationalised after.
+
+**Three cells burned, three distinct environmental causes** — the real finding:
+
+1. **rust x m80** — the 42 GB model at full context sits on this machine's memory ceiling. The server
+   aborted (`process memory limit exceeded, 51.9 GB against a 54.0 GB ceiling`) and died.
+2. **rust x m35** — no memory crash, but sustained `adaptive_prefill_throttle` ground generation to
+   ~1.2 KB/min; one cell burned the whole 90-minute wall. 60 min was a hard kill and 90 min was a hard
+   kill, so raising the clock was not the fix.
+3. **typescript x m35** — two OFF replicates lost because the model pinned `better-sqlite3@^9.4.3`,
+   which ships no native binding for Node 26 / ABI 147, so its own tests cannot run. The cell that
+   passed pinned ^11.6.0. Attributable to the deliverable, not the harness — and invisible to
+   `requirement_coverage`, which sees the capability as implemented.
+
+**Harness defects found and fixed along the way** (each has a regression test):
+
+- `ensure()` trusted `_loaded_sig` without probing the port, so a server that died mid-experiment was
+  never noticed and every later cell scored 0.00 against a dead port. This was also the
+  previously-unexplained cause of exp-60's arm B failure.
+- `_seed_repair_workspace` copied the prior attempt's build tree, so a second chance inherited a
+  path-pinned `.build` and could never compile.
+- `_store_run_result` labelled every conformance failure "tests did not run", including spec and
+  factual ones.
+- A `hermes:` override written flat lands a top-level key Hermes never reads — a silent no-op that
+  would have run both arms verify-OFF.
+
+**The stall guard works.** Cell 6 was killed with `stalled (no progress)` after the model pinned ~50%
+CPU for 25+ minutes without emitting a token. Earlier in this experiment the guard was suspected of
+being broken; it was not, and this is the positive confirmation.
+
+**Where this factor should go next.** It needs a cell with genuine headroom AND an environment that
+does not fail first. Every local option has now failed environmentally, in three different ways. The
+next attempt should be a CLOUD arm, where none of memory pressure, prefill throttling, or local
+native-build variance applies.

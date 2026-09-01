@@ -1,0 +1,12 @@
+{
+  "replicate": 2,
+  "run_config": {
+    "agent": "hermes-0205",
+    "language": "typescript",
+    "model": "mlxlocal/Qwen3.6-35B-A3B",
+    "prompt": "neutral",
+    "stack": "m35-verify-on"
+  },
+  "succeeded": true,
+  "visibility": "public"
+}
