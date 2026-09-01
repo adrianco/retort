@@ -658,6 +658,29 @@ def run_experiments(
     if workspace_config.playpen.runner == "local" and workspace_config.playpen.stack_presets:
         _reload_key_fn = lambda rc: rc.get("stack")  # noqa: E731
 
+    # A `tooling: graphify` cell whose agent never opened the graph is a
+    # `tooling: none` cell wearing a label, and its null is worthless. The
+    # detector for that is `graph_usage_score` — but ScoreCollector runs ONLY the
+    # metrics named in `responses:`, so a workspace that varies graphify without
+    # listing it silently skips the one check that makes the arm interpretable.
+    # (This bit the project once already at a level below: agent_consulted() had
+    # the right semantics and a docstring naming this use, and was wired to
+    # nothing but a test.)
+    _tooling_levels = {
+        (rc.get("tooling") or "none") for rc in design.run_configs()
+    }
+    if "graphify" in _tooling_levels and "graph_usage_score" not in [r.name for r in workspace_config.responses]:
+        click.echo(
+            "⚠️  This design varies `tooling: graphify` but `responses:` does not "
+            "include `graph_usage_score`.\n"
+            "    Without it nothing records whether the agent actually CONSULTED "
+            "the graph, and a\n"
+            "    graphify cell that ignored it is indistinguishable from "
+            "`tooling: none` — so a null\n"
+            "    result would be unfalsifiable. Add it to `responses:`.",
+            err=True,
+        )
+
     if dry_run:
         click.echo("\n[dry-run] Design matrix:")
         if shard_total > 1:
@@ -863,28 +886,6 @@ def run_experiments(
     metric_names = [r.name for r in workspace_config.responses]
     collector = ScoreCollector(metrics=metric_names)
 
-    # A `tooling: graphify` cell whose agent never opened the graph is a
-    # `tooling: none` cell wearing a label, and its null is worthless. The
-    # detector for that is `graph_usage_score` — but ScoreCollector runs ONLY the
-    # metrics named in `responses:`, so a workspace that varies graphify without
-    # listing it silently skips the one check that makes the arm interpretable.
-    # (This bit the project once already at a level below: agent_consulted() had
-    # the right semantics and a docstring naming this use, and was wired to
-    # nothing but a test.)
-    _tooling_levels = {
-        (rc.get("tooling") or "none") for rc in design.run_configs()
-    }
-    if "graphify" in _tooling_levels and "graph_usage_score" not in metric_names:
-        click.echo(
-            "⚠️  This design varies `tooling: graphify` but `responses:` does not "
-            "include `graph_usage_score`.\n"
-            "    Without it nothing records whether the agent actually CONSULTED "
-            "the graph, and a\n"
-            "    graphify cell that ignored it is indistinguishable from "
-            "`tooling: none` — so a null\n"
-            "    result would be unfalsifiable. Add it to `responses:`.",
-            err=True,
-        )
 
     # Fail fast: validate agent types before any runs start.
     if runner_type == "local":

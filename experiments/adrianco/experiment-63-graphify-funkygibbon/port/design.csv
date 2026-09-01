@@ -1,0 +1,3 @@
+run,language,agent,tooling,model
+0,go,claude-code,none,claude-opus-4-8
+1,go,claude-code,graphify,claude-opus-4-8

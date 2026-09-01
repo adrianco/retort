@@ -85,3 +85,9 @@ def test_a_graphify_design_without_the_detector_is_warned_about():
     i = src.index("graph_usage_score")
     window = src[max(0, i - 500):i + 500]
     assert "graphify" in window and "responses" in window
+
+    # And it must sit BEFORE the dry-run exit. The first version did not, so
+    # `--dry-run` — the moment someone is actually checking their design — said
+    # nothing, and the warning only appeared once they had committed to a run.
+    assert src.index("graph_usage_score") < src.index("if dry_run:"), (
+        "the guard is after the dry-run exit, so --dry-run never surfaces it")

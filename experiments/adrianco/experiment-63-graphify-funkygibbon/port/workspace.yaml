@@ -1,0 +1,47 @@
+# Experiment 63 — Graphify on a LARGE existing repo (the arm exp-44/45 called for).
+#
+# exp-44 (frontier) and exp-45 (local 80B) both ran tooling{none,beads,graphify}
+# on py-catalog-reservations and both returned a NULL on correctness. Their own
+# combined conclusion says why that is not the end of it: a ~200-line seed is
+# navigable without a map, so the test of a code knowledge graph has to be a repo
+# where navigation is the actual bottleneck. That is this one — the-goodies at
+# ~30K lines, with Python and TypeScript reference clients and a protocol spec.
+#
+# The null is trustworthy, not assumed: re-checked 2026-08-26 with
+# graph_usage_score, all six graphify cells in exp-44/45 had the graph BUILT and
+# CONSULTED. So "used the graph, didn't help" — on a small repo.
+#
+# CLOUD MODEL, deliberately. Per the §2 plan: hold the model fixed at a strong
+# cloud stack first, to isolate the tooling effect from local-capability noise.
+# It also sidesteps the memory ceiling that voided exp-62's rust grid — a 30K-line
+# repo plus a knowledge graph is exactly the context load that killed it locally.
+#
+# BEADS IS DROPPED. exp-44/45 measured it at 718K mean tokens against none's 393K
+# for identical correctness — it buys wall-time, not capability. Spending a third
+# of a hard-task budget to re-confirm that is not worth it.
+experiment:
+  name: experiment-63-graphify-funkygibbon
+  visibility: public
+factors:
+  language: { levels: [go, rust] }                  # design pins go
+  agent: { levels: [claude-code, hermes-local] }    # design pins claude-code
+  tooling: { levels: [none, graphify] }             # THE variable
+  model: { levels: [claude-opus-4-8, claude-sonnet-5] }   # design pins opus
+# graph_usage_score is REQUIRED here, not optional: a graphify cell whose agent
+# never opened the graph is a `none` cell wearing a label, and its null would be
+# unfalsifiable. The run command warns if a graphify design omits it.
+responses: [code_quality, test_coverage, token_efficiency, defect_rate,
+            maintainability, idiomatic, graph_usage_score]
+tasks:
+  - source: bundled://funkygibbon-port
+playpen:
+  runner: local
+  replicates: 3
+  # The task.yaml asks for 180/600. Kept here so the cap cannot bind: this is a
+  # 30K-line repo to comprehend before a line is written, and exp-62 was voided
+  # twice by ceilings that bound before the capability did.
+  timeout_minutes: 180
+  max_turns: 600
+design: { screening_resolution: 3, significance_threshold: 0.10 }
+promotion: { screening_to_trial: { p_value: 0.10 }, trial_to_production: { posterior_confidence: 0.80 } }
+evaluation: { enabled: true, model: opus-4.8 }
