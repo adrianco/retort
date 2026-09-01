@@ -1400,6 +1400,16 @@ Metal support is weak, so it suits a CUDA box, not this Mac.
 
 ## Standing method notes
 
+- **`max_context_window: 32768` in oMLX settings is NOT the effective context — do not "fix" it**
+  (checked 2026-09-01 while launching exp-64). Every local provenance shows the agent at
+  `ctx=262144` beside a serving-layer `sampling.max_context_window: 32768`, which reads exactly like
+  the silent-context-halving bug of the exp-35 era. It is not. Three pieces of evidence: the server's
+  own `/v1/models` advertises `max_model_len: 262144` for these models; the value is identical in
+  exp-49 and exp-62 provenance, so every historical local result was obtained under it; and exp-38's
+  TypeScript unlock moved `context_threshold` 0.35 -> 0.9, i.e. the compaction point from ~92K to
+  ~236K — **both far above 32K** — so that change could not have had any effect if 32K were the real
+  window. It demonstrably did. `max_context_window` is a sampling default that the per-model
+  `context_length` overrides; treat it as noise in the provenance, not as a cap.
 - **n=3 per arm is a SCREENING size, not an evidence size** (exp-63, 2026-09-01). A two-arm
   comparison with n=3 vs n=3 has only C(6,3)=20 permutations, so the smallest two-sided permutation
   p it can return is 2/20 = **0.10** — α=0.05 is unreachable no matter how large the effect. exp-63
