@@ -8,6 +8,8 @@ the test pass rate — better signal than 0 when tests clearly do run.
 
 from __future__ import annotations
 
+import logging
+
 import json
 import os
 import re
@@ -19,6 +21,9 @@ from pathlib import Path
 
 from retort.playpen.runner import RunArtifacts, StackConfig
 from retort.scoring.scorers._venv import ensure_python_env
+
+logger = logging.getLogger(__name__)
+
 
 COVERAGE_COMMANDS: dict[str, list[str]] = {
     # `python -m pytest`, not the `pytest` script: -m puts the run dir on
@@ -240,7 +245,7 @@ class TestCoverageScorer:
         if stack.language == "typescript":
             pct = self._typescript_coverage(artifacts.output_dir)
         elif stack.language == "go":
-            pct = self._go_coverage(artifacts.output_dir)
+            pct = self._go_coverage(_go_module_root(artifacts.output_dir))
         elif stack.language == "csharp":
             pct = self._csharp_coverage(artifacts.output_dir)
         elif stack.language in ("c", "cpp", "objc"):
@@ -317,6 +322,42 @@ class TestCoverageScorer:
         finally:
             if cleanup is not None:
                 shutil.rmtree(cleanup, ignore_errors=True)
+
+def _go_module_root(output_dir: Path) -> Path:
+    """Where `go test ./...` should actually run.
+
+    A greenfield task puts `go.mod` at the workspace root, but a REPO-PR task
+    checks out a large existing repo and the agent adds its port as a NEW
+    subdirectory — the-goodies is Python + TypeScript, and exp-63's Go port
+    landed in `wombat-go/`. Running `go test ./...` at the repo root then finds
+    no module at all and scores 0, which reads in the results as "the agent
+    wrote nothing" when it had written 21 Go files.
+
+    Rule: use the root when it holds a `go.mod`. Otherwise, if exactly ONE
+    immediate subdirectory has one, use that. If several do, the deliverable is
+    ambiguous, so stay at the root rather than guess which module is the one
+    being scored.
+    """
+    if (output_dir / "go.mod").is_file():
+        return output_dir
+    try:
+        candidates = sorted(
+            d for d in output_dir.iterdir()
+            if d.is_dir() and not d.name.startswith(".") and (d / "go.mod").is_file()
+        )
+    except OSError:
+        return output_dir
+    if len(candidates) == 1:
+        logger.info("go.mod not at the workspace root; scoring the module in %s",
+                    candidates[0].name)
+        return candidates[0]
+    if len(candidates) > 1:
+        logger.warning(
+            "several go modules (%s) and none at the root — staying at the root "
+            "rather than guessing which is the deliverable",
+            ", ".join(c.name for c in candidates))
+    return output_dir
+
 
     def _go_coverage(self, output_dir: Path) -> float | None:
         """Go module coverage: the true cross-package statement total.
