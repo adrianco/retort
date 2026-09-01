@@ -304,16 +304,31 @@ in this experiment, so it was checked rather than assumed — and this time the 
 So the agent's claim of "all 15 tests pass cleanly" is **false for the delivered tree**, and
 `test_coverage=0` is the correct verdict.
 
-**What is NOT established.** Cell 1 uses the same `better-sqlite3` and PASSED (test_coverage 0.354),
-and the pattern inverts the obvious explanation: cell 2's first attempt *did* run `npm install` and
-still zeroed, while cell 1's agent never mentions it and scored fine. Whether the difference is
-prebuild availability, a build race, or something else is unknown, and no mechanism should be
-asserted without it.
+**RESOLVED — it is the model's dependency VERSION, and the failure is attributable.** Rescoring both
+archived trees is reproducible and separates them cleanly (cell 1 → 0.354, cell 2 → 0.0), so the
+difference is in the deliverables, not in playpen state or timing:
 
-**Consequence for the experiment.** 11 archived typescript runs depend on `better-sqlite3`, so this
-is a corpus-wide noise source, not a one-cell curiosity: a cell can fail for a native-build reason
-unrelated to the factor under test. If more of this grid zeroes the same way, typescript is a poor
-cell for exp-62 — not because it lacks headroom, but because its failures are not attributable.
+| cell | `better-sqlite3` | runner | test_coverage |
+|---|---|---|---:|
+| 1 (passed) | **^11.6.0** | jest | 0.354 |
+| 2, 3 (failed) | **^9.4.3** | vitest | 0.00 |
+
+v9.4.3 ships no prebuilt binding for **Node 26 / ABI 147**; v11.6.0 does. So the model pinned a
+native dependency that cannot build on the runtime it was asked to run on — a real reproducibility
+defect in the deliverable, and the same shape as exp-58's `mcp>=1.28,<3` python run. `test_coverage=0`
+is the correct verdict, and my earlier suspicion of my own repair-seeding change was wrong: cell 2's
+first attempt runs in a fresh, unseeded playpen and fails identically.
+
+**Consequence for the experiment.** The failures ARE attributable, so typescript stays usable — but
+the variance is real: the OFF arm is 1.00 / FAIL / FAIL, with two replicates lost to a dependency
+choice that has nothing to do with verify-on-stop. At n=3 that leaves one usable OFF point, which is
+not enough to compare against anything. 11 archived typescript runs depend on `better-sqlite3`, so
+this will recur.
+
+**This is worth its own finding regardless of exp-62:** a model that pins `better-sqlite3@^9.4.3`
+produces a project that cannot run its own tests on current Node, while the same model at ^11.6.0 is
+fine. That is invisible to `requirement_coverage` (the capability is implemented) and only shows up
+because the harness actually runs the suite.
 
 ### GRID RESULT: VOID, not null (2026-08-29). The server died and the harness did not notice.
 
