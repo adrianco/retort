@@ -326,6 +326,21 @@ The MCP server is `graphify-mcp` (stdio) for the live-query arm.
   `tasks/funkygibbon-port/README.md`) + the user's seed work. Optionally: `graphify --update` between
   turns.
 
+**Measurement caveat for the exp-63 write-up — `graph_usage_score` overloads 1.0.** The scorer
+returns `1.0 consulted · 0.0 ignored · None unverifiable · 1.0 NOT APPLICABLE`, so the `none` arm
+and a graphify arm that genuinely consulted the graph both report **1.00**, meaning different
+things. Observed directly in exp-63 rep 1: both arms show `graph_usage_score=1.00`, but only the
+graphify one is evidence of anything. Consequence: **never average this column across arms** — it
+mixes "no graph was configured" rows into "the graph was consulted" rows and inflates the
+consultation rate toward 1.0. Read it only within `tooling=graphify` rows.
+
+Not fixed mid-experiment on purpose: changing a scorer while cells are running makes the completed
+and remaining cells incomparable, which is a worse defect than the ambiguity. The fix afterwards is
+to return `None` for not-applicable (the value already reserved for "no verdict"), so the N/A rows
+drop out of any aggregate instead of counting as successes. This is the same class of defect as the
+`test_coverage==0` gate zeroing `graph_usage_score`, which already cannot distinguish "ignored the
+graph" from "the run failed".
+
 ## 3. Inference-lever sweep — remaining tiers (issue #40)  — OPEN
 
 The sampling tier is done (exp-27). Remaining levers, by payoff:
