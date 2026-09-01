@@ -236,6 +236,13 @@ KNOWN_NONFEATURED = {
         "mlxlocal/mlx-community--Qwen3-Coder-Next-4bit; kept distinct because "
         "the id is what the run actually wrote, and silently merging two "
         "spellings is how a stack's n gets inflated",
+    "claude-fable-5-1": "Fable 5.1 (exp-65, released 2026-09-01): measured, not yet "
+        "featured. Deliberately NOT merged into claude-fable-5 — exp-65 measured 5.1 at "
+        "1.74x the wall-clock and 2.19x the tokens of 5.0 on the one shared cell, so "
+        "pooling them would corrupt the cost figures this document exists to report "
+        "(same reasoning as the Qwen3-Coder-Next spellings below). Not featured yet "
+        "because coverage is thin: 4 languages on rest-api-crud only, against the 13x2 "
+        "grid every featured stack carries. Feature it once it has that coverage.",
     "mlxlocal/devstral": "Devstral (exp-23): evaluated, not featured",
     "gpt-5.6-sol": "GPT-5.6 Sol (exp-58/59): evaluated, not featured",
     "opus": "legacy bare 'opus' (exp-1/2)",

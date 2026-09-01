@@ -1,0 +1,2 @@
+{"id": "E1", "kind": "enhancement", "severity": "info", "title": "ISBN format validation beyond spec", "evidence": "app/routes.py:56-68 validates 10/13-digit ISBN and normalises it", "suggestion": "None — value-add over the required title/author validation"}
+{"id": "E2", "kind": "enhancement", "severity": "info", "title": "JSON 404/405/500 error handlers registered", "evidence": "app/__init__.py:27-37 return JSON for framework errors", "suggestion": "None — improves API consistency beyond spec"}

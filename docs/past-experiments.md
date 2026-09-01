@@ -1309,3 +1309,82 @@ run, not a result. **§2 of the queue is closed on this basis:** no further Grap
 **Cost estimation note.** This run was projected at ~$1.47/cell from the first *failed* cell, which
 died before doing any work — an invalid basis. Real cost was ~$6.50/cell, 4.4x the estimate. Price a
 cloud experiment from a cell that ran to completion, never from one that aborted early.
+
+## exp-65 — Fable 5.1: does the point release move TIME and COST?  — YES for effort, 2026-09-01
+
+**The first properly powered two-arm comparison in this project, and it found something.** Fable 5.1
+released 2026-09-01. Model id `claude-fable-5-1`, established from the CLI's own model catalog (which
+lists `claude-fable-5`, `claude-fable-5-1`, `claude-fable-5-mythos-5`) and confirmed with a live call,
+not guessed. Required Claude Code 2.1.250 -> 2.1.257: the older CLI rejects the id as "not described
+by this version's model catalog".
+
+**Why the response is time and cost, not pass-proportion.** Fable 5 scores **1.00 on every cell it has
+ever run** — 13 languages x 2 tasks, 52 runs, no exceptions — *and* 1.00 at low effort. A reliability
+comparison was therefore guaranteed to return 1.00 vs 1.00 and measure nothing, the same structural
+null that made exp-62 unanswerable. Efficiency was wide open, so efficiency is what was measured.
+
+**Design:** `effort{low, default} x language{python, go, rust, typescript} x prompt{neutral, none}`,
+`rest-api-crud`, n=3 per cell. 8 cells, 24 runs, **$38.20**.
+
+### Result: low effort is strictly cheaper at identical quality
+
+| metric | low (n=12) | default (n=12) | ratio | exact paired p |
+|---|---|---|---|---|
+| wall | 109.6 s | 184.4 s | **1.68x** | **0.0015** |
+| cost | $1.33 | $1.91 | **1.45x** | **0.0010** |
+| tokens | 368 K | 615 K | **1.67x** | **0.0010** |
+| test_coverage | 0.930 | 0.927 | 1.00 | 0.75 (null) |
+
+11 of 12 matched pairs favour `low` on time, cost and tokens; coverage is flat. All three clear a
+4-metric Bonferroni threshold of 0.0125 with room to spare. **Default effort buys nothing measurable
+here and costs 68% more wall-clock and 45% more money.**
+
+The test is an **exact paired permutation** over the 12 (language, replicate) pairs — 2^12 = 4096
+sign-flips, enumerated, not sampled. Pairing is legitimate because the design crosses effort against
+language, so every language contributes a matched low/default pair in each replicate. `prompt`
+alternates by language (python/rust pair low-with-neutral, go/typescript pair low-with-none), so its
+effect cancels when pooled across all four rather than riding on the effort contrast.
+
+### The design decision that made this readable — and it was a deliberate deviation
+
+A **quarter** factorial was requested. The generator's quarter fraction of the 16-cell design came out
+fully aliased on the one contrast the experiment exists to measure:
+
+    low      python      neutral
+    low      go          none
+    default  rust        neutral
+    default  typescript  none
+
+`low` runs only python/go and `default` only rust/typescript. rust and typescript are the slower,
+costlier languages here, so **"default is slower and dearer" would have come out guaranteed** — as an
+artifact of which languages landed in which arm. A quarter of 16 cannot cross a 2-level factor against
+a 4-level one; 8 cells is the minimum that can. The design was therefore written by hand as a **half**
+fraction crossing effort x language completely and balancing effort x prompt 2/2. `design.csv` must
+not be regenerated — `retort design generate` would restore the confound.
+
+**This is the counter-example to exp-63.** exp-63 ran n=3 per arm and could not reach significance even
+with perfect separation, because its permutation floor was 0.10. Here the effort main effect pools to
+n=12 per arm, the floor drops to ~2^-12, and a real effect came out at p=0.001. Same project, same
+week: the difference is entirely in how the design was sized.
+
+### Fable 5.1 vs Fable 5 — flagged, NOT claimed
+
+On the one cell both models have run (`rest-api-crud` / python / neutral):
+
+| | wall | cost | tokens |
+|---|---|---|---|
+| Fable 5 low (exp-49, n=3) | 49.0 s | $0.909 | 131 K |
+| Fable 5.1 low (n=3) | 85.3 s | $1.144 | 286 K |
+| Fable 5 default (n=3) | 107.0 s | $1.207 | 352 K |
+| Fable 5.1 default (n=3) | 127.1 s | $1.447 | 500 K |
+
+5.1 looks **more expensive than 5.0** — 1.74x the wall-clock and 2.19x the tokens at low effort. Three
+reasons this is a flag and not a finding: it is n=3 vs n=3, below the threshold exp-63 established;
+5.1's own spread on that cell is wide ([59.9, 108.5, 87.5] s); and the CLI moved 2.1.250 -> 2.1.257
+between the two, so **agent version is confounded with model version**. That confound was accepted
+deliberately for the effort question (where both arms share one CLI and it cancels); it does NOT
+cancel in a cross-model comparison. Re-running 5.0 on the current CLI at n>=5 would settle it.
+
+**Smoke test, recorded before launch:** `--effort` demonstrably reaches 5.1 — thinking tokens 1089 at
+low vs 1310 at default, 21.0 s vs 25.1 s on a fixed reasoning prompt. Without that check, an effort
+flag silently dropped by a new model would have made both arms identical and produced a confident null.

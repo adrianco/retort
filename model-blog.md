@@ -1,6 +1,6 @@
 # How Reliable Is Your AI Coding Stack? I Measured It
 
-*Published 2026-06-11 · updated 2026-08-04 — Adrian Cockcroft*
+*Published 2026-06-11 · updated 2026-09-01 — Adrian Cockcroft*
 
 ---
 
@@ -8,7 +8,13 @@ Every few weeks a new frontier model tops the leaderboards, and the implicit adv
 
 Those are the variables that decide a real project. So I built **[retort](https://github.com/adrianco/retort)** to measure them properly — with statistical Design of Experiments, the same technique you'd use to tune a manufacturing process. Vary the factors you care about (here: programming **language** × **model version** × **tooling** — and, newly, the **coding agent**, the **prompt methodology**, and **local self-hosted models**), run a factorial grid on a real task, score every cell, and let the analysis tell you which factors actually matter. And because retort accumulates results across a shared database, each new model just gets *added* to what's already known — the point of the project is to measure how each new release behaves without re-running everything. It now spans two tasks, **thirteen** languages, the Claude Sonnet/Opus lines (plus a fast-mode variant, the tier-above Fable 5, and the newest Opus 5), **OpenAI's Codex line (GPT-5.6)**, and **local models running for free on a laptop**.
 
-## What's new (2026-07-30)
+## What's new (2026-09-01)
+
+- **Fable 5.1 landed, and the headline is: run it at low effort.** Across four languages with twelve runs per arm, **default effort costs 1.68× the wall-clock and 1.45× the money for statistically identical test coverage** (exact paired permutation test, p = 0.0015 for time and 0.0010 for cost; 11 of 12 matched pairs favour low). Turning the dial up on this model buys nothing measurable and bills you 45% more for it.
+- **A caution on the new release itself.** On the one cell Fable 5 and 5.1 have both run, 5.1 used **1.74× the wall-clock and 2.19× the tokens** of 5.0. That is flagged rather than claimed — it is three runs a side, 5.1's own spread on that cell is wide, and the Claude Code CLI version moved between the two, so agent version is confounded with model version. Worth knowing before assuming a point release is a free upgrade.
+- **A note on how these numbers are earned.** An earlier experiment the same week ran three runs per arm and could not have reached significance *whatever* the effect: with three-vs-three there are only twenty ways to split the runs, so the smallest achievable p-value is 0.10. It found perfect separation on one metric and still scored 0.10. The Fable 5.1 result above is trustworthy because the design was sized to be, not because the effect looked big.
+
+### Earlier (2026-07-30)
 
 - **A second vendor.** OpenAI's **Codex** (GPT-5.6 Terra and Luna, via `codex exec`) is now measured alongside Claude — the first non-Claude cloud lineage here. On the routine task **Terra scores 1.00 across all five thinking levels for \$0.15–0.35 a run**, against Opus 5's \$0.81–14.21 for the same result.
 - **Thinking level is now a factor**, and it matters more than the model choice: a matched-effort comparison spans **40×** in cost at identical reliability. The unit of choice is *(model × effort)*, not model.

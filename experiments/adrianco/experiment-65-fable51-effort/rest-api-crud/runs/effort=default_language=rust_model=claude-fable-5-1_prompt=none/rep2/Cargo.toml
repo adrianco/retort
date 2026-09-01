@@ -1,0 +1,24 @@
+[package]
+name = "books-api"
+version = "0.1.0"
+edition = "2021"
+description = "REST API for managing a book collection (Axum + SQLite)"
+
+[lib]
+name = "books_api"
+path = "src/lib.rs"
+
+[[bin]]
+name = "books-api"
+path = "src/main.rs"
+
+[dependencies]
+axum = "0.8"
+tokio = { version = "1", features = ["full"] }
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+rusqlite = { version = "0.32", features = ["bundled"] }
+
+[dev-dependencies]
+tower = { version = "0.5", features = ["util"] }
+http-body-util = "0.1"

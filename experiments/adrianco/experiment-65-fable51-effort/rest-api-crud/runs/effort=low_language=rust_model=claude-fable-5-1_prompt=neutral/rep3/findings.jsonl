@@ -1,0 +1,1 @@
+{"id": "enh-1", "kind": "enhancement", "severity": "info", "title": "Validation trims whitespace-only author/title", "evidence": "src/lib.rs:83-93 validate() trims and rejects blank strings; tests/api.rs:67 exercises whitespace author", "suggestion": "None — good defensive behavior beyond the bare spec"}
