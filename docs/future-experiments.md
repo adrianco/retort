@@ -1148,7 +1148,7 @@ survives the toggle, restart the Claude desktop app, which clears the in-memory 
   follows Gemma-3N's per-layer-embedding offload), so AtomicChat ships an **`AD-3.84bpw-IQ4_XS-M64`
   build — 84.9 GB on disk, ~45.8 GB resident** with the table paged from SSD, reported at **36 tok/s
   on a 64 GB M4/M5 Max**.
-  **Do not schedule a cell on that number — exp-62 (§0 above) is direct evidence against it on THIS
+  **Do not schedule a cell on that number — exp-62 ([past-experiments](past-experiments.md)) is direct evidence against it on THIS
   machine.** The 42 GB m80 at 262144 already sits *on* this box's memory ceiling: oMLX aborted a
   request at `usage 51.9 GB, ceiling 54.0 GB` and the server died, producing a 22.5 s all-zero cell.
   A ~45.8 GB resident model plus KV cache is very likely *over* that ceiling, and this box is an **M5
@@ -1224,7 +1224,7 @@ built for agentic coding; weights on Hugging Face. Originally released **2026-07
 wave of "the West's most capable open-weight model" coverage on **2026-08-24** put it back at the
 top of this cycle's roundups, which is the only reason it surfaced. **It fails on both bars.**
 (1) **Size:** ~59–62 GB at 4-bit — the same verdict as the excluded Ling-3.0-flash ("leaves no room
-for context or KV cache"), and exp-62 (§0) is direct evidence against it *on this machine*: the
+for context or KV cache"), and exp-62 ([past-experiments](past-experiments.md)) is direct evidence against it *on this machine*: the
 42 GB m80 already hit `usage 51.9 GB, ceiling 54.0 GB` and killed the server. (2) **Arch:** it is
 the same `laguna` architecture as **Laguna XS 2.1**, gate-probed 2026-07-21 and recorded at the top
 of this section as BLOCKED — unmerged in mainline oMLX/llama.cpp. The vendor's own sizing target is
