@@ -1,0 +1,100 @@
+# Experiment 62 GRID (typescript retry) — does Hermes 0.20.5's verify-on-stop change local pass rates?
+#
+# TARGET IS typescript x m35, chosen on evidence after the rust grid went VOID.
+#
+# The rust attempt died environmentally: sustained adaptive_prefill_throttle, a
+# 216,326-token prompt, then the server itself. Picking the replacement from
+# master.db rather than intuition:
+#   * HEADROOM — typescript/bookshop averages requirement_coverage 0.758 over
+#     n=10. The factor can only convert near-misses, so a ceiling cell (go 0.97,
+#     python 0.94) cannot test it. This is the best-sampled cell below ceiling.
+#   * CONTEXT — typescript peaks at 53K mean / 93K max, against rust's 81K/119K.
+#     Context is what killed the last attempt, so this is the load-bearing number.
+#   * SPEED — ~12 min/cell vs rust's ~21.
+# NOTE: an earlier note in this file claimed go/brazil at ~8.9 min. That figure
+# was go/BOOKSHOP; go/brazil is 31.1 min on m80. Corrected here.
+#
+# ORIGINAL NOTE — TARGET WAS m35, NOT m80. The original design paired rust with the 42GB m80 at
+# full context. That combination sits ON this machine's memory ceiling: the
+# server aborted mid-run with "process memory limit exceeded (usage 51.9 GB,
+# ceiling 54.0 GB)" and died, and verify-on-stop's whole mechanism is ADDING
+# context. The ../local workspace holds that attempt and is not continued.
+#
+# MECHANISM PROVEN FIRST (../smoke, 2026-08-26): verification_required appears
+# 2x in each verify-ON arm and 0x in each OFF arm, across python and rust. The
+# factor demonstrably takes effect before any grid time was spent.
+#
+# exp-61 established 0.20.5 is a null against 0.18.2 on coverage, maintainability
+# and duration, and DELIBERATELY left this untested: 0.20.5 ships a real
+# self-verification subsystem (agent/verify/ — recipes, runner, environment) that
+# detects a project's run recipe, boots it, and proves it serves HTTP. Our config
+# disabled it, so none of exp-61 exercised it. That is a CAPABILITY change, not
+# version drift; mixing it into exp-61 would have produced a delta nobody could
+# attribute.
+#
+# ONE VARIABLE: agent.verify_on_stop, false vs true, both arms on 0.20.5, same
+# model, same sampling, same context. Everything else is exp-61's verbatim.
+#
+# TARGET CHOSEN FOR HEADROOM. Verify-on-stop should convert NEAR-MISSES and do
+# nothing to cells already at ceiling, so a ceiling cell cannot test the
+# hypothesis. Measured over hermes runs in master.db: go/bookshop is 0.97 (n=63,
+# effectively ceiling), rust/bookshop is 0.77 (n=11) and go/brazil is 0.72 (n=9).
+# rust/bookshop is the target here. (The queue entry quoted 0.94/0.89 — a
+# different metric or subset; the ranking that matters is unchanged.)
+#
+# HARNESS PREREQUISITE, now closed. Both arms share one serving.hermes_config, and
+# stack_reload.ensure() early-returns when the preset signature is unchanged — so
+# before f983023b two arms differing only in an agent setting were
+# indistinguishable and the second would have run on the first's config. Presets
+# now carry a `hermes:` override block that is part of the signature and DEEP
+# MERGES into the config (a flat write lands a top-level key Hermes never reads,
+# which would have run both arms verify-OFF and reported a null).
+experiment:
+  name: experiment-62-verify-on-stop-ts
+  visibility: public
+factors:
+  language: { levels: [typescript, rust, go, python] }   # design pins typescript
+  # Registry needs >=2 levels per factor; design.csv pins what actually runs
+  # (exp-61 does the same). Only `stack` genuinely varies here.
+  agent: { levels: [hermes-0205, hermes-local] }
+  prompt: { levels: [neutral, none] }
+  stack: { levels: [m80-verify-off, m80-verify-on, m35-verify-off, m35-verify-on] }
+  model:
+    levels:
+      - mlxlocal/mlx-community--Qwen3-Coder-Next-4bit
+      - mlxlocal/Qwen3.6-35B-A3B
+responses: [code_quality, token_efficiency, test_coverage, defect_rate, maintainability, idiomatic]
+tasks:
+  - source: bundled://rest-api-crud
+playpen:
+  runner: local
+  replicates: 3
+  # 90, not 60. Rust averages 20.9 min on this stack and its historical MAX is
+  # exactly 60.0 — the old ceiling, i.e. a truncation. Verify-on-stop injects an
+  # extra turn, so the ON arm is systematically longer and its truncation
+  # exposure is HIGHER than the OFF arm's: a cut-off ON cell would score worse
+  # for running out of clock rather than for failing, and the experiment would
+  # report the timeout as the capability.
+  timeout_minutes: 60
+  stall_minutes: 25
+  # 400, not 200. Arm A of the smoke burned 204 turns — AT the cap — where python
+  # on this stack averages 17 (max 44). Rust is an order of magnitude more
+  # turn-hungry here, so the cap binds. Verify-on-stop works by INJECTING turns,
+  # so the ON arm hits the ceiling harder than the OFF arm: it would lose real
+  # work to the cap that its comparator keeps, and the experiment would report
+  # the ceiling as the capability. Same directional confound as timeout_minutes,
+  # and the same fix — give both arms headroom neither can reach.
+  # (exp-39 has the precedent: three brazil runs stopped at exactly 90 api_calls.)
+  max_turns: 400
+  stack_presets: stacks.yaml
+  prompts_dir: prompts
+  local_agents:
+    # Both arms pin the SAME 0.20.5 binary: the variable is the setting, not the
+    # version. Without the pin every hermes level resolves to serving.hermes_bin
+    # and the comparison silently runs one build twice.
+    hermes-0205:
+      harness: hermes
+      bin: /Users/adriancockcroft/code/hermes-agent/.venv/bin/hermes
+design: { screening_resolution: 3, significance_threshold: 0.10 }
+promotion: { screening_to_trial: { p_value: 0.10 }, trial_to_production: { posterior_confidence: 0.80 } }
+evaluation: { enabled: true, model: opus-4.8 }
