@@ -394,7 +394,7 @@ invest in the solver dependency, master.db merge, and first-class docs.
 <!-- SCAN-HEARTBEAT: the daily scan rewrites the next line on EVERY run, including
      days it finds nothing. Do not hand-edit it. If the date is more than ~2 days
      stale, the scan is not running — see "when the heartbeat goes stale" below. -->
-**Daily scan last completed: 2026-09-01** (scanning for new 64GB-fittable coding models)
+**Daily scan last completed: 2026-09-02** (scanning for new 64GB-fittable coding models)
 
 New open-weight coding models found by the daily scan that plausibly fit 64GB at 4-bit; promote to a
 numbered experiment when prioritised.
@@ -1127,6 +1127,21 @@ survives the toggle, restart the Claude desktop app, which clears the in-memory 
   — MTP build + speculative-decoding numbers: https://huggingface.co/peculiar-ragdoll/Tiel-Coder-35B-A3B-GGUF-MTP
   — MLX 4-bit: https://huggingface.co/peculiar-ragdoll/Tiel-Coder-35B-A3B-MLX-oQ4e
   — parent entry's weights: https://huggingface.co/ornith-ai/Ornith-1.5-35B-A3B
+
+*Excluded 2026-09-02, oversized — both surfaced in this cycle's roundups as standing "best open
+coder" recommendations, so recording them stops the next scan re-investigating:* **Mistral Small 4**
+(2026-03-16, Apache 2.0, **119B-A6B MoE**, 256K context — Mistral's first model unifying Magistral
+reasoning + Pixtral vision + Devstral agentic coding in one set of weights, so it is genuinely a
+coding candidate on every bar except size). **~60 GB at 4-bit** — the same borderline-oversize verdict
+as Ling-3.0-flash ("leaves no room for context or KV cache") and Laguna S 2.1 below, and exp-62
+([past-experiments](past-experiments.md)) is direct evidence against it on this box: the 42 GB m80 already hit `usage 51.9 GB,
+ceiling 54.0 GB` and killed the server. **`Devstral-Small-2-24B-Instruct-2512` (the 2026-08-08 entry
+above) remains the way Mistral lineage enters the local leaderboard**; re-open only if a sub-40 GB
+Small 4 variant ships. **Kimi K2.7 Code** (Moonshot, 2026-06-12, modified MIT, **1T-A32B**, 262K
+context) — ~500 GB at 4-bit, the same verdict as the already-excluded Kimi K3; noted only because
+"K2.7 Code" is a *different, smaller-numbered* release than K3 and reads like it might fit.
+Sources: https://mistral.ai/news/mistral-small-4/ ·
+https://www.marktechpost.com/2026/06/12/moonshot-ai-releases-kimi-k2-7-code-a-coding-model-reporting-21-8-on-kimi-code-bench-v2-over-k2-6/
 
 *Excluded 2026-09-01, oversized and arch-blocked — recorded because it is being loudly
 re-promoted right now:* **Laguna S 2.1 (Poolside)** — **118B-A8B MoE**, OpenMDW-1.1, 1M context,
