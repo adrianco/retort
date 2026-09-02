@@ -1415,6 +1415,20 @@ Metal support is weak, so it suits a CUDA box, not this Mac.
 
 ## Standing method notes
 
+- **If deleting caches frees NOTHING, check for an APFS local snapshot before deleting more**
+  (2026-09-02, while running exp-64). Symptom: the volume sat at 15 GB free of 926 GB; ~110 GB of
+  genuinely stale caches were deleted (prefix caches for completed exp-39/41/43/45/49, a July-vintage
+  `~/.cache/omlx-ssd`) and `df` moved by 15 GB, then by **zero**. Cause: a
+  `com.apple.TimeMachine.<date>.local` snapshot pins every freed block, so deletion is invisible
+  until the snapshot is thinned. `tmutil listlocalsnapshots /` shows them;
+  `tmutil thinlocalsnapshots / <bytes> 4` releases them — it drops only the LOCAL snapshot, not the
+  backups on the Time Machine destination. Do not respond to "deleting freed nothing" by deleting
+  more; check the snapshot first.
+- **Model weights are disposable; results are not.** Pruning the HF cache of non-featured models
+  (Devstral 4-bit + GGUF, gpt-oss-20b, the Qwen3-Coder-30B GGUF duplicate of a model we serve from
+  MLX) freed 57 GB with zero loss: every run those models produced is already in `master.db`, and the
+  weights redownload. Check `KNOWN_NONFEATURED` in `reporting/optimal.py` and the last `finished_at`
+  in master.db before removing any; keep whatever a current `stacks.yaml` names.
 - **`max_context_window: 32768` in oMLX settings is NOT the effective context — do not "fix" it**
   (checked 2026-09-01 while launching exp-64). Every local provenance shows the agent at
   `ctx=262144` beside a serving-layer `sampling.max_context_window: 32768`, which reads exactly like
