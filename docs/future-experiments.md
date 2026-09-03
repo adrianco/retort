@@ -20,6 +20,38 @@ push; verify every tuning parameter takes effect with a smoke test first; after 
 
 ---
 
+## 0b. exp-67 — 6-bit: where is the knee?  — RUNNING (2026-09-03)
+
+exp-64 established 4-bit 0.10 vs 8-bit 0.70 on the 30B, and exp-66 ruled out sampling as the
+explanation. The obvious next question is **the shape of the curve between them**: does reliability
+climb gradually with bit-width, or is there a threshold the 4-bit build sits below?
+
+That distinction matters practically. A gradual curve means "buy as many bits as your RAM allows".
+A threshold means "6-bit is enough, and the extra 14 GB the 8-bit costs buys nothing" — which is a
+deployable recommendation, since a 6-bit 30B (~25 GB) fits comfortably where an 8-bit (30 GB) is
+tight alongside a 262144-token KV cache.
+
+**Design: run ONLY the new level** — the incremental principle. `6-bit x language{python, go} x
+rest-api-crud x n=5` = **10 runs**, compared against exp-64's 4-bit and 8-bit rows. That comparison
+is legitimate because nothing in the scoring path has changed between exp-64 and now (the only
+commits since touch reporting and docs), and the preset is byte-identical to exp-64's apart from the
+model id. Running 20 fresh cells to re-measure two levels already measured this week would be waste.
+
+| level | pass-proportion | source |
+|---|---|---|
+| 4-bit | 0.10 (1/10) | exp-64 |
+| **6-bit** | **?** | **exp-67** |
+| 8-bit | 0.70 (7/10) | exp-64 |
+
+**Reading it in advance.** ~0.10 means the deficit is specific to a threshold above 6 bits. ~0.70
+means 6-bit already captures the whole gain and 8-bit is wasted RAM. Anything in between means a
+gradual curve, and the interesting follow-up becomes 5-bit.
+
+**Smoke test:** confirm `config.json` reports `bits: 6` with `group_size: 64` (matching both existing
+arms), and that the server logs `Loaded model: ...-6bit` with RSS landing between the 4-bit's 16.6 GB
+and the 8-bit's 30.8 GB. Same false-null guard as exp-64 — a silently-served cached model would make
+this meaningless.
+
 ## 0a. RESOLVED — sampling does NOT rescue 4-bit  — 2026-09-03
 
 exp-66 attacked exp-64's own result and failed to overturn it: 20 further 4-bit runs across two
