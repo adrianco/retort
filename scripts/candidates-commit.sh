@@ -90,11 +90,47 @@ if git diff --cached --quiet -- "$FILE"; then
   exit 1
 fi
 
+# DO NOT CLAIM "no new models" OVER SOMEBODY ELSE'S WORK.
+#
+# The guard above stops OTHER files riding along, and `-- "$FILE"` pins the
+# commit. Neither helps when a concurrent interactive session has edited THIS
+# file: `git add -- "$FILE"` stages the whole working-tree version, so the scan
+# commits those edits too, under its own message.
+#
+# That happened on 2026-09-03. The scan fired at 08:47 while an interactive
+# session was mid-edit on the Qwen3.8-Flash-Next entry, and pushed ~35 lines of
+# that session's analysis as 1876968c, message: "scan heartbeat: no new
+# 64GB-fittable coding models this cycle". Nothing was lost and the file was
+# correct -- but the log now says a docs commit contains nothing when it
+# contains a page of technical argument, which is exactly the kind of quiet
+# wrongness the heartbeat exists to prevent elsewhere in this file.
+#
+# The script cannot tell which hunks are the scan's own -- it runs AFTER the
+# edit. What it can do is refuse to make a claim it cannot support: a scan
+# rewrites ONE line (the heartbeat) and appends bullets, so anything beyond that
+# on a quiet day means the commit is carrying work the message does not describe.
+# Say so in the message rather than overstating.
+ins="$(git diff --cached --numstat -- "$FILE" | awk '{print $1+0}')"
+del="$(git diff --cached --numstat -- "$FILE" | awk '{print $2+0}')"
+extra=$(( ins - 1 ))   # insertions beyond the heartbeat rewrite
+
+if [ "$del" -gt 1 ]; then
+  echo "WARNING: $FILE has ${del} deleted lines; a scan is append-only plus the" >&2
+  echo "heartbeat, so this commit is carrying someone else's edit." >&2
+fi
+
 # A quiet day still commits, because the scan rewrites the heartbeat line on
 # every run. That is the point of the heartbeat: without it a scan that finds
 # nothing leaves no trace, so a silently-stopped scheduler and a slow news week
 # look identical in the file. (One went unnoticed for six days from 2026-07-28.)
-if [ "$n" -eq 0 ]; then
+if [ "$n" -eq 0 ] && [ "$extra" -gt 0 ]; then
+  echo "NOTE: ${extra} inserted line(s) beyond the heartbeat -- a concurrent session" >&2
+  echo "edited $FILE. Committing them, but saying so in the message." >&2
+  git commit -m "scan heartbeat: no new 64GB-fittable coding models this cycle" \
+             -m "Also carries ${extra} line(s) edited concurrently by another session; this commit is not heartbeat-only." \
+             -- "$FILE"
+  log "carried extra=${extra} ins=${ins} del=${del} from a concurrent session"
+elif [ "$n" -eq 0 ]; then
   git commit -m "scan heartbeat: no new 64GB-fittable coding models this cycle" -- "$FILE"
 else
   git commit -m "candidates: ${n} new 64GB-fittable coding model(s) from daily scan" -- "$FILE"
