@@ -20,6 +20,31 @@ push; verify every tuning parameter takes effect with a smoke test first; after 
 
 ---
 
+## 0d. exp-69 — does DWQ's stall-elimination generalize to harder languages?  — RUNNING (2026-09-03)
+
+exp-68's headline is that DWQ eliminates the agentic stall pathology at 4 bits (0/10 vs 8/10,
+p = 0.00071). That was measured on `rest-api-crud` in python and go — the two languages this 30B
+handles best. **Is it a property of the quantization, or of easy cells?**
+
+**Why not the obvious test.** The natural generality check is the harder *task* (`brazil-soccer-mcp`),
+and it would be worthless: the 30B has never run brazil, and the models above it barely manage —
+the **80B scores 0.17** there and the 35B 0.25. A 30B would floor at zero in both arms and the
+experiment would be structurally unanswerable, the exact failure exp-62 recorded.
+
+**The design that works: measure STALLS, not passes.** Stall rate stays measurable even where pass
+rate floors, and it is the robust half of exp-68 anyway. Harder languages (rust, typescript) give the
+4-bit every opportunity to circle:
+
+`quant{4bit, 4bit-DWQ} x language{rust, typescript} x rest-api-crud x n=5` = 20 runs, $0. Both arms
+run fresh — there is no plain-4bit rust/typescript baseline on this stack, and exp-64's rows are
+python/go only.
+
+**Reading it in advance.** If plain 4-bit stalls on rust/typescript and DWQ does not, the
+stall-elimination is a property of the quantization and "use DWQ" is a real recommendation. If DWQ
+also stalls here, exp-68's effect was partly an easy-cell artifact and the recommendation needs
+qualifying to the languages tested. Pass-proportion is reported as a secondary, expected low in both
+arms — it is not what this experiment turns on.
+
 ## 0c. RESOLVED — the stall threshold is ERROR, not bits  — 2026-09-03
 
 exp-68 broke the bits/error confound with a DWQ build (4 bits, materially lower quantization error).
