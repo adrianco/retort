@@ -1,0 +1,23 @@
+{
+  "severity_counts": {
+    "critical": 0,
+    "high": 1,
+    "medium": 0,
+    "low": 0,
+    "info": 0
+  },
+  "penalty_score": 0.9,
+  "top_findings": [
+    {
+      "id": "test-fail-1",
+      "kind": "test_failure",
+      "severity": "high",
+      "title": "3 of 14 tests fail \u2014 the temp-DB fixture never takes effect, so tests share one on-disk books.db",
+      "evidence": "app.py:8 binds DB_FILE at import time, so test_app.py:15 setting os.environ['DATABASE'] after `from app import app, init_db` (test_app.py:5) has no effect. Verified by running `python3 -m pytest test_app.py -q` on a clean copy of app.py+test_app.py: `3 failed, 11 passed`, with pytest's captured setup showing the DB opened at <cwd>/books.db, not the tempfile. Failures: test_get_all_books_empty (test_app.py:93 `assert data == []` got 1 leaked book), test_get_all_books_with_data (test_app.py:111 `assert 2 == 1`), test_get_books_by_author (test_app.py:149 `assert 4 == 2`).",
+      "suggestion": "Read the DB path per request (e.g. `def db_path(): return os.environ.get('DATABASE','books.db')` called inside get_db_connection), or expose a create_app(db_path) factory, so the fixture's tempfile is honoured and each test starts empty."
+    }
+  ],
+  "requirement_coverage": 1.0,
+  "model": "mlxlocal/mlx-community--Qwen3-Coder-30B-A3B-Instruct-6bit",
+  "evaluated_at": "2026-09-03T19:36:21Z"
+}

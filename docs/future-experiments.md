@@ -20,37 +20,36 @@ push; verify every tuning parameter takes effect with a smoke test first; after 
 
 ---
 
-## 0b. exp-67 — 6-bit: where is the knee?  — RUNNING (2026-09-03)
+## 0b. RESOLVED — the quant ladder is TWO curves  — 2026-09-03
 
-exp-64 established 4-bit 0.10 vs 8-bit 0.70 on the 30B, and exp-66 ruled out sampling as the
-explanation. The obvious next question is **the shape of the curve between them**: does reliability
-climb gradually with bit-width, or is there a threshold the 4-bit build sits below?
+exp-67 added the 6-bit rung. The termination failure and the quality failure turn out to be separate
+phenomena with different shapes:
 
-That distinction matters practically. A gradual curve means "buy as many bits as your RAM allows".
-A threshold means "6-bit is enough, and the extra 14 GB the 8-bit costs buys nothing" — which is a
-deployable recommendation, since a 6-bit 30B (~25 GB) fits comfortably where an 8-bit (30 GB) is
-tight alongside a 262144-token KV cache.
+| bits | size | pass | stalls |
+|---|---|---|---|
+| 4 | 16 GB | 0.10 | 8/10 |
+| **6** | **23 GB** | **0.40** | **1/10** |
+| 8 | 30 GB | 0.70 | 1/10 |
 
-**Design: run ONLY the new level** — the incremental principle. `6-bit x language{python, go} x
-rest-api-crud x n=5` = **10 runs**, compared against exp-64's 4-bit and 8-bit rows. That comparison
-is legitimate because nothing in the scoring path has changed between exp-64 and now (the only
-commits since touch reporting and docs), and the preset is byte-identical to exp-64's apart from the
-model id. Running 20 fresh cells to re-measure two levels already measured this week would be waste.
+**Stalls are a threshold below 6 bits** (8/10 -> 1/10, Fisher p = 0.0055; 6 vs 8 is p = 1.00).
+**Pass-proportion rises linearly** (+0.15/bit) but only the 4-vs-8 extreme is significant (p = 0.0198)
+— adjacent steps are not resolvable at n=10. Written up in
+[`past-experiments.md`](past-experiments.md#exp-67--6-bit-where-is-the-knee--two-curves-not-one-2026-09-03).
 
-| level | pass-proportion | source |
-|---|---|---|
-| 4-bit | 0.10 (1/10) | exp-64 |
-| **6-bit** | **?** | **exp-67** |
-| 8-bit | 0.70 (7/10) | exp-64 |
+**Practical recommendation: 6-bit on a 64 GB machine.** It buys the entire termination fix for 7 GB
+over 4-bit; 8-bit's further 7 GB buys quality that is suggestive but unestablished, and sits close to
+the memory ceiling alongside a full-context KV cache.
 
-**Reading it in advance.** ~0.10 means the deficit is specific to a threshold above 6 bits. ~0.70
-means 6-bit already captures the whole gain and 8-bit is wasted RAM. Anything in between means a
-gradual curve, and the interesting follow-up becomes 5-bit.
-
-**Smoke test:** confirm `config.json` reports `bits: 6` with `group_size: 64` (matching both existing
-arms), and that the server logs `Loaded model: ...-6bit` with RSS landing between the 4-bit's 16.6 GB
-and the 8-bit's 30.8 GB. Same false-null guard as exp-64 — a silently-served cached model would make
-this meaningless.
+**What is left of §3, in priority order:**
+1. **Establish the 6->8 step** — needs n>=20 per level to resolve a 0.30 difference. Only worth it if
+   the 6-vs-8 choice actually matters to a deployment decision; the termination fix (the part that
+   matters most) is already settled.
+2. **Quant SCHEME as its own factor** — the `-DWQ` builds are a different scheme, not another
+   bit-width. Now that bit-width is known to matter, scheme deserves an arm.
+3. **Speculative decoding / MTP** — still the top *speed* lever and still blocked on a draft model.
+   Nanbeige4.2-3B (~2-3 GB, mlx-community 4-bit ships) is the cheapest candidate and doubles as a
+   subject in its own right.
+4. **A real 30B sampling sweep** — LOW; exp-66 ruled out the cheap version of that objection.
 
 ## 0a. RESOLVED — sampling does NOT rescue 4-bit  — 2026-09-03
 

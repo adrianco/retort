@@ -1521,3 +1521,72 @@ sampling sweep on the 30B (the exp-27 treatment) could still find a config that 
 exp-66 rules out is the cheap and most plausible version of that objection — that exp-64's result was
 an artifact of using another model's numbers. A full sweep remains open, but is now much lower
 priority: two independent configs, twenty runs, zero passes.
+
+## exp-67 — 6-bit: where is the knee?  — TWO CURVES, not one, 2026-09-03
+
+**The question assumed a single curve. There are two, and they have different shapes.** exp-64 gave
+4-bit 0.10 vs 8-bit 0.70 and exp-66 ruled out sampling as the cause. exp-67 adds the middle rung and
+finds that the *termination* failure and the *quality* failure are separate phenomena.
+
+**Design:** the new level ONLY — `6-bit x language{python, go} x rest-api-crud x n=5` = 10 runs, $0,
+compared against exp-64's existing 4-bit and 8-bit rows. Legitimate because the q6 preset was
+verified BY PARSING to differ from exp-64's q8 in nothing but the model id (identical sampling,
+context, threshold), and nothing in the scoring path changed between the two.
+
+| bits | size | pass-proportion | stalls |
+|---|---|---|---|
+| 4 | 16 GB | 0.10 (1/10) | **8/10** |
+| **6** | **23 GB** | **0.40 (4/10)** | **1/10** |
+| 8 | 30 GB | 0.70 (7/10) | 1/10 |
+
+### Curve 1 — the stall pathology is a THRESHOLD, and it sits below 6 bits
+
+| comparison | stalls | Fisher exact |
+|---|---|---|
+| 4 vs 6 bit | 8/10 vs 1/10 | **p = 0.0055** |
+| 6 vs 8 bit | 1/10 vs 1/10 | p = 1.00 |
+
+The "cannot terminate" failure that dominated exp-64 — the agent circling in an unproductive tool
+loop until the stall guard kills it — is **entirely cured by going from 4 to 6 bits**, and six bits
+is as good as eight. This is the well-supported half of the result.
+
+### Curve 2 — output quality keeps improving, linearly, past the threshold
+
+Pass-proportion is 0.10 -> 0.40 -> 0.70: **exactly linear at +0.15 per bit**, with no knee. But the
+statistics do not support reading the intermediate steps:
+
+| comparison | pass | Fisher exact |
+|---|---|---|
+| 4 vs 6 bit | 1/10 vs 4/10 | p = 0.3034 |
+| 6 vs 8 bit | 4/10 vs 7/10 | p = 0.3698 |
+| 4 vs 8 bit | 1/10 vs 7/10 | **p = 0.0198** |
+
+Only the extremes separate. At n=10 per level a 0.30 step is not resolvable — the linear trend is
+**suggestive, not established**, and saying otherwise would repeat exp-63's mistake of reading a
+tidy-looking pattern as a result. Establishing the 6->8 step needs n>=20 per level.
+
+### What this means in practice
+
+**Two different things break at 4 bits, and they are fixed at different prices.** 6-bit costs 7 GB
+more than 4-bit and buys the *entire* termination fix — the model stops circling. 8-bit costs a
+further 7 GB and buys more finished-and-correct deliverables, but that step is not statistically
+established here. On a 64 GB machine where the 8-bit's 30 GB is tight alongside a 262144-token KV
+cache (exp-64 logged 16 `adaptive_prefill_throttle` events on the 8-bit and none of that pressure on
+smaller builds), **6-bit is the defensible recommendation** and 8-bit is the option if the memory is
+spare.
+
+### Why this matters beyond this model
+
+The two curves have different implications for how quantization is normally evaluated. Published
+quant comparisons measure perplexity or single-turn benchmark scores — which would capture Curve 2
+(gradual quality loss) and would be **blind to Curve 1 entirely**, because a single-turn generation
+cannot exhibit a failure-to-terminate pathology. The lever that mattered most here is invisible to
+the standard measurement. That is the meta-prize §3 was set up to chase, and this is the first
+concrete instance of it.
+
+### Verification
+
+Same false-null guard as exp-64, four independent checks: `config.json` reports `bits: 6` with
+`group_size: 64` matching both other arms; on-disk size 23 GB sits between 16 GB and 30 GB; retort's
+provenance records `quant=6 size=23G` with its own revision hash; and oMLX RSS measured 25.5 GB
+during the run, between the 4-bit's 16.6 GB and the 8-bit's 30.8 GB.

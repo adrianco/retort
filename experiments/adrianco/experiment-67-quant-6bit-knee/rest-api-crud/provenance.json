@@ -1,0 +1,140 @@
+{
+  "agent_config": {
+    "hermes": {
+      "_config_version": 33,
+      "context_engine": "lcm",
+      "context_length": 262144,
+      "context_length_top_level": 262144,
+      "context_length_unset_per_model": false,
+      "max_turns": 400,
+      "model": "mlx-community--Qwen3-Coder-30B-A3B-Instruct-4bit",
+      "plugins": [
+        "hermes-lcm"
+      ],
+      "provider_api": "http://127.0.0.1:8080/v1"
+    }
+  },
+  "agents": {
+    "hermes-0205": "hermes"
+  },
+  "harness": {
+    "local_agents": {
+      "hermes-0205": {
+        "harness": "hermes",
+        "model": null
+      }
+    },
+    "max_turns": 400,
+    "no_write_abort_after": 3,
+    "playpen_root": "/Users/adriancockcroft/.retort/work",
+    "replicates": 5,
+    "runner": "local",
+    "stack_presets": "stacks.yaml",
+    "stall_minutes": 25,
+    "timeout_minutes": 60
+  },
+  "host": {
+    "cpu": "Apple M5 Pro",
+    "iogpu_wired_limit_mb": "57344",
+    "machine": "Mac17,9",
+    "platform": "macOS-26.5.1-arm64-arm-64bit-Mach-O",
+    "python": "3.14.7",
+    "ram_bytes": "68719476736"
+  },
+  "models": {
+    "mlx-community--Qwen3-Coder-30B-A3B-Instruct-6bit": {
+      "max_position_embeddings": 262144,
+      "quant": 6,
+      "recommended_sampling": {
+        "repetition_penalty": 1.05,
+        "temperature": 0.7,
+        "top_k": 20,
+        "top_p": 0.8
+      },
+      "repo": "mlx-community/Qwen3-Coder-30B-A3B-Instruct-6bit",
+      "revision": "8730fb50f41e7f3ad7af9d10cb928274e479f071",
+      "served_as": "mlx-community--Qwen3-Coder-30B-A3B-Instruct-6bit",
+      "size": "23G",
+      "snapshot_path": "/Users/adriancockcroft/.cache/huggingface/hub/models--mlx-community--Qwen3-Coder-30B-A3B-Instruct-6bit/snapshots/8730fb50f41e7f3ad7af9d10cb928274e479f071"
+    },
+    "mlx-community--Qwen3-Coder-30B-A3B-Instruct-8bit": {
+      "max_position_embeddings": 262144,
+      "quant": 8,
+      "recommended_sampling": {
+        "repetition_penalty": 1.05,
+        "temperature": 0.7,
+        "top_k": 20,
+        "top_p": 0.8
+      },
+      "repo": "mlx-community/Qwen3-Coder-30B-A3B-Instruct-8bit",
+      "revision": "7c6ee1bbb5ee3051c4b3bc6553f24bdc2d01393a",
+      "served_as": "mlx-community--Qwen3-Coder-30B-A3B-Instruct-8bit",
+      "size": "30G",
+      "snapshot_path": "/Users/adriancockcroft/.cache/huggingface/hub/models--mlx-community--Qwen3-Coder-30B-A3B-Instruct-8bit/snapshots/7c6ee1bbb5ee3051c4b3bc6553f24bdc2d01393a"
+    }
+  },
+  "retort": {
+    "branch": "main",
+    "commit": "0a69f0c7a88e2c36c044744dd46b25a9c114129e",
+    "dirty": true
+  },
+  "serving": {
+    "omlx": {
+      "cache": {
+        "enabled": true,
+        "hot_cache_max_size": "0",
+        "hot_cache_only": false,
+        "initial_cache_blocks": 256,
+        "ssd_cache_dir": null,
+        "ssd_cache_max_size": "auto"
+      },
+      "model_dirs": [
+        "/Users/adriancockcroft/models"
+      ],
+      "sampling": {
+        "max_context_window": 32768,
+        "max_context_window_policy": null,
+        "max_tokens": 32768,
+        "repetition_penalty": 1.0,
+        "temperature": 0.7,
+        "top_k": 20,
+        "top_p": 0.8
+      }
+    }
+  },
+  "stack_presets": {
+    "q6": {
+      "context_length": 262144,
+      "context_threshold": 0.9,
+      "model": "mlx-community--Qwen3-Coder-30B-A3B-Instruct-6bit",
+      "sampling": {
+        "repetition_penalty": 1.0,
+        "temperature": 0.6,
+        "top_k": 20,
+        "top_p": 0.95
+      }
+    },
+    "q8": {
+      "context_length": 262144,
+      "context_threshold": 0.9,
+      "model": "mlx-community--Qwen3-Coder-30B-A3B-Instruct-8bit",
+      "sampling": {
+        "repetition_penalty": 1.0,
+        "temperature": 0.6,
+        "top_k": 20,
+        "top_p": 0.95
+      }
+    }
+  },
+  "tools": {
+    "cargo": "cargo 1.97.1 (c980f4866 2026-06-30) (Homebrew)",
+    "claude": "2.1.257 (Claude Code)",
+    "go": "go version go1.26.6 darwin/arm64",
+    "hermes": "Hermes Agent v0.20.5 (2026.8.19) \u00b7 upstream 4dac5f28 \u00b7 local 261a4efb (+1 carried commit)",
+    "hermes_bin": "/Users/adriancockcroft/code/hermes-agent/.venv/bin/hermes",
+    "llama_server": "version: 0.1.1-dev (build 10470, commit 34af94cd9)",
+    "node": "v26.7.0",
+    "omlx": "0.5.0rc1",
+    "omp": "omp/17.3.8"
+  }
+}
