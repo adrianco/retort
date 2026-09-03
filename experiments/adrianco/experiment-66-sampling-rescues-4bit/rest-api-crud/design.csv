@@ -1,0 +1,5 @@
+run,language,agent,prompt,stack,model
+0,python,hermes-0205,neutral,s35,mlxlocal/mlx-community--Qwen3-Coder-30B-A3B-Instruct-4bit
+1,python,hermes-0205,neutral,qwen-card,mlxlocal/mlx-community--Qwen3-Coder-30B-A3B-Instruct-4bit
+2,go,hermes-0205,neutral,s35,mlxlocal/mlx-community--Qwen3-Coder-30B-A3B-Instruct-4bit
+3,go,hermes-0205,neutral,qwen-card,mlxlocal/mlx-community--Qwen3-Coder-30B-A3B-Instruct-4bit

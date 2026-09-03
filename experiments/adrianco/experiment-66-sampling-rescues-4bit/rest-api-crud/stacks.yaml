@@ -1,0 +1,43 @@
+serving:
+  omlx_bin: /Applications/oMLX.app/Contents/MacOS/omlx-cli
+  hermes_bin: /Users/adriancockcroft/code/hermes-agent/.venv/bin/hermes
+  model_dir: /Users/adriancockcroft/models
+  host: 127.0.0.1
+  port: 8080
+  settings_path: /Users/adriancockcroft/.omlx/settings.json
+  hermes_config: /Users/adriancockcroft/.hermes/config.yaml
+  serve_flags:
+  - --hf-cache
+  - --memory-guard-gb
+  - "54"
+  log: /private/tmp/claude-501/-Users-adriancockcroft-code/1985cb31-023e-4e0c-808f-49285393ada8/scratchpad/omlx-exp66.log
+  warm_timeout_s: 600
+presets:
+  # BOTH presets serve the SAME 4-bit model. The only difference is the sampling
+  # block — this experiment asks whether exp-64's 4-bit arm was handicapped by
+  # running at the 35B's tuned config rather than one suited to the 30B.
+  #
+  # repetition_penalty is 1.0 in BOTH arms on purpose. The Qwen3-Coder card
+  # recommends 1.05, and this project has already measured that value derailing the
+  # agentic tool loop into stalls. Importing it here would confound the nucleus
+  # change with a known-harmful penalty — and stalls are the very thing being
+  # explained, so manufacturing them would be self-defeating.
+  s35:
+    model: mlx-community--Qwen3-Coder-30B-A3B-Instruct-4bit
+    context_length: 262144
+    context_threshold: 0.9
+    sampling:
+      temperature: 0.6
+      top_p: 0.95
+      top_k: 20
+      repetition_penalty: 1.0
+
+  qwen-card:
+    model: mlx-community--Qwen3-Coder-30B-A3B-Instruct-4bit
+    context_length: 262144
+    context_threshold: 0.9
+    sampling:
+      temperature: 0.7
+      top_p: 0.8
+      top_k: 20
+      repetition_penalty: 1.0

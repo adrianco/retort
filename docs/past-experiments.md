@@ -1418,9 +1418,12 @@ instead of converging. That is a different claim from "quantized models write wo
 predicts something useful — the damage should show up on *agentic* tasks long before it shows up on
 single-turn benchmarks, which is exactly where published perplexity/quant comparisons look.
 
-Corroborating detail from the same runs: the one 4-bit cell that did pass, and one that failed,
-both produced a complete `main.py` and confidently declared the task finished — one simply never
-wrote tests. The model is not incapable of the code; it is unreliable about *finishing the job*.
+Corroborating detail from the same runs: 4-bit cells produced a complete `main.py` and confidently
+declared the task finished. **Refined by exp-66** — across its 20 further 4-bit runs the model wrote
+25 implementation files AND 17 test files while scoring `test_coverage = 0.00` every time, so the
+failure is not "writes no tests" (an over-generalisation from a single cell here). It writes code,
+writes tests, declares itself done, and never converges on a state where the tests run. The model is
+not incapable of the code; it is unreliable about *finishing the job*.
 
 ### What this does NOT establish
 
@@ -1431,12 +1434,12 @@ wrote tests. The model is not incapable of the code; it is unreliable about *fin
 - **Passing is not doing it well.** Test coverage among the 8-bit passes ranges 0.06 to 0.94 (mean
   0.54). The defensible claim is that 8-bit *clears the gate* where 4-bit cannot, not that it does
   the task well. The mechanical gate only requires coverage > 0.
-- **Sampling was the 35B's tuned config**, not a 30B-specific optimum — the 30B has never been tuned
-  on this stack. Both arms share it, so it cannot confound the contrast, but the absolute pass rates
-  are "the 30B at this config", not "the 30B at its best". Since the 4-bit failure is a *loop*
-  pathology and sampling is known to cause exactly that (repetition_penalty derailed the tool loop in
-  an earlier experiment), a 30B-tuned config might narrow this gap. Worth testing before treating
-  0.10 as the 4-bit's ceiling.
+- **Sampling was the 35B's tuned config** — TESTED AND CLEARED by exp-66. The 30B has never been
+  tuned on this stack, so exp-64 borrowed the 35B's numbers; both arms shared them, so the contrast
+  was safe, but the 4-bit's absolute level was not. exp-66 re-ran the 4-bit under the Qwen card's
+  own sampling (top_p 0.8 vs 0.95) for 20 further runs and got **0/10 in both arms** — tightening the
+  nucleus moved failures toward stalls rather than passes. The gap is not an artifact of borrowed
+  sampling. A full empirical sweep (the exp-27 treatment) is still open but now low priority.
 - **The 8-bit runs under more memory pressure.** 30.41 GB resident against the 4-bit's 16 GB, with 16
   `adaptive_prefill_throttle` events observed and generation at ~30 tok/s vs ~50. It won anyway.
 
@@ -1461,3 +1464,60 @@ RSS moving 16.6 GB -> 30.8 GB at the arm switch.
   ~110 GB of stale caches reclaimed almost nothing, because an APFS TimeMachine local snapshot pins
   freed blocks. `tmutil thinlocalsnapshots` plus pruning 57 GB of non-featured model weights restored
   205 GB. See the standing method notes.
+
+## exp-66 — does 30B-tuned sampling rescue 4-bit?  — NO, exp-64 hardens, 2026-09-03
+
+**Purpose: attack exp-64's own result rather than build on it.** exp-64 found 8-bit beating 4-bit
+0.70 vs 0.10, with the 4-bit arm killed by the stall guard in 8 of 10 runs. But exp-64 ran both arms
+at the **35B's** tuned sampling, because the 30B has never been tuned on this stack. That could not
+have confounded the quant *contrast* (both arms shared it) but it could absolutely have set the
+4-bit's absolute level — and the threat was specific, not hypothetical: the 4-bit failure is a *loop*
+pathology, and this project has already measured sampling causing exactly that (`repetition_penalty`
+derailing the tool loop even at the model card's recommended value). exp-64 ran 4-bit at a permissive
+`top_p: 0.95`.
+
+**Design:** `sampling{s35, qwen-card} x language{python, go} x rest-api-crud x n=5` = 20 runs, $0,
+**4-bit only**. Presets verified BY PARSING to differ in nothing but the sampling block.
+
+| arm | temperature | top_p | passes | stalls | fails |
+|---|---|---|---|---|---|
+| `s35` (exp-64's config) | 0.6 | 0.95 | **0/10** | 6 | 4 |
+| `qwen-card` | 0.7 | **0.8** | **0/10** | 9 | 1 |
+
+**Result: no rescue.** Twenty further runs, zero passes. Tightening the nucleus moved failures
+*toward* stalls (6 -> 9), which is the opposite of a rescue. exp-64's conclusion therefore hardens:
+the 4-bit's inability to finish this task is a property of the quantization, not an artifact of
+borrowing the 35B's sampling.
+
+`repetition_penalty` was held at **1.0 in both arms**, deliberately not adopting the Qwen card's
+1.05. That value is already known here to derail the tool loop; importing it would have confounded
+the nucleus change with a known-harmful penalty, and stalls are the very thing being explained.
+
+### Bonus: an independent replication of exp-64's 4-bit baseline
+
+The `s35` arm is exp-64's 4-bit cell re-run in a **separately launched experiment**: 0/10 with 6
+stalls here against 1/10 with 8 stalls there. The stall pathology reproduces across runs, which is
+worth more than either experiment alone — it rules out the possibility that exp-64's 4-bit arm was
+one unlucky session.
+
+### What the failure actually is — correcting a loose claim
+
+exp-64's write-up says a 4-bit cell "never wrote tests". That was true of that cell but is the wrong
+generalisation. Across exp-66's 20 runs the 4-bit wrote **25 implementation files and 17 test files**
+— roughly one test file per run in the `qwen-card` arm — and still scored `test_coverage = 0.00` in
+**every single run**. The model is not failing to author tests. It is failing to reach a state where
+they run: 15 of 20 runs were killed mid-flight by the stall guard, and the 5 that completed produced
+tests that did not pass. The task's own requirement R12 is explicit — ">= 3 tests exist **and run**
+(test_coverage > 0)" — and the self-repair second chance fired with that feedback and still failed.
+
+So the accurate statement of the 4-bit's failure mode is **"cannot converge on a working, tested
+deliverable"**, not "writes no tests" and not "writes bad code". It writes plausible code, writes
+tests, declares itself finished, and cannot close the loop.
+
+### Caveat this does NOT remove
+
+`qwen-card` is the **model card's** recommended sampling, not an empirically tuned 30B config. A real
+sampling sweep on the 30B (the exp-27 treatment) could still find a config that rescues 4-bit. What
+exp-66 rules out is the cheap and most plausible version of that objection — that exp-64's result was
+an artifact of using another model's numbers. A full sweep remains open, but is now much lower
+priority: two independent configs, twenty runs, zero passes.

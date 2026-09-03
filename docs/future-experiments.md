@@ -20,43 +20,22 @@ push; verify every tuning parameter takes effect with a smoke test first; after 
 
 ---
 
-## 0a. exp-66 — does 30B-TUNED sampling rescue 4-bit?  — READY TO RUN (top priority)
+## 0a. RESOLVED — sampling does NOT rescue 4-bit  — 2026-09-03
 
-**This is the strongest threat to exp-64's headline, so it runs before 6-bit.** exp-64 found 8-bit
-beating 4-bit 0.70 vs 0.10, with the 4-bit arm killed by the stall guard in 8 of 10 runs. But exp-64
-used the **35B's** tuned sampling (temp 0.6 / top_p 0.95 / top_k 20) because the 30B has never been
-tuned on this stack. Both arms shared it, so it cannot have confounded the quant contrast — but it
-can absolutely have set the 4-bit's absolute level.
+exp-66 attacked exp-64's own result and failed to overturn it: 20 further 4-bit runs across two
+sampling configs, **0/10 in both arms**. Tightening the nucleus (top_p 0.95 -> 0.8) moved failures
+toward stalls, not passes. exp-64's quant effect is not an artifact of borrowing the 35B's sampling.
+Written up in [`past-experiments.md`](past-experiments.md#exp-66--does-30b-tuned-sampling-rescue-4-bit--no-exp-64-hardens-2026-09-03).
 
-**Why this is a live threat and not a formality.** The 4-bit failure is a *loop* pathology, and
-sampling is this project's known cause of exactly that: `repetition_penalty` derailed the agentic
-tool loop into stalls even at the value the model's own card recommended (see Standing method notes).
-A mechanism that produces stalls is already documented here, and exp-64 ran the 4-bit at a
-permissive `top_p: 0.95`. More quantization noise at 4 bits, sampled through a wider nucleus, is a
-plausible route into exactly the circling behaviour observed. If a tuned config rescues 4-bit, the
-quant effect is smaller than exp-64 measured and the write-up needs amending.
-
-**Design:** `sampling{s35, qwen-card} x language{python, go} x rest-api-crud x n=5` = 20 runs, $0,
-**4-bit only** — the 8-bit is not at issue here.
-
-| preset | temperature | top_p | top_k | repetition_penalty |
-|---|---|---|---|---|
-| `s35` (exp-64's config) | 0.6 | 0.95 | 20 | 1.0 |
-| `qwen-card` | 0.7 | **0.8** | 20 | **1.0**, not the card's 1.05 |
-
-`repetition_penalty` stays at 1.0 in BOTH arms deliberately. The Qwen card recommends 1.05, and this
-project has already measured that value derailing the tool loop. Adopting it here would confound the
-nucleus change with a known-harmful penalty and risk manufacturing the stalls the experiment is
-trying to explain. The variable is the nucleus, not the penalty.
-
-**Smoke test before the grid:** oMLX **silently strips unsupported sampling keys** (Standing method
-notes), so "I set top_p" is not "top_p took effect". Verify the two presets actually reach the server
-differently — compare `_effective_stack.json` between arms and confirm the server-side sampling block
-differs — before spending 20 runs on a factor that might be inert.
-
-**Reading the result:** if 4-bit still stalls at ~8/10 under tuned sampling, exp-64's conclusion
-stands and hardens. If it rises to parity with 8-bit, the quant tier's answer changes materially and
-exp-64's entry must be amended, not merely supplemented.
+**What is left of §3's quant tier, in priority order:**
+1. **6-bit, to locate the knee** (~25 GB, `mlx-community/Qwen3-Coder-30B-A3B-Instruct-6bit` ships).
+   4->8 moves pass-proportion 0.10 -> 0.70, so the intermediate level is now worth measuring. Same
+   design as exp-64, n=5. **This is the top remaining quant candidate.**
+2. **Quant SCHEME as its own factor** — the `-DWQ` builds (distilled quant) are a different scheme,
+   not another bit-width, and were deliberately excluded from exp-64. Now that bit-width is known to
+   matter, scheme deserves an arm.
+3. **A real 30B sampling sweep** (the exp-27 treatment) — LOW priority now. exp-66 ruled out the
+   cheap version of this objection; two configs and twenty runs produced no passes.
 
 ## 0. Fable 5.1 — is it actually MORE expensive than 5.0?  — OPEN follow-up from exp-65
 
