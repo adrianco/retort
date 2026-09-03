@@ -214,46 +214,23 @@ The sampling tier is done (exp-27). Remaining levers, by payoff:
   tok/s converts wall-crashes and slow-but-terminating runs (esp. the 80B, and Rust/Go) into
   passes. oMLX 0.5.0 ships a Qwen3.5/3.6 MTP patch, but the unsloth 4-bit build has no MTP weights →
   needs a small draft model. Highest payoff, most setup.
-- **Quant level (4-bit → 6/8-bit)** — tests the hard-task *capability* ceiling: is the last mile
-  (Go reaches 0.92 req_cov but not 1.0) lost to 4-bit quant error?
-  **UNBLOCKED 2026-09-01 — planned as exp-64.** The earlier readiness check (2026-08-26) concluded
-  this was "one download away" because every local coder model is 4-bit. Resolved: `mlx-community`
-  publishes a full ladder for `Qwen3-Coder-30B-A3B-Instruct` — **3, 4, 5, 6, 8-bit and bf16** — all
-  from the same base model and the same conversion pipeline, so bit-width can be varied with
-  publisher and converter held fixed. Disk 77 GB free; 6-bit ≈ 25 GB, 8-bit ≈ 32 GB.
+- **Quant level — ANSWERED for the 30B (exp-64, 2026-09-03), 6-bit now worth running.** 8-bit beats
+  4-bit **0.70 vs 0.10** pass-proportion (Fisher p = 0.0198), and the mechanism is a surprise: the
+  4-bit arm was killed by the stall guard in **8 of 10 runs** against the 8-bit's 1 (p = 0.0055).
+  4-bit does not mainly write worse code — it fails to *terminate*, circling in unproductive tool
+  loops. Written up in [`past-experiments.md`](past-experiments.md#exp-64--does-quantization-bit-width-move-coding-reliability--yes-2026-09-03).
 
-  **Design (exp-64).** `quant{4bit, 8bit} x language{python, go} x rest-api-crud x n=3` = 12 cells,
-  on the current oMLX + hermes-lcm stack with context and sampling held at the exp-27/exp-38 values.
-
-  *Why 4 vs 8 first, not 4 vs 6.* The widest contrast is the cheapest decisive test. If the full
-  4→8 jump does not move pass-proportion, the intermediate levels cannot, and the tier is answered
-  with one experiment. Only if it *does* move does 6-bit become worth running, to locate the knee.
-
-  *Why the 30B, when the last-mile gap is on the 35B/80B.* Neither larger model can be tested
-  cleanly on this hardware. The 35B is `unsloth--...-UD-MLX-4bit` — a dynamic quant with no
-  matching 6/8-bit from the same pipeline, so a comparison would confound bit-width with quant
-  *scheme* and publisher. An 8-bit 80B would be ≈ 85 GB, past both the 77 GB free and the 64 GB of
-  RAM. So exp-64 answers "does bit-width move pass-proportion on the 30B", which is a proxy for the
-  general question rather than a direct test of the 80B's last mile — state it that way in the
-  write-up. The 30B is in one respect the *better* test bed: the 35B already sits at 0.87–0.91 on
-  this task, where a null result is indistinguishable from a ceiling effect, whereas the weaker 30B
-  should land mid-range with headroom in both directions.
-
-  *Both arms run fresh.* The 48 archived `lmlocal/qwen3-coder-30b` runs are on the old LM Studio
-  serving layer and cannot serve as the 4-bit baseline — never compare across harness generations.
-  The 4-bit arm is re-run under identical conditions alongside the 8-bit arm.
-
-  *Excluded on purpose.* The `-DWQ` builds (distilled quant, several learning rates) are a different
-  quant **scheme**, not another bit-width. Mixing them into this factor would reintroduce exactly
-  the confound this design removes. Scheme is a separate factor for a later experiment.
-
-  *Mandatory smoke test before the grid — this factor's specific false-null.* Verify oMLX actually
-  **loads the 8-bit weights**, rather than silently serving the cached 4-bit model. If it does not,
-  both arms are byte-identical and the experiment returns a confident null that means nothing. Check
-  two independent signals: the resident memory of the server process (8-bit should be roughly double
-  the 4-bit footprint) and the model path recorded in `provenance.json`. "I pointed the config at
-  the 8-bit repo" is not "the 8-bit weights are what answered the request".
-
+  **Next, in priority order:**
+  1. **6-bit, to locate the knee.** 4->8 moves the needle, so the intermediate level is now worth the
+     download (~25 GB, `mlx-community/Qwen3-Coder-30B-A3B-Instruct-6bit` ships). Same design, n=5.
+  2. **Re-run 4-bit with 30B-TUNED sampling first.** exp-64 used the 35B's config because the 30B has
+     never been tuned here. The 4-bit failure is a *loop* pathology, and sampling is the known cause
+     of exactly that (repetition_penalty derailed the tool loop in an earlier run). If a tuned config
+     rescues 4-bit, the quant effect is smaller than exp-64 measured. This is the strongest threat to
+     the result and should be run before 6-bit.
+  3. **Quant SCHEME as a separate factor** — the `-DWQ` builds (distilled quant, several learning
+     rates) are a different scheme, not another bit-width, and were deliberately excluded from
+     exp-64. Now that bit-width is known to matter, scheme is worth its own arm.
 
 - **MoE vs dense** (issue #40 ask) — a fair matched-size dense-vs-MoE on Hermes to isolate the
   architecture effect (the Devstral attempt was the wrong harness).

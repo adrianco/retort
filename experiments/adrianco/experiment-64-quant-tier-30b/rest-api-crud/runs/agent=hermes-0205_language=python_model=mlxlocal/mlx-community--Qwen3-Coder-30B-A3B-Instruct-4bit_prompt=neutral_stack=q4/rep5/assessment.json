@@ -1,0 +1,55 @@
+{
+  "severity_counts": {
+    "critical": 3,
+    "high": 10,
+    "medium": 0,
+    "low": 0,
+    "info": 0
+  },
+  "penalty_score": 0.0,
+  "top_findings": [
+    {
+      "id": "repair-noop",
+      "kind": "build_failure",
+      "severity": "critical",
+      "title": "Repair run changed nothing \u2014 all five defects named in FEEDBACK.md are still present",
+      "evidence": "TASK.md is a REPAIR TASK and FEEDBACK.md lists 'POST /books not exposed', 'GET /books/{id} not exposed', 'PUT /books/{id} not exposed', 'DELETE /books/{id} not exposed', 'No input validation'. grep -rn -E '@app\\.|@router\\.|APIRouter|include_router' --include='*.py' . returns exactly 2 hits: main.py:22 @app.get(\"/health\") and main.py:26 @app.get(\"/books\"). retort.db run 11 has _second_try=1.0, _turns=12, _duration_seconds=41.5.",
+      "suggestion": "Wire book_api.py's existing CRUD functions into main.py as FastAPI routes; the logic is already written."
+    },
+    {
+      "id": "test-fail-all",
+      "kind": "test_failure",
+      "severity": "critical",
+      "title": "All 8 tests in test_book_api.py fail \u2014 every HTTP request raises before its assert",
+      "evidence": "Archived .coverage line_bits for test_book_api.py cover the request-issuing lines (18, 23-27, 37, 45-49, 64-68, 88-92, 106-110, 125) but NONE of the assert lines that immediately follow (19, 29, 38, 51, 70, 94, 112, 126). book_api.py and main.py have ZERO covered lines, so application code was never executed. Stored test_coverage=0.25 is whole-directory line coverage carried entirely by the test files.",
+      "suggestion": "Start the server via a fixture with a readiness poll (or use fastapi.testclient.TestClient) instead of a bare module-level subprocess.Popen + sleep(2)."
+    },
+    {
+      "id": "R2",
+      "kind": "requirement_partial",
+      "severity": "critical",
+      "title": "GET /books route exists but its table is never created \u2014 500 on a fresh workspace",
+      "evidence": "main.py:26-33 SELECTs from books, but main.py:7 init_db() is defined and never called (grep init_db -> only book_api.py:143 calls book_api's own copy; no @app.on_event/lifespan anywhere). No books.db exists in the archive, so the first request raises sqlite3.OperationalError: no such table: books. The route also returns raw tuples (main.py:31-33), not JSON objects.",
+      "suggestion": "Call init_db() at startup and return dicts built from cursor.description."
+    },
+    {
+      "id": "R1",
+      "kind": "requirement_partial",
+      "severity": "high",
+      "title": "POST /books is not exposed by the served app",
+      "evidence": "No @app.post anywhere (grep over all *.py returns 0 hits). book_api.py:24 create_book(title, author, year, isbn) is a complete, correct implementation but main.py:1-2 imports only fastapi and sqlite3 and never imports book_api.",
+      "suggestion": "Add @app.post('/books', status_code=201) delegating to book_api.create_book."
+    },
+    {
+      "id": "R3",
+      "kind": "requirement_partial",
+      "severity": "high",
+      "title": "GET /books ignores the ?author= filter",
+      "evidence": "main.py:27 'async def get_books()' takes no parameters and main.py:30 runs an unconditional 'SELECT * FROM books'. The filtering logic exists at book_api.py:42-55 (get_all_books(author=...)) but is unrouted.",
+      "suggestion": "Add an 'author: Optional[str] = None' query parameter and delegate to book_api.get_all_books."
+    }
+  ],
+  "requirement_coverage": 0.25,
+  "model": "mlxlocal/mlx-community--Qwen3-Coder-30B-A3B-Instruct-4bit",
+  "evaluated_at": "2026-09-03T05:01:52Z"
+}

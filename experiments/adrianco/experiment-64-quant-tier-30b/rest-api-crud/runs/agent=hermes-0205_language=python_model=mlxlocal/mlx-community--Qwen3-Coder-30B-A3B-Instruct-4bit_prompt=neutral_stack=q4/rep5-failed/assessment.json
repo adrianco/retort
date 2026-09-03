@@ -1,0 +1,14 @@
+{
+  "severity_counts": {"critical": 0, "high": 6, "medium": 0, "low": 0, "info": 0},
+  "penalty_score": 0.4,
+  "top_findings": [
+    {"id": "R1", "kind": "requirement_missing", "severity": "high", "title": "POST /books not exposed by the served app", "evidence": "main.py declares only @app.get('/health') (main.py:22) and @app.get('/books') (main.py:26); no @app.post. create_book() at book_api.py:24 exists but book_api is never imported by main.py and is bound to no router.", "suggestion": "Add an @app.post('/books', status_code=201) route in main.py that validates and persists a book."},
+    {"id": "R4", "kind": "requirement_missing", "severity": "high", "title": "GET /books/{id} not exposed by the served app", "evidence": "No @app.get('/books/{id}') in main.py. get_book_by_id() at book_api.py:57 is unrouted and book_api is not imported.", "suggestion": "Add an @app.get('/books/{book_id}') route returning one book (404 if absent)."},
+    {"id": "R5", "kind": "requirement_missing", "severity": "high", "title": "PUT /books/{id} not exposed by the served app", "evidence": "No @app.put in main.py. update_book() at book_api.py:70 is unrouted and book_api is not imported.", "suggestion": "Add an @app.put('/books/{book_id}') route that updates an existing book."},
+    {"id": "R6", "kind": "requirement_missing", "severity": "high", "title": "DELETE /books/{id} not exposed by the served app", "evidence": "No @app.delete in main.py. delete_book() at book_api.py:114 is unrouted and book_api is not imported.", "suggestion": "Add an @app.delete('/books/{book_id}', status_code=204) route that deletes a book."},
+    {"id": "R9", "kind": "requirement_missing", "severity": "high", "title": "No input validation (title/author required) in the served API", "evidence": "main.py has no POST route and no Pydantic model; the served app never validates input. The NOT NULL constraint at book_api.py:15 is never reached over HTTP and yields no 400.", "suggestion": "Add a Pydantic request model (title/author required) to the POST route so invalid input returns 422/400."}
+  ],
+  "requirement_coverage": 0.4167,
+  "model": "mlxlocal/mlx-community--Qwen3-Coder-30B-A3B-Instruct-4bit",
+  "evaluated_at": "2026-09-03T00:00:00Z"
+}

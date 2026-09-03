@@ -1,0 +1,12 @@
+{
+  "replicate": 2,
+  "run_config": {
+    "agent": "hermes-0205",
+    "language": "python",
+    "model": "mlxlocal/mlx-community--Qwen3-Coder-30B-A3B-Instruct-4bit",
+    "prompt": "neutral",
+    "stack": "q4"
+  },
+  "succeeded": true,
+  "visibility": "public"
+}

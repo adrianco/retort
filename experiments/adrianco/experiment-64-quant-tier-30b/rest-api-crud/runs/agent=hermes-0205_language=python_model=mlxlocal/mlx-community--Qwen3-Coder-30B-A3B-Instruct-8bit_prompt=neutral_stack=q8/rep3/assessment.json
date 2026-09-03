@@ -1,0 +1,39 @@
+{
+  "severity_counts": {
+    "critical": 1,
+    "high": 2,
+    "medium": 0,
+    "low": 0,
+    "info": 0
+  },
+  "penalty_score": 0.55,
+  "top_findings": [
+    {
+      "id": "test-exec-1",
+      "kind": "test_failure",
+      "severity": "critical",
+      "title": "The 10-test primary suite never executes \u2014 pytest cannot import tests.py",
+      "evidence": "tests.py:3 `from fastapi.testclient import TestClient`; .coverage line_bits has NO row for tests.py (only basic_test.py and main.py), and main.py's only executed line is line 1 (`from fastapi import ...`), so the fastapi import raised. requirements.txt:1-3 pins fastapi==0.104.1 / pydantic==2.5.0, whose pydantic-core==2.14.1 has no wheel for this environment's Python and fails its Rust build. scores.json test_coverage=0.06.",
+      "suggestion": "Do not pin 2023-era versions; declare `fastapi` / `pydantic` unpinned (or >=), and verify `python -m pytest tests.py` actually collects before declaring done."
+    },
+    {
+      "id": "R12",
+      "kind": "requirement_partial",
+      "severity": "high",
+      "title": "R12 'at least 3 unit/integration tests' \u2014 10 tests written but none run; the 3 that run assert nothing",
+      "evidence": "tests.py:8-119 declares 10 genuine integration tests (test_health_check, test_create_book, ... test_filter_books_by_author) but .coverage records zero executed lines for tests.py. basic_test.py:11,42,61 are the only functions pytest collected and ran; `grep -c assert basic_test.py` = 0.",
+      "suggestion": "Fix the dependency pins so tests.py runs, and add asserts to basic_test.py (or delete it) so a failure cannot pass."
+    },
+    {
+      "id": "test-noassert-1",
+      "kind": "disabled_test",
+      "severity": "high",
+      "title": "basic_test.py's 3 collected tests are assertion-free and all took their except branch \u2014 pytest reported 3 green on a broken build",
+      "evidence": "Decoded .coverage line set for basic_test.py is [3,4,5,6,9,11,14,18,19,36,37,38,42,44,45,57,58,59,61,63,65,68,69,70,72] \u2014 lines 36-38, 57-59 and 68-70 are the `except Exception` / print('\u2717 ...') / `return False` bodies of all three functions. Because basic_test.py:11-70 contains no `assert`, returning False is reported by pytest as a pass.",
+      "suggestion": "Replace `try/except -> return False` with plain asserts so an import failure fails the test run."
+    }
+  ],
+  "requirement_coverage": 0.9167,
+  "model": "mlxlocal/mlx-community--Qwen3-Coder-30B-A3B-Instruct-8bit",
+  "evaluated_at": "2026-09-03T05:08:35Z"
+}

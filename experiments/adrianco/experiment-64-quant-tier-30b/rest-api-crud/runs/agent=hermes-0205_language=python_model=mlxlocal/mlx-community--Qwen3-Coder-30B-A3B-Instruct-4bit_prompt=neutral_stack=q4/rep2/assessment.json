@@ -1,0 +1,31 @@
+{
+  "severity_counts": {
+    "critical": 1,
+    "high": 1,
+    "medium": 0,
+    "low": 0,
+    "info": 0
+  },
+  "penalty_score": 0.65,
+  "top_findings": [
+    {
+      "id": "build-fail",
+      "kind": "build_failure",
+      "severity": "critical",
+      "title": "app.py does not parse \u2014 11 unterminated string literals",
+      "evidence": "python3 -m py_compile app.py -> SyntaxError: unterminated string literal at line 34; every jsonify() return is missing closing quote and paren. Module cannot be imported, so no endpoint runs.",
+      "suggestion": "Close each string and jsonify() call, e.g. return jsonify({\"status\": \"healthy\"}), 200"
+    },
+    {
+      "id": "R12",
+      "kind": "requirement_missing",
+      "severity": "high",
+      "title": "Fewer than 3 tests and none exercise the API",
+      "evidence": "test_book_api.py:5 def test_book_api() only writes test_book_api.md; no import of app/test_client/requests. 1 non-testing function vs spec's >=3.",
+      "suggestion": "Write >=3 real tests using app.test_client() covering CRUD + validation."
+    }
+  ],
+  "requirement_coverage": 0.0833,
+  "model": "mlxlocal/mlx-community--Qwen3-Coder-30B-A3B-Instruct-4bit",
+  "evaluated_at": "2026-09-02T20:38:57Z"
+}

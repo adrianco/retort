@@ -1,0 +1,12 @@
+{
+  "replicate": 5,
+  "run_config": {
+    "agent": "hermes-0205",
+    "language": "go",
+    "model": "mlxlocal/mlx-community--Qwen3-Coder-30B-A3B-Instruct-8bit",
+    "prompt": "neutral",
+    "stack": "q8"
+  },
+  "succeeded": true,
+  "visibility": "public"
+}

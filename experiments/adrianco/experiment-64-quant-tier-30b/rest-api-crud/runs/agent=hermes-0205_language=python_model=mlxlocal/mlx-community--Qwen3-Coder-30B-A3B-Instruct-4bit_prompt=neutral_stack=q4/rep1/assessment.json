@@ -1,0 +1,14 @@
+{
+  "severity_counts": {"critical": 0, "high": 6, "medium": 0, "low": 0, "info": 0},
+  "penalty_score": 0.4,
+  "top_findings": [
+    {"id": "R1", "kind": "requirement_missing", "severity": "high", "title": "POST /books does not create or persist a book", "evidence": "app.py:11-12 create_book returns jsonify({'message':'Book created successfully'},201); request body is never read (no request.get_json()) and nothing is stored.", "suggestion": "Read the JSON body, validate it, and INSERT into the SQLite books table; return the created book with 201."},
+    {"id": "R3", "kind": "requirement_missing", "severity": "high", "title": "GET /books has no ?author= filter", "evidence": "app.py:14-22 list_books returns a hard-coded single-book list; request.args is never consulted, so ?author= is ignored.", "suggestion": "Read request.args.get('author') and filter the query/collection by it."},
+    {"id": "R7", "kind": "requirement_missing", "severity": "high", "title": "No SQLite/embedded persistence", "evidence": "app.py:1 imports sqlite3 but it is the only reference — grep finds no connect/cursor/execute/CREATE TABLE/INSERT/SELECT anywhere; all handlers return hard-coded literals.", "suggestion": "Add a real SQLite layer: create the books table, and back every CRUD route with it."},
+    {"id": "R9", "kind": "requirement_missing", "severity": "high", "title": "No input validation for required title/author", "evidence": "app.py:11-12 create_book never inspects the body; a POST missing title/author is not rejected with 400.", "suggestion": "Validate that title and author are present in the JSON body; return 400 otherwise."},
+    {"id": "R12", "kind": "requirement_missing", "severity": "high", "title": "Only 2 tests present (requirement is >= 3)", "evidence": "test_app.py defines 2 test methods (test_health_check, test_create_book); grep -c 'def test_' == 2, below the required 3.", "suggestion": "Add at least one more test to meet the >=3 threshold."}
+  ],
+  "requirement_coverage": 0.1667,
+  "model": "mlx-community--Qwen3-Coder-30B-A3B-Instruct-4bit",
+  "evaluated_at": "2026-09-02T00:00:00Z"
+}

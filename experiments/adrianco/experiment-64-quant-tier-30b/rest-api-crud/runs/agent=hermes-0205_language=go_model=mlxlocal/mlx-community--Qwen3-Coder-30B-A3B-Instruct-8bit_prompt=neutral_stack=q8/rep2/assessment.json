@@ -1,0 +1,25 @@
+{
+  "severity_counts": {
+    "critical": 0,
+    "high": 1,
+    "medium": 0,
+    "low": 0,
+    "info": 0
+  },
+  "penalty_score": 0.9,
+  "top_findings": [
+    {
+      "id": "F1",
+      "kind": "lint_warning",
+      "severity": "high",
+      "title": "PUT /books/{id} echoes \"id\":0 instead of the updated book's id",
+      "evidence": "main.go:248 decodes the request body into a fresh Book (ID zero-valued) and main.go:277 encodes that same value back; book.ID is never assigned from the path id. The path id reaches only the UPDATE statement (main.go:118-122). A client PUTting {\"title\":..,\"author\":..} to /books/1 receives {\"id\":0,...}. main_test.go:162-173 asserts title/author/year/isbn on the update response but never ID, so the tests pass over it.",
+      "suggestion": "Set book.ID = id before encoding (or re-read the row via store.GetBookByID(id)), and assert the ID in the update test."
+    }
+  ],
+  "requirement_coverage": 0.9167,
+  "model": "mlxlocal/mlx-community--Qwen3-Coder-30B-A3B-Instruct-8bit",
+  "evaluated_at": "2026-09-03T04:55:17Z",
+  "min_severity": "high",
+  "findings_total_unfiltered": 10
+}

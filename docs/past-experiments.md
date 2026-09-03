@@ -1388,3 +1388,76 @@ cancel in a cross-model comparison. Re-running 5.0 on the current CLI at n>=5 wo
 **Smoke test, recorded before launch:** `--effort` demonstrably reaches 5.1 — thinking tokens 1089 at
 low vs 1310 at default, 21.0 s vs 25.1 s on a fixed reasoning prompt. Without that check, an effort
 flag silently dropped by a new model would have made both arms identical and produced a confident null.
+
+## exp-64 — does quantization bit-width move coding reliability?  — YES, 2026-09-03
+
+**The first positive result in the inference-lever sweep beyond sampling, and the mechanism is not
+the one the question assumed.** §3 asked whether "the last mile" is lost to 4-bit quant error — i.e.
+whether quantization degrades output *quality*. On the 30B it does something more basic than that: it
+determines whether the agentic loop **terminates at all**.
+
+**Design:** `quant{4-bit, 8-bit} x language{python, go} x rest-api-crud x n=5` = 20 local runs, $0.
+`mlx-community/Qwen3-Coder-30B-A3B-Instruct` at both bit-widths — same base model, same conversion
+pipeline, same publisher, identical `group_size: 64`, so **bit-width is the only thing that varies**.
+
+| | 4-bit | 8-bit | Fisher exact (two-sided) |
+|---|---|---|---|
+| **pass-proportion** | **1/10 = 0.10** | **7/10 = 0.70** | **p = 0.0198** |
+| **unproductive-loop stalls** | **8/10** | **1/10** | **p = 0.0055** |
+
+Both clear a 2-metric Bonferroni threshold of 0.025, and **both languages agree independently**:
+python 1/5 -> 3/5, go 0/5 -> 4/5.
+
+### The finding: 4-bit doesn't produce worse code, it fails to stop
+
+The failure MODE separates more sharply than the pass rate. The 4-bit arm was killed by the stall
+guard — "no progress for 25m, unproductive loop" — in **eight of ten runs**. The 8-bit arm stalled
+once. A pass/fail column alone would have shown "4-bit is worse" and hidden the interesting part:
+quantization error at 4 bits appears to destabilise the multi-turn tool loop, so the model circles
+instead of converging. That is a different claim from "quantized models write worse code", and it
+predicts something useful — the damage should show up on *agentic* tasks long before it shows up on
+single-turn benchmarks, which is exactly where published perplexity/quant comparisons look.
+
+Corroborating detail from the same runs: the one 4-bit cell that did pass, and one that failed,
+both produced a complete `main.py` and confidently declared the task finished — one simply never
+wrote tests. The model is not incapable of the code; it is unreliable about *finishing the job*.
+
+### What this does NOT establish
+
+- **The 30B is a proxy.** The last-mile gap that motivated §3 is on the 35B and 80B, and neither can
+  be tested cleanly on this hardware: the 35B is an unsloth UD *dynamic* quant with no matching
+  6/8-bit from the same pipeline (bit-width would confound with quant *scheme*), and an 8-bit 80B is
+  ~85 GB, past both RAM and disk. This answers the question for the 30B only.
+- **Passing is not doing it well.** Test coverage among the 8-bit passes ranges 0.06 to 0.94 (mean
+  0.54). The defensible claim is that 8-bit *clears the gate* where 4-bit cannot, not that it does
+  the task well. The mechanical gate only requires coverage > 0.
+- **Sampling was the 35B's tuned config**, not a 30B-specific optimum — the 30B has never been tuned
+  on this stack. Both arms share it, so it cannot confound the contrast, but the absolute pass rates
+  are "the 30B at this config", not "the 30B at its best". Since the 4-bit failure is a *loop*
+  pathology and sampling is known to cause exactly that (repetition_penalty derailed the tool loop in
+  an earlier experiment), a 30B-tuned config might narrow this gap. Worth testing before treating
+  0.10 as the 4-bit's ceiling.
+- **The 8-bit runs under more memory pressure.** 30.41 GB resident against the 4-bit's 16 GB, with 16
+  `adaptive_prefill_throttle` events observed and generation at ~30 tok/s vs ~50. It won anyway.
+
+### Verification that the arms were genuinely different
+
+This factor's specific false-null is oMLX silently serving the cached 4-bit for both arms, which
+would have produced a confident null meaning nothing. Four independent checks:
+`config.json` reports `bits: 4` vs `bits: 8` (identical `group_size: 64`); on-disk sizes 16 GB vs 30
+GB; retort's own provenance line records `quant=4 size=16G` and `quant=8 size=30G` with different
+revision hashes; and the server log states `Loaded model: ...-8bit (actual: 30.41GB)` with process
+RSS moving 16.6 GB -> 30.8 GB at the arm switch.
+
+### Process notes
+
+- **A viability smoke test was missing and nearly cost the experiment.** The full grid was launched
+  having verified the *quant parameter* but never that the 30B could complete this task at all. The
+  first two cells failed, and the runner batches by stack (all ten 4-bit cells before loading the
+  8-bit), so the run would have spent ~4 hours before revealing anything about the contrast. It was
+  stopped and a 2-cell 8-bit smoke run instead — which passed both, established the test bed, and
+  justified the full grid. Verify the *test bed*, not just the parameter.
+- **Disk, not compute, was the binding constraint.** The volume hit 15 GB free of 926 GB and deleting
+  ~110 GB of stale caches reclaimed almost nothing, because an APFS TimeMachine local snapshot pins
+  freed blocks. `tmutil thinlocalsnapshots` plus pruning 57 GB of non-featured model weights restored
+  205 GB. See the standing method notes.
