@@ -409,7 +409,7 @@ invest in the solver dependency, master.db merge, and first-class docs.
 <!-- SCAN-HEARTBEAT: the daily scan rewrites the next line on EVERY run, including
      days it finds nothing. Do not hand-edit it. If the date is more than ~2 days
      stale, the scan is not running — see "when the heartbeat goes stale" below. -->
-**Daily scan last completed: 2026-09-02** (scanning for new 64GB-fittable coding models)
+**Daily scan last completed: 2026-09-03** (scanning for new 64GB-fittable coding models)
 
 New open-weight coding models found by the daily scan that plausibly fit 64GB at 4-bit; promote to a
 numbered experiment when prioritised.
@@ -1103,6 +1103,40 @@ survives the toggle, restart the Claude desktop app, which clears the in-memory 
   — local-run/memory notes: https://atomic.chat/blog/guides/how-to-run-qwen-3-8-flash-next-locally
   — llama.cpp arch support (merged 2026-08-27): https://github.com/ggml-org/llama.cpp/pull/27742
 
+  **Addendum 2026-09-03 (user-supplied): the "125B in 6GB of VRAM" article — the n-gram table IS
+  separable, and the headline is a FIT result with no throughput number behind it.** Gavin Li (the
+  author of AirLLM) ran the **full bf16 `Qwen/Qwen3.8-Flash-Next` checkpoint (~360 GB on disk) at a
+  measured 5.95 GB peak VRAM** on one **RTX 4090 (24 GB)**, via AirLLM 3.3.0 layer-wise streaming:
+  the 48 hybrid layers are a few GB each in bf16, so they are loaded from disk one at a time,
+  computed, freed. The 51B n-gram embedding — **~102 GB in bf16**, which HF concatenates into one
+  decoder layer at load time — is **peeled out of its parent layer and `mmap`'d on the host, rows
+  gathered on CPU**, so it is never resident in VRAM *or* materialized as anonymous RAM. Resident on
+  the GPU is only the vision tower + the current decoder layer + activations. Stated requirement: an
+  SSD and a **64 GB machine** (plus "hundreds of GB free on first run" for the per-layer split;
+  `delete_original=True` reclaims the originals).
+  **What this settles for us:** it is a second, independent confirmation of the load-bearing
+  assumption in the entry above — that the 51B table is separable and pageable, which is what makes
+  AtomicChat's "~45.8 GB resident" build possible at all. The table is not an obstacle.
+  **What it does NOT do is justify a cell, and the headline is a trap of exactly the kind CLAUDE.md
+  exists for.** Three reasons, in order of severity. (1) **The article reports no throughput number
+  at all.** Its section headed "The numbers that matter" is *entirely* peak VRAM (the one chart is
+  captioned "Peak VRAM"), and the reproduction snippet is `max_new_tokens=8` answering "Paris." (2)
+  **Layer streaming is pathological for our workload.** It re-reads the decoder (~258 GB of the 360 GB,
+  the table excepted) from SSD on **every forward pass, i.e. per token** — order ~50 s/token at
+  ~5 GB/s NVMe. exp-24 ([past-experiments](past-experiments.md)) established our runs are **generation-bound, not prefill-bound**,
+  which is the precise regime where this is worst; a retort task generating tens of thousands of
+  tokens across many turns against a 90-minute timeout would not finish a single cell. A footprint
+  result and a throughput result are not interchangeable, and only one of them is on offer here.
+  (3) **It is CUDA, not Metal** — AirLLM + `.cuda()`, on a 4090. Nothing about it transfers to oMLX
+  or to `serving.backend: llamacpp` on this box as written.
+  Note also the provenance: this is the **tool author demonstrating his own tool**, not an
+  independent benchmark, and its Opus 4.6 Max comparison table is Qwen's own reported numbers
+  (SWE-bench Pro 62.5 vs 53.4, LiveCodeBench v6 91.9, SWE-bench Multilingual 81.0, CoWorkBench 73.9).
+  **Verdict unchanged: run Qwen3.8-27B first.** This stays a memory-and-serving probe, and the only
+  thing the article changes is that the *fit* half of that probe now has a second datapoint.
+  Source: https://aiadvances.org/you-can-run-the-new-default-open-weights-model-qwen3-8-flash-next-125b-all-in-6gb-of-vram-2cab192882d3
+  — AirLLM (MIT): https://github.com/lyogavin/airllm
+
 - 2026-08-31 — **Tiel-Coder-35B-A3B (`peculiar-ragdoll`) — NOT a new model; community requants of the
   already-listed Ornith-1.5-35B-A3B, carrying three findings that change how that entry should be run.**
   It is `ornith-ai/Ornith-1.5-35B-A3B` (the 2026-08-22 top-slot entry) re-quantized with a different
@@ -1142,6 +1176,21 @@ survives the toggle, restart the Claude desktop app, which clears the in-memory 
   — MTP build + speculative-decoding numbers: https://huggingface.co/peculiar-ragdoll/Tiel-Coder-35B-A3B-GGUF-MTP
   — MLX 4-bit: https://huggingface.co/peculiar-ragdoll/Tiel-Coder-35B-A3B-MLX-oQ4e
   — parent entry's weights: https://huggingface.co/ornith-ai/Ornith-1.5-35B-A3B
+
+*Excluded 2026-09-03, no open weights — recorded because it **changes the standing Muse Spark
+re-check note** above:* **Muse Spark 1.3** (Meta, shipped **2026-09-02** on Meta's API and the Muse
+Code CLI) — the frontier sibling Muse Glimmer was distilled from, pitched at long-horizon agentic
+coding and claimed competitive with Fable 5.1. **Meta has NOT committed to opening 1.3's weights** —
+coverage of the launch says the decision is undecided, while the earlier promise to open **1.2**
+still stands. So there are still no weights, no parameter count and no architecture for either
+version, and nothing to size. The note above ("re-check when it lands") therefore now applies to
+**1.2**, not to the newest release; do not schedule anything on Muse Spark, and re-check only if a
+weights drop arrives with a published parameter count. Source:
+https://www.theregister.com/ai-and-ml/2026/09/02/zucks-muse-to-spark-joy-with-open-weights-release-soon/
+*(Also seen this cycle and out of scope: **Parse 5** (Cohere, 2026-08-27, 2.3B) — proprietary and a
+parsing/extraction model, not a coder; **Gemini 3.8 Flash** (Google, 2026-09-02), **Claude Fable 5.1 /
+Mythos 5.1** (Anthropic, 2026-09-01) and **Mercury 2.5 Preview** (Inception, 2026-08-31) — all
+closed-weight.)*
 
 *Excluded 2026-09-02, oversized — both surfaced in this cycle's roundups as standing "best open
 coder" recommendations, so recording them stops the next scan re-investigating:* **Mistral Small 4**
