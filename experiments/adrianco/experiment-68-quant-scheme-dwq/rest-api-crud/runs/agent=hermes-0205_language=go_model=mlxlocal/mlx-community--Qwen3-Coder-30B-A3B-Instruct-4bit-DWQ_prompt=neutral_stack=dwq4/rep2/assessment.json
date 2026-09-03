@@ -1,0 +1,23 @@
+{
+  "severity_counts": {
+    "critical": 0,
+    "high": 1,
+    "medium": 0,
+    "low": 0,
+    "info": 0
+  },
+  "penalty_score": 0.9,
+  "top_findings": [
+    {
+      "id": "R12",
+      "kind": "requirement_missing",
+      "severity": "high",
+      "title": "Only 1 test function \u2014 spec and repair feedback require at least 3",
+      "evidence": "main_test.go:11 `func TestHealthHandler` is the only test; `grep -c '^func Test' main_test.go` = 1 and `find . -name '*_test.go'` returns only ./main_test.go. FEEDBACK.md listed [R12] '>= 3 tests exist and run' as a must-fix and the repair added none.",
+      "suggestion": "Add TestMain (or an injectable *sql.DB) that opens an in-memory SQLite handle, then add create/list/get/update/delete tests to reach >= 3."
+    }
+  ],
+  "requirement_coverage": 0.8333,
+  "model": "mlxlocal/mlx-community--Qwen3-Coder-30B-A3B-Instruct-4bit-DWQ",
+  "evaluated_at": "2026-09-03T23:35:00Z"
+}

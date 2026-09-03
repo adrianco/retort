@@ -1,0 +1,12 @@
+{
+  "severity_counts": {"critical": 0, "high": 3, "medium": 0, "low": 0, "info": 0},
+  "penalty_score": 0.7,
+  "top_findings": [
+    {"id": "R4", "kind": "requirement_partial", "severity": "high", "title": "GET /books/{id} unreachable at runtime — mux never routes /books/{id}", "evidence": "main.go:268 registers http.HandleFunc(\"/books\", ...); Go's ServeMux treats a no-trailing-slash pattern as an exact path, so it matches only \"/books\". Empirically verified: a live server returns Go's default \"404 page not found\" for curl /books/1. The else-branch at main.go:277-288 is dead at runtime. TestGetBookById (main_test.go:188) passes only by calling getBookHandler directly.", "suggestion": "Register \"/books/\" (trailing slash) or use Go 1.22 patterns e.g. \"GET /books/{id}\"."},
+    {"id": "R5", "kind": "requirement_partial", "severity": "high", "title": "PUT /books/{id} unreachable at runtime — same mux routing defect", "evidence": "updateBookHandler (main.go:168) is dispatched only from the else-branch (main.go:281); \"/books/1\" never matches the exact \"/books\" pattern (main.go:268). Empirically verified: curl -X PUT /books/1 returns \"404 page not found\". TestUpdateBook (main_test.go:221) passes only by calling updateBookHandler directly.", "suggestion": "Same fix as R4 — register \"/books/\" or a Go 1.22 \"PUT /books/{id}\" pattern."},
+    {"id": "R6", "kind": "requirement_partial", "severity": "high", "title": "DELETE /books/{id} unreachable at runtime — same mux routing defect", "evidence": "deleteBookHandler (main.go:222) is dispatched only from the else-branch (main.go:283); \"/books/1\" does not match \"/books\" (main.go:268). Empirically verified: curl -X DELETE /books/1 returns \"404 page not found\". TestDeleteBook (main_test.go:246) passes only by calling deleteBookHandler directly.", "suggestion": "Same fix as R4 — register \"/books/\" or a Go 1.22 \"DELETE /books/{id}\" pattern."}
+  ],
+  "requirement_coverage": 0.75,
+  "model": "mlxlocal/mlx-community--Qwen3-Coder-30B-A3B-Instruct-4bit-DWQ",
+  "evaluated_at": "2026-09-03T22:30:00Z"
+}

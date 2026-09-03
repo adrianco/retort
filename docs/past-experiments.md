@@ -1590,3 +1590,74 @@ Same false-null guard as exp-64, four independent checks: `config.json` reports 
 `group_size: 64` matching both other arms; on-disk size 23 GB sits between 16 GB and 30 GB; retort's
 provenance records `quant=6 size=23G` with its own revision hash; and oMLX RSS measured 25.5 GB
 during the run, between the 4-bit's 16.6 GB and the 8-bit's 30.8 GB.
+
+## exp-68 — is the stall threshold about BITS or about ERROR?  — ERROR, decisively, 2026-09-03
+
+**This reframes exp-64 and exp-67, and produces the most useful practical result of the quant
+sequence.** exp-67 described the agentic stall pathology as "a threshold below 6 bits". But bits and
+quantization *error* are confounded in a bit-width ladder — every rung both adds bits and reduces
+error — so that phrasing assumed the answer. `-DWQ` (distilled quantization) breaks the confound: it
+is **4 bits with materially lower error**, distilled against the full-precision model rather than
+round-tripped. It holds bit-width at the level that stalls and moves only the error.
+
+**Design:** the new level ONLY — `4bit-DWQ x language{python, go} x rest-api-crud x n=5` = 10 runs,
+$0, against exp-64's and exp-67's existing rows. Preset verified by parsing to differ from exp-64's
+plain 4-bit in nothing but the model id; `config.json` confirms `bits: 4, group_size: 64` (identical
+to plain 4-bit) and oMLX RSS measured 16.7 GB against plain 4-bit's 16.6 GB — same bits, same size.
+
+### The full matrix
+
+| build | bits | size | pass | stalls |
+|---|---|---|---|---|
+| `4bit` | 4 | 16 GB | 0.10 (1/10) | **8/10** |
+| **`4bit-DWQ`** | **4** | **16 GB** | **0.80 (8/10)** | **0/10** |
+| `6bit` | 6 | 23 GB | 0.40 (4/10) | 1/10 |
+| `8bit` | 8 | 30 GB | 0.70 (7/10) | 1/10 |
+
+### The answer: error, not bits
+
+Holding bit-width and footprint fixed and changing only quantization quality:
+
+| | DWQ-4bit | plain 4-bit | Fisher exact (two-sided) |
+|---|---|---|---|
+| stalls | **0/10** | 8/10 | **p = 0.00071** |
+| pass | **0.80** | 0.10 | **p = 0.0055** |
+
+The termination pathology is **a function of quantization error, not of bit-count**. exp-67's "6-bit
+threshold" was not about six bits: 6-bit was simply the first rung in that ladder whose error fell
+below whatever level destabilises the multi-turn tool loop. DWQ reaches that level at four bits.
+
+### The practical result: 8-bit reliability at 4-bit memory cost
+
+| | DWQ-4bit (16 GB) | 8-bit (30 GB) | Fisher |
+|---|---|---|---|
+| pass | 8/10 | 7/10 | p = 1.00 |
+| stalls | 0/10 | 1/10 | p = 1.00 |
+
+**Statistically indistinguishable at 47% of the memory.** This matters concretely on a 64 GB machine:
+exp-64 logged 16 `adaptive_prefill_throttle` events on the 8-bit, which sits at 30.41 GB against a
+54 GB guard with a 262144-token KV cache on top. The DWQ build has none of that pressure. **The
+recommendation for the 30B is now `4bit-DWQ`, not 6-bit** — which supersedes exp-67's advice, written
+before this arm existed.
+
+DWQ vs 6-bit is 8/10 vs 4/10 (p = 0.17) — directionally better and cheaper, but not established.
+
+### What this says about how quantization is normally evaluated
+
+exp-67 noted that published perplexity and single-turn benchmarks would be blind to the stall
+pathology, because a single-turn generation cannot fail to terminate. exp-68 sharpens it: the
+variable those benchmarks *do* track — quantization error — turns out to be the right one, but the
+*failure it causes* in agentic use is one they structurally cannot observe. A quant scheme could look
+marginally better on perplexity and be the difference between an agent that finishes and one that
+circles for 25 minutes.
+
+### Caveats
+
+- **Pass counts include self-repair.** 5 of the 8 DWQ passes were first-try; 2 passed on the second
+  chance after evaluation feedback, and 1 more was recovered by re-scoring. Reported together here
+  because exp-64's and exp-67's numbers are counted the same way (from `status='completed'`), so the
+  comparison is like-for-like — but a first-try pass is stronger evidence than a repaired one.
+- **One model, one task, two languages.** Whether DWQ closes the gap on the 35B/80B, or on harder
+  tasks, is untested.
+- **`-dwq-v2` and the 6/8-bit DWQ builds exist** and were not tested. If DWQ-4bit already matches
+  8-bit, higher-bit DWQ is unlikely to be the interesting direction; a DWQ 30B against the 80B is.

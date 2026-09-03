@@ -1,0 +1,84 @@
+# Experiment 64 — does quantization bit-width move coding reliability?
+#
+# The last unanswered tier of the inference-lever sweep (issue #40, queue §3).
+# Every coding model on this machine has been 4-bit, so the question "is the last
+# mile lost to quant error?" has never been testable. It is now: mlx-community
+# publishes 3/4/5/6/8-bit and bf16 builds of Qwen3-Coder-30B-A3B-Instruct from ONE
+# base model and ONE conversion pipeline, so bit-width can be varied with the
+# publisher, the converter and the base weights all held fixed.
+#
+# ONE VARIABLE: 4-bit vs 8-bit. Same model, same serving layer, same agent, same
+# context, same sampling, same prompt, same task.
+#
+# WHY 4 vs 8 AND NOT 4 vs 6. The widest contrast is the cheapest decisive test. If
+# the full 4->8 jump does not move pass-proportion, no intermediate level can, and
+# the tier is answered by one experiment. 6-bit is worth running only if this moves.
+#
+# WHY THE 30B, WHEN THE LAST-MILE GAP IS ON THE 35B/80B. Neither larger model can be
+# tested cleanly on this hardware. The 35B is unsloth's UD-MLX-4bit — a DYNAMIC quant
+# with no matching 6/8-bit from the same pipeline, so a comparison would confound
+# bit-width with quant SCHEME and publisher. An 8-bit 80B is ~85 GB, past both free
+# disk and the 64 GB of RAM. So this answers "does bit-width move pass-proportion on
+# the 30B", a proxy for the general question rather than a direct test of the 80B's
+# last mile. The write-up must say so.
+#
+# The 30B is in one respect the BETTER test bed. The 35B already sits at 0.87-0.91 on
+# rest-api-crud, where a null is indistinguishable from a ceiling effect. The weaker
+# 30B should land mid-range, with headroom in both directions.
+#
+# BOTH ARMS RUN FRESH. The 48 archived lmlocal/qwen3-coder-30b runs are on the old LM
+# Studio serving layer and cannot serve as the 4-bit baseline — never compare across
+# harness generations. The 4-bit arm is re-run here under identical conditions.
+#
+# EXCLUDED ON PURPOSE: the -DWQ builds (distilled quant, several learning rates) are a
+# different quant SCHEME, not another bit-width. Mixing them in would reintroduce the
+# exact confound this design removes. Scheme is a separate factor for a later run.
+#
+# n=5, NOT n=3 — the direct lesson of exp-63. A two-arm comparison at n=3 vs n=3 has
+# only C(6,3)=20 permutations, so its smallest possible two-sided p is 2/20 = 0.10 and
+# alpha=0.05 is unreachable BY CONSTRUCTION. exp-63 proved it concretely: maintainability
+# separated perfectly and still scored p=0.100. At n=5 per arm C(10,5)=252 gives a floor
+# of 0.008. Pooling the two languages puts the main effect of quant at n=10 per arm,
+# which is better still — the languages are here for generality, and the quant main
+# effect is what the experiment is for.
+experiment:
+  name: experiment-68-quant-scheme-dwq
+  visibility: public
+factors:
+  language: { levels: [python, go] }
+  # Registry needs >=2 levels per factor; design.csv pins what actually runs.
+  agent: { levels: [hermes-0205, hermes-local] }
+  prompt: { levels: [neutral, none] }
+  stack: { levels: [dwq4, q4] }
+  model:
+    levels:
+      - mlxlocal/mlx-community--Qwen3-Coder-30B-A3B-Instruct-4bit
+      - mlxlocal/mlx-community--Qwen3-Coder-30B-A3B-Instruct-8bit
+responses: [code_quality, token_efficiency, test_coverage, defect_rate, maintainability, idiomatic]
+tasks:
+  - source: bundled://rest-api-crud
+playpen:
+  runner: local
+  # 5 per cell -- see the n=5 note above. 4 design rows x 5 = 20 runs.
+  replicates: 5
+  # 60 for local (CLAUDE.md: local models are slow; ~60 local vs ~30 cloud). The 30B
+  # is smaller and faster than the 35B/80B, so 60 is generous rather than tight, and
+  # generous is correct here: a truncated cell would be scored as a capability failure.
+  timeout_minutes: 60
+  stall_minutes: 25
+  # 400 to match exp-62. python on this class of stack averages ~17 turns, so this is
+  # far out of reach for both arms -- which is the point. A cap that binds on one arm
+  # and not the other would report the ceiling as the capability.
+  max_turns: 400
+  stack_presets: stacks.yaml
+  prompts_dir: prompts
+  local_agents:
+    # Pin the SAME hermes binary for both arms: the variable is the model's bit-width,
+    # not the agent version. Without the pin every hermes level falls back to
+    # serving.hermes_bin and a version difference could ride along invisibly.
+    hermes-0205:
+      harness: hermes
+      bin: /Users/adriancockcroft/code/hermes-agent/.venv/bin/hermes
+design: { screening_resolution: 3, significance_threshold: 0.10 }
+promotion: { screening_to_trial: { p_value: 0.10 }, trial_to_production: { posterior_confidence: 0.80 } }
+evaluation: { enabled: true, model: opus-4.8 }

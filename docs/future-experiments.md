@@ -20,37 +20,35 @@ push; verify every tuning parameter takes effect with a smoke test first; after 
 
 ---
 
-## 0c. exp-68 — is the stall threshold about BITS, or about quantization ERROR?  — RUNNING (2026-09-03)
+## 0c. RESOLVED — the stall threshold is ERROR, not bits  — 2026-09-03
 
-exp-67 found the agentic stall pathology is a threshold below 6 bits: 8/10 stalls at 4-bit, 1/10 at
-6-bit and 8-bit. **But "6 bits" and "less quantization error" are confounded in that ladder** — every
-rung both adds bits and reduces error, so nothing so far distinguishes the two explanations.
+exp-68 broke the bits/error confound with a DWQ build (4 bits, materially lower quantization error).
+Holding bit-width and footprint fixed:
 
-`-DWQ` (distilled quantization) breaks the confound. It is **4 bits with materially lower
-quantization error**: the weights are distilled against the full-precision model rather than
-round-tripped naively. So it holds bit-width fixed at the level that stalls, while moving error
-toward the level that does not.
+| build | bits | size | pass | stalls |
+|---|---|---|---|---|
+| `4bit` | 4 | 16 GB | 0.10 | 8/10 |
+| **`4bit-DWQ`** | **4** | **16 GB** | **0.80** | **0/10** |
+| `6bit` | 6 | 23 GB | 0.40 | 1/10 |
+| `8bit` | 8 | 30 GB | 0.70 | 1/10 |
 
-| build | bits | error | predicts |
-|---|---|---|---|
-| `-4bit` (exp-64) | 4 | high | 8/10 stalls |
-| **`-4bit-DWQ`** | **4** | **low** | **? — this is the test** |
-| `-6bit` (exp-67) | 6 | lower | 1/10 stalls |
+Stalls 0/10 vs 8/10 at identical bits (**p = 0.00071**); pass 0.80 vs 0.10 (**p = 0.0055**). And DWQ
+is indistinguishable from the 8-bit at **47% of its memory** (8/10 vs 7/10, p = 1.00). Written up in
+[`past-experiments.md`](past-experiments.md#exp-68--is-the-stall-threshold-about-bits-or-about-error--error-decisively-2026-09-03).
 
-**If DWQ-4bit does NOT stall**, the threshold is about quantization *error*, not bit-width — and the
-practical payoff is large: a **16 GB** model with the reliability that currently costs 23 GB. **If it
-stalls like plain 4-bit**, bit-width itself matters (plausibly via numerical precision in the
-attention path over long tool-use contexts), which is a more surprising and more interesting claim.
+**This supersedes exp-67's recommendation.** The 30B's best local build is `4bit-DWQ`, not 6-bit —
+same reliability as the 8-bit, 16 GB instead of 30 GB, and none of the prefill-throttle pressure the
+8-bit shows against a full-context KV cache.
 
-Either answer is publishable, which is what makes this worth 10 runs.
-
-**Design:** the new level ONLY — `4bit-DWQ x language{python, go} x rest-api-crud x n=5` = 10 runs,
-$0, compared against exp-64's plain-4bit and exp-67's 6-bit rows. Same preset apart from the model
-id, verified by parsing, same sampling throughout.
-
-**Smoke test:** confirm `config.json` reports `bits: 4` (it must — DWQ is a 4-bit build; if it
-reports 6 or 8 the whole premise is void), and that the server loads the DWQ path specifically with
-RSS near the plain 4-bit's 16.6 GB rather than the 6-bit's 25.5 GB.
+**§3's quant tier is now DONE.** What remains across the sweep, in priority order:
+1. **Does DWQ close the gap on the bigger models?** `Qwen3-Coder-Next-4bit` (the 80B, current best
+   local stack) — is there a DWQ build, and does the same effect appear? This is the highest-value
+   follow-up: the 80B is what the optimal stack actually recommends.
+2. **Speculative decoding / MTP** — still the top *speed* lever, still blocked on a draft model.
+   Nanbeige4.2-3B (~2-3 GB, mlx-community 4-bit ships) is the cheapest unblock and is a subject in
+   its own right.
+3. **Establish the 6->8 step** — LOW value now. DWQ dominates both.
+4. **A real 30B sampling sweep** — LOW; exp-66 ruled out the cheap version.
 
 ## 0b. RESOLVED — the quant ladder is TWO curves  — 2026-09-03
 

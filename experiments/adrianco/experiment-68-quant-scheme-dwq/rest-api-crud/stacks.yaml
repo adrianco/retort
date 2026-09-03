@@ -1,0 +1,64 @@
+serving:
+  omlx_bin: /Applications/oMLX.app/Contents/MacOS/omlx-cli
+  # hermes is not on PATH on this host (dedicated venv) — point at it explicitly, or
+  # every hermes cell crashes at 0.0s "Agent CLI not found" (exp-43).
+  hermes_bin: /Users/adriancockcroft/code/hermes-agent/.venv/bin/hermes
+  model_dir: /Users/adriancockcroft/models
+  host: 127.0.0.1
+  port: 8080
+  settings_path: /Users/adriancockcroft/.omlx/settings.json
+  hermes_config: /Users/adriancockcroft/.hermes/config.yaml
+  serve_flags:
+  # Both 30B builds live ONLY in the HF cache, not in model_dir. --hf-cache is
+  # additive and on by default, but it is stated explicitly so a future
+  # --no-hf-cache elsewhere cannot silently make both presets unresolvable.
+  - --hf-cache
+  # 54 GB, carried over from exp-62's finding. The 8-bit 30B is ~32 GB of weights;
+  # oMLX's enforcer projects the KV cache for a 262144-token context ON TOP of that
+  # before deciding to load, which is what evicted the 80B at a 46 GB ceiling. 54
+  # stays under the kernel's Metal wired cap (iogpu.wired_limit_mb = 57344 MB ~= 56
+  # GB) — above the cap Metal panics rather than degrading.
+  #
+  # NOTE this ceiling is IDENTICAL for both arms and is a load-time gate only: it
+  # decides whether the model loads, not how it generates. It therefore cannot bias
+  # the quant contrast. If the 8-bit arm fails to load at 54 while 4-bit loads, that
+  # is a REPORTABLE RESULT (8-bit is not deployable on this hardware), not a bug to
+  # tune around by giving the arms different ceilings.
+  - --memory-guard-gb
+  - "54"
+  # Fresh, experiment-specific log. exp-62 inherited exp-49's filename and its
+  # provenance read as though it were exp-49's server.
+  log: /private/tmp/claude-501/-Users-adriancockcroft-code/1985cb31-023e-4e0c-808f-49285393ada8/scratchpad/omlx-exp68.log
+  warm_timeout_s: 600
+presets:
+  # THE ONLY DIFFERENCE BETWEEN THESE TWO BLOCKS IS `model`. Context, compaction
+  # threshold and every sampling value are byte-identical on purpose: this experiment
+  # varies bit-width and nothing else.
+  #
+  # Sampling is the 35B's tuned config (exp-27/28), not a 30B-specific optimum — the
+  # 30B has never been tuned on this stack. Because BOTH arms use it, it cannot
+  # confound the quant contrast; it does mean the absolute pass rates are "the 30B at
+  # this config", not "the 30B at its best". repetition_penalty stays at 1.0: values
+  # above it derail the agentic tool loop even when the model card recommends them.
+  #
+  # context_length verified against the model's own config.json:
+  # max_position_embeddings = 262144, so full context is legitimate here.
+  dwq4:
+    model: mlx-community--Qwen3-Coder-30B-A3B-Instruct-4bit-DWQ
+    context_length: 262144
+    context_threshold: 0.9
+    sampling:
+      temperature: 0.6
+      top_p: 0.95
+      top_k: 20
+      repetition_penalty: 1.0
+
+  q8:
+    model: mlx-community--Qwen3-Coder-30B-A3B-Instruct-8bit
+    context_length: 262144
+    context_threshold: 0.9
+    sampling:
+      temperature: 0.6
+      top_p: 0.95
+      top_k: 20
+      repetition_penalty: 1.0
