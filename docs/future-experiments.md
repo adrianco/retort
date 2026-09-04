@@ -474,7 +474,7 @@ invest in the solver dependency, master.db merge, and first-class docs.
 <!-- SCAN-HEARTBEAT: the daily scan rewrites the next line on EVERY run, including
      days it finds nothing. Do not hand-edit it. If the date is more than ~2 days
      stale, the scan is not running — see "when the heartbeat goes stale" below. -->
-**Daily scan last completed: 2026-09-03** (scanning for new 64GB-fittable coding models)
+**Daily scan last completed: 2026-09-04** (scanning for new 64GB-fittable coding models)
 
 New open-weight coding models found by the daily scan that plausibly fit 64GB at 4-bit; promote to a
 numbered experiment when prioritised.
@@ -1241,6 +1241,61 @@ survives the toggle, restart the Claude desktop app, which clears the in-memory 
   — MTP build + speculative-decoding numbers: https://huggingface.co/peculiar-ragdoll/Tiel-Coder-35B-A3B-GGUF-MTP
   — MLX 4-bit: https://huggingface.co/peculiar-ragdoll/Tiel-Coder-35B-A3B-MLX-oQ4e
   — parent entry's weights: https://huggingface.co/ornith-ai/Ornith-1.5-35B-A3B
+
+- 2026-09-04 — **K2 Horizon 32B and K2 Horizon MoVA 36B-A4B (IFM / MBZUAI)** — *a genuinely
+  last-cycle drop (published **2026-09-03**, yesterday), the first **MBZUAI/IFM-lineage** candidate,
+  and the only entry on this list that is **fully open — weights, training code, data mixtures,
+  intermediate checkpoints and evaluation logs**, not just open weights.* **Apache 2.0** (weights and
+  code; dataset licensing follows the underlying data). Six models shipped at once — 0.9B, 3.7B, 7B,
+  **32B dense**, **36B-A4B MoE**, 375B-A23B — of which **two are in scope here**: the **32B dense**
+  (~69.6 GB BF16 → **~16 GB at 4-bit**) and the **MoVA 36B-A4B**, a sparse MoE with IFM's new
+  **Mixture-of-Value Attention**, 36B total / ~4B active (~74.9 GB BF16 → **~18 GB at 4-bit**). Both
+  fit 64GB with enormous headroom. **524,288 native context** — twice the 262K our 35B/80B runs use,
+  and the largest native window of any candidate here. Pretrained on ~20T tokens (roughly half
+  synthetic), then post-trained on 100M+ generated tasks. **Tool-calling is native and unusually
+  flexible: the chat template emits JSON, XML *or* XML-typed tool calls, selected via
+  `chat_template_kwargs`** — so the shape our Hermes parser wants can be chosen rather than worked
+  around, which is the single strongest practical argument for a cell.
+  **Serving is the blocker, and it is a Laguna-class arch gate — probe before scheduling anything.**
+  The `k2-horizon` architecture is **not in mainline llama.cpp**: IFM's own GGUF cards say a PR is "in
+  progress" and direct users to the **MBZUAI-IFM llama.cpp fork** in the meantime, which is exactly the
+  unmerged-upstream blocker that stopped Laguna XS 2.1. **No `mlx-community` build exists**, and the
+  MoVA attention is a new mechanism, so oMLX is not a path today either. Worse for a quick probe:
+  **IFM's GGUF repos ship BF16 tensors only** (69.6 / 74.9 GB), so even on the fork a cell needs a
+  4-bit quant produced locally. `serving.backend: llamacpp` is the realistic path once the PR merges;
+  until then this is a re-check entry, not a schedulable one.
+  **Three tuning parameters to record per CLAUDE.md, and the first two are traps this project has
+  already paid for.** (1) Recommended sampling is **temperature 1.0 / top_p 0.95** — precisely the
+  unrecorded default that cost this project half its local reliability; set and verify it deliberately.
+  (2) Reasoning is separated into a `reasoning_content` field and the card says to **always** set
+  `reasoning_effort="high"` — record the mode, as for KAT-Coder / Qwen3.8-27B / Ornith-1.5, and note
+  the JetBrains Junie finding above that reasoning-on cost ~4× wall-clock on a 27B under MLX. (3) These
+  are **"Stage 1" checkpoints with a final checkpoint still to come** — pin the revision hash, and
+  expect to re-run if the final lands.
+  **On the benchmarks, be precise about what is and is not known: the published coding numbers are for
+  the 375B flagship, not for either in-scope variant.** The 375B-A23B reports **Terminal-Bench 2.1
+  70.2 and SWE-bench Pro 42.6** (AA-LCR 76.0, tau3-Banking 34.0); IFM claims state-of-the-art *per size
+  class* and sets the 0.9B/3.7B/7B as SOTA at their scales, but publishes no isolated 32B or 36B-A4B
+  coding score. So there is **no direct evidence yet that either in-scope variant beats our incumbent
+  35B** — treat this as an unmeasured candidate, and note the flagship's own 70.2/42.6 already trails
+  the already-listed Ornith-1.5 (Terminal-Bench 74.8) and Qwen3.8-27B (73.0) on the same benchmarks.
+  **Why it earns a slot anyway:** the 512K context is a genuinely new point on the context axis, whose
+  first-order effect this project has already measured twice (exp-16's 0.08 → 0.33 at 128K, exp-38's
+  TypeScript unlock at full context); MoVA is a new attention mechanism rather than another Qwen
+  derivative or post-training variation; and the fully-open training data makes it the one candidate
+  where a surprising result could actually be traced. Judge priority **below the zero-friction entries
+  (Ornith-1.5, Granite 4.2, Qwen3.8-27B)** purely on the serving gate — re-check when the llama.cpp PR
+  merges or an MLX build appears. *(The **375B-A23B** flagship is oversized — ~190 GB at 4-bit, same
+  verdict as GLM-5.3-Flash; recorded so it is not re-investigated. The **7B and smaller** are too small
+  to be subjects and carry a `k2-horizon` vocab, not Qwen's, so they are no more plausible as draft
+  models for the 35B/80B than LFM2.5 — see that entry's vocab caveat.)*
+  Source: https://ifm.ai/blog/k2
+  — via: https://www.hpcwire.com/aiwire/2026/09/03/institute-of-foundation-models-releases-fully-open-k2-horizon-models-with-weights-code-and-training-data/
+  — release summary: https://ai-tldr.dev/releases/ifm-k2-horizon/
+  — 32B weights: https://huggingface.co/IFM/K2-Horizon-32B
+  — 36B-A4B weights: https://huggingface.co/IFM/K2-Horizon-MoVA-36B-A4B
+  — GGUF (BF16 only, needs the IFM llama.cpp fork): https://huggingface.co/IFM/K2-Horizon-32B-GGUF ·
+  https://huggingface.co/IFM/K2-Horizon-MoVA-36B-A4B-GGUF
 
 *Excluded 2026-09-03, no open weights — recorded because it **changes the standing Muse Spark
 re-check note** above:* **Muse Spark 1.3** (Meta, shipped **2026-09-02** on Meta's API and the Muse
