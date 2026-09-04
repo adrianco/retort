@@ -1,0 +1,22 @@
+{
+  "name": "book-api",
+  "version": "1.0.0",
+  "description": "REST API service for managing a book collection",
+  "main": "src/app.js",
+  "scripts": {
+    "dev": "node src/app.js",
+    "start": "node src/app.js",
+    "test": "jest test/book-api.test.js --verbose"
+  },
+  "keywords": ["book", "api", "rest", "sqlite"],
+  "author": "Book API Developer",
+  "license": "MIT",
+  "dependencies": {
+    "express": "^4.19.2",
+    "sqlite3": "^5.1.6"
+  },
+  "devDependencies": {
+    "jest": "^29.7.0",
+    "supertest": "^7.0.0"
+  }
+}

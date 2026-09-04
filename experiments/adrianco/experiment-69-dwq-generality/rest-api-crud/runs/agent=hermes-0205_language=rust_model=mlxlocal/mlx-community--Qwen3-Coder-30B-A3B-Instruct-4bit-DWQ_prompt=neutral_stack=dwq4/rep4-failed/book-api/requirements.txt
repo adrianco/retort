@@ -1,0 +1,19 @@
+# Requirements for Book API REST Service
+
+## Runtime Dependencies
+
+- Python 3.7+
+- Flask
+- SQLite (built-in)
+
+## Installation
+
+To install the required dependencies:
+
+```bash
+pip install flask
+```
+
+## Development Dependencies
+
+- pytest (for running tests)

@@ -1661,3 +1661,54 @@ circles for 25 minutes.
   tasks, is untested.
 - **`-dwq-v2` and the 6/8-bit DWQ builds exist** and were not tested. If DWQ-4bit already matches
   8-bit, higher-bit DWQ is unlikely to be the interesting direction; a DWQ 30B against the 80B is.
+
+## exp-69 — does DWQ's stall-elimination generalize to harder languages?  — YES, 2026-09-04
+
+**exp-68's effect holds where the model is genuinely out of its depth.** exp-68 measured DWQ's
+stall-elimination on python and go, the two languages this 30B handles best. The obvious objection is
+that it was an easy-cell artifact. exp-69 re-runs the same comparison on rust and typescript, where a
+30B is well past its range.
+
+**Design:** `quant{4bit, 4bit-DWQ} x language{rust, typescript} x rest-api-crud x n=5` = 20 runs, $0.
+Both arms fresh — there was no plain-4bit rust/typescript baseline on this stack. Presets verified by
+parsing to differ in nothing but the model id; identical 4 bits, identical 16 GB, RSS 16.6 GB both.
+
+| arm | bits | size | **stalls** | pass |
+|---|---|---|---|---|
+| plain 4-bit | 4 | 16 GB | **9/10** | 0/10 |
+| **4bit-DWQ** | 4 | 16 GB | **0/10** | 2/10 |
+
+**Stalls: 9/10 vs 0/10, Fisher exact two-sided p = 0.00012.**
+
+Pooling with exp-68's python/go arms — same comparison, four languages, 40 runs:
+**DWQ 0/20 stalls vs plain 17/20, p = 2.6e-8.** Across every language tested, at identical bit-width
+and footprint, distilled quantization eliminates the agentic termination pathology completely.
+
+### The design decision that made this measurable
+
+**Pass-proportion floored, exactly as predicted: 0/10 vs 2/10 (p = 0.47).** Had passes been the
+response variable this would have been another unanswerable null — the failure mode exp-62 recorded
+and the reason the harder *task* (`brazil-soccer-mcp`) was rejected in the plan: the 80B scores only
+0.17 there and the 35B 0.25, so a 30B would have floored in both arms and measured nothing.
+
+Choosing **stalls** as the primary response is what let a floored-pass experiment still answer its
+question. Recorded as a method note: when a comparison is expected to floor on the headline metric,
+look for a response variable that stays measurable at the floor.
+
+### What the effect IS and is not
+
+DWQ does not make a 30B competent at rust. Both its passes came via **self-repair** (second chance,
+after evaluation feedback), and they are marginal — coverage 0.14 and 0.85 with maintainability 0.59
+and 0.26. What DWQ changes is the failure MODE: it converts *"circles in an unproductive tool loop
+until the 25-minute guard kills it"* into *"terminates, usually with a wrong answer"*.
+
+That distinction is worth more than the pass column suggests. A model that finishes and fails costs
+one cell and returns a diagnosable artifact; a model that circles burns the entire wall clock and
+returns nothing. For anyone running an agent loop unattended, that is the difference between a usable
+and an unusable stack — and it is invisible to pass-proportion alone.
+
+### Standing conclusion for the 30B
+
+`4bit-DWQ` is the build to use: 16 GB, no stall pathology across four languages, and pass-proportion
+on python/go (0.80) statistically indistinguishable from the 8-bit at 30 GB. This supersedes exp-67's
+6-bit recommendation, which was written before the DWQ arm existed.

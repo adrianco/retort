@@ -1,0 +1,16 @@
+{
+  "name": "book-api",
+  "version": "1.0.0",
+  "description": "A REST API for managing a book collection",
+  "main": "app.js",
+  "scripts": {
+    "start": "node app.js",
+    "test": "echo \"No tests specified\""
+  },
+  "dependencies": {
+    "express": "^4.21.0"
+  },
+  "keywords": ["book", "api", "rest", "express"],
+  "author": "Book API Developer",
+  "license": "MIT"
+}

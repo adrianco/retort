@@ -1,0 +1,23 @@
+{
+  "name": "retort-efd846b996b1",
+  "version": "1.0.0",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "description": "",
+  "dependencies": {
+    "express": "^5.2.1",
+    "sqlite3": "^6.0.1"
+  },
+  "devDependencies": {
+    "@types/chai": "^5.2.3",
+    "@types/node": "^26.4.1",
+    "@types/supertest": "^7.2.1",
+    "chai": "^6.2.2",
+    "supertest": "^7.2.2"
+  }
+}

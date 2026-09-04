@@ -1,0 +1,23 @@
+{
+  "severity_counts": {
+    "critical": 0,
+    "high": 1,
+    "medium": 0,
+    "low": 0,
+    "info": 0
+  },
+  "penalty_score": 0.9,
+  "top_findings": [
+    {
+      "id": "lang-1",
+      "kind": "lint_warning",
+      "severity": "high",
+      "title": "language factor is typescript but the deliverable is plain CommonJS JavaScript",
+      "evidence": "stack.json language=\"typescript\"; the only source files are server.js and test.js (CommonJS require/module.exports, server.js:1-3, server.js:201); package-lock.json has no node_modules/typescript entry and package.json declares no typescript/ts-jest/@types dependency; TASK.md 'Technical constraints' says 'Use the specified language and framework'. Sibling cells of the same task did emit .ts (e.g. ..._stack=q4/rep4/src/server.ts). The idiomatic scorer returned 0.0 in scores.json.",
+      "suggestion": "Author server.ts/test.ts with a tsconfig.json and ts-jest (or compile with tsc), so the run actually exercises the typescript level of the language factor."
+    }
+  ],
+  "requirement_coverage": 1.0,
+  "model": "mlxlocal/mlx-community--Qwen3-Coder-30B-A3B-Instruct-4bit-DWQ",
+  "evaluated_at": "2026-09-04T08:56:13Z"
+}

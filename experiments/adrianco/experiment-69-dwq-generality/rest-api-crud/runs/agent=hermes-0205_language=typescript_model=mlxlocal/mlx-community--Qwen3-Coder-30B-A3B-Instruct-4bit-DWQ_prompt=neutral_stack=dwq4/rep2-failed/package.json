@@ -1,0 +1,18 @@
+{
+  "name": "book-api",
+  "version": "1.0.0",
+  "description": "REST API service for managing a book collection",
+  "main": "src/app.js",
+  "scripts": {
+    "dev": "node src/app.js",
+    "start": "node src/app.js",
+    "test": "echo \"Tests not implemented in this version\""
+  },
+  "keywords": ["book", "api", "rest", "sqlite"],
+  "author": "Book API Developer",
+  "license": "MIT",
+  "dependencies": {
+    "express": "^4.19.2",
+    "sqlite3": "^5.1.6"
+  }
+}

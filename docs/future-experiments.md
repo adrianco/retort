@@ -20,30 +20,31 @@ push; verify every tuning parameter takes effect with a smoke test first; after 
 
 ---
 
-## 0d. exp-69 — does DWQ's stall-elimination generalize to harder languages?  — RUNNING (2026-09-03)
+## 0d. RESOLVED — DWQ's stall-elimination generalizes  — 2026-09-04
 
-exp-68's headline is that DWQ eliminates the agentic stall pathology at 4 bits (0/10 vs 8/10,
-p = 0.00071). That was measured on `rest-api-crud` in python and go — the two languages this 30B
-handles best. **Is it a property of the quantization, or of easy cells?**
+exp-69 re-ran the exp-68 comparison on rust and typescript, where a 30B is well out of its depth:
+**stalls 9/10 (plain) vs 0/10 (DWQ), Fisher p = 0.00012.** Pooled over four languages and 40 runs,
+**DWQ 0/20 vs plain 17/20, p = 2.6e-8**. Written up in
+[`past-experiments.md`](past-experiments.md#exp-69--does-dwqs-stall-elimination-generalize-to-harder-languages--yes-2026-09-04).
 
-**Why not the obvious test.** The natural generality check is the harder *task* (`brazil-soccer-mcp`),
-and it would be worthless: the 30B has never run brazil, and the models above it barely manage —
-the **80B scores 0.17** there and the 35B 0.25. A 30B would floor at zero in both arms and the
-experiment would be structurally unanswerable, the exact failure exp-62 recorded.
+Pass-proportion floored in both arms (0/10 vs 2/10, p = 0.47) exactly as the plan predicted — which
+is why **stalls** were pre-registered as the primary response. That choice is what let a
+floored-pass experiment still answer its question.
 
-**The design that works: measure STALLS, not passes.** Stall rate stays measurable even where pass
-rate floors, and it is the robust half of exp-68 anyway. Harder languages (rust, typescript) give the
-4-bit every opportunity to circle:
+**Standing recommendation for the 30B: `4bit-DWQ`** — 16 GB, no stall pathology in any language
+tested, python/go pass-proportion indistinguishable from the 8-bit at 30 GB.
 
-`quant{4bit, 4bit-DWQ} x language{rust, typescript} x rest-api-crud x n=5` = 20 runs, $0. Both arms
-run fresh — there is no plain-4bit rust/typescript baseline on this stack, and exp-64's rows are
-python/go only.
-
-**Reading it in advance.** If plain 4-bit stalls on rust/typescript and DWQ does not, the
-stall-elimination is a property of the quantization and "use DWQ" is a real recommendation. If DWQ
-also stalls here, exp-68's effect was partly an easy-cell artifact and the recommendation needs
-qualifying to the languages tested. Pass-proportion is reported as a secondary, expected low in both
-arms — it is not what this experiment turns on.
+**What remains across §3, in priority order:**
+1. **Speculative decoding / MTP** — the top *speed* lever, still blocked on a draft model.
+   Nanbeige4.2-3B (~2-3 GB, mlx-community 4-bit ships) is the cheapest unblock and is a subject in
+   its own right. **This is now the top candidate.**
+2. **Does the DWQ effect reach the bigger models?** BLOCKED as specified: `mlx-community` publishes
+   no DWQ build for Qwen3-Coder-Next (80B) — only int4/5/6/8, bf16, mxfp4/mxfp8/nvfp4 — and the only
+   35B DWQ is a third-party merged vision variant, not comparable. The nearest feasible substitute is
+   **scheme-vs-scheme at fixed bits on the 80B** (`mxfp4` vs `4bit`), but note the 80B is saturated
+   at 1.00 on python/go/typescript, so it would have to run on **rust** (0.33) for headroom.
+3. **Establish the 6->8 step** — LOW. DWQ dominates both.
+4. **A real 30B sampling sweep** — LOW; exp-66 ruled out the cheap version.
 
 ## 0c. RESOLVED — the stall threshold is ERROR, not bits  — 2026-09-03
 
