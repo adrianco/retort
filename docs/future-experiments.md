@@ -20,31 +20,48 @@ push; verify every tuning parameter takes effect with a smoke test first; after 
 
 ---
 
-## 0d. RESOLVED — DWQ's stall-elimination generalizes  — 2026-09-04
+## 0d. RESOLVED — DWQ generalizes; §3's quant tier is CLOSED  — 2026-09-04
 
-exp-69 re-ran the exp-68 comparison on rust and typescript, where a 30B is well out of its depth:
-**stalls 9/10 (plain) vs 0/10 (DWQ), Fisher p = 0.00012.** Pooled over four languages and 40 runs,
-**DWQ 0/20 vs plain 17/20, p = 2.6e-8**. Written up in
-[`past-experiments.md`](past-experiments.md#exp-69--does-dwqs-stall-elimination-generalize-to-harder-languages--yes-2026-09-04).
+exp-69 confirmed DWQ's stall-elimination on rust/typescript: **stalls 9/10 (plain) vs 0/10 (DWQ),
+p = 0.00012**; pooled over four languages and 40 runs, **0/20 vs 17/20, p = 2.6e-8**. Pass-proportion
+floored in both arms as planned, which is why stalls were the pre-registered response.
 
-Pass-proportion floored in both arms (0/10 vs 2/10, p = 0.47) exactly as the plan predicted — which
-is why **stalls** were pre-registered as the primary response. That choice is what let a
-floored-pass experiment still answer its question.
+An **analysis note** (no new runs, 1,227 archived runs re-read) then settled bits-vs-error from the
+opposite direction: on identical cells the **80B's 4-bit build stalls at 0.04** against the 30B
+4-bit's 0.80. If bit-width were the cause the 80B would stall too; larger models quantize more
+gracefully, so "4-bit" is a lower effective error there. Both write-ups are in
+[`past-experiments.md`](past-experiments.md).
 
-**Standing recommendation for the 30B: `4bit-DWQ`** — 16 GB, no stall pathology in any language
-tested, python/go pass-proportion indistinguishable from the 8-bit at 30 GB.
+**Standing recommendation for the 30B: `4bit-DWQ`.** And the general rule is per-model, not
+per-bit-width: **measure the stall rate**, which the archive gives free for any build with runs.
 
-**What remains across §3, in priority order:**
-1. **Speculative decoding / MTP** — the top *speed* lever, still blocked on a draft model.
-   Nanbeige4.2-3B (~2-3 GB, mlx-community 4-bit ships) is the cheapest unblock and is a subject in
-   its own right. **This is now the top candidate.**
-2. **Does the DWQ effect reach the bigger models?** BLOCKED as specified: `mlx-community` publishes
-   no DWQ build for Qwen3-Coder-Next (80B) — only int4/5/6/8, bf16, mxfp4/mxfp8/nvfp4 — and the only
-   35B DWQ is a third-party merged vision variant, not comparable. The nearest feasible substitute is
-   **scheme-vs-scheme at fixed bits on the 80B** (`mxfp4` vs `4bit`), but note the 80B is saturated
-   at 1.00 on python/go/typescript, so it would have to run on **rust** (0.33) for headroom.
-3. **Establish the 6->8 step** — LOW. DWQ dominates both.
-4. **A real 30B sampling sweep** — LOW; exp-66 ruled out the cheap version.
+### §3 inference-lever sweep — status
+
+| lever | status |
+|---|---|
+| Sampling (exp-27, exp-66) | DONE |
+| Quant level (exp-64, exp-67) | DONE |
+| Quant scheme (exp-68, exp-69) | DONE |
+| **Speculative decoding / MTP** | **BLOCKED — see below** |
+| MoE vs dense | open, needs a matched-size dense model |
+| K/V + context quant | deprioritised (memory lever; context is not our bottleneck) |
+
+**Speculative decoding / MTP is BLOCKED at two levels, verified 2026-09-04 — not merely
+"needs a draft model" as previously recorded:**
+1. **oMLX 0.5.0rc1 exposes no speculative-decoding configuration at all** — no `--draft-model` or
+   equivalent in `omlx-cli serve --help`, no `draft`/`spec`/`mtp` key anywhere in
+   `~/.omlx/settings.json`, and no relevant subcommand.
+2. **No MTP-weighted MLX build exists** for either coder model — an HF search over
+   `Qwen3-Coder-Next` and `Qwen3-Coder-30B` returns zero builds mentioning MTP.
+
+So Nanbeige4.2-3B would not unblock it: a draft model is useless without a serving layer that can
+consume one. Revisit when oMLX ships the capability, or when an MTP-weighted build of a coder model
+appears. (Nanbeige remains interesting as a *subject* in its own right — small, cheap, and untested
+here — just not as an unblock for this lever.)
+
+**Also closed without running:** scheme-vs-scheme on the 80B (`mxfp4` vs `4bit`). At a 0.04 stall
+rate the 80B has no pathology for a scheme change to fix, and pass-proportion on rust would need far
+more than n=5 to move. One SQL query replaced ~42 GB of download and ~7 hours of compute.
 
 ## 0c. RESOLVED — the stall threshold is ERROR, not bits  — 2026-09-03
 

@@ -1414,7 +1414,9 @@ The failure MODE separates more sharply than the pass rate. The 4-bit arm was ki
 guard — "no progress for 25m, unproductive loop" — in **eight of ten runs**. The 8-bit arm stalled
 once. A pass/fail column alone would have shown "4-bit is worse" and hidden the interesting part:
 quantization error at 4 bits appears to destabilise the multi-turn tool loop, so the model circles
-instead of converging. That is a different claim from "quantized models write worse code", and it
+instead of converging. **Qualified 2026-09-04: that is true of THIS build, not of 4-bit generally —
+the 80B's 4-bit build stalls at 0.04 across 131 runs on the same cells. See the analysis note at the
+end of this file.** That is a different claim from "quantized models write worse code", and it
 predicts something useful — the damage should show up on *agentic* tasks long before it shows up on
 single-turn benchmarks, which is exactly where published perplexity/quant comparisons look.
 
@@ -1712,3 +1714,53 @@ and an unusable stack — and it is invisible to pass-proportion alone.
 `4bit-DWQ` is the build to use: 16 GB, no stall pathology across four languages, and pass-proportion
 on python/go (0.80) statistically indistinguishable from the 8-bit at 30 GB. This supersedes exp-67's
 6-bit recommendation, which was written before the DWQ arm existed.
+
+## Analysis note — the stall pathology is NOT a property of "4-bit"  — 2026-09-04
+
+**No new runs; this is 1,227 archived runs re-read after exp-68/69.** It corroborates the
+error-not-bits conclusion from data those experiments did not use, and it corrects a loose phrasing
+in exp-64's write-up.
+
+Stall (`crashed`) rate by local build, whole archive:
+
+| build | n | stalls | rate |
+|---|---|---|---|
+| **30B-4bit (plain)** | 40 | 32 | **0.80** |
+| devstral | 12 | 7 | 0.58 |
+| 35B (unsloth UD-4bit) | 178 | 24 | 0.13 |
+| 30B-6bit | 10 | 1 | 0.10 |
+| 30B-8bit | 12 | 1 | 0.08 |
+| **80B-4bit** | 131 | 5 | **0.04** |
+| **30B-4bit-DWQ** | 20 | 0 | **0.00** |
+
+Matched on task and language, so this is not a task-mix artifact:
+
+| both 4-bit, both Qwen3-Coder | python/go | rust/typescript |
+|---|---|---|
+| 30B-4bit | 23/30 stalled | 9/10 stalled |
+| **80B-4bit** | **2/57 stalled** | **1/22 stalled** |
+
+**This is the strongest available evidence for error-over-bits, and it is free.** If *bit-width* were
+the cause, the 80B at 4 bits would stall as badly as the 30B at 4 bits. It does not — 0.04 against
+0.80 on identical cells. Larger models quantize more gracefully (more parameter redundancy per unit
+of information destroyed), so "4-bit" corresponds to a **lower effective error** in the 80B, placing
+it below the threshold that destabilises the agentic loop. exp-68 demonstrated the same thing by
+lowering error at fixed bits; this shows it from the opposite direction, by holding bits fixed and
+changing the model.
+
+**Correction to exp-64's phrasing.** That write-up says "quantization error at 4 bits destabilises
+the multi-turn tool loop". Read as a claim about 4-bit builds in general, that is wrong — the 80B's
+4-bit build is one of the most stable in the archive. The accurate statement is that **the 30B's
+4-bit build sits above the error threshold**, and neither the bit count nor the format alone predicts
+which builds do.
+
+**Practical consequence.** Do not generalise "avoid 4-bit" from exp-64/68/69. The rule is
+per-model: measure the stall rate. The archive now gives it for free on any build with runs, and it
+is a far cheaper screen than a pass-proportion grid — 20 runs of a new build will show a 0.80-vs-0.00
+difference immediately, where distinguishing pass rates needs many more.
+
+**Why this closed a candidate rather than opening one.** It was run to decide whether a
+scheme-vs-scheme experiment on the 80B (`mxfp4` vs `4bit`, the nearest feasible substitute for a
+DWQ-on-80B test) was worth ~42 GB and ~7 hours. It is not: at a 0.04 stall rate the 80B has no
+pathology for a scheme change to fix, and the only response left would be pass-proportion on rust,
+which needs far more than n=5 to move. One SQL query replaced a day of compute.
