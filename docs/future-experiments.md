@@ -492,7 +492,7 @@ invest in the solver dependency, master.db merge, and first-class docs.
 <!-- SCAN-HEARTBEAT: the daily scan rewrites the next line on EVERY run, including
      days it finds nothing. Do not hand-edit it. If the date is more than ~2 days
      stale, the scan is not running — see "when the heartbeat goes stale" below. -->
-**Daily scan last completed: 2026-09-04** (scanning for new 64GB-fittable coding models)
+**Daily scan last completed: 2026-09-05** (scanning for new 64GB-fittable coding models)
 
 New open-weight coding models found by the daily scan that plausibly fit 64GB at 4-bit; promote to a
 numbered experiment when prioritised.
@@ -1314,6 +1314,13 @@ survives the toggle, restart the Claude desktop app, which clears the in-memory 
   — 36B-A4B weights: https://huggingface.co/IFM/K2-Horizon-MoVA-36B-A4B
   — GGUF (BF16 only, needs the IFM llama.cpp fork): https://huggingface.co/IFM/K2-Horizon-32B-GGUF ·
   https://huggingface.co/IFM/K2-Horizon-MoVA-36B-A4B-GGUF
+
+*Excluded 2026-09-05, oversized — recorded so it is not re-investigated:* **Solar Open2-250B**
+(Upstage, 2026-08-12, Upstage Solar Licence — an Apache-2.0 derivative permitting commercial use)
+— **250B-A15B hybrid-attention MoE**, 1M context, pitched at enterprise agentic work; it surfaced
+in this cycle's Hugging Face trending coverage rather than as a new drop. **~125 GB at 4-bit**, so
+it fails the size bar by a wide margin — the same verdict as GLM-5.3-Flash. Re-open only if a
+sub-40 GB Solar Open2 variant ships. Source: https://huggingface.co/upstage/Solar-Open2-250B
 
 *Excluded 2026-09-03, no open weights — recorded because it **changes the standing Muse Spark
 re-check note** above:* **Muse Spark 1.3** (Meta, shipped **2026-09-02** on Meta's API and the Muse
