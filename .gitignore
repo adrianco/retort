@@ -330,6 +330,11 @@ reeval-78.sh
 # in lib/ src/ test/). These rules come last, so they win for those paths.
 experiments/*/experiment-*/**/runs/**/_build/**
 experiments/*/experiment-*/**/runs/**/deps/**
+# Python venvs an agent (or retort's provisioner) builds inside a run. Same
+# problem as _build/ above: the `!**/runs/**/*.py` allowlist re-includes every
+# .py in site-packages, so plain `venv/` loses. 1,851 such files were tracked
+# under exp-38 before this line existed.
+experiments/*/experiment-*/**/runs/**/venv/**
 .venv/
 phase1-metaharness/
 phase1-baseline/
