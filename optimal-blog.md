@@ -1,6 +1,6 @@
 # The Optimal Stack
 
-*Living document — last updated 2026-09-01 (first published 2026-07-14). This records **what to run today**: the leading stacks, and the exact configuration each one needs. It is not a history. Superseded stacks and rejected configurations are not discussed here; they are retired, and retirement is the point.*
+*Living document — last updated 2026-09-07 (first published 2026-07-14). This records **what to run today**: the leading stacks, and the exact configuration each one needs. It is not a history. Superseded stacks and rejected configurations are not discussed here; they are retired, and retirement is the point.*
 
 ---
 
@@ -245,6 +245,10 @@ stall_minutes:   25             # kill unproductive loops, not slow-but-producti
   ```
   Also drop the snapshot cadence from **hourly to daily** (e.g. TimeMachineEditor) so cache churn between runs can't pile up dozens of space-pinning snapshots. Exclusions shrink the backup and per-snapshot delta; the daily cadence caps how many pin space at once; thinning clears what's already stuck.
 
+### Local: Qwen3-Coder-30B-A3B-Instruct — which build
+
+Not a featured stack (0.80 on routine python/go, below the 1.00 bar), but the build choice is decided and the wrong one is forbidden above. Use **`mlx-community/Qwen3-Coder-30B-A3B-Instruct-4bit-DWQ`** — 16 GB, zero stalls in 20 runs across four languages, and a pass rate statistically indistinguishable from the 30 GB 8-bit build (8/10 vs 7/10, p = 1.00). Not the 6-bit (0.40, 23 GB) and not the plain 4-bit. Same serving and agent settings as the 35B above; sampling `temperature: 0.6, top_p: 0.95, top_k: 20, repetition_penalty: 1.0`. See exp-64–69.
+
 ### Cloud: Claude Fable 5, Sonnet 5, Opus 4.8 / 4.7
 
 There is no single cloud winner — the pick is set by task size (see the tables above): **Fable 5** for hard work that must be right, **Sonnet 5** for hard work on a budget, **Opus 4.8 / 4.7** for cheap routine work.
@@ -262,6 +266,7 @@ Configurations that measurably degrade a stack. These are eliminated, not tuned.
 | **`repetition_penalty` > 1.0** | Any repetition penalty derails an agentic tool-calling loop — the model stops converging, stalls, and produces nothing. This holds even at 1.05, and even when the model's own card recommends it: model-card sampling is tuned for single-turn generation, not multi-turn agent loops. **Set it to 1.0.** |
 | **`temperature: 1.0`** (server default) | Costs roughly half the reliability of a local coding stack. Any value in 0.2–0.7 is fine; the precise value does not matter. |
 | **Playpen under the system temp dir** (`/var/folders/...` on macOS) | Agents refuse to write to paths they consider system-owned, so the agent cannot create files *in its own workspace* — and a run that writes nothing scores a false zero indistinguishable from an incapable model. Keep playpens under `$HOME`. |
+| **Plain 4-bit `Qwen3-Coder-30B-A3B-Instruct-4bit`** | Stalls in an unproductive tool loop until the guard kills it in **80% of agent runs** (32/40 across exp-64/66/69). The `-4bit-DWQ` build of the same model is the same 16 GB and stalls in **0%** (0/20). This is a property of quantization *error*, not bit-count — the 80B's 4-bit build stalls at 0.04 — so it is a per-build verdict: measure the stall rate before trusting any new local build. |
 | **An unrecorded stack** | A pass-proportion without the stack it was measured on is not a result. Capture versions, model revision hashes, sampling, agent config, and harness settings — every run writes a `provenance.json`. |
 
 ---

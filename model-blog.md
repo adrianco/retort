@@ -1,6 +1,6 @@
 # How Reliable Is Your AI Coding Stack? I Measured It
 
-*Published 2026-06-11 · updated 2026-09-01 — Adrian Cockcroft*
+*Published 2026-06-11 · updated 2026-09-07 — Adrian Cockcroft*
 
 ---
 
@@ -8,7 +8,14 @@ Every few weeks a new frontier model tops the leaderboards, and the implicit adv
 
 Those are the variables that decide a real project. So I built **[retort](https://github.com/adrianco/retort)** to measure them properly — with statistical Design of Experiments, the same technique you'd use to tune a manufacturing process. Vary the factors you care about (here: programming **language** × **model version** × **tooling** — and, newly, the **coding agent**, the **prompt methodology**, and **local self-hosted models**), run a factorial grid on a real task, score every cell, and let the analysis tell you which factors actually matter. And because retort accumulates results across a shared database, each new model just gets *added* to what's already known — the point of the project is to measure how each new release behaves without re-running everything. It now spans two tasks, **thirteen** languages, the Claude Sonnet/Opus lines (plus a fast-mode variant, the tier-above Fable 5, and the newest Opus 5), **OpenAI's Codex line (GPT-5.6)**, and **local models running for free on a laptop**.
 
-## What's new (2026-09-01)
+## What's new (2026-09-07)
+
+- **Quantization *scheme* decides whether an agent loop terminates — and the variable is error, not bit-count.** A plain 4-bit Qwen3-Coder-30B stalled in unproductive tool loops in **80% of runs** (32/40); the 25-minute stall guard killed it rather than the task finishing. The same model at the **same 4 bits and the same 16 GB**, using distilled quantization (**DWQ**), stalled in **0%** (0/20 across python, go, rust and typescript, p = 2.6×10⁻⁸) — and matched the 8-bit build's pass rate at half the memory. Six experiments (exp-64–69) built that ladder one rung at a time: 4-bit vs 8-bit, then whether sampling rescues 4-bit (it does not), then 6-bit (two separate curves, not one), then DWQ to break the bits/error confound, then DWQ on the hard languages.
+- **The rule that fell out is per-model, not per-bit-width: measure the stall rate.** The 80B's 4-bit build — the one the optimal stack actually recommends — stalls at just 0.04 across 131 archived runs on the same cells. Larger models quantize more gracefully, so "4-bit" is a lower effective error there. Stall rate separated builds at n=10 where pass-proportion needed the extremes to reach significance, and the archive gives it for free on any build that has run.
+- **Why this matters beyond one model.** Perplexity and single-turn benchmarks track quantization error — the right variable — but the failure it causes in *agentic* use, circling without terminating, is one a single-turn generation structurally cannot exhibit. A build can look marginally better on perplexity and be the difference between an agent that finishes and one that burns 25 minutes and returns nothing.
+- **Two candidates were closed without running, cheaply.** Speculative decoding is blocked at two levels (oMLX exposes no configuration for it, and no MTP-weighted build exists for either coder model), and a scheme test on the 80B is pointless at a 0.04 stall rate. One SQL query replaced ~42 GB of download and ~7 hours.
+
+### Earlier (2026-09-01)
 
 - **Fable 5.1 landed, and the headline is: run it at low effort.** Across four languages with twelve runs per arm, **default effort costs 1.68× the wall-clock and 1.45× the money for statistically identical test coverage** (exact paired permutation test, p = 0.0015 for time and 0.0010 for cost; 11 of 12 matched pairs favour low). Turning the dial up on this model buys nothing measurable and bills you 45% more for it.
 - **A caution on the new release itself.** On the one cell Fable 5 and 5.1 have both run, 5.1 used **1.74× the wall-clock and 2.19× the tokens** of 5.0. That is flagged rather than claimed — it is three runs a side, 5.1's own spread on that cell is wide, and the Claude Code CLI version moved between the two, so agent version is confounded with model version. Worth knowing before assuming a point release is a free upgrade.

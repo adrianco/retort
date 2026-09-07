@@ -1,6 +1,6 @@
 # Thinking Level: What Opus Actually Does With the Extra Time
 
-*Published 2026-07-31 · updated 2026-07-31 — Adrian Cockcroft*
+*Published 2026-07-31 · updated 2026-09-07 — Adrian Cockcroft*
 
 `--effort low|medium|high|xhigh|max` is the newest and largest cost lever in retort, and the least understood. [versions-blog.md](versions-blog.md) established *that* it costs; this page is about *what the model does* with the time, read out of the archived agent logs rather than inferred from the totals.
 
@@ -79,6 +79,10 @@ Only where there was headroom. Compare the same dial in go, where the test-cover
 Python starts at 0.98 and has nowhere to go — the extra 33 minutes move it 0.01. Go starts at 0.73 and gains **15 points**, a real and monotonic improvement. So the honest answer is not "effort buys nothing", it is: **effort buys coverage exactly where coverage is missing, and nothing where it isn't.**
 
 Everything else is flat or worse. `requirement_coverage` is 1.00 at all ten cells. Maintainability does not improve with effort — on python it reads 0.96 at `low` and 0.89 at `max`, because 944 lines are simply more to maintain than 192.
+
+**Fable 5.1 turns the dial the other way (exp-65).** On the routine task across four languages, with twelve runs per arm and a paired design that crosses effort against language so no language artifact can masquerade as an effort effect, *default* costs **1.68× the wall-clock and 1.45× the money** of *low* — for test coverage that is statistically identical (exact paired permutation test over all 4,096 sign-flips: p = 0.0015 for time, 0.0010 for cost, 0.75 for coverage; eleven of twelve matched pairs favour low). Where Opus 5 buys fifteen points of go coverage by turning the dial up, Fable 5.1 buys nothing and pays 45% more. So the dial is not the same instrument across *models* any more than across vendors, and the operating point has to be measured per model rather than assumed. For Fable 5.1 it is low.
+
+**A caution that is flagged rather than claimed.** On the one cell Fable 5 and 5.1 have both run, 5.1 used 1.74× the wall-clock and 2.19× the tokens of 5.0 at low effort. That is three runs a side, 5.1's spread on that cell is wide, and the Claude Code CLI moved 2.1.250 → 2.1.257 between the two, so agent version is confounded with model version. The full-grid run planned as exp-70 is designed to settle it on 26 cells instead of one.
 
 ---
 

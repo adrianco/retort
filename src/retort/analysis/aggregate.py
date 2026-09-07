@@ -261,6 +261,14 @@ def collect_runs(experiments_dir: Path) -> list[dict]:
         db_paths |= set(experiments_dir.glob(pat))
     for db in sorted(db_paths):
         parent = db.parent
+        # SMOKE WORKSPACES ARE NOT EXPERIMENTS. A `smoke*` task sub-dir is a
+        # viability check run before a grid (does the model load? does the
+        # test bed produce a measurable result?) — not a designed cell. Left
+        # in, its rows inflate the arm they resemble: exp-64's 2-cell 8-bit
+        # smoke made the 8-bit's n read 12 instead of 10, and exp-62's smoke
+        # runs sat in the 35B's rust column. Skip them at the source.
+        if "smoke" in parent.name.lower():
+            continue
         # Nested DBs (parent is the task sub-dir) get a compound label so each
         # row's `experiment` is unique, e.g. experiment-7-brazil. The label is
         # derived from the experiment dir name only, so it is stable across the

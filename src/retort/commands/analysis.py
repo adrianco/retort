@@ -143,7 +143,15 @@ def analyze(
     "--csv", "csv_path", type=click.Path(), default=None,
     help="Also write the wide table as CSV to this path.",
 )
-def aggregate(experiments_dir: str, out_path: str, csv_path: str | None) -> None:
+@click.option(
+    "--allow-shrink", is_flag=True, default=False,
+    help="Permit the rebuilt master.db to hold FEWER runs than the current one. "
+         "Off by default so a wrong --experiments-dir cannot silently erase the "
+         "archive; pass it when the shrink is intended (e.g. after excluding "
+         "smoke workspaces).",
+)
+def aggregate(experiments_dir: str, out_path: str, csv_path: str | None,
+              allow_shrink: bool) -> None:
     """Combine every experiment's retort.db into one master results table.
 
     Builds a single wide, tidy `runs` table (one row per run, tagged with
@@ -155,7 +163,7 @@ def aggregate(experiments_dir: str, out_path: str, csv_path: str | None) -> None
     from retort.analysis.aggregate import build_master_db, unknown_factors, write_csv
 
     root = cli.Path(experiments_dir)
-    n = build_master_db(root, cli.Path(out_path))
+    n = build_master_db(root, cli.Path(out_path), allow_shrink=allow_shrink)
     click.echo(f"Aggregated {n} runs from {root}/experiment-*/retort.db -> {out_path}")
     missing = unknown_factors()
     if missing:

@@ -1,6 +1,6 @@
 # The Experiment Index: What Was Measured, and What the Harness Was Doing at the Time
 
-*Published 2026-07-30 · updated 2026-08-04 — Adrian Cockcroft*
+*Published 2026-07-30 · updated 2026-09-07 — Adrian Cockcroft*
 
 An index, not an argument. Retort has run **1,014 scored runs across 56 experiment groups and 13 languages**; this page says what each group was for, where to read the detail, and — the part that matters most for reading an old number — **what the harness itself was doing at the time**. Several published figures moved because the tooling was fixed, not because a model changed.
 
@@ -19,6 +19,9 @@ Detail lives in [`docs/past-experiments.md`](docs/past-experiments.md). Current 
 | **Prompt / method** | Does prescribing BDD/TDD/ATDD change the outcome? | `exp-13/14` (cloud, hard task) · `exp-19` (local 35B) · `exp-32` (local 80B — does a weaker model need the scaffolding more?) | [prompt](prompt-blog.md) |
 | **Agent & tooling** | What drives the run, and what does it get to use? | `exp-11` (Gemini — first cross-*agent* design; scaffolded, never run) · `exp-53` (codex, where the agent factor actually landed) · `exp-44/45` (**graphify** knowledge-graph, frontier and local arms) · `beads` throughout | [optimal](optimal-blog.md) |
 | **Self-repair** | Does a second attempt with the evaluator's feedback help? | `exp-21` (35B) · `exp-41` (80B, iteration 2) — an inline second chance now runs by default, at half credit | [model](model-blog.md) |
+| **Quantization** | Does bit-width or scheme move *agentic* reliability? | `exp-64` (4- vs 8-bit: 0.10 → 0.70, and the 4-bit fails by *stalling*) · `exp-66` (tuned sampling does not rescue 4-bit: 0/20) · `exp-67` (6-bit: stalls are a threshold, pass-rate is linear — two curves) · `exp-68` (**DWQ**: same 4 bits, 0/10 stalls — it was error, not bits) · `exp-69` (generalises to rust/typescript, 0/20 vs 17/20 pooled) · an archive re-read (the 80B's 4-bit stalls at 0.04: per-model, not per-bit) | [past-experiments](docs/past-experiments.md), [harness-blog](harness-blog.md) |
+| **Point releases** | Does a new model version move time and cost, not just reliability? | `exp-65` (Fable 5.1 at low vs default effort: default costs 1.68× the wall and 1.45× the money for identical coverage, n=12/arm, exact paired test) | [levels-blog](levels-blog.md) |
+| **Large-repo tooling** | Does a code knowledge-graph pay off where it should most? | `exp-63` (Graphify on a real repo-to-Go port, n=3/arm: both arms 1.00, +21% tokens, no measurable benefit — and a design that could not have reached significance at any effect size) | [past-experiments](docs/past-experiments.md) |
 
 Two candidates were **rejected before running**: Ornith-1.0-35B (vision-optimized, agent-hostile sampling) and Poolside Laguna XS 2.1 (architecture not in mainline serving). Both are documented with their gate-probe evidence at the end of [`docs/past-experiments.md`](docs/past-experiments.md), because a candidate ruled out cheaply is still a result.
 
@@ -56,7 +59,11 @@ Kept visible, because the corrections are more useful than the originals.
 - **"gpt-oss matches the 80B on Go at 3.6× the speed"** (exp-47, n=3) — removed at n=5, where Go fell to 0.80.
 - **"The local hard-task wall is a turn cap"** (exp-50's whole premise) — wrong. `api_calls` is 1:1 with turns, not 3:1, so nothing had been truncated. The wall is real.
 
-Four of those five came from reading a single run as a result.
+- **"Graphify costs 36% more tokens and 30% more wall-clock"** (exp-63, replicate 1) — dissolved by replicate 2, where the control arm's own variance nearly matched the gap. Then the harder lesson: with n=3 per arm there are only 20 ways to split the runs, so the smallest achievable p-value is 0.10 — that design could not have reached significance whatever the effect. One metric separated perfectly and still scored 0.100.
+- **"The stall threshold sits below 6 bits"** (exp-67) — reframed by exp-68. Bit-count and quantization error move together in a bit-width ladder, so the phrasing assumed the answer; DWQ at four bits stalled 0 times in 10. Six-bit was merely the first rung whose error fell below the threshold.
+- **"Quantization error at 4 bits destabilises the tool loop"** (exp-64, read as a claim about 4-bit builds generally) — qualified by 1,227 archived runs: the 80B's ordinary 4-bit build stalls at 0.04 on the same cells. True of *that* build, not of four bits.
+
+Five of those eight came from reading a single run, or a single replicate, as a result.
 
 ---
 

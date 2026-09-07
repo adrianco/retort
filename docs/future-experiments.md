@@ -15,133 +15,41 @@ push; verify every tuning parameter takes effect with a smoke test first; after 
 
 **Current best local stack:** Qwen3-Coder-Next 80B via Hermes + oMLX at `context_threshold: 0.9`
 ("full context") — Python/Go/TypeScript all 1.00, Rust 0.33 (near-misses → cloud), niche languages
-~0.00, hard task 0/6 (config-invariant). The 35B is the faster Python/Go alternative (0.85). See
-[optimal-blog.md](../optimal-blog.md).
+~0.00, hard task 0/6 (config-invariant). The 35B is the faster Python/Go alternative (0.85). **New
+(exp-64–69):** for the 30B, use the `4bit-DWQ` build — a plain 4-bit stalls in 80% of agent runs,
+DWQ in 0%, at the same 16 GB. See [optimal-blog.md](../optimal-blog.md).
 
 ---
 
-## 0d. RESOLVED — DWQ generalizes; §3's quant tier is CLOSED  — 2026-09-04
+## 0. exp-70 — Fable 5.1 across the full grid, at LOW effort  — TOP PRIORITY, ready to run
 
-exp-69 confirmed DWQ's stall-elimination on rust/typescript: **stalls 9/10 (plain) vs 0/10 (DWQ),
-p = 0.00012**; pooled over four languages and 40 runs, **0/20 vs 17/20, p = 2.6e-8**. Pass-proportion
-floored in both arms as planned, which is why stalls were the pre-registered response.
+**The gap:** Fable 5.1 has been measured on one task and four languages (exp-65), so it cannot be
+featured in `optimal-blog.md` — every featured stack carries the 13-language × 2-task grid. And
+exp-65 settled its operating point: **low effort** is 1.68× faster and 1.45× cheaper than default at
+identical coverage (p = 0.0015 / 0.0010, n=12 per arm). So the grid should run at low, not default.
 
-An **analysis note** (no new runs, 1,227 archived runs re-read) then settled bits-vs-error from the
-opposite direction: on identical cells the **80B's 4-bit build stalls at 0.04** against the 30B
-4-bit's 0.80. If bit-width were the cause the 80B would stall too; larger models quantize more
-gracefully, so "4-bit" is a lower effective error there. Both write-ups are in
-[`past-experiments.md`](past-experiments.md).
+**Design:** `claude-fable-5-1 × effort=low × language{13} × task{rest-api-crud, brazil-soccer-mcp}`,
+n=3 screening (the incremental principle: only the new model runs; compare against master.db).
+26 cells × 3 = 78 runs. Priced from exp-65's completed cells, ~$1.2 per routine run and ~$5 per hard
+run → **~$110**. Pass-proportion is the response here (Fable 5 was 1.00 everywhere, so this asks
+whether 5.1 holds that); time and cost come free.
 
-**Standing recommendation for the 30B: `4bit-DWQ`.** And the general rule is per-model, not
-per-bit-width: **measure the stall rate**, which the archive gives free for any build with runs.
+**What it answers:** whether 5.1 belongs in the featured table, at what price, and — because 5.0 has
+the same grid — the cost question §2 below asks, on 26 cells instead of one.
 
-### §3 inference-lever sweep — status
+## 1. exp-71 — does DWQ's stall-elimination survive the HARD task?  — ready to run, $0
 
-| lever | status |
-|---|---|
-| Sampling (exp-27, exp-66) | DONE |
-| Quant level (exp-64, exp-67) | DONE |
-| Quant scheme (exp-68, exp-69) | DONE |
-| **Speculative decoding / MTP** | **BLOCKED — see below** |
-| MoE vs dense | open, needs a matched-size dense model |
-| K/V + context quant | deprioritised (memory lever; context is not our bottleneck) |
+exp-68/69 showed `4bit-DWQ` eliminates the 30B's agentic stall pathology on the routine task across
+four languages (0/20 stalls vs 17/20 plain, p = 2.6e-8). Untested on `brazil-soccer-mcp`, where even
+the 80B floors at 0.17. **Stalls are the pre-registered response, not passes** — a 30B will floor on
+passes there in both arms, which is exactly the situation exp-69 designed around.
 
-**Speculative decoding / MTP is BLOCKED at two levels, verified 2026-09-04 — not merely
-"needs a draft model" as previously recorded:**
-1. **oMLX 0.5.0rc1 exposes no speculative-decoding configuration at all** — no `--draft-model` or
-   equivalent in `omlx-cli serve --help`, no `draft`/`spec`/`mtp` key anywhere in
-   `~/.omlx/settings.json`, and no relevant subcommand.
-2. **No MTP-weighted MLX build exists** for either coder model — an HF search over
-   `Qwen3-Coder-Next` and `Qwen3-Coder-30B` returns zero builds mentioning MTP.
+**Design:** `quant{4bit, 4bit-DWQ} × language{python, go} × brazil-soccer-mcp × n=5` = 20 local runs.
+Timeout 90 min (brazil is long); stall guard 25 min. If DWQ stalls 0/10 again on a task it cannot
+pass, the effect is task-independent and the "measure the stall rate" rule generalises.
 
-So Nanbeige4.2-3B would not unblock it: a draft model is useless without a serving layer that can
-consume one. Revisit when oMLX ships the capability, or when an MTP-weighted build of a coder model
-appears. (Nanbeige remains interesting as a *subject* in its own right — small, cheap, and untested
-here — just not as an unblock for this lever.)
+## 2. Fable 5.0 vs 5.1 — is the point release MORE expensive?  — OPEN, folded into exp-70
 
-**Also closed without running:** scheme-vs-scheme on the 80B (`mxfp4` vs `4bit`). At a 0.04 stall
-rate the 80B has no pathology for a scheme change to fix, and pass-proportion on rust would need far
-more than n=5 to move. One SQL query replaced ~42 GB of download and ~7 hours of compute.
-
-## 0c. RESOLVED — the stall threshold is ERROR, not bits  — 2026-09-03
-
-exp-68 broke the bits/error confound with a DWQ build (4 bits, materially lower quantization error).
-Holding bit-width and footprint fixed:
-
-| build | bits | size | pass | stalls |
-|---|---|---|---|---|
-| `4bit` | 4 | 16 GB | 0.10 | 8/10 |
-| **`4bit-DWQ`** | **4** | **16 GB** | **0.80** | **0/10** |
-| `6bit` | 6 | 23 GB | 0.40 | 1/10 |
-| `8bit` | 8 | 30 GB | 0.70 | 1/10 |
-
-Stalls 0/10 vs 8/10 at identical bits (**p = 0.00071**); pass 0.80 vs 0.10 (**p = 0.0055**). And DWQ
-is indistinguishable from the 8-bit at **47% of its memory** (8/10 vs 7/10, p = 1.00). Written up in
-[`past-experiments.md`](past-experiments.md#exp-68--is-the-stall-threshold-about-bits-or-about-error--error-decisively-2026-09-03).
-
-**This supersedes exp-67's recommendation.** The 30B's best local build is `4bit-DWQ`, not 6-bit —
-same reliability as the 8-bit, 16 GB instead of 30 GB, and none of the prefill-throttle pressure the
-8-bit shows against a full-context KV cache.
-
-**§3's quant tier is now DONE.** What remains across the sweep, in priority order:
-1. **Does DWQ close the gap on the bigger models?** `Qwen3-Coder-Next-4bit` (the 80B, current best
-   local stack) — is there a DWQ build, and does the same effect appear? This is the highest-value
-   follow-up: the 80B is what the optimal stack actually recommends.
-2. **Speculative decoding / MTP** — still the top *speed* lever, still blocked on a draft model.
-   Nanbeige4.2-3B (~2-3 GB, mlx-community 4-bit ships) is the cheapest unblock and is a subject in
-   its own right.
-3. **Establish the 6->8 step** — LOW value now. DWQ dominates both.
-4. **A real 30B sampling sweep** — LOW; exp-66 ruled out the cheap version.
-
-## 0b. RESOLVED — the quant ladder is TWO curves  — 2026-09-03
-
-exp-67 added the 6-bit rung. The termination failure and the quality failure turn out to be separate
-phenomena with different shapes:
-
-| bits | size | pass | stalls |
-|---|---|---|---|
-| 4 | 16 GB | 0.10 | 8/10 |
-| **6** | **23 GB** | **0.40** | **1/10** |
-| 8 | 30 GB | 0.70 | 1/10 |
-
-**Stalls are a threshold below 6 bits** (8/10 -> 1/10, Fisher p = 0.0055; 6 vs 8 is p = 1.00).
-**Pass-proportion rises linearly** (+0.15/bit) but only the 4-vs-8 extreme is significant (p = 0.0198)
-— adjacent steps are not resolvable at n=10. Written up in
-[`past-experiments.md`](past-experiments.md#exp-67--6-bit-where-is-the-knee--two-curves-not-one-2026-09-03).
-
-**Practical recommendation: 6-bit on a 64 GB machine.** It buys the entire termination fix for 7 GB
-over 4-bit; 8-bit's further 7 GB buys quality that is suggestive but unestablished, and sits close to
-the memory ceiling alongside a full-context KV cache.
-
-**What is left of §3, in priority order:**
-1. **Establish the 6->8 step** — needs n>=20 per level to resolve a 0.30 difference. Only worth it if
-   the 6-vs-8 choice actually matters to a deployment decision; the termination fix (the part that
-   matters most) is already settled.
-2. **Quant SCHEME as its own factor** — the `-DWQ` builds are a different scheme, not another
-   bit-width. Now that bit-width is known to matter, scheme deserves an arm.
-3. **Speculative decoding / MTP** — still the top *speed* lever and still blocked on a draft model.
-   Nanbeige4.2-3B (~2-3 GB, mlx-community 4-bit ships) is the cheapest candidate and doubles as a
-   subject in its own right.
-4. **A real 30B sampling sweep** — LOW; exp-66 ruled out the cheap version of that objection.
-
-## 0a. RESOLVED — sampling does NOT rescue 4-bit  — 2026-09-03
-
-exp-66 attacked exp-64's own result and failed to overturn it: 20 further 4-bit runs across two
-sampling configs, **0/10 in both arms**. Tightening the nucleus (top_p 0.95 -> 0.8) moved failures
-toward stalls, not passes. exp-64's quant effect is not an artifact of borrowing the 35B's sampling.
-Written up in [`past-experiments.md`](past-experiments.md#exp-66--does-30b-tuned-sampling-rescue-4-bit--no-exp-64-hardens-2026-09-03).
-
-**What is left of §3's quant tier, in priority order:**
-1. **6-bit, to locate the knee** (~25 GB, `mlx-community/Qwen3-Coder-30B-A3B-Instruct-6bit` ships).
-   4->8 moves pass-proportion 0.10 -> 0.70, so the intermediate level is now worth measuring. Same
-   design as exp-64, n=5. **This is the top remaining quant candidate.**
-2. **Quant SCHEME as its own factor** — the `-DWQ` builds (distilled quant) are a different scheme,
-   not another bit-width, and were deliberately excluded from exp-64. Now that bit-width is known to
-   matter, scheme deserves an arm.
-3. **A real 30B sampling sweep** (the exp-27 treatment) — LOW priority now. exp-66 ruled out the
-   cheap version of this objection; two configs and twenty runs produced no passes.
-
-## 0. Fable 5.1 — is it actually MORE expensive than 5.0?  — OPEN follow-up from exp-65
 
 The effort question is answered and moved to
 [`past-experiments.md`](past-experiments.md#exp-65--fable-51-does-the-point-release-move-time-and-cost--yes-for-effort-2026-09-01):
@@ -155,30 +63,52 @@ not a finding: n=3 vs n=3 (below the exp-63 threshold), 5.1's spread on that cel
 **agent version is confounded with model version**. That confound cancels within exp-65 (both arms
 share one CLI) but NOT across models.
 
-**To settle it:** re-run Fable 5.0 on the CURRENT CLI, same cell, n>=5, and compare against exp-65's
-5.1 rows. ~10 runs, ~$12. Cheap, and it is the difference between "the new release costs more" as
+**To settle it:** exp-70 gives 5.1 the same 26-cell grid 5.0 already has, on the current CLI. That
+answers this on 26 cells at once; the standalone ~$12 re-run of 5.0 is only needed if exp-70's
+numbers are ambiguous. Cheap, and it is the difference between "the new release costs more" as
 gossip and as a measurement. Note this contradicts the earlier judgement that Claude versions are not
 significant — that judgement was made about the effort experiment, where it was correct.
 
-## 0z. RESOLVED — the `claude` CLI credential was blanked  — 2026-07-31
 
-Kept as a diagnostic recipe, not an open item. `claude -p` returned **`Not logged in · Please run
-/login`** while the *running* session kept working, which made it look like a retort or environment
-bug. It was neither: the keychain item `Claude Code-credentials` still existed and still read
-`subscriptionType: max`, but **`accessToken` and `refreshToken` were both empty strings and
-`expiresAt` was 0**. Nothing to refresh. The live session was simply the last process holding an
-in-memory token.
+## 3. Harness to-dos surfaced by exp-63–69
 
-Ruled out along the way, in this order: retort's own venv change (the third crashed cell was **go**,
-which never gets a venv), `ANTHROPIC_BASE_URL` (set, but to plain `api.anthropic.com`, and unsetting
-it changed nothing), and keychain readability (`security find-generic-password` succeeded — the entry
-was present, just hollow).
+- **Stall rate as a first-class reported column.** The archive already records it (`status='crashed'`)
+  and it separated builds far faster than pass-proportion did — 0.80 vs 0.00 was visible at n=10
+  where pass rates needed the extremes to reach significance. `retort report optimal --health` and
+  the per-language matrix should carry it. A screen for any new local build: 10–20 runs, read the
+  stall rate, *then* decide whether a pass-proportion grid is worth running.
+- **`graph_usage_score` overloads 1.0** for "not applicable" and "graph consulted" (exp-63). Return
+  `None` for N/A so those rows leave any aggregate. Related: the `test_coverage == 0` gate zeroes it,
+  so "ignored the graph" and "the run failed" are indistinguishable.
+- ~~Smoke workspaces contaminate master.db~~ — **DONE 2026-09-04**: `aggregate` now skips any
+  `smoke*` task sub-dir, and `retort aggregate --allow-shrink` exists so the resulting shrink is
+  explicit. exp-64's and exp-62's smoke rows are gone (1227 → 1221).
 
-**Diagnostic worth reusing:** check token *lengths*, not the entry's existence. A blanked credential
-passes every presence check.
+## §3. Inference-lever sweep (issue #40)  — CLOSED 2026-09-04
 
-Fixed by an interactive `/login` at the terminal; `/login` is local-only and does not work over
-Remote Control. exp-55 brazil then resumed and completed 20/20.
+| lever | status | where |
+|---|---|---|
+| Sampling | DONE | exp-27; exp-66 (does not rescue 4-bit) |
+| Quant level | DONE | exp-64 (4 vs 8), exp-67 (6-bit: two curves) |
+| Quant scheme | DONE | exp-68 (DWQ: error not bits), exp-69 (generalises), analysis note (80B corroborates) |
+| **Speculative decoding / MTP** | **BLOCKED at two levels** | see below |
+| MoE vs dense | open, low | needs a matched-size dense model; none on hand |
+| K/V + context quant | deprioritised | memory lever; context is not our bottleneck |
+
+**The headline from the tier:** the lever that mattered most is *quantization error*, and the failure
+it causes in agentic use — circling in a tool loop until the guard kills it — is one that perplexity
+and single-turn benchmarks structurally cannot observe. Per-model, not per-bit-width: the 80B's
+4-bit build stalls at 0.04 where the 30B's stalls at 0.80. **Measure the stall rate.**
+
+**Speculative decoding is blocked, verified 2026-09-04, at two levels — not "needs a draft model"
+as previously recorded:** (1) oMLX 0.5.0rc1 exposes no speculative-decoding configuration at all
+(no flag in `omlx-cli serve --help`, no key in `settings.json`); (2) no MTP-weighted MLX build exists
+for either coder model (HF search: zero hits). A draft model cannot unblock a serving layer that
+cannot consume one. Revisit when oMLX ships it. Nanbeige4.2-3B stays on the candidate list as a
+*subject*, not as an unblock.
+
+**Closed without running:** scheme-vs-scheme on the 80B (`mxfp4` vs `4bit`). At a 0.04 stall rate
+there is no pathology to fix; one SQL query replaced ~42 GB and ~7 hours.
 
 ## M3. Make the test suite fast  — 226.6s → 80s (2026-08-22), 20s short of the bar
 
@@ -270,7 +200,7 @@ test that patches a path and then spends its time somewhere else.
 ---
 
 
-## 1. exp-54 — does a Codex judge agree with the Opus judge?  — SCOPED DOWN (token budget)
+## 5. exp-54 — does a Codex judge agree with the Opus judge?  — SCOPED DOWN (token budget)
 
 `requirement_coverage` is an LLM's opinion, and PR #45 made the judge configurable — so it is a
 variable nobody has measured. If two judges disagree about the same artifact, pass-proportions from
@@ -313,53 +243,6 @@ question with far more power, since every one of them CAN move in either directi
 **Standing decision: opus-4.8 remains the scoring judge here.** This measures the alternative rather
 than adopting it. Note also that exp-53's code was *written* by a Codex model, so a Codex judge
 agreeing is a same-vendor loop and weaker evidence than it looks.
-
-## 2. RESOLVED — Graphify closed as a null  — 2026-09-01
-
-All three arms are done. exp-44/45 (small repo) and **exp-63** (large repo, `the-goodies` -> Go)
-all found no pass-proportion benefit, while graphify consistently cost more tokens (+21% in exp-63).
-Written up in [`past-experiments.md`](past-experiments.md#exp-63--does-graphify-pay-off-on-a-large-repo--null-2026-09-01).
-No further Graphify arms are planned.
-
-**Open harness to-do left behind by exp-63:** `graph_usage_score` returns `1.0` for BOTH "not
-applicable" and "graph built and consulted", so the two are indistinguishable and averaging the
-column across arms inflates the consultation rate toward 1.0. Fix: return `None` for the
-not-applicable case, so those rows leave the aggregate instead of counting as successes. Related and
-still unfixed: the `test_coverage == 0` gate zeroes `graph_usage_score`, which already cannot
-distinguish "ignored the graph" from "the run failed".
-
-## 3. Inference-lever sweep — remaining tiers (issue #40)  — OPEN
-
-The sampling tier is done (exp-27). Remaining levers, by payoff:
-- **Speculative decoding / MTP** — the top speed lever. Our runs are generation-bound, so faster
-  tok/s converts wall-crashes and slow-but-terminating runs (esp. the 80B, and Rust/Go) into
-  passes. oMLX 0.5.0 ships a Qwen3.5/3.6 MTP patch, but the unsloth 4-bit build has no MTP weights →
-  needs a small draft model. Highest payoff, most setup.
-- **Quant level — ANSWERED for the 30B (exp-64, 2026-09-03), 6-bit now worth running.** 8-bit beats
-  4-bit **0.70 vs 0.10** pass-proportion (Fisher p = 0.0198), and the mechanism is a surprise: the
-  4-bit arm was killed by the stall guard in **8 of 10 runs** against the 8-bit's 1 (p = 0.0055).
-  4-bit does not mainly write worse code — it fails to *terminate*, circling in unproductive tool
-  loops. Written up in [`past-experiments.md`](past-experiments.md#exp-64--does-quantization-bit-width-move-coding-reliability--yes-2026-09-03).
-
-  **Next, in priority order:**
-  1. **6-bit, to locate the knee.** 4->8 moves the needle, so the intermediate level is now worth the
-     download (~25 GB, `mlx-community/Qwen3-Coder-30B-A3B-Instruct-6bit` ships). Same design, n=5.
-  2. **Re-run 4-bit with 30B-TUNED sampling first.** exp-64 used the 35B's config because the 30B has
-     never been tuned here. The 4-bit failure is a *loop* pathology, and sampling is the known cause
-     of exactly that (repetition_penalty derailed the tool loop in an earlier run). If a tuned config
-     rescues 4-bit, the quant effect is smaller than exp-64 measured. This is the strongest threat to
-     the result and should be run before 6-bit.
-  3. **Quant SCHEME as a separate factor** — the `-DWQ` builds (distilled quant, several learning
-     rates) are a different scheme, not another bit-width, and were deliberately excluded from
-     exp-64. Now that bit-width is known to matter, scheme is worth its own arm.
-
-- **MoE vs dense** (issue #40 ask) — a fair matched-size dense-vs-MoE on Hermes to isolate the
-  architecture effect (the Devstral attempt was the wrong harness).
-- **Deprioritised, with reason:** K/V + context quant (memory levers; context isn't our bottleneck
-  and lossy KV risks reliability); SWA / convRot (research-y, weak serving support).
-- **Meta-prize:** log each config's pass-proportion alongside its published perplexity → *which
-  inference levers move real coding reliability, and how badly perplexity mispredicts it.* No public
-  benchmark answers this.
 
 ## 4. Methodology: harness-orchestration factor (`retort-metaharness`)  — SIDE-BRANCH, staged
 

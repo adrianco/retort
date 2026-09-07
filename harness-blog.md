@@ -1,6 +1,6 @@
 # The Stack Under the Model: oMLX, llama.cpp, Hermes, and Why There Are So Many
 
-*Published 2026-07-22 · updated 2026-08-21 — Adrian Cockcroft*
+*Published 2026-07-22 · updated 2026-09-07 — Adrian Cockcroft*
 
 Most benchmarks answer "which *model* is best?" Retort insists that's the wrong unit. A coding result is produced by a whole **stack** — and the model is only one layer of it:
 
@@ -50,6 +50,8 @@ A model is a big pile of numbers (weights). How those numbers are *stored on dis
 - **MLX** — Apple's format, produced for **Apple's MLX framework**. MLX is Apple's array/ML library for Apple Silicon; it exploits the Mac's *unified memory* (CPU and GPU share the same RAM), which is why a 64 GB Mac can hold a 42 GB model that would otherwise need a datacenter GPU.
 
 **Quantization** is the other axis here: the same model shipped at 4-bit is a quarter the size of 16-bit and runs far faster, at some accuracy cost. When you see `Qwen3-Coder-Next-4bit` (≈42 GB) that's "the 80B model, MLX format, 4-bit."
+
+**Quantization *scheme* turns out to matter more than bit-count — and it decides something bit-count alone does not predict: whether an agentic loop terminates.** Six experiments on Qwen3-Coder-30B (exp-64–69) measured this directly. The plain `mlx-community` 4-bit build stalled in an unproductive tool-calling loop — circling until a 25-minute guard killed it — in **80% of runs**. The same model at the **same 4 bits and the same 16 GB**, quantized with **DWQ** (distilled quantization, which calibrates against the full-precision model rather than round-tripping), stalled in **0%** of 20 runs across four languages, and matched the 8-bit build's pass rate at half the memory. Raising bit-count helped too (6-bit: 1 stall in 10; 8-bit: 1 in 10), but DWQ showed the bits were never the variable — quantization *error* was. The 80B's ordinary 4-bit build corroborates it from the other side: across 131 archived runs it stalls at 0.04, because larger models quantize more gracefully and "4-bit" is a lower effective error there. The practical rule is per-build, not per-format or per-bit-width: **measure the stall rate**, which 10–20 runs will show at a 0.80-versus-0.00 resolution long before pass rates can separate. And note what standard quantization comparisons miss: perplexity and single-turn benchmarks track error, the right variable, but the failure it produces in agentic use is one a single-turn generation cannot exhibit at all.
 
 Why two local formats (GGUF and MLX) for the same models? Because each is glued to a different engine, which is the next layer.
 
