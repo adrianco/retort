@@ -145,7 +145,6 @@ class TestDesignMatrix:
 
     def test_from_csv_subset(self, mixed_level_registry, tmp_path):
         """from_csv should load a manually-trimmed (subset) CSV correctly."""
-        import pandas as pd
         result = generate_screening_design(mixed_level_registry)
         # Write a 3-row subset
         subset = result.matrix.head(3)

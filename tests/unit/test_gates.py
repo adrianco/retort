@@ -5,7 +5,7 @@ from __future__ import annotations
 import pytest
 
 from retort.config.schema import PromotionConfig, PromotionGate
-from retort.promotion.gates import GateResult, evaluate_gate
+from retort.promotion.gates import evaluate_gate
 
 
 @pytest.fixture

@@ -12,7 +12,6 @@ of bug was already fixed once for `cache_gb`; this generalises it.
 """
 from __future__ import annotations
 
-import pytest
 
 from retort.playpen.stack_reload import _sig
 

@@ -2,7 +2,6 @@
 
 from __future__ import annotations
 
-from pathlib import Path
 
 import pluggy
 import pytest
@@ -19,14 +18,13 @@ from retort.playpen.runner import (
 )
 from retort.plugins import (
     PROJECT_NAME,
-    RetortHookSpec,
     _create_plugin_manager,
     discover_runners,
     discover_scorers,
     get_plugin_manager,
     hookimpl,
 )
-from retort.scoring.registry import ScorerRegistry, create_default_registry
+from retort.scoring.registry import create_default_registry
 
 
 # ---------------------------------------------------------------------------

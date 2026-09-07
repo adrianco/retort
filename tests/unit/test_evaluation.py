@@ -16,8 +16,7 @@ from retort.cli import (
     _run_auto_evaluation,
     main as cli,
 )
-from retort.config.loader import load_workspace
-from retort.config.schema import EvaluationConfig, JudgeConfig, LocalAgentConfig, WorkspaceConfig
+from retort.config.schema import EvaluationConfig, JudgeConfig, WorkspaceConfig
 
 
 # ---------------------------------------------------------------------------

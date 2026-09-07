@@ -6,7 +6,6 @@ amount of functional output produced.
 
 from __future__ import annotations
 
-from pathlib import Path
 
 from retort.playpen.runner import RunArtifacts, StackConfig
 

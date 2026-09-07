@@ -14,8 +14,6 @@ from pathlib import Path
 import click
 
 from retort import __version__
-from retort.analysis.anova import run_all_responses, run_anova
-from retort.analysis.residuals import check_residuals
 from retort.design.factors import FactorRegistry
 from retort.design.generator import DesignMatrix, generate_design
 
@@ -526,7 +524,7 @@ def run_experiments(
     from retort.config.loader import load_workspace
     from retort.playpen.docker_runner import DockerRunner
     from retort.playpen.local_runner import LocalRunner
-    from retort.playpen.runner import StackConfig, TaskSpec
+    from retort.playpen.runner import StackConfig
     from retort.playpen.task_loader import load_task, task_requirements_path
     from retort.scoring.collector import ScoreCollector
     from retort.storage.database import create_tables, get_engine, get_session
@@ -3230,7 +3228,7 @@ if __name__ == "__main__":
 
 
 # --- extracted command modules (import LAST: main + all helpers are defined above) ---
-from retort.commands import scoring  # noqa: E402
+from retort.commands import scoring  # noqa: E402,F401
 from retort.commands import reporting  # noqa: E402,F401
 from retort.commands import utility  # noqa: E402,F401
 from retort.commands import workspace  # noqa: E402,F401

@@ -18,7 +18,6 @@ import itertools
 import json
 from dataclasses import dataclass
 
-import numpy as np
 import pandas as pd
 
 from retort.analysis.anova import AnovaResult

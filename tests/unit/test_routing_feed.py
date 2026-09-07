@@ -1,7 +1,6 @@
 """The retort→metaharness routing feed (report optimal --routing-json)."""
 from __future__ import annotations
 
-import sqlite3
 
 import pytest
 

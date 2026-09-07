@@ -5,7 +5,6 @@ from __future__ import annotations
 import subprocess
 
 from retort.playpen.toolchains import (
-    Toolchain,
     ensure_toolchains,
     format_report,
     required_toolchains,

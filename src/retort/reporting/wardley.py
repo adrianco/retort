@@ -21,7 +21,6 @@ from sqlalchemy.orm import Session
 from retort.storage.models import (
     DesignMatrix,
     ExperimentRun,
-    LifecyclePhase,
     RunStatus,
 )
 

@@ -130,9 +130,7 @@ def list_plugins(pm: pluggy.PluginManager | None = None) -> list[dict[str, str]]
     for plugin in pm.get_plugins():
         if plugin is pm.trace:
             continue
-        name = pm.parse_hookimpl_opts(plugin, "__name__") or ""
         mod = getattr(plugin, "__name__", None) or type(plugin).__module__
-        dist = pm.parse_hookimpl_opts(plugin, "__name__")
         plugin_name = getattr(plugin, "__name__", None) or type(plugin).__name__
         infos.append({"name": plugin_name, "module": mod})
     return infos

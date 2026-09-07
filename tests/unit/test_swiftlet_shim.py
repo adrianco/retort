@@ -177,10 +177,12 @@ class _StubSwiftlet(BaseHTTPRequestHandler):
 def shim_pair():
     """A live shim in front of a live stub upstream, on ephemeral ports."""
     upstream = HTTPServer(("127.0.0.1", 0), _StubSwiftlet)
-    threading.Thread(target=upstream.serve_forever, daemon=True).start()
+    # poll_interval=0.05, not the 0.5 s default: shutdown() waits out one poll
+    # per server, and two servers made every teardown here cost a flat 1.00 s.
+    threading.Thread(target=lambda: upstream.serve_forever(poll_interval=0.05), daemon=True).start()
     shim = serve(listen_port=0, upstream_port=upstream.server_address[1],
                  model_name="Qwen3.6-35B-A3B")
-    threading.Thread(target=shim.serve_forever, daemon=True).start()
+    threading.Thread(target=lambda: shim.serve_forever(poll_interval=0.05), daemon=True).start()
     yield f"http://127.0.0.1:{shim.server_address[1]}"
     shim.shutdown()
     upstream.shutdown()

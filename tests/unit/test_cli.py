@@ -1531,7 +1531,6 @@ def test_nonpassing_languages(tmp_path: Path):
 def test_recover_chains_diagnose_and_rescore(tmp_path: Path):
     """`recover --no-reevaluate` runs diagnose then rescore --only-failed, and a
     tooling false-failure (go code that actually builds) flips to completed."""
-    import json
     import shutil as _sh
     import pytest
     if _sh.which("go") is None:
@@ -1830,7 +1829,6 @@ def test_retort_run_pids_matches_by_cwd(tmp_path, monkeypatch):
 
     def fake_run(args, **kwargs):
         import subprocess
-        joined = " ".join(args)
         if args[0] == "pgrep":
             out = "4242\n"
         elif args[0] == "ps":

@@ -3,7 +3,6 @@
 from __future__ import annotations
 
 import subprocess
-import tempfile
 from pathlib import Path
 
 import pytest
@@ -1330,8 +1329,6 @@ def test_runtime_uses_median_not_mean(monkeypatch, tmp_path):
 
     monkeypatch.setattr(rt, "_machine_is_busy", lambda: False)
     monkeypatch.setattr(rt, "_find_server_entry", lambda d, l: ["true"])
-    seq = iter([10.0] * 4 + [10.0, 10.0, 900.0, 10.0, 10.0, 10.0,
-                             10.0, 10.0, 10.0, 10.0])
     monkeypatch.setattr(rt, "TIMED_ITERS", 10)
     monkeypatch.setattr(rt, "WARMUP_ITERS", 3)
 

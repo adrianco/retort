@@ -6,7 +6,7 @@ list.  Entries are append-only — callers should never mutate or remove them.
 
 from __future__ import annotations
 
-from dataclasses import dataclass, field
+from dataclasses import dataclass
 from datetime import datetime, timezone
 from typing import TYPE_CHECKING
 

@@ -2,10 +2,8 @@
 
 from __future__ import annotations
 
-import json
 
 import pytest
-from click.testing import CliRunner
 
 from retort.reporting.effects import EffectsReport, InteractionEffect, MainEffect
 from retort.reporting.export import to_html

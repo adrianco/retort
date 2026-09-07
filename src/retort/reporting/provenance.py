@@ -194,7 +194,6 @@ def _model_revisions(model_ids: list[str]) -> dict[str, Any]:
     # "mlxlocal/X" and "X" name the same model — key on the served name so a
     # provider-prefixed id and a bare one don't both appear.
     for name in sorted({m.split("/", 1)[-1] for m in model_ids}):
-        mid = name
         entry: dict[str, Any] = {"served_as": name}
         # a ~/models symlink points at the real snapshot
         link = models_dir / name
@@ -202,7 +201,6 @@ def _model_revisions(model_ids: list[str]) -> dict[str, Any]:
         if link.is_symlink() or link.exists():
             target = link.resolve()
         else:
-            repo = hub / f"models--{name.replace('--', '--')}"
             snaps = sorted(hub.glob(f"models--*{name.split('--')[-1]}*/snapshots/*"))
             if snaps:
                 target = snaps[-1]

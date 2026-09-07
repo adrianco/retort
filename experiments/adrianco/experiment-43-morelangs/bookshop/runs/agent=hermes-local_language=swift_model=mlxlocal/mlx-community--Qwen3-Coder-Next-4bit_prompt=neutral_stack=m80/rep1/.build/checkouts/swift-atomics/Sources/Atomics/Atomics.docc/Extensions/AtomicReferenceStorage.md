@@ -1,4 +1,0 @@
-# ``Atomics/AtomicReference``
-
-## Topics
-

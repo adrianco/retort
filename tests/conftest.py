@@ -9,7 +9,7 @@ import pytest
 from sqlalchemy import create_engine
 from sqlalchemy.orm import Session, sessionmaker
 
-from retort.design.factors import FactorRegistry, FactorType
+from retort.design.factors import FactorRegistry
 from retort.storage.models import Base
 
 

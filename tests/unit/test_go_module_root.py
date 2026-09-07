@@ -12,7 +12,6 @@ six cells identically at $1.47 each.
 """
 from __future__ import annotations
 
-from pathlib import Path
 
 from retort.scoring.scorers.test_coverage import _go_module_root
 

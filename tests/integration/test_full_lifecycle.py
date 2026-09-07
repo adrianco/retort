@@ -12,7 +12,7 @@ from pathlib import Path
 import pytest
 from click.testing import CliRunner
 from sqlalchemy import create_engine
-from sqlalchemy.orm import Session, sessionmaker
+from sqlalchemy.orm import sessionmaker
 
 from retort.cli import main
 from retort.design.factors import FactorRegistry
@@ -20,8 +20,6 @@ from retort.design.generator import generate_design
 from retort.reporting.effects import (
     EffectsReport,
     compute_effects,
-    compute_interaction_effects,
-    compute_main_effects,
 )
 from retort.reporting.export import to_csv, to_json, to_text
 from retort.storage.models import (

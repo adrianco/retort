@@ -221,10 +221,6 @@ def compute_effects(
         )
 
     grand_mean = float(df[df["_metric"] == metric]["_value"].mean())
-    n_runs = int(df[df["_metric"] == metric]["_replicate"].nunique() * len(
-        df[df["_metric"] == metric].drop(columns=["_replicate", "_metric", "_value"])
-        .drop_duplicates()
-    ))
 
     main = compute_main_effects(df, factors, metric)
     interactions = compute_interaction_effects(df, factors, metric)

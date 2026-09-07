@@ -22,7 +22,6 @@ from pathlib import Path
 
 from retort.config.schema import LocalAgentConfig, LocalInferenceCost
 from retort.playpen.runner import (
-    PlaypenRunner,
     RunArtifacts,
     StackConfig,
     TaskSpec,

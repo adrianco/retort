@@ -31,6 +31,20 @@ def _fake_guard(stdout="", stderr="", returncode=0, elapsed=60.0, kill_reason=No
     return _run
 
 
+@pytest.fixture(autouse=True)
+def _no_real_venv(request, monkeypatch):
+    """Stub the per-workspace venv build unless a test opts in.
+
+    provision() creates a real venv for every python stack -- ~2.2 s each.
+    Only two tests in this file assert on that venv; the other fifteen check
+    metadata, cost and stack.json and were paying ~33 s of the suite for a
+    venv they never read. Opt back in with @pytest.mark.real_venv.
+    """
+    if request.node.get_closest_marker("real_venv"):
+        return
+    from retort.playpen import local_runner
+    monkeypatch.setattr(local_runner, "ensure_python_venv", lambda workspace: None)
+
 class TestStackConfig:
     def test_from_run_config_basic(self):
         config = {"language": "python", "agent": "claude-code", "framework": "fastapi"}
@@ -1576,6 +1590,7 @@ def test_codex_command_carries_the_effort_level():
         stack, task, Path("/tmp"))
 
 
+@pytest.mark.real_venv
 def test_python_workspace_gets_a_venv_with_python_on_path(tmp_path):
     """A python run must find a bare `python`, not just Homebrew's `python3`.
 
@@ -1604,6 +1619,7 @@ def test_python_workspace_gets_a_venv_with_python_on_path(tmp_path):
     assert env["PATH"].split(":")[0] == str(env_dir / "venv" / "bin")
 
 
+@pytest.mark.real_venv
 def test_non_python_workspace_gets_no_venv(tmp_path):
     """Only python pays the venv-creation cost."""
     from retort.playpen.local_runner import LocalRunner

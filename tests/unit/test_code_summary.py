@@ -2,7 +2,6 @@
 
 from __future__ import annotations
 
-from pathlib import Path
 
 from retort.reporting.code_summary import summarize_archive
 

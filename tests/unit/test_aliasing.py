@@ -2,7 +2,6 @@
 
 from __future__ import annotations
 
-import json
 
 import pytest
 
@@ -15,7 +14,6 @@ from retort.design.aliasing import (
     compute_aliasing,
 )
 from retort.design.factors import FactorRegistry
-from retort.design.generator import DesignPhase
 
 
 # ---------------------------------------------------------------------------

@@ -10,7 +10,6 @@ from __future__ import annotations
 from dataclasses import dataclass, field
 
 import pandas as pd
-import statsmodels.api as sm
 from statsmodels.formula.api import ols
 from statsmodels.stats.anova import anova_lm
 

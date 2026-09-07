@@ -21,7 +21,7 @@ import pandas as pd
 
 from retort.design.augmentor import AugmentationResult, augment_design
 from retort.design.factors import FactorRegistry
-from retort.design.generator import DesignMatrix, DesignPhase
+from retort.design.generator import DesignMatrix
 from retort.promotion.gates import GateResult
 from retort.promotion.lifecycle import StackLifecycle
 

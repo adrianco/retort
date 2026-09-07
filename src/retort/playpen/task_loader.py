@@ -2,7 +2,6 @@
 
 from __future__ import annotations
 
-import importlib.resources
 import subprocess
 import tempfile
 from dataclasses import dataclass

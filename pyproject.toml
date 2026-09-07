@@ -80,6 +80,7 @@ testpaths = ["tests"]
 addopts = "-ra -q"
 pythonpath = ["src"]
 markers = [
+    "real_venv: test asserts on the real provisioned venv; disables the autouse stub",
     "allow_billed_cli: test genuinely needs a real agent/judge CLI (see tests/conftest.py)",
 ]
 

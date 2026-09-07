@@ -7,7 +7,6 @@ executing runs (in simulation mode) to storing scored results.
 from __future__ import annotations
 
 import json
-from pathlib import Path
 
 import pytest
 from sqlalchemy import create_engine
@@ -20,7 +19,7 @@ from retort.playpen.runner import StackConfig, TaskSpec
 from retort.playpen.task_loader import load_task
 from retort.scoring.collector import ScoreCollector
 from retort.storage.database import create_tables
-from retort.storage.models import Base, ExperimentRun, RunResult, RunStatus
+from retort.storage.models import ExperimentRun, RunResult, RunStatus
 
 
 @pytest.fixture

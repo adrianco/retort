@@ -8,7 +8,7 @@ from retort.design.augmentor import (
     augment_design,
 )
 from retort.design.factors import FactorRegistry
-from retort.design.generator import DesignPhase, generate_screening_design
+from retort.design.generator import generate_screening_design
 
 
 @pytest.fixture

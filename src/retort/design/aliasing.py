@@ -19,7 +19,6 @@ from __future__ import annotations
 from dataclasses import dataclass, field
 from itertools import combinations
 
-import numpy as np
 
 from retort.design.factors import FactorRegistry
 from retort.design.generator import DesignPhase

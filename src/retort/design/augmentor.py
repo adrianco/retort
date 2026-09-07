@@ -23,8 +23,8 @@ from dataclasses import dataclass
 import numpy as np
 import pandas as pd
 
-from retort.design.factors import Factor, FactorRegistry
-from retort.design.generator import DesignMatrix, DesignPhase
+from retort.design.factors import FactorRegistry
+from retort.design.generator import DesignMatrix
 
 
 @dataclass(frozen=True)

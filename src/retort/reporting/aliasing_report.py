@@ -29,7 +29,6 @@ def render_text(report: AliasingReport) -> str:
         lines.append("Generators")
         lines.append("-" * 40)
         n_base = report.n_factors - len(report.generators)
-        base_labels = [chr(ord("A") + i) for i in range(n_base)]
         for i, gen in enumerate(report.generators):
             gen_label = chr(ord("A") + n_base + i)
             lines.append(f"  {gen_label} = {gen}")

@@ -17,7 +17,6 @@ import uuid
 from pathlib import Path
 
 from retort.playpen.runner import (
-    PlaypenRunner,
     RunArtifacts,
     StackConfig,
     TaskSpec,

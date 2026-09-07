@@ -370,3 +370,6 @@ agentdb.rvf.lock
 .build/
 **/runs/**/obj/
 **/runs/**/bin/
+
+# graphify code-graph artifact — regenerate with `graphify update src`, never commit
+**/graphify-out/
