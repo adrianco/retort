@@ -147,7 +147,7 @@ def test_auto_evaluation_disabled_does_nothing(tmp_path: Path):
     run = tmp_path / "rep1"
     run.mkdir()
     cfg = EvaluationConfig(enabled=False)
-    with patch("retort.cli._invoke_claude_skill") as m:
+    with patch("retort.run.evaluate._invoke_claude_skill") as m:
         _run_auto_evaluation(run, cfg, visibility="public")
         m.assert_not_called()
 
@@ -159,7 +159,7 @@ def test_auto_evaluation_skips_when_current(tmp_path: Path):
     time.sleep(0.02)
     (run / "evaluation.md").write_text("# r")
     cfg = EvaluationConfig(enabled=True)
-    with patch("retort.cli._invoke_claude_skill") as m:
+    with patch("retort.run.evaluate._invoke_claude_skill") as m:
         _run_auto_evaluation(run, cfg, visibility="public")
         m.assert_not_called()
 
@@ -186,7 +186,7 @@ def test_auto_evaluation_private_forces_beads_tracker(tmp_path: Path):
         prompts.append(prompt)
         return 0, ""
 
-    with patch("retort.cli._invoke_judge_prompt", side_effect=fake_prompt):
+    with patch("retort.run.evaluate._invoke_judge_prompt", side_effect=fake_prompt):
         _run_auto_evaluation(run, cfg, visibility="private")
 
     # A single chained prompt should reference both skills and use beads tracker.
@@ -216,7 +216,7 @@ def test_auto_evaluation_public_respects_configured_tracker(tmp_path: Path):
         prompts.append(prompt)
         return 0, ""
 
-    with patch("retort.cli._invoke_judge_prompt", side_effect=fake_prompt):
+    with patch("retort.run.evaluate._invoke_judge_prompt", side_effect=fake_prompt):
         _run_auto_evaluation(run, cfg, visibility="public")
 
     assert prompts, "expected _invoke_claude_skill_prompt to be called"
@@ -239,7 +239,7 @@ def test_auto_evaluation_swallows_skill_failure(tmp_path: Path):
     # judge: `claude -p Follow skill at /private/var/.../pytest-851/...`, 35-59s
     # of billed API time on every `pytest tests/unit`. The conftest guard now
     # makes that impossible to reintroduce silently.
-    with patch("retort.cli._invoke_judge_prompt", return_value=(1, "boom")):
+    with patch("retort.run.evaluate._invoke_judge_prompt", return_value=(1, "boom")):
         # Should not raise — evaluation failure must never abort the experiment.
         _run_auto_evaluation(run, cfg, visibility="public")
 
@@ -299,7 +299,7 @@ def test_evaluate_command_invokes_skill(tmp_path: Path):
         return 0, ""
 
     runner = CliRunner()
-    with patch("retort.cli._invoke_judge_prompt", side_effect=fake_prompt):
+    with patch("retort.run.evaluate._invoke_judge_prompt", side_effect=fake_prompt):
         result = runner.invoke(
             cli,
             ["evaluate", str(run), "--config", str(ws / "workspace.yaml")],
@@ -325,7 +325,7 @@ def test_auto_evaluation_uses_configured_codex_judge(tmp_path: Path):
         seen.append(judge)
         return 0, ""
 
-    with patch("retort.cli._invoke_judge_prompt", side_effect=fake_prompt):
+    with patch("retort.run.evaluate._invoke_judge_prompt", side_effect=fake_prompt):
         _run_auto_evaluation(run, cfg, visibility="private")
 
     assert seen[0].harness == "codex"

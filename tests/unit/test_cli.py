@@ -1157,15 +1157,18 @@ class TestSecondOpinionGate:
 
     @staticmethod
     def _patch(monkeypatch, covs):
-        import retort.cli as cli
+        # Patch the seams where their CALLER lives. _spec_conformance_passes
+        # resolves these by bare name in retort.run.evaluate; a patch on
+        # retort.cli only rebinds the re-export and never reaches it.
+        import retort.run.evaluate as evaluate
         seq = list(covs)
         calls = {"n": 0}
 
         def fake_eval(*a, **k):
             calls["n"] += 1
 
-        monkeypatch.setattr(cli, "_run_auto_evaluation", fake_eval)
-        monkeypatch.setattr(cli, "_read_requirement_coverage", lambda run_dir: seq.pop(0))
+        monkeypatch.setattr(evaluate, "_run_auto_evaluation", fake_eval)
+        monkeypatch.setattr(evaluate, "_read_requirement_coverage", lambda run_dir: seq.pop(0))
         return calls
 
     def test_first_pass_short_circuits(self, monkeypatch, tmp_path):
@@ -1894,3 +1897,26 @@ def test_repair_prior_run_finds_model_slash_nested_archive(tmp_path):
     assert pr["dir"].name == "rep2" and abs(pr["req_cov"] - 0.9167) < 1e-6
     # a rep that already passed (req_cov 1.0) is not repairable
     assert cli._repair_prior_run(str(exp), "rust", 9) is None  # no such rep
+
+
+def test_conformance_seams_must_be_patched_on_evaluate_not_cli(monkeypatch, tmp_path):
+    """A stub on retort.cli does not reach _spec_conformance_passes.
+
+    cli.py only re-exports the evaluate helpers; the gate calls
+    _run_auto_evaluation and _read_requirement_coverage by bare name inside
+    retort.run.evaluate. Patching the re-export is the mistake that once let
+    a unit suite make billed judge calls. This pins the working seam.
+    """
+    import retort.cli as cli
+    import retort.run.evaluate as evaluate
+
+    seen = {"evaluate": 0, "cli": 0}
+    monkeypatch.setattr(evaluate, "_read_requirement_coverage", lambda run_dir: 1.0)
+    monkeypatch.setattr(evaluate, "_run_auto_evaluation",
+                        lambda *a, **k: seen.__setitem__("evaluate", seen["evaluate"] + 1))
+    monkeypatch.setattr(cli, "_run_auto_evaluation",
+                        lambda *a, **k: seen.__setitem__("cli", seen["cli"] + 1))
+
+    passed, cov = cli._spec_conformance_passes(tmp_path, object(), "public")
+    assert passed is True and cov == 1.0
+    assert seen["cli"] == 0, "the gate must not read the cli re-export"

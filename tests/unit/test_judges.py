@@ -101,7 +101,7 @@ def test_judge_invocation_persists_each_attempt(tmp_path: Path):
         args=[], returncode=0, stdout="judge output", stderr="judge diagnostics"
     )
 
-    with patch("retort.cli.subprocess.run", return_value=completed):
+    with patch("retort.run.evaluate.subprocess.run", return_value=completed):
         assert _invoke_judge_prompt(judge, tmp_path, "Write assessment.json.") == (
             0,
             "judge outputjudge diagnostics",
