@@ -125,20 +125,55 @@ reflows normally.
   [`past-experiments.md`](docs/past-experiments.md)** (append in increasing experiment order). Do
   the same for a model candidate the moment you decide it isn't worth testing.
 
-## Code layout — where CLI commands live
+## Code layout — where the code lives
 
-`src/retort/cli.py` holds the **`run` command** (the core experiment pipeline) plus the
-**shared helpers** (`_archive_run_workspace`, `_persist_*`, `_spec_conformance_passes`, …)
-and the click **group definitions** (`main`, `report`, `design`, `export`, `tasks`, `plugin`).
+`src/retort/cli.py` holds the **`run` command** (`run_experiments`, the core experiment
+pipeline) with its own orchestration helpers (`_ordered_runs`, `_shard_owns`,
+`_estimate_run_timeout`, `_load_*`, …), the click **group definitions** (`main`, `report`,
+`design`, `export`, `tasks`, `plugin`), and **re-exports** of everything that was split out of it.
+
+The pipeline's shared helpers were split out of cli.py by concern into **`src/retort/run/`**
+(2026-09-08, four cuts, each landed green — graphify picked every boundary):
+
+- `run/liveness.py` — is a `retort run` still alive, and how deep into its context is the agent?
+  (`_discover_active_runs`, `_retort_run_pids_for`, `_live_context_tokens`, …). Used by `monitor`.
+- `run/persist.py` — everything that reads or writes the experiment's retort.db: design matrix,
+  run rows, metric values, requirement coverage, judge attempts, rescoring, the archive-walking
+  helpers, and `_factual_gate_failed`.
+- `run/workspace.py` — the playpen on disk: seeding a self-repair, archiving a finished run
+  with build noise stripped (`_ARCHIVE_NOISE`), the experiment `.gitignore`, `_harness_failure`.
+- `run/evaluate.py` — deciding whether a run passed: the LLM judge, the spec-conformance gate
+  (`_spec_conformance_passes`), the mechanical gates, requirements generation, eval preflight.
+
+Dependency direction is `cli -> evaluate -> persist`; `run/` modules never import from cli.
+
 Every **other command lives in `src/retort/commands/<area>.py`** — `scoring` (evaluate/
 reevaluate/rescore/diagnose/recover), `reporting` (report *), `analysis` (analyze/aggregate/
 maturity), `workspace` (init/visibility-check/design generate/promote/intake), `monitoring`,
-`utility` (plugin/export/tasks), `rebuild` (rebuild/report runtime). cli.py imports these at its **bottom** (after the groups +
-helpers are defined, so it isn't circular) and re-exports moved names for back-compat.
+`utility` (plugin/export/tasks), `rebuild` (rebuild/report runtime). cli.py imports these at its
+**bottom** (after the groups are defined, so it isn't circular).
 
-**Adding a command: put it in the matching `commands/` module, not cli.py** (keep cli.py to
-the run pipeline). Register it on the shared group (`from retort.cli import <group>`); if it
-needs a cli.py helper/constant, reference it through the module — `cli._helper(...)` (do
-`from retort import cli`), never `from retort.cli import _helper` — so monkeypatching in tests
-still reaches it. The `test_every_command_is_registered_and_imports` guard invokes `--help`
-on every command, so a broken import/registration fails loudly.
+**Adding a command: put it in the matching `commands/` module, not cli.py.** Register it on the
+shared group (`from retort.cli import <group>`). If it needs a helper, reference it through the
+module — `cli._helper(...)` (do `from retort import cli`) — which works for every split-out name
+because cli.py re-exports them. The `test_every_command_is_registered_and_imports` guard invokes
+`--help` on every command, so a broken import/registration fails loudly.
+
+**Monkeypatching a helper in a test: patch the module where the CALLER looks the name up, not
+where it is defined.** This is the one rule the split makes easy to get wrong, and getting it
+wrong is how a unit suite once made billed `claude -p` calls — the stubs patched a module the
+code path no longer read.
+
+- If the code under test reaches the helper *through* `cli` — `run_experiments` and every
+  `commands/` module do — patch `retort.cli.<name>`.
+- If the code under test lives *inside* `run/<module>.py` and calls a sibling by bare name
+  (e.g. `_spec_conformance_passes` calling `_run_auto_evaluation`), patch
+  `retort.run.<module>.<name>`. A patch on the `cli` re-export never reaches it.
+
+`test_conformance_seams_must_be_patched_on_evaluate_not_cli` pins this, and the autouse
+`_no_billed_cli_subprocesses` fixture is the backstop that turns a mis-targeted stub into a
+loud failure instead of a real API call.
+
+**File-size debt, known:** `run_experiments` is ~800 lines in one function; `persist.py` (663) and
+`evaluate.py` (616) exceed the 500-line rule because `_store_run_result` (213) and the judge
+functions are large. Those are the next decomposition targets, not new homes for more code.
