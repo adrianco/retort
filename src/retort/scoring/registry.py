@@ -102,7 +102,7 @@ def create_default_registry() -> ScorerRegistry:
     # data from a normal run, not from a follow-up sweep over archives.
     #
     # Must run inline (here), while the playpen workspace is still built:
-    # archives have dist/build/target/node_modules stripped by cli._ARCHIVE_NOISE,
+    # archives have dist/build/target/node_modules stripped by retort.run.workspace._ARCHIVE_NOISE,
     # so an archived run is not runnable without a restore that changes the very
     # thing being measured. Yields an explicit non-result (None) for a run it
     # cannot measure, never a 0 that would read as "infinitely slow".

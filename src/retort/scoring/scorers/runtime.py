@@ -661,7 +661,7 @@ def _build_then_entry(run_dir: Path, language: str,
             scripts = json.loads(pkg.read_text()).get("scripts", {})
         except ValueError:
             scripts = {}
-        # Archives strip node_modules AND dist (see cli._ARCHIVE_NOISE), so a
+        # Archives strip node_modules AND dist (see retort.run.workspace._ARCHIVE_NOISE), so a
         # restore is required before the build — without it `npm run build`
         # fails silently and `npm start` dies on a missing dist/server.js,
         # which the probe would otherwise report as "the server never answered".
@@ -1675,7 +1675,7 @@ class RuntimeScorer:
     RUNS INLINE, during scoring, while the playpen workspace is still intact.
     That placement is the whole point: archived runs have had ``dist/``,
     ``build/``, ``target/`` and ``node_modules/`` stripped by
-    ``cli._ARCHIVE_NOISE``, so measuring one means restoring and rebuilding a
+    ``retort.run.workspace._ARCHIVE_NOISE``, so measuring one means restoring and rebuilding a
     tree that is no longer what the agent actually ran. Inline, the built
     artifact is right there.
 
