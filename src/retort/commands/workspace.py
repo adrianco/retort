@@ -1,6 +1,11 @@
 """Workspace + lifecycle commands (init, visibility-check, design generate, promote, intake)."""
 from __future__ import annotations
 
+import shutil
+import json
+import sys
+from pathlib import Path
+
 import click  # noqa: F401
 
 from retort import cli
@@ -23,7 +28,7 @@ def init(name: str, force: bool, visibility: str):
     Creates a workspace directory with a config template, a visibility-aware
     .gitignore, and an initialized SQLite database.
     """
-    workspace = cli.Path(name).resolve()
+    workspace = Path(name).resolve()
 
     if workspace.exists() and not force:
         raise click.ClickException(
@@ -31,7 +36,7 @@ def init(name: str, force: bool, visibility: str):
         )
 
     if workspace.exists() and force:
-        cli.shutil.rmtree(workspace)
+        shutil.rmtree(workspace)
 
     workspace.mkdir(parents=True, exist_ok=True)
 
@@ -70,7 +75,7 @@ def init(name: str, force: bool, visibility: str):
     type=click.Path(exists=True),
     default="workspace.yaml",
     show_default=True,
-    help="cli.Path to workspace YAML config.",
+    help="Path to workspace YAML config.",
 )
 def visibility_check(config: str) -> None:
     """Audit which workspace artifacts would be published vs kept local.
@@ -83,7 +88,7 @@ def visibility_check(config: str) -> None:
     from retort.config.loader import load_workspace
 
     cfg = load_workspace(config)
-    workspace_dir = cli.Path(config).resolve().parent
+    workspace_dir = Path(config).resolve().parent
     visibility = cfg.experiment.visibility
 
     click.echo(f"Workspace:  {workspace_dir}")
@@ -153,7 +158,7 @@ def design_generate(phase: str, config: str | None, output: str | None) -> None:
 
     if len(registry) < 2:
         click.echo("Error: need at least 2 factors for design generation.", err=True)
-        cli.sys.exit(1)
+        sys.exit(1)
 
     # Honour design.fraction from workspace config when available
     fraction: float | None = None
@@ -237,7 +242,7 @@ def promote(
     # default) reported "missing from evidence" for every stack, forever.
     if evidence is None:
         from retort.promotion.evidence import compute_evidence
-        db = cli.Path("master.db")
+        db = Path("master.db")
         evidence_dict: dict[str, float] = compute_evidence(db, stack_id)
         if evidence_dict:
             n = evidence_dict.pop("n_runs", 0)
@@ -250,8 +255,8 @@ def promote(
                        "(needs >=2 runs); pass --evidence to supply it.", err=True)
     else:
         try:
-            evidence_dict = cli.json.loads(evidence)
-        except cli.json.JSONDecodeError as exc:
+            evidence_dict = json.loads(evidence)
+        except json.JSONDecodeError as exc:
             raise click.ClickException(f"Invalid JSON in --evidence: {exc}") from exc
 
     # Load promotion config from workspace YAML or use defaults.

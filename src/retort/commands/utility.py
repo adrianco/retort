@@ -135,7 +135,6 @@ def export_csv(db: str, output: str | None, include_failed: bool) -> None:
     """
     import csv as _csv
     import io
-    import sys
 
     from retort.storage.database import get_engine, get_session_factory
     from retort.storage.models import ExperimentRun, RunResult, RunStatus
@@ -244,7 +243,6 @@ def export_merge(inputs: tuple[str, ...], output: str | None, tag_column: str) -
     """
     import csv as _csv
     import io
-    import sys
 
     parsed: list[tuple[str, Path]] = []
     for spec in inputs:

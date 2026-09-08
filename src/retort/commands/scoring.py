@@ -148,7 +148,6 @@ def reevaluate(experiment_dir, config, eval_model, workers, languages, force):
     unless --force. Use after `retort aggregate` to refresh the master DB.
     """
     import concurrent.futures
-    import re
     from retort.config.loader import load_workspace
 
     exp = Path(experiment_dir)
@@ -350,7 +349,6 @@ def rescore(experiment_dir, config, languages, only_failed, metrics_only, worker
     corrected value.
     """
     import concurrent.futures
-    import re
     import sqlite3
     from retort.config.loader import load_workspace
     from retort.playpen.runner import RunArtifacts, StackConfig

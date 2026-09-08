@@ -1,6 +1,9 @@
 """Analysis / data commands (analyze, aggregate, maturity)."""
 from __future__ import annotations
 
+import sys
+from pathlib import Path
+
 import click  # noqa: F401
 
 from retort import cli
@@ -92,7 +95,7 @@ def analyze(
     missing = [r for r in response_list if r not in df.columns]
     if missing:
         click.echo(f"Error: response columns not found in data: {missing}", err=True)
-        cli.sys.exit(1)
+        sys.exit(1)
 
     results = cli.run_all_responses(
         df,
@@ -162,8 +165,8 @@ def aggregate(experiments_dir: str, out_path: str, csv_path: str | None,
     """
     from retort.analysis.aggregate import build_master_db, unknown_factors, write_csv
 
-    root = cli.Path(experiments_dir)
-    n = build_master_db(root, cli.Path(out_path), allow_shrink=allow_shrink)
+    root = Path(experiments_dir)
+    n = build_master_db(root, Path(out_path), allow_shrink=allow_shrink)
     click.echo(f"Aggregated {n} runs from {root}/experiment-*/retort.db -> {out_path}")
     missing = unknown_factors()
     if missing:
@@ -175,7 +178,7 @@ def aggregate(experiments_dir: str, out_path: str, csv_path: str | None,
             err=True,
         )
     if csv_path:
-        write_csv(root, cli.Path(csv_path))
+        write_csv(root, Path(csv_path))
         click.echo(f"Wrote CSV -> {csv_path}")
 
 
@@ -184,7 +187,7 @@ def aggregate(experiments_dir: str, out_path: str, csv_path: str | None,
     "--db",
     type=click.Path(exists=True),
     required=True,
-    help="cli.Path to the retort SQLite database.",
+    help="Path to the retort SQLite database.",
 )
 @click.option(
     "--metric",
@@ -226,7 +229,7 @@ def maturity(db: str, metric: str, fmt: str, output: str | None, stack: str | No
     )
     from retort.storage.database import get_engine, get_session_factory
 
-    engine = get_engine(cli.Path(db))
+    engine = get_engine(Path(db))
     session = get_session_factory(engine)()
     try:
         report = compute_stack_maturity(session, headline_metric=metric)
@@ -250,7 +253,7 @@ def maturity(db: str, metric: str, fmt: str, output: str | None, stack: str | No
 
     rendered = render_json(report) if fmt == "json" else render_text(report)
     if output:
-        cli.Path(output).write_text(rendered)
+        Path(output).write_text(rendered)
         click.echo(f"Wrote maturity report ({len(report)} stacks) to {output}", err=True)
     else:
         click.echo(rendered)

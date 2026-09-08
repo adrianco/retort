@@ -377,6 +377,30 @@ invest in the solver dependency, master.db merge, and first-class docs.
      stale, the scan is not running — see "when the heartbeat goes stale" below. -->
 **Daily scan last completed: 2026-09-08** (scanning for new 64GB-fittable coding models)
 
+- 2026-09-08 — **GPT-6 Astra (OpenAI) — `gpt-6-astra`** — *the "new codex model"; added by hand
+  because the daily scan's scope was open-weights-only until today (widened the same day, see the
+  scan prompt). Facts from OpenAI's own model page, not a news story:* **$10 in / $50 out per 1M**
+  (cached input $1, cache writes $12.50 = 1.25× input, so `retort.pricing`'s GPT-5.6 cache-write
+  rule carries over — **added to `src/retort/pricing.py` 2026-09-08**), **1,050,000-token context**,
+  128K max output, reasoning effort **low / medium / high / xhigh / max — no `ultra`**, unlike
+  Terra/Luna/Sol. Rolled out to ChatGPT/Codex users 2026-09-03/04; in the API, AWS Bedrock and Azure.
+  **Framing:** at 4× Terra's price this is OpenAI's frontier tier, so the comparison that matters is
+  **Astra vs Fable 5.1 and Opus 5 on the HARD task** — the routine task is saturated at 1.00 for every
+  frontier model and would measure nothing but cost. **Before any grid, one smoke cell:**
+  `codex exec --model gpt-6-astra` on a single routine cell to (a) prove the id resolves through the
+  local codex CLI — the binary contains "astra" but the id cannot be verified offline — and (b) read
+  a real per-run cost, because at $50/M output a hard-task run could plausibly cost $10–30 and the
+  codex token budget is limited. Size the design from that number, not from a guess.
+  Sources: [OpenAI model page](https://developers.openai.com/api/docs/models/gpt-6-astra),
+  [The New Stack](https://thenewstack.io/openai-gpt6-astra-benchmarks/).
+- 2026-09-08 — **GPT-5.3-Codex-Spark (OpenAI) — `gpt-5.3-codex-spark`** — *relevant to §3's
+  speed lever, not a frontier-quality candidate:* OpenAI's first model on Cerebras hardware, ~15×
+  faster than earlier Codex models, text-only, **128k context**. **BLOCKED:** research preview,
+  ChatGPT Pro only; API access limited to design partners; pricing not finalised — so it cannot be
+  driven through `codex exec` today. Revisit when it reaches general API availability; if it does,
+  it is the cheapest possible test of whether raw tok/s converts wall-clock stalls into passes.
+  Source: [OpenAI announcement](https://openai.com/index/introducing-gpt-5-3-codex-spark/).
+
 New open-weight coding models found by the daily scan that plausibly fit 64GB at 4-bit; promote to a
 numbered experiment when prioritised.
 

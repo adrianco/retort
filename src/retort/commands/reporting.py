@@ -6,8 +6,9 @@ are referenced through the ``cli`` module so monkeypatching still reaches them.
 """
 from __future__ import annotations
 
+from pathlib import Path
+
 import sys  # noqa: F401  (used inside moved bodies)
-from pathlib import Path  # noqa: F401
 
 import click  # noqa: F401
 
@@ -506,7 +507,7 @@ def report_aliasing(
     type=click.Path(exists=True),
     default="workspace.yaml",
     show_default=True,
-    help="cli.Path to workspace YAML config (for model settings).",
+    help="Path to workspace YAML config (for model settings).",
 )
 @click.option(
     "--output",
@@ -528,7 +529,7 @@ def report_compare(
     from retort.config.loader import load_workspace
 
     workspace_config = load_workspace(config)
-    exp_dir = cli.Path(experiment_dir).resolve()
+    exp_dir = Path(experiment_dir).resolve()
 
     skill = cli._find_skill("compare-runs", start=exp_dir)
     if skill is None:
@@ -536,7 +537,7 @@ def report_compare(
 
     params = {"experiment_dir": str(exp_dir)}
     if output:
-        params["output_file"] = str(cli.Path(output).resolve())
+        params["output_file"] = str(Path(output).resolve())
     if group_by:
         params["group_by"] = group_by
 
@@ -552,7 +553,7 @@ def report_compare(
     "--db",
     type=click.Path(exists=True),
     required=True,
-    help="cli.Path to the retort SQLite database.",
+    help="Path to the retort SQLite database.",
 )
 @click.option(
     "--config",
@@ -588,8 +589,8 @@ def report_web(
     """
     from retort.reporting.web import generate_web_report
 
-    db_path = cli.Path(db).resolve()
-    output = cli.Path(out_dir).resolve() if out_dir else db_path.parent / "reports" / "web"
+    db_path = Path(db).resolve()
+    output = Path(out_dir).resolve() if out_dir else db_path.parent / "reports" / "web"
 
     visibility = "public"
     if config:

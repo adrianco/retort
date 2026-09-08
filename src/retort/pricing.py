@@ -34,7 +34,7 @@ from dataclasses import dataclass
 
 #: Where the table came from and when. Update both when you touch the numbers.
 PRICES_SOURCE = "https://developers.openai.com/api/docs/pricing"
-PRICES_AS_OF = "2026-07-28"
+PRICES_AS_OF = "2026-09-08"
 
 
 @dataclass(frozen=True)
@@ -49,6 +49,12 @@ class TokenPrice:
 # USD per 1M tokens, as of PRICES_AS_OF. `cached_input` is the discounted rate
 # for the cached portion of the prompt.
 OPENAI_PRICES: dict[str, TokenPrice] = {
+    # GPT-6 -- from developers.openai.com/api/docs/models/gpt-6-astra (2026-09-08):
+    # $10 in / $1 cached / $50 out per 1M; cache writes $12.50 = 1.25x input, so
+    # the GPT-5.6 cache-write rule carries over (see _CACHE_WRITE_CHARGING_PREFIXES).
+    # 1,050,000 context, 128K max output; effort low/medium/high/xhigh/max -- NO
+    # `ultra`, unlike Terra/Luna/Sol. Fast mode is 2x these rates.
+    "gpt-6-astra": TokenPrice(10.00, 1.00, 50.00),
     # GPT-5.6
     "gpt-5.6-sol": TokenPrice(5.00, 0.50, 30.00),
     "gpt-5.6-terra": TokenPrice(2.50, 0.25, 15.00),
@@ -109,7 +115,7 @@ def normalize_model(model: str) -> str:
 CACHE_WRITE_MULTIPLIER = 1.25
 
 #: Families that charge for cache writes at all.
-_CACHE_WRITE_CHARGING_PREFIXES = ("gpt-5.6",)
+_CACHE_WRITE_CHARGING_PREFIXES = ("gpt-5.6", "gpt-6")
 
 
 def charges_for_cache_writes(model: str) -> bool:
