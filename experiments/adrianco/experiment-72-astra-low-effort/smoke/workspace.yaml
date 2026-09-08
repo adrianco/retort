@@ -1,0 +1,51 @@
+# Experiment 72 -- GPT-6 Astra at the LOW end of the effort dial, against every
+# frontier model already measured there.
+#
+# Astra (gpt-6-astra, released 2026-09-03/04) is OpenAI's frontier tier: $10 in /
+# $50 out per 1M, 4x Terra. Every existing low-effort row in master.db is at
+# pass-proportion 1.00 (Fable 5, Fable 5.1, Opus 4.7/4.8/5, Terra), so as with
+# exp-65 the response is COST and TIME at held-constant reliability, not pass rate.
+#
+# Effort is the whole point. exp-65 showed Fable 5.1's low arm is 1.68x faster and
+# 1.45x cheaper than default for identical coverage; exp-55 showed Terra's cost is
+# flat across the dial while Opus 5's explodes. Where Astra sits on that map at
+# low -- and whether $50/M output makes it Opus-5-expensive or Terra-cheap in
+# practice -- is what this measures. low is the primary arm (it matches every
+# existing row); medium is STAGED and only added if the smoke cell's real per-run
+# cost permits -- codex tokens are limited, and the rule is to size from a
+# measured number, not a guess.
+#
+# Only Astra runs (incremental principle); the comparison set is the archive.
+# Footprint mirrors exp-65 (rest-api-crud x python/go/rust/typescript, n=3) so
+# the Astra-vs-Fable-5.1 contrast is 12 vs 12 on identical cells.
+#
+# The codex effort factor is honoured via -c model_reasoning_effort (see exp-55).
+# Astra supports low/medium/high/xhigh/max -- NO ultra, unlike Terra/Luna/Sol.
+experiment:
+  name: experiment-72-astra-low-effort-smoke
+  visibility: public
+factors:
+  language: { levels: [python, go, rust, typescript] }
+  # Registry needs >=2 levels; design.csv pins what runs.
+  agent: { levels: [codex, claude-code] }
+  prompt: { levels: [neutral, none] }
+  model: { levels: [gpt-6-astra, gpt-5.6-terra] }
+  effort: { levels: [low, medium] }
+responses: [code_quality, token_efficiency, test_coverage, defect_rate, maintainability, idiomatic]
+tasks:
+  - source: bundled://rest-api-crud
+playpen:
+  runner: local
+  replicates: 1
+  timeout_minutes: 60
+  stall_minutes: 25
+  max_turns: 200
+  prompts_dir: prompts
+  local_agents:
+    # The profile carries the model: this is what makes gpt-6-astra the level the
+    # codex harness actually runs, and what provenance records.
+    codex: { harness: codex, model: gpt-6-astra }
+design: { screening_resolution: 3, significance_threshold: 0.10 }
+promotion: { screening_to_trial: { p_value: 0.10 }, trial_to_production: { posterior_confidence: 0.80 } }
+# Judge held at opus-4.8, as every experiment here -- a moving judge redefines the response.
+evaluation: { enabled: true, model: opus-4.8 }

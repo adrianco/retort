@@ -21,6 +21,29 @@ DWQ in 0%, at the same 16 GB. See [optimal-blog.md](../optimal-blog.md).
 
 ---
 
+## 0. exp-72 — GPT-6 Astra at LOW effort vs every frontier model already measured there  — RUNNING 2026-09-08
+
+**Why now:** Astra is the new Codex model (released 2026-09-03/04; id `gpt-6-astra`, $10 in / $50 out
+per 1M — priced in `retort.pricing` as of today). Every existing low-effort row in master.db is at
+pass-proportion **1.00** (Fable 5, Fable 5.1, Opus 4.7/4.8/5, Terra), so — exactly as in exp-65 — the
+response is **cost and time at held-constant reliability**, not pass rate.
+
+**Design (incremental — only Astra runs):** `gpt-6-astra × codex × effort=low × language{python, go,
+rust, typescript} × rest-api-crud × n=3` = 12 runs. The footprint mirrors exp-65 cell-for-cell, so
+Astra-vs-Fable-5.1 is a 12-vs-12 paired comparison; python additionally lands against Opus 5 (n=5),
+Terra (n=2) and both Fables (n=3). `medium` is **staged**, not committed: it is added only if the smoke
+cell's measured per-run cost permits, because codex tokens are limited and the rule is to size from a
+measured number, not a guess.
+
+**Smoke first (`smoke/` sub-workspace, excluded from aggregation):** one python/low cell, to
+(a) prove `gpt-6-astra` resolves through the local codex CLI — the binary contains "astra" but the id
+cannot be verified offline — and (b) read a real per-run cost. The workspace records that Astra's
+effort levels are `low/medium/high/xhigh/max` with **no `ultra`**, unlike Terra/Luna/Sol.
+
+**What it answers:** where OpenAI's frontier tier sits on the (cost × time) map at the cheap end of
+the dial — Terra-flat or Opus-5-explosive — and whether $50/M output translates to Opus-class bills
+in practice. Judge held at opus-4.8.
+
 ## 0. exp-70 — Fable 5.1 across the full grid, at LOW effort  — TOP PRIORITY, ready to run
 
 **The gap:** Fable 5.1 has been measured on one task and four languages (exp-65), so it cannot be
