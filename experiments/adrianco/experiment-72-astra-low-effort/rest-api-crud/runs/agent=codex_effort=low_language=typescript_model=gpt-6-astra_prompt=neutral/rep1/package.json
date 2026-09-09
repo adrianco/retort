@@ -1,0 +1,14 @@
+{
+  "name": "book-collection-api",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "engines": { "node": ">=22.13.0" },
+  "scripts": {
+    "build": "tsc",
+    "start": "node dist/server.js",
+    "test": "npm run build && node --test dist/app.test.js"
+  },
+  "dependencies": { "express": "5.2.1" },
+  "devDependencies": { "@types/express": "5.0.6", "@types/node": "22.20.0", "typescript": "5.9.3" }
+}

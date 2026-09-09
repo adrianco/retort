@@ -1,0 +1,16 @@
+[build-system]
+requires = ["setuptools>=61"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "book-collection-api"
+version = "1.0.0"
+description = "Flask and SQLite book collection REST API"
+requires-python = ">=3.10"
+dependencies = ["Flask>=2.3.3,<4"]
+
+[project.optional-dependencies]
+test = ["pytest>=7,<9"]
+
+[tool.setuptools]
+py-modules = ["app"]

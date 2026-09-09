@@ -1,0 +1,2 @@
+{"id": "E1", "kind": "enhancement", "severity": "info", "title": "GET /books has no pagination", "evidence": "main.go:184 list() returns all rows via SELECT ... ORDER BY id with no LIMIT/OFFSET", "suggestion": "Not required by TASK.md; add ?limit/?offset for large collections"}
+{"id": "E2", "kind": "enhancement", "severity": "info", "title": "Author filter is exact and case-sensitive", "evidence": "main.go:188 'WHERE author=?' — TestListAndFilter asserts ?author=alice yields 0 results", "suggestion": "Not required; consider case-insensitive/partial match if desired"}

@@ -1,0 +1,12 @@
+{
+  "replicate": 1,
+  "run_config": {
+    "agent": "codex",
+    "effort": "low",
+    "language": "rust",
+    "model": "gpt-6-astra",
+    "prompt": "neutral"
+  },
+  "succeeded": true,
+  "visibility": "public"
+}

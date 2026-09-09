@@ -1764,3 +1764,55 @@ scheme-vs-scheme experiment on the 80B (`mxfp4` vs `4bit`, the nearest feasible 
 DWQ-on-80B test) was worth ~42 GB and ~7 hours. It is not: at a 0.04 stall rate the 80B has no
 pathology for a scheme change to fix, and the only response left would be pass-proportion on rust,
 which needs far more than n=5 to move. One SQL query replaced a day of compute.
+
+## exp-72 — GPT-6 Astra at low effort vs the frontier set  — cost/time result, 2026-09-09
+
+**The new Codex model (`gpt-6-astra`), measured at low effort on the routine task.** Every existing
+low-effort row was already 1.00, so — like exp-65 — the response is **cost and time at held
+reliability**, not pass rate. Astra confirmed 1.00 (`requirement_coverage`) on all four languages it
+ran, so the interesting numbers are the resource ones.
+
+**Design:** `gpt-6-astra × codex × effort=low × language{python, go, rust, typescript} ×
+rest-api-crud × n=3`, judged by opus-4.8. Only Astra ran (incremental); the comparison set is the
+archive. **Codex hit a usage/rate limit at cell 11 of 12**, so typescript is n=2, not n=3.
+
+| language | Astra low | Fable 5.1 low | Opus 5 low | Terra low |
+|---|---|---|---|---|
+| python | 1.00 · **$0.60** · 107 s | 1.00 · $1.14 · 85 s | 1.00 · $0.75 · 117 s | 1.00 · $0.16 · 88 s |
+| go | 1.00 · **$0.78** · 190 s | 1.00 · $1.28 · 108 s | 1.00 · $0.87 · 149 s | 1.00 · $0.22 · 135 s |
+| rust | 1.00 · **$0.78** · 205 s | 1.00 · $1.38 · 121 s | — | — |
+| typescript | 1.00 · **$1.01** · 238 s | 1.00 · $1.40 · 123 s | — | — |
+
+### What it shows
+
+**A $50/M-output list price does NOT produce Opus-class bills at low effort.** Pooled over the four
+languages, Astra averages **$0.79/run against Fable 5.1's $1.30 — 1.64× cheaper** — and is cheaper
+than Fable on every single language (python 1.9×, rust 1.8×, go 1.6×, typescript 1.4×). The mechanism
+is the exp-55 one: codex stays terse (low output-token counts), so a high per-token price still lands
+a cheap run. Astra is also slightly cheaper than Opus 5 on the two shared cells.
+
+**But it is the slowest of the four, and not the cheapest.** Astra averages 185 s/run against Fable
+5.1's 109 s — **1.69× slower**. And within OpenAI's own line it is ~**3.6× Terra's cost** ($0.79 vs
+~$0.19); Terra passes the same routine cells at 1.00. So at low effort on routine work the cost
+ranking is **Terra ≪ Astra < Opus 5 < Fable 5.1**, and Astra is last on speed.
+
+### What it does NOT settle — and the honest limit
+
+Every cell is at the reliability ceiling, so this measures cost and time only. Astra is OpenAI's
+frontier *reasoning* tier; the case for it is the **hard task** (`brazil-soccer-mcp`), where routine
+saturation lifts and frontier reasoning could actually separate — exactly what the queue entry
+flagged. That comparison did not run: the codex rate limit stopped the routine grid at 11/12, and a
+hard-task grid at $50/M output is a much larger codex spend. **The hard-task Astra run is the
+follow-up**, gated on codex budget. n is 2–3 per cell; the cost/time gaps are consistent across all
+four languages but not powered for significance.
+
+### Harness finding: a transient false-zero in the python scorer
+
+Two of three python cells (and the smoke's first attempt) recorded `test_coverage=0` on the first
+scoring pass, then rescored cleanly to 0.93–0.99 with no code change. Cause: `install_project_deps`
+in `scoring/scorers/_venv.py` runs `pip install -r requirements.txt` with `capture_output=True` and
+**no returncode check**, catching only `TimeoutExpired`/`FileNotFoundError` — so a transient pip
+failure leaves flask uninstalled and pytest fails collection, scoring a false 0. Its own docstring
+warns of exactly this. Only the python path is affected (go/rust/typescript resolve deps through their
+own toolchains). It is recoverable by a free `retort rescore`, but it is a live instance of the one
+thing this project exists to prevent — a non-result recorded as a zero — and is fixed separately.
