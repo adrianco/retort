@@ -1348,3 +1348,43 @@ def test_runtime_uses_median_not_mean(monkeypatch, tmp_path):
     res = rt.measure(tmp_path, "brazil-soccer-mcp", "go")
     assert res.steady_median_ms == 10.0      # median ignores the 900 ms stall
     assert res.steady_max_ms == 900.0        # but it stays visible
+
+
+class TestPipInstallRetry:
+    """`install_project_deps` must not turn a transient pip flake into a false zero.
+
+    A fresh throwaway venv's first `pip install` flakes intermittently (proved by
+    exp-72: 2 of 3 python cells scored test_coverage=0, then rescored to 0.9+ with
+    no code change). `_pip_install` retries once; these pin that.
+    """
+
+    def test_transient_failure_then_success_returns_true(self, tmp_path, monkeypatch):
+        from retort.scoring.scorers import _venv
+        import subprocess
+
+        calls = {"n": 0}
+
+        def fake_run(*a, **k):
+            calls["n"] += 1
+            rc = 1 if calls["n"] == 1 else 0        # flake once, then succeed
+            return subprocess.CompletedProcess(a[0], rc, "", "")
+
+        monkeypatch.setattr(_venv.subprocess, "run", fake_run)
+        ok = _venv._pip_install(tmp_path / "pip", ["-r", "requirements.txt"],
+                                tmp_path, what="requirements.txt")
+        assert ok is True and calls["n"] == 2      # it retried, and the retry won
+
+    def test_persistent_failure_returns_false_after_two_attempts(self, tmp_path, monkeypatch):
+        from retort.scoring.scorers import _venv
+        import subprocess
+
+        calls = {"n": 0}
+
+        def fake_run(*a, **k):
+            calls["n"] += 1
+            return subprocess.CompletedProcess(a[0], 1, "", "ERROR: no matching distribution")
+
+        monkeypatch.setattr(_venv.subprocess, "run", fake_run)
+        ok = _venv._pip_install(tmp_path / "pip", ["-r", "requirements.txt"],
+                                tmp_path, what="requirements.txt")
+        assert ok is False and calls["n"] == 2     # stopped at two, did not loop forever

@@ -87,6 +87,34 @@ def make_venv_env(venv: Path) -> dict[str, str]:
     return env
 
 
+def _pip_install(pip: Path, args: list[str], cwd: Path, *, what: str) -> bool:
+    """Run one ``pip install`` with a single retry, returning True on success.
+
+    pip installs against a fresh throwaway venv flake transiently (a cold PyPI
+    connection, a race with the just-finished agent process): the same install
+    that fails on the first scoring pass succeeds verbatim on ``retort rescore``.
+    Left unretried and unchecked, that transient failure leaves the project's
+    deps uninstalled, pytest fails collection, and the run scores
+    test_coverage=0 -- a false ZERO, the one thing this project must never record
+    as a result. Retry once; on a real (persistent) failure, log the pip stderr
+    so it is a diagnosable HARNESS signal rather than a silent capability 0.
+    """
+    for attempt in (1, 2):
+        try:
+            r = subprocess.run([str(pip), "install", "-q", *args],
+                               cwd=cwd, capture_output=True, timeout=600, text=True)
+        except (subprocess.TimeoutExpired, FileNotFoundError) as exc:
+            logger.warning("pip install %s: attempt %d errored (%s)", what, attempt, exc)
+            continue
+        if r.returncode == 0:
+            return True
+        logger.warning("pip install %s: attempt %d exited %d%s", what, attempt,
+                       r.returncode,
+                       " -- retrying" if attempt == 1 else
+                       f"; stderr tail: {(r.stderr or '')[-500:]}")
+    return False
+
+
 def install_project_deps(venv: Path, output_dir: Path) -> None:
     """Install the project's declared runtime deps into ``venv``.
 
@@ -101,21 +129,9 @@ def install_project_deps(venv: Path, output_dir: Path) -> None:
     for req in ("requirements.txt", "requirements-dev.txt", "test-requirements.txt"):
         p = output_dir / req
         if p.exists():
-            try:
-                subprocess.run(
-                    [str(pip), "install", "-q", "-r", str(p)],
-                    cwd=output_dir, capture_output=True, timeout=600,
-                )
-            except (subprocess.TimeoutExpired, FileNotFoundError):
-                logger.debug("Failed installing %s", p)
+            _pip_install(pip, ["-r", str(p)], output_dir, what=req)
     if (output_dir / "pyproject.toml").exists() or (output_dir / "setup.py").exists():
-        try:
-            subprocess.run(
-                [str(pip), "install", "-q", "-e", "."],
-                cwd=output_dir, capture_output=True, timeout=600,
-            )
-        except (subprocess.TimeoutExpired, FileNotFoundError):
-            logger.debug("Failed editable-installing project in %s", output_dir)
+        _pip_install(pip, ["-e", "."], output_dir, what="editable project")
 
 
 def _imported_top_modules(output_dir: Path) -> set[str]:
