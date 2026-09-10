@@ -1816,3 +1816,45 @@ failure leaves flask uninstalled and pytest fails collection, scoring a false 0.
 warns of exactly this. Only the python path is affected (go/rust/typescript resolve deps through their
 own toolchains). It is recoverable by a free `retort rescore`, but it is a live instance of the one
 thing this project exists to prevent — a non-result recorded as a zero — and is fixed separately.
+
+## exp-73 — GPT-6 Astra on the HARD task at low effort  — PARTIAL (codex rate limit), 2026-09-10
+
+**Astra clears the hard task at low effort, cheaper and faster than Opus 5 — but the grid is n=1 per
+language and cannot support a claim.** Codex hit a usage/rate limit after 2 of 6 cells, the second
+consecutive day it has done so.
+
+**Design:** `gpt-6-astra × codex × effort=low × language{python, go} × n=3` on `brazil-soccer-mcp`,
+using the same `github://brazil-bench` guide as exp-55 so the task is identical to the comparators.
+**Delivered: 2 of 6 cells, $5.89** (plus a $3.32 smoke cell = **$9.21** total).
+
+| model (low effort, brazil) | python | go |
+|---|---|---|
+| **gpt-6-astra** | **1.00 · $3.21 · 811 s** | **1.00 · $2.68 · 641 s** |
+| claude-opus-5 | 1.00 · $8.14 · 1121 s | 1.00 · $7.03 · 971 s |
+| gpt-5.6-terra | 1.00 · $0.38 · 262 s | 1.00 · $0.39 · 210 s |
+
+Every cell is 1.00, so — as on the routine task — this is a **cost/time** comparison, not a
+reliability one. The hard task did not lift the ceiling for frontier models at low effort, which was
+the hypothesis worth testing and is itself the answer: **`brazil-soccer-mcp` no longer discriminates
+between frontier cloud models**, at least at the cheap end of the dial.
+
+**Direction (not a claim, n=1):** Astra costs ~2.5× less than Opus 5 and finishes ~25–35% faster,
+while costing ~7–8× Terra and running ~3× slower. That reproduces exp-72's routine-task pattern on a
+task with 10× the token volume — a $50/M output price still does not produce Opus-class bills,
+because codex stays terse.
+
+**One piece of corroboration worth keeping:** the smoke cell (excluded from aggregation by design) is
+an *independent third* Astra observation on python — 1.00, $3.32, 960 s — against the grid's $3.21 /
+811 s. Two independent python runs agreeing to within ~4% on cost is weak but real evidence the
+per-cell number is stable, which is what the smoke was for.
+
+### The blocker: codex rate limits are now a structural constraint
+
+Two days running, a codex grid has been truncated by a usage/rate limit — exp-72 at 11/12 ($8.49),
+exp-73 at 2/6 ($5.89). Neither was a budget decision; both were hard external stops. Any future codex
+experiment must be **sized to survive truncation**: put the languages in the *replicate-major* order
+the runner already uses (python-rep1, go-rep1, python-rep2, …) so a truncated run still leaves
+balanced pairs rather than a complete arm and an empty one. That ordering is why exp-73's partial
+data is usable at all.
+
+**To finish:** resume with `--resume` once the limit resets; the 4 remaining cells are ~$12.

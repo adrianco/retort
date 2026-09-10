@@ -1,0 +1,16 @@
+[build-system]
+requires = ["setuptools>=61"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "brazilian-soccer-mcp"
+version = "1.0.0"
+description = "Offline Brazilian soccer knowledge graph MCP server"
+requires-python = ">=3.10"
+dependencies = []
+
+[project.scripts]
+brazilian-soccer-mcp = "server:main"
+
+[tool.setuptools]
+py-modules = ["soccer", "server"]
