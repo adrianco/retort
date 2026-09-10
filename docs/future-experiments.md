@@ -21,6 +21,26 @@ DWQ in 0%, at the same 16 GB. See [optimal-blog.md](../optimal-blog.md).
 
 ---
 
+## 0. exp-73 — GPT-6 Astra on the HARD task at low effort  — RUNNING 2026-09-10
+
+**Why:** exp-72 showed Astra at low is 1.00 on the routine task, 1.64x cheaper than Fable 5.1 but
+slower and 3.6x Terra. Routine is saturated, so it measured cost/time only. The hard task
+(`brazil-soccer-mcp`, 12-capability MCP server) is the real test of a frontier *reasoning* tier, and
+the place a low-effort model is most likely to drop below 1.00 if it will at all.
+
+**Design:** `gpt-6-astra × codex × effort=low × language{python, go} × n=3` = 6 cells, on the SAME
+guide exp-55 used (`github://brazil-bench/benchmark-template/…`) so the task is identical to the
+comparison rows. Timeout 150 min (brazil is long), judge opus-4.8.
+
+**Comparison set (exp-55, low effort, both 1.00):** Opus 5 python $8.14 / 1121 s, go $7.03 / 971 s;
+Terra python $0.38 / 262 s, go $0.39 / 210 s. Fable 5.1 has **no** brazil rows, so the live contrast
+is Astra vs Opus-5-low and Terra-low at n=1 each — comparator-limited, and the write-up must say so.
+
+**Cost is the gate, and it is measured not guessed.** No Astra brazil cost exists; brazil cells are
+long and dear (Opus 5 at *max* hit $85/cell). A **smoke cell runs first**; the 6-cell grid is sized to
+its measured number. Codex tokens are limited and codex rate-limited at 11/12 yesterday, so if the
+smoke lands high the grid is a budget decision, not an automatic launch.
+
 ## 0. RESOLVED — GPT-6 Astra at low effort  — 2026-09-09
 
 Astra (`gpt-6-astra`) measured at low effort on rest-api-crud: 1.00 on all four languages, **$0.79/run

@@ -1,0 +1,3 @@
+run,language,agent,prompt,model,effort
+0,python,codex,neutral,gpt-6-astra,low
+1,go,codex,neutral,gpt-6-astra,low

@@ -1,0 +1,46 @@
+# Experiment 73 -- GPT-6 Astra on the HARD task at low effort.
+#
+# exp-72 measured Astra at low on the routine task: 1.00 everywhere, 1.64x cheaper
+# than Fable 5.1 but slower and 3.6x Terra. The routine task is saturated, so it
+# could only compare cost/time. The hard task (brazil-soccer-mcp, a 12-capability
+# MCP server) is the real test of a frontier REASONING tier -- and it is where a
+# low-effort model is most likely to finally drop below 1.00 if it is going to.
+#
+# Existing low-effort brazil rows (exp-55, github://brazil-bench guide, same source
+# used here so the task is identical): Opus 5 python $8.14/1121s, go $7.03/971s;
+# Terra python $0.38/262s, go $0.39/210s -- both 1.00. Fable 5.1 has NO brazil rows,
+# so the live comparison is Astra vs Opus-5-low and Terra-low on python/go (n=1
+# each -- thin, comparator-limited). The primary question stands regardless: does
+# Astra hold 1.00 on the hard task at low, and at what cost and time?
+#
+# COST IS THE GATE. brazil cells are long and dear (Opus 5 at max hit $85/cell).
+# No Astra brazil cost exists, so a smoke cell is run FIRST and the grid is sized
+# to its measured number -- codex tokens are limited and codex rate-limited at
+# 11/12 yesterday. medium is not in play; this is a low-effort study.
+#
+# Effort via -c model_reasoning_effort=low (exp-55 mechanism). Astra: low/medium/
+# high/xhigh/max, NO ultra.
+experiment:
+  name: experiment-73-astra-hard-task
+  visibility: public
+factors:
+  language: { levels: [python, go] }
+  agent: { levels: [codex, claude-code] }
+  prompt: { levels: [neutral, none] }
+  model: { levels: [gpt-6-astra, gpt-5.6-terra] }
+  effort: { levels: [low, medium] }
+responses: [code_quality, token_efficiency, test_coverage, defect_rate, maintainability, idiomatic]
+tasks:
+  - source: github://brazil-bench/benchmark-template/brazilian-soccer-mcp-guide.md
+playpen:
+  runner: local
+  replicates: 3
+  timeout_minutes: 150
+  stall_minutes: 40
+  max_turns: 200
+  prompts_dir: prompts
+  local_agents:
+    codex: { harness: codex, model: gpt-6-astra }
+design: { screening_resolution: 3, significance_threshold: 0.10 }
+promotion: { screening_to_trial: { p_value: 0.10 }, trial_to_production: { posterior_confidence: 0.80 } }
+evaluation: { enabled: true, model: opus-4.8 }
