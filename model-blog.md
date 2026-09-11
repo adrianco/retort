@@ -1,6 +1,6 @@
 # How Reliable Is Your AI Coding Stack? I Measured It
 
-*Published 2026-06-11 · updated 2026-09-07 — Adrian Cockcroft*
+*Published 2026-06-11 · updated 2026-09-11 — Adrian Cockcroft*
 
 ---
 
@@ -8,7 +8,13 @@ Every few weeks a new frontier model tops the leaderboards, and the implicit adv
 
 Those are the variables that decide a real project. So I built **[retort](https://github.com/adrianco/retort)** to measure them properly — with statistical Design of Experiments, the same technique you'd use to tune a manufacturing process. Vary the factors you care about (here: programming **language** × **model version** × **tooling** — and, newly, the **coding agent**, the **prompt methodology**, and **local self-hosted models**), run a factorial grid on a real task, score every cell, and let the analysis tell you which factors actually matter. And because retort accumulates results across a shared database, each new model just gets *added* to what's already known — the point of the project is to measure how each new release behaves without re-running everything. It now spans two tasks, **thirteen** languages, the Claude Sonnet/Opus lines (plus a fast-mode variant, the tier-above Fable 5, and the newest Opus 5), **OpenAI's Codex line (GPT-5.6)**, and **local models running for free on a laptop**.
 
-## What's new (2026-09-07)
+## What's new (2026-09-11)
+
+- **OpenAI's GPT-6 Astra is cheap where you would expect it to be expensive.** It lists at $50 per million output tokens — five times Opus 5's input price — yet on the *hard* task at low effort it costs **$2.37 a run against Opus 5's $7.59, and finishes in 584 s against 1046 s**. Roughly a third of the price and nearly twice the speed, at identical reliability. The mechanism is the one this project found a month ago: the Codex harness stays terse, so a high per-token price still buys a cheap run. Against OpenAI's own cheaper tier it is the other way round — Terra does the same hard task at **$0.39**, six times cheaper again, and also scores 1.00.
+- **The hard task has stopped being hard — for frontier models.** Every cell of Astra, Opus 5 and Terra on the twelve-capability MCP-server task scores **1.00** at low effort. They differ only in money and clock. The task still floors local models (the 80B manages 0.17), so it has not become easy; it has become unable to separate the top of the market. Any future frontier-model comparison here needs a task harder than this one, and building that is now the binding constraint on the cloud side of this project.
+- **A caveat I would rather state than bury.** The comparison models have a single replicate each on the hard task, so nothing above is a significance test. What supports it is a range argument: Astra's own spread is wide (its python runs ranged $1.36 to $3.21), yet its most expensive run of six still cost half what Opus 5's single run did, and its cheapest cost three and a half times Terra's. The separation is larger than Astra's own variance, which is as much as this comparison set can honestly carry.
+
+### Earlier (2026-09-07)
 
 - **Quantization *scheme* decides whether an agent loop terminates — and the variable is error, not bit-count.** A plain 4-bit Qwen3-Coder-30B stalled in unproductive tool loops in **80% of runs** (32/40); the 25-minute stall guard killed it rather than the task finishing. The same model at the **same 4 bits and the same 16 GB**, using distilled quantization (**DWQ**), stalled in **0%** (0/20 across python, go, rust and typescript, p = 2.6×10⁻⁸) — and matched the 8-bit build's pass rate at half the memory. Six experiments (exp-64–69) built that ladder one rung at a time: 4-bit vs 8-bit, then whether sampling rescues 4-bit (it does not), then 6-bit (two separate curves, not one), then DWQ to break the bits/error confound, then DWQ on the hard languages.
 - **The rule that fell out is per-model, not per-bit-width: measure the stall rate.** The 80B's 4-bit build — the one the optimal stack actually recommends — stalls at just 0.04 across 131 archived runs on the same cells. Larger models quantize more gracefully, so "4-bit" is a lower effective error there. Stall rate separated builds at n=10 where pass-proportion needed the extremes to reach significance, and the archive gives it for free on any build that has run.

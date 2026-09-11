@@ -1,6 +1,6 @@
 # The Optimal Stack
 
-*Living document — last updated 2026-09-07 (first published 2026-07-14). This records **what to run today**: the leading stacks, and the exact configuration each one needs. It is not a history. Superseded stacks and rejected configurations are not discussed here; they are retired, and retirement is the point.*
+*Living document — last updated 2026-09-11 (first published 2026-07-14). This records **what to run today**: the leading stacks, and the exact configuration each one needs. It is not a history. Superseded stacks and rejected configurations are not discussed here; they are retired, and retirement is the point.*
 
 ---
 
@@ -90,7 +90,7 @@ Reliability, cost and time are all reported **per task size** — routine and ha
 | **Claude Sonnet 5** | 1.00 · 0.93 | $1.10 · $7.64 | 237 s · 1252 s |
 | **Claude Opus 4.8** | 0.98 · 0.59 | $0.93 · $3.27 | 258 s · 608 s |
 | **Claude Opus 4.7** | 1.00 · 0.40 | $0.92 · $2.95 | 165 s · 500 s |
-| **Qwen3.6-35B-A3B (local, $0)** | 0.72 · 0.25 | $0.00 · $0.00 | 388 s · 1542 s |
+| **Qwen3.6-35B-A3B (local, $0)** | 0.73 · 0.25 | $0.00 · $0.00 | 386 s · 1542 s |
 | **Qwen3-Coder-Next 80B (local, $0, ctx 0.9)** | 1.00 · 0.00 | $0.00 · $0.00 | 604 s · 2014 s |
 <!-- GEN:leading-stacks END -->
 
@@ -150,8 +150,8 @@ Reliability, cost and time are all reported **per task size** — routine and ha
 | **go** | 1.00 (10) | 1.00 (3) | 1.00 (10) | 1.00 (3) | 1.00 (3) | 1.00 (7) | 1.00 (6) | 0.75 (36) | 1.00 (3) |
 | **java** | 1.00 (1) | 1.00 (1) | 1.00 (1) | — | — | 0.83 (6) | 1.00 (6) | 0.00 (3) | 0.00 (3) |
 | **objc** | 1.00 (1) | 1.00 (1) | 1.00 (1) | — | — | 1.00 (1) | — | — | — |
-| **python** | 1.00 (26) | 1.00 (18) | 1.00 (10) | 1.00 (3) | 1.00 (3) | 1.00 (22) | 1.00 (21) | 0.70 (56) | 1.00 (3) |
-| **rust** | 1.00 (1) | 1.00 (3) | 1.00 (1) | — | 1.00 (3) | 1.00 (6) | 1.00 (6) | 0.16 (19) | 0.33 (3) |
+| **python** | 1.00 (26) | 1.00 (18) | 1.00 (10) | 1.00 (3) | 1.00 (3) | 1.00 (22) | 1.00 (21) | 0.72 (54) | 1.00 (3) |
+| **rust** | 1.00 (1) | 1.00 (3) | 1.00 (1) | — | 1.00 (3) | 1.00 (6) | 1.00 (6) | 0.18 (17) | 0.33 (3) |
 | **swift** | 1.00 (1) | 1.00 (1) | 1.00 (1) | — | — | 1.00 (1) | — | — | — |
 | **typescript** | 1.00 (1) | 1.00 (1) | 1.00 (1) | 0.00 (3) | 1.00 (3) | 1.00 (7) | 1.00 (6) | 0.28 (18) | 1.00 (3) |
 <!-- GEN:per-language-matrix END -->

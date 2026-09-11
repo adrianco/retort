@@ -147,7 +147,18 @@ FEATURED_STACKS = [
             "( experiment LIKE '%sampling%' "
             "OR model LIKE '%Qwen3.6-35B%' "
             "OR experiment LIKE '%brazil-35b%' ) "
-            "AND experiment NOT LIKE '%experiment-35%'"
+            "AND experiment NOT LIKE '%experiment-35%' "
+            # exp-66 is "sampling-rescues-4bit": it matches '%sampling%' but is
+            # Qwen3-Coder-30B 4-bit, the arm that scores 0.10 and stalls in 80% of
+            # runs. Left in, its 20 cells counted as the 35B and dragged the published
+            # go column 0.75 -> 0.59 and python 0.70 -> 0.61 while inflating n.
+            #
+            # Exclude rows that NAME A DIFFERENT MODEL -- do not require the 35B name.
+            # Older local rows carry a BLANK model and are attributed to this stack by
+            # the experiment slug (see the module docstring and _local_row in the
+            # tests); requiring model LIKE '%Qwen3.6-35B%' silently dropped all of
+            # them and emptied the column. Blank/NULL stays in, a named non-35B is out.
+            "AND (model LIKE '%Qwen3.6-35B%' OR model IS NULL OR model = '')"
         ),
         "kind": "local",
         # ONE BAR FOR EVERYONE. This was 0.50 for local stacks on the reasoning
@@ -236,6 +247,30 @@ KNOWN_NONFEATURED = {
         "mlxlocal/mlx-community--Qwen3-Coder-Next-4bit; kept distinct because "
         "the id is what the run actually wrote, and silently merging two "
         "spellings is how a stack's n gets inflated",
+    "gpt-6-astra": "GPT-6 Astra (exp-72/73, released 2026-09-03): measured, not featured. "
+        "Clears both tasks at low effort -- routine 1.00 on 4 languages, hard task 1.00 on "
+        "python+go -- at ~3.2x less than Opus 5 but ~6x Terra. Not featured because coverage is "
+        "thin against the 13x2 grid every featured stack carries, and because Terra already "
+        "occupies the cheap-and-reliable cloud slot it would compete for. Revisit if it gets the "
+        "full grid.",
+    # The exp-64/67/68/69 quant ladder: four builds of ONE model, deliberately kept as
+    # four distinct strings. Merging them would destroy the entire point of that work --
+    # the whole finding is that plain 4-bit stalls in 80% of agent runs while 4bit-DWQ
+    # stalls in 0% at identical bits and size. None is featured: the 30B tops out at 0.80
+    # on routine python/go, below the 1.00 bar.
+    "mlxlocal/mlx-community--Qwen3-Coder-30B-A3B-Instruct-4bit":
+        "Qwen3-Coder-30B 4-bit (exp-64/66/69): the stall-pathology arm -- 0.10 pass, 80% of "
+        "runs killed by the stall guard. Measured as a baseline, never a recommendation.",
+    "mlxlocal/mlx-community--Qwen3-Coder-30B-A3B-Instruct-4bit-DWQ":
+        "Qwen3-Coder-30B 4-bit DWQ (exp-68/69): same 4 bits and 16 GB as the above, 0 stalls "
+        "in 20 runs, 0.80 pass. The recommended build FOR THIS MODEL (see the config note in "
+        "optimal-blog), but the 30B itself is below the featured bar.",
+    "mlxlocal/mlx-community--Qwen3-Coder-30B-A3B-Instruct-6bit":
+        "Qwen3-Coder-30B 6-bit (exp-67): the middle rung, 0.40 pass, 1 stall in 10 -- "
+        "superseded as advice by 4bit-DWQ, which is cheaper in memory and better.",
+    "mlxlocal/mlx-community--Qwen3-Coder-30B-A3B-Instruct-8bit":
+        "Qwen3-Coder-30B 8-bit (exp-64/67): 0.70 pass, 30 GB. Indistinguishable from 4bit-DWQ "
+        "on pass rate at twice the memory, and shows prefill throttling on a 64 GB machine.",
     "claude-fable-5-1": "Fable 5.1 (exp-65, released 2026-09-01): measured, not yet "
         "featured. Deliberately NOT merged into claude-fable-5 — exp-65 measured 5.1 at "
         "1.74x the wall-clock and 2.19x the tokens of 5.0 on the one shared cell, so "
