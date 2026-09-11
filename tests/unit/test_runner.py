@@ -119,8 +119,12 @@ class TestDockerRunner:
             runner.teardown(env_id)
             assert not env_dir.exists()
 
-    def test_simulate_run(self):
-        """When Docker isn't available, runner falls back to simulation."""
+    def test_no_docker_fails_closed(self, monkeypatch):
+        """Without `docker` the runner must FAIL the cell, never simulate one:
+        a simulated result (random tokens, random pass/fail) is
+        indistinguishable from a real one in the scores."""
+        monkeypatch.setattr("retort.playpen.docker_runner.shutil.which",
+                            lambda name: None)
         with tempfile.TemporaryDirectory() as tmpdir:
             runner = DockerRunner(work_dir=Path(tmpdir))
             stack = StackConfig(language="python", agent="test", framework="fastapi")
@@ -129,9 +133,11 @@ class TestDockerRunner:
             env_id = runner.provision(stack, task)
             artifacts = runner.execute(env_id, stack, task)
 
-            # In CI/test environments without Docker, we get simulated results
-            assert artifacts.duration_seconds >= 0
-            assert isinstance(artifacts.exit_code, int)
+            assert not artifacts.succeeded
+            assert "docker is not on PATH" in artifacts.stderr
+            assert artifacts.token_count == 0
+            assert "simulated" not in artifacts.stdout
+            assert not hasattr(runner, "_simulate_run")
 
             runner.teardown(env_id)
 

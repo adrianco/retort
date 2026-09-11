@@ -97,8 +97,14 @@ class DockerRunner:
 
         docker = shutil.which("docker")
         if docker is None:
-            logger.warning("Docker not available, using simulation mode")
-            return self._simulate_run(info)
+            # No simulation: an invented result is indistinguishable from a
+            # real one in the scores. Fail the cell, loudly.
+            return RunArtifacts(
+                output_dir=info.workspace,
+                stderr="docker is not on PATH; DockerRunner cannot execute "
+                       "(set playpen.runner: local or install docker)",
+                exit_code=1,
+            )
 
         start = time.monotonic()
         timeout_secs = task.timeout_minutes * 60
@@ -155,25 +161,6 @@ class DockerRunner:
         if info is not None and info.workspace.exists():
             shutil.rmtree(info.workspace, ignore_errors=True)
             logger.info("Torn down environment %s", env_id)
-
-    def _simulate_run(self, info: _ContainerInfo) -> RunArtifacts:
-        """Simulate a run when Docker is not available (for testing)."""
-        import random
-
-        start = time.monotonic()
-        # Simulate some work
-        time.sleep(0.01)
-        elapsed = time.monotonic() - start
-
-        return RunArtifacts(
-            output_dir=info.workspace,
-            stdout=f"[simulated] Task: {info.task.name}, Stack: {info.stack.language}/{info.stack.framework}",
-            stderr="",
-            exit_code=0 if random.random() > 0.1 else 1,
-            duration_seconds=elapsed,
-            token_count=random.randint(500, 5000),
-            metadata={"mode": "simulated"},
-        )
 
     @staticmethod
     def _build_run_command(stack: StackConfig, task: TaskSpec) -> str:

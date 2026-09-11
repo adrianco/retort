@@ -1,12 +1,14 @@
 """Integration test: design matrix → playpen run → score vector in SQLite.
 
 Verifies the end-to-end flow from generating a design matrix through
-executing runs (in simulation mode) to storing scored results.
+executing runs (with a canned stub runner) to storing scored results.
 """
 
 from __future__ import annotations
 
 import json
+import shutil
+from pathlib import Path
 
 import pytest
 from sqlalchemy import create_engine
@@ -14,8 +16,7 @@ from sqlalchemy.orm import Session
 
 from retort.design.factors import FactorRegistry
 from retort.design.generator import generate_design
-from retort.playpen.docker_runner import DockerRunner
-from retort.playpen.runner import StackConfig, TaskSpec
+from retort.playpen.runner import RunArtifacts, StackConfig, TaskSpec
 from retort.playpen.task_loader import load_task
 from retort.scoring.collector import ScoreCollector
 from retort.storage.database import create_tables
@@ -52,6 +53,33 @@ def task():
     )
 
 
+class _StubRunner:
+    """Canned runner: real workspaces, no agent. (DockerRunner used to fill
+    this role by SIMULATING runs with random metrics; that is gone.)"""
+
+    def __init__(self, work_dir: Path) -> None:
+        self.work_dir = work_dir
+        self.work_dir.mkdir(parents=True, exist_ok=True)
+
+    def provision(self, stack: StackConfig, task: TaskSpec) -> str:
+        n = len(list(self.work_dir.iterdir()))
+        env_id = f"retort-{stack.language}-{n}"
+        ws = self.work_dir / env_id
+        ws.mkdir()
+        (ws / "TASK.md").write_text(task.prompt)
+        (ws / "stack.json").write_text(json.dumps({"language": stack.language}))
+        return env_id
+
+    def execute(
+        self, env_id: str, stack: StackConfig, task: TaskSpec
+    ) -> RunArtifacts:
+        return RunArtifacts(output_dir=self.work_dir / env_id, exit_code=0,
+                            duration_seconds=1.0, token_count=100)
+
+    def teardown(self, env_id: str) -> None:
+        shutil.rmtree(self.work_dir / env_id, ignore_errors=True)
+
+
 class TestDesignToRun:
     def test_full_pipeline(self, registry, db_session, task, tmp_path):
         """End-to-end: design → execute → score → store."""
@@ -59,8 +87,8 @@ class TestDesignToRun:
         design = generate_design(registry, "screening")
         assert design.num_runs >= 4  # At least 2^2 runs for 3 factors
 
-        # 2. Set up runner (simulation mode — no Docker needed)
-        runner = DockerRunner(work_dir=tmp_path / "runs")
+        # 2. Set up runner (canned artifacts — no agent, no Docker)
+        runner = _StubRunner(work_dir=tmp_path / "runs")
         collector = ScoreCollector(metrics=["code_quality", "token_efficiency"])
 
         # 3. Execute each run
