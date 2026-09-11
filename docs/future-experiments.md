@@ -21,21 +21,23 @@ DWQ in 0%, at the same 16 GB. See [optimal-blog.md](../optimal-blog.md).
 
 ---
 
-## 0. exp-73 — Astra on the HARD task  — PARTIAL, needs resume (codex rate limit), 2026-09-10
+## 0. RESOLVED — Astra on the hard task  — 2026-09-11
 
-2 of 6 cells landed before codex rate-limited ($5.89 + $3.32 smoke). Astra clears brazil at low
-effort in both languages: python 1.00 · $3.21 · 811 s, go 1.00 · $2.68 · 641 s — vs Opus 5's $8.14 /
-$7.03 and Terra's $0.38 / $0.39, all also 1.00. Written up in
-[past-experiments.md](past-experiments.md#exp-73--gpt-6-astra-on-the-hard-task-at-low-effort--partial-codex-rate-limit-2026-09-10).
+Complete at n=3 per language. Astra clears brazil at low effort in all 6 cells: python 1.00 · $2.01 ·
+517 s, go 1.00 · $2.72 · 650 s — **~3.2× cheaper and ~1.8× faster than Opus 5, ~6.2× dearer than
+Terra**, all at 1.00. Written up in
+[past-experiments.md](past-experiments.md#exp-73--gpt-6-astra-on-the-hard-task-at-low-effort--complete-2026-09-11).
 
-**n=1 per language — no claim available.** Direction only: ~2.5× cheaper and ~30% faster than Opus 5,
-~7–8× Terra's cost. **Resume the 4 remaining cells (~$12) with `--resume` once the codex limit
-resets.**
+**The blocking finding for future cloud work: `brazil-soccer-mcp` no longer discriminates between
+frontier models.** Astra, Opus 5 and Terra are all 1.00 at low effort; only price and clock differ.
+Measuring further frontier models on brazil will keep returning 1.00.
 
-**Finding that outlasts this run:** brazil no longer discriminates between frontier cloud models at
-low effort — every one is 1.00. A hard task that separates frontier models now needs to be *harder*
-than brazil, or run at the cheap end of a weaker model. That is a task-design problem worth its own
-entry.
+**Next, in priority order:**
+1. **Design a task harder than brazil.** This is now the binding constraint on all cloud-model
+   experiments here. Without it, every new frontier model produces another saturated grid.
+2. **Replicate the comparators at low effort on brazil** — Terra is cheap (~$0.39/cell, so n=3 is
+   ~$1.20) and would turn exp-73's range argument into a tested one. Opus 5 is ~$7.60/cell and is
+   only worth it if the Astra-vs-Opus-5 gap needs to be defensible rather than indicative.
 
 ## 0. RESOLVED — GPT-6 Astra at low effort  — 2026-09-09
 
