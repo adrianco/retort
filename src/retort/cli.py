@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import json
 import os
+import shutil
 import sys
 from pathlib import Path
 
@@ -109,7 +110,7 @@ tasks:
   - source: bundled://rest-api-crud
 
 playpen:
-  runner: docker
+  runner: local
   replicates: 3
   timeout_minutes: 30
   local_agents:
@@ -563,12 +564,11 @@ def run_experiments(
     # layer keeps a paged-SSD KV cache that grows to its configured cap. On a
     # near-full disk the agent's writes fail and the run scores false zeros
     # (indistinguishable from an incapable model), or oMLX degrades. Fail fast.
-    import shutil as _shutil
     _playpen_root = os.path.expanduser(
         str(getattr(workspace_config.playpen, "playpen_root", "") or "~/.retort/work")
     )
     _probe = _playpen_root if os.path.isdir(_playpen_root) else os.path.expanduser("~")
-    _free_gb = _shutil.disk_usage(_probe).free / 2**30
+    _free_gb = shutil.disk_usage(_probe).free / 2**30
     if _free_gb < 5:
         raise click.ClickException(
             f"Low disk: only {_free_gb:.0f} GB free at {_probe}. An experiment writes "
@@ -722,8 +722,29 @@ def run_experiments(
             max_turns=workspace_config.playpen.max_turns,
             default_model=workspace_config.playpen.model,
         )
-    else:
+    elif runner_type == "docker":
+        # DockerRunner used to fall back to a SIMULATION (random token counts,
+        # a 10% random failure rate) when `docker` was absent — and every
+        # runner name that matched nothing above landed here too, so a typo
+        # or the reserved `cloud` name produced a grid of invented results
+        # that looked like data. The simulation is gone (docker_runner.py);
+        # refuse here as well so the message names the fix.
+        if shutil.which("docker") is None:
+            raise click.ClickException(
+                "runner: docker requested but `docker` is not on PATH. Set "
+                "`playpen.runner: local` (the supported path) or install docker."
+            )
         runner = DockerRunner(timeout_minutes=workspace_config.playpen.timeout_minutes)
+    else:
+        # `cloud` is a reserved name in the schema with no runner behind it;
+        # anything else is a typo. Neither may silently run something else.
+        from retort.config.schema import RunnerType
+        _implemented = [r.value for r in RunnerType if r.value != "cloud"]
+        raise click.ClickException(
+            f"runner: {runner_type!r} has no implementation. Choose one of "
+            f"{' | '.join(_implemented)}. (`cloud` is reserved for a future "
+            "runner and is not runnable.)"
+        )
     metric_names = [r.name for r in workspace_config.responses]
     collector = ScoreCollector(metrics=metric_names)
 

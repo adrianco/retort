@@ -1920,3 +1920,67 @@ def test_conformance_seams_must_be_patched_on_evaluate_not_cli(monkeypatch, tmp_
     passed, cov = cli._spec_conformance_passes(tmp_path, object(), "public")
     assert passed is True and cov == 1.0
     assert seen["cli"] == 0, "the gate must not read the cli re-export"
+
+
+class TestRunnerSelectionFailsClosed:
+    """`retort run` must never simulate a cell through a default, a typo, or
+    the reserved `cloud` name. Before this, every name that matched nothing
+    fell through to DockerRunner, whose no-docker path INVENTED results."""
+
+    def _ws(self, tmp_path: Path, playpen: str) -> Path:
+        cfg = tmp_path / "workspace.yaml"
+        cfg.write_text(
+            "experiment:\n  name: test\n  visibility: private\n"
+            "factors:\n  language:\n    levels: [python, go]\n"
+            "  model:\n    levels: [opus, sonnet]\n"
+            "responses:\n  - code_quality\n"
+            "tasks:\n  - source: bundled://rest-api-crud\n"
+            "playpen:\n" + playpen + "  replicates: 1\n"
+            "evaluation:\n  enabled: false\n")
+        return cfg
+
+    def _design(self, tmp_path: Path) -> Path:
+        import pandas as pd
+        path = tmp_path / "design.csv"
+        pd.DataFrame([{"language": "python", "model": "opus"}]).to_csv(
+            path, index_label="run")
+        return path
+
+    def _stub(self, monkeypatch):
+        from retort.playpen.runner import TaskSpec
+        monkeypatch.setattr(
+            "retort.playpen.task_loader.load_task",
+            lambda source: TaskSpec(name="t", description="d", prompt="Do it."))
+
+    def _run(self, cfg: Path, design: Path):
+        return CliRunner().invoke(cli, ["run", "--phase", "screening",
+                                        "--config", str(cfg), "--design", str(design)])
+
+    @staticmethod
+    def _no_cell_ran(tmp_path: Path) -> bool:
+        # `runs/` itself is created during setup; a cell leaves a rep* dir.
+        return not list((tmp_path / "runs").rglob("rep*"))
+
+    def test_cloud_name_is_refused(self, tmp_path, monkeypatch):
+        self._stub(monkeypatch)
+        res = self._run(self._ws(tmp_path, "  runner: cloud\n"), self._design(tmp_path))
+        assert res.exit_code != 0
+        assert "no implementation" in res.output and "cloud" in res.output
+        assert self._no_cell_ran(tmp_path)
+
+    def test_docker_without_binary_is_refused(self, tmp_path, monkeypatch):
+        self._stub(monkeypatch)
+        monkeypatch.setattr("retort.cli.shutil.which", lambda name: None)
+        res = self._run(self._ws(tmp_path, "  runner: docker\n"), self._design(tmp_path))
+        assert res.exit_code != 0
+        assert "not on PATH" in res.output
+        assert self._no_cell_ran(tmp_path)
+
+    def test_schema_and_init_default_to_local(self, tmp_path):
+        from retort.config.loader import load_workspace
+        from retort.config.schema import PlaypenConfig
+        assert PlaypenConfig().runner.value == "local"
+        res = CliRunner().invoke(cli, ["init", str(tmp_path / "fresh")])
+        assert res.exit_code == 0, res.output
+        cfg = load_workspace(tmp_path / "fresh" / "workspace.yaml")
+        assert cfg.playpen.runner.value == "local"
