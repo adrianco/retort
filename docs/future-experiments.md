@@ -85,6 +85,14 @@ on `rest-api-crud`, prompt `neutral`, n=3. Full factorial on the two factors tha
 above (not from a failed cell). This is Claude subscription spend, not codex — the codex budget
 constraint does not apply.
 
+**CONFOUND, recorded at launch rather than discovered later: the Claude Code CLI moved 2.1.197 ->
+2.1.280 between the opus-5 baseline (exp-55) and this run.** `claude` IS the agent in this stack, so
+**agent version is formally confounded with model version** — exactly the confound exp-65 hit and
+recorded. It cancels *within* exp-74 (all 36 runs share one CLI) but NOT against the baseline. So a
+cross-model efficiency difference here is a **stack** result — model + harness together — which is
+what retort measures, but it is not attributable to the model alone. De-confounding costs a ~$106,
+~5 h re-run of opus-5's ladder on 2.1.280; worth it only if the gap turns out large enough to act on.
+
 **Hypothesis:** 5.5 holds 1.00 coverage everywhere (so the grid is about efficiency), and the
 low->max cost ratio narrows relative to 5.0's 15.6x. If it does not, the finding is the operating
 point: the level at which 5.5 is cheapest at equal coverage.
