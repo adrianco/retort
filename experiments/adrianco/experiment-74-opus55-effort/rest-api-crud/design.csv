@@ -1,0 +1,13 @@
+run,language,model,prompt,effort
+0,python,claude-opus-5-5,neutral,low
+1,python,claude-opus-5-5,neutral,medium
+2,python,claude-opus-5-5,neutral,high
+3,python,claude-opus-5-5,neutral,xhigh
+4,python,claude-opus-5-5,neutral,max
+5,python,claude-opus-5-5,neutral,default
+6,go,claude-opus-5-5,neutral,low
+7,go,claude-opus-5-5,neutral,medium
+8,go,claude-opus-5-5,neutral,high
+9,go,claude-opus-5-5,neutral,xhigh
+10,go,claude-opus-5-5,neutral,max
+11,go,claude-opus-5-5,neutral,default

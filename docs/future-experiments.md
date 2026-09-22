@@ -21,6 +21,74 @@ DWQ in 0%, at the same 16 GB. See [optimal-blog.md](../optimal-blog.md).
 
 ---
 
+## 0. exp-74 — Opus 5.5 token/time efficiency across the effort ladder  — LAUNCHING 2026-09-22
+
+**Trigger:** Opus 5.5 launched today (user, 2026-09-22). Model id `claude-opus-5-5`, **confirmed
+live** — a probe returns `"canonicalModel":"claude-opus-5-5"`, `provider: firstParty`, 1,000,000
+context, 128K max output. Not guessed, not inferred from a naming pattern.
+
+**THE RESPONSE IS TIME, COST AND TOKENS — NOT PASS-PROPORTION, and the data forces that.** Every
+`claude-opus-5` row on `rest-api-crud` scores `requirement_coverage` = 1.00, at every one of the six
+effort levels, in both languages. A reliability comparison is guaranteed to return 1.00 vs 1.00 and
+measure nothing — the structural null of exp-62 and exp-65. Efficiency is emphatically NOT saturated;
+Opus 5's own ladder spans **15.6x in cost and 12.9x in wall-clock** on python alone:
+
+| effort | opus-5 python (n) | wall | cost | tokens |
+|---|---|---|---|---|
+| low | 5 | 117 s | $0.75 | 440 K |
+| medium | 5 | 159 s | $0.93 | 521 K |
+| default | 3 | 270 s | $1.38 | 950 K |
+| high | 5 | 380 s | $1.74 | 1.08 M |
+| xhigh | 2 | 716 s | $2.55 | 1.71 M |
+| max | 5 | 1508 s | $11.73 | 7.73 M |
+
+**The question:** does 5.5 preserve, flatten or steepen that curve — and at which level does it sit
+cheapest-for-equal-coverage? That is the operating-point decision every user of the model has to
+make, and it is currently unmeasured.
+
+**SMOKE TEST — run 2026-09-22 BEFORE this design was launched** (CLAUDE.md: verify the parameter
+takes effect, do not merely set it). The false-null this guards against is an `--effort` flag the new
+model silently ignores, which would make all six arms identical and return a confident null. Probe:
+one reasoning-heavy prompt (Frobenius number of {17, 23, 41} — exp-49 records that a trivial
+arithmetic prompt is too weak), `--output-format json`, reading
+`usage.output_tokens_details.thinking_tokens`:
+
+| effort | thinking | output | api time | cost |
+|---|---|---|---|---|
+| low | 606 | 1894 | 17.8 s | $0.285 |
+| medium | 1172 | 2484 | 21.5 s | $0.286 |
+| high | 1716 | 2864 | 25.0 s | $0.303 |
+| xhigh | 2739 | 3935 | 35.0 s | $0.334 |
+| max | **15258** | 16656 | 129.3 s | $0.629 |
+
+The flag REACHES the model and moves it monotonically — a **25x** thinking span low->max, with the
+step from xhigh to max alone being 5.6x. n=1 and non-agentic: this establishes the knob is real and
+observable, which is what a smoke test is for, not what it does across a full agentic run.
+
+**Design:** `claude-opus-5-5 x effort{low, medium, high, xhigh, max, default} x language{python, go}`
+on `rest-api-crud`, prompt `neutral`, n=3. Full factorial on the two factors that matter — 12 cells,
+36 runs — so no fraction and no aliasing to reason about.
+
+- **ONLY 5.5 RUNS.** Opus 5 is not re-run; it is compared against its existing master.db rows per the
+  incremental principle. `design.csv` pins that.
+- **prompt is held at `neutral`, not swept.** Every Opus 5 baseline row above is `prompt=neutral`;
+  introducing `none` into the new arm would confound the model contrast with the prompt. The factor
+  is declared with two levels only because the registry requires it, and pinned in `design.csv`.
+- **`default` is carried as its own level** — it means "pass no `--effort` flag", which is what most
+  users actually get, and exp-49 found it corresponds to no named level. Noted: opus-5 has a
+  `default` baseline for **python only**, so the go/default cell measures 5.5's own ladder shape
+  without a matched comparator.
+- `--parallel 1`, deliberately: wall-clock is the primary response here and concurrent runs contend
+  for the machine, which corrupts it invisibly (CLAUDE.md).
+
+**Estimated cost ~$106 list-equivalent and ~5 h sequential**, priced from the completed opus-5 cells
+above (not from a failed cell). This is Claude subscription spend, not codex — the codex budget
+constraint does not apply.
+
+**Hypothesis:** 5.5 holds 1.00 coverage everywhere (so the grid is about efficiency), and the
+low->max cost ratio narrows relative to 5.0's 15.6x. If it does not, the finding is the operating
+point: the level at which 5.5 is cheapest at equal coverage.
+
 ## 0. RESOLVED — Astra on the hard task  — 2026-09-11
 
 Complete at n=3 per language. Astra clears brazil at low effort in all 6 cells: python 1.00 · $2.01 ·

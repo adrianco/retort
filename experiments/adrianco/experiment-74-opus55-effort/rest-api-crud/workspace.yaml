@@ -1,0 +1,87 @@
+# Experiment 74 — Opus 5.5: what does the effort ladder cost, in time and tokens?
+#
+# Opus 5.5 released 2026-09-22 (user, same day). Model id `claude-opus-5-5`, CONFIRMED
+# LIVE before this file was written — a probe returns "canonicalModel":"claude-opus-5-5",
+# provider firstParty, 1,000,000 context, 128K max output. Not guessed from the naming
+# pattern, which is exactly how exp-65 established `claude-fable-5-1`.
+#
+# THE RESPONSE IS TIME, COST AND TOKENS — NOT PASS-PROPORTION, and the data forces that.
+# Every claude-opus-5 row on rest-api-crud scores requirement_coverage = 1.00, at all six
+# effort levels, in both languages. A reliability comparison is guaranteed to return
+# 1.00 vs 1.00 and measure nothing — the structural null of exp-62 and exp-65. Efficiency
+# is NOT saturated; Opus 5's own ladder spans 15.6x in cost and 12.9x in wall-clock:
+#
+#   claude-opus-5, rest-api-crud/python/neutral (master.db)
+#     low       117 s   $0.75    440 K tok   cov 1.00   n=5
+#     medium    159 s   $0.93    521 K tok   cov 1.00   n=5
+#     default   270 s   $1.38    950 K tok   cov 1.00   n=3
+#     high      380 s   $1.74   1.08 M tok   cov 1.00   n=5
+#     xhigh     716 s   $2.55   1.71 M tok   cov 1.00   n=2
+#     max      1508 s  $11.73   7.73 M tok   cov 1.00   n=5
+#
+# Whether 5.5 preserves, flattens or steepens that curve is the question — and with it,
+# the operating point: which level is cheapest at equal coverage.
+#
+# SMOKE TEST — run 2026-09-22 BEFORE this design was launched (CLAUDE.md: verify the
+# parameter takes effect, do not merely set it). The false-null this guards against is an
+# --effort flag the new model silently ignores, which would make all six arms identical
+# and return a confident null.
+#
+# Probe: one reasoning-heavy prompt (the Frobenius number of {17, 23, 41}; exp-49 records
+# that a trivial arithmetic prompt is too weak and once made 4.7 look flat), model
+# claude-opus-5-5, --output-format json, reading
+# usage.output_tokens_details.thinking_tokens.
+#
+#     effort    thinking    out     api_s    cost
+#     low            606   1894      17.8   $0.285
+#     medium        1172   2484      21.5   $0.286
+#     high          1716   2864      25.0   $0.303
+#     xhigh         2739   3935      35.0   $0.334
+#     max          15258  16656     129.3   $0.629
+#
+# The flag REACHES the model and moves it MONOTONICALLY — a 25x thinking span low->max,
+# with xhigh->max alone being 5.6x. n=1 and non-agentic: a smoke test establishes that the
+# knob is real and observable, not what it does across a full agentic run.
+#
+# TASK CHOICE. rest-api-crud, because that is where the Opus 5 effort ladder above lives,
+# at n=5 on four of the six levels. brazil-soccer-mcp has the same ladder but at n=1 per
+# cell and ~1-1.6 h per run, which would make this grid ~30 h for a weaker comparison.
+#
+# ONLY 5.5 RUNS. 5.0 is not re-run — compared against its existing master.db rows per the
+# incremental principle. design.csv pins that.
+experiment:
+  name: experiment-74-opus55-effort
+  visibility: public
+factors:
+  # THE FOCUS. All five levels the CLI accepts, plus `default` — which is NOT a synonym
+  # for any named level but means "pass no --effort flag", the operating point most users
+  # actually get. exp-49's probe found it landing between medium and high.
+  effort: { levels: [low, medium, high, xhigh, max, default] }
+  # Two languages, so a time/cost effect is not a python artifact. Both have an opus-5
+  # ladder baseline (go lacks only `default`).
+  language: { levels: [python, go] }
+  # HELD AT `neutral`, NOT SWEPT. Every opus-5 baseline row is prompt=neutral; introducing
+  # `none` into the new arm would confound the model contrast with the prompt. Declared
+  # with two levels only because the registry requires >=2; design.csv pins the one used.
+  prompt: { levels: [neutral, none] }
+  # Registry needs >=2 levels per factor; design.csv pins that ONLY 5.5 runs.
+  model: { levels: [claude-opus-5-5, claude-opus-5] }
+responses: [code_quality, token_efficiency, test_coverage, defect_rate, maintainability, idiomatic]
+tasks:
+  - source: bundled://rest-api-crud
+playpen:
+  runner: local
+  # n=3 PER CELL. 12 cells x 3 = 36 runs. Each effort level is measured at n=6 when the
+  # two languages are pooled, which is what the ladder contrast uses.
+  replicates: 3
+  timeout_minutes: 60
+  stall_minutes: 25
+  max_turns: 200
+  prompts_dir: prompts
+# FULL FACTORIAL on effort x language — 12 of 12 cells. No fraction, so nothing is
+# aliased and every contrast is estimable directly. exp-65 had to hand-write its
+# design.csv because a quarter fraction confounded effort with language; running the
+# full cross of a 6x2 is cheaper than reasoning about that again.
+design: { screening_resolution: 3, significance_threshold: 0.10 }
+promotion: { screening_to_trial: { p_value: 0.10 }, trial_to_production: { posterior_confidence: 0.80 } }
+evaluation: { enabled: true, model: opus-4.8 }
