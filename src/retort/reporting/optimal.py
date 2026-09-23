@@ -247,6 +247,12 @@ KNOWN_NONFEATURED = {
         "mlxlocal/mlx-community--Qwen3-Coder-Next-4bit; kept distinct because "
         "the id is what the run actually wrote, and silently merging two "
         "spellings is how a stack's n gets inflated",
+    "claude-opus-5-5": "Opus 5.5 (exp-74, released 2026-09-22): measured on the EFFORT LADDER, not "
+        "featured. 36 runs, coverage 1.00 in every one, so it is an efficiency result and not a "
+        "reliability one -- 1.9-3.3x faster and 1.6-2.4x cheaper than Opus 5 at low/medium/high, "
+        "with the advantage vanishing at xhigh and reversing at max. Not featured because it has "
+        "2 languages on 1 task against the 13x2 grid every featured stack carries. Revisit if it "
+        "gets the full grid.",
     "gpt-6-astra": "GPT-6 Astra (exp-72/73, released 2026-09-03): measured, not featured. "
         "Clears both tasks at low effort -- routine 1.00 on 4 languages, hard task 1.00 on "
         "python+go -- at ~3.2x less than Opus 5 but ~6x Terra. Not featured because coverage is "

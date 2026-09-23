@@ -1,6 +1,6 @@
 # How Reliable Is Your AI Coding Stack? I Measured It
 
-*Published 2026-06-11 · updated 2026-09-11 — Adrian Cockcroft*
+*Published 2026-06-11 · updated 2026-09-23 — Adrian Cockcroft*
 
 ---
 
@@ -8,7 +8,15 @@ Every few weeks a new frontier model tops the leaderboards, and the implicit adv
 
 Those are the variables that decide a real project. So I built **[retort](https://github.com/adrianco/retort)** to measure them properly — with statistical Design of Experiments, the same technique you'd use to tune a manufacturing process. Vary the factors you care about (here: programming **language** × **model version** × **tooling** — and, newly, the **coding agent**, the **prompt methodology**, and **local self-hosted models**), run a factorial grid on a real task, score every cell, and let the analysis tell you which factors actually matter. And because retort accumulates results across a shared database, each new model just gets *added* to what's already known — the point of the project is to measure how each new release behaves without re-running everything. It now spans two tasks, **thirteen** languages, the Claude Sonnet/Opus lines (plus a fast-mode variant, the tier-above Fable 5, and the newest Opus 5), **OpenAI's Codex line (GPT-5.6)**, and **local models running for free on a laptop**.
 
-## What's new (2026-09-11)
+## What's new (2026-09-23)
+
+- **Opus 5.5 is a real efficiency jump — but only at the bottom of the effort dial.** Across 36 runs on the routine task, at all six effort levels in Python and Go, it scored **1.00 everywhere**, so the interesting number is not reliability but price. At low, medium and high effort it is **1.9–3.3× faster and 1.6–2.4× cheaper than Opus 5** for the identical result (Python p = 0.018, which is the smallest value this design can report). Python at low effort now costs **$0.38 and 35 seconds**, against Opus 5's $0.75 and 117 s.
+- **At the top of the dial the advantage disappears, and then reverses.** At `xhigh` the two models are indistinguishable on time and 5.5 is slightly *dearer*; at `max` 5.5 is **1.3× slower** in Python and 1.9× slower in Go. So the new release did not narrow the effort ladder — it **steepened** it, from Opus 5's 15.6× low-to-max cost span to 26.9×, because the cheap end fell while the expensive end did not. The penalty for leaving the dial turned up has roughly doubled.
+- **`max` is unpredictable, not merely expensive.** Three Python runs at max took 1030, 1688 and 3333 seconds — a 3.2× spread within one cell — against low's 34, 34 and 38. If you are budgeting a max-effort run, you cannot predict when it will finish within a factor of three, and on this task it buys nothing the gate can see.
+- **If you never pass `--effort`, you are now somewhere different.** Opus 5's default behaved like `high`; 5.5's default lands on `medium`. The upgrade quietly moved the operating point most people actually use, in the cheap direction.
+- **The caveat, stated rather than buried.** The Claude Code CLI moved from 2.1.197 to 2.1.280 between the Opus 5 baseline and this run, and the CLI *is* the agent in this stack — so agent version is confounded with model version, and this is a *stack* result rather than a pure model one. One piece of evidence against it being plain harness overhead: the saving by effort level runs −82 s, −75 s, −248 s, −41 s, **+509 s**. It changes sign, which a constant overhead cannot do.
+
+### Earlier (2026-09-11)
 
 - **OpenAI's GPT-6 Astra is cheap where you would expect it to be expensive.** It lists at $50 per million output tokens — five times Opus 5's input price — yet on the *hard* task at low effort it costs **$2.37 a run against Opus 5's $7.59, and finishes in 584 s against 1046 s**. Roughly a third of the price and nearly twice the speed, at identical reliability. The mechanism is the one this project found a month ago: the Codex harness stays terse, so a high per-token price still buys a cheap run. Against OpenAI's own cheaper tier it is the other way round — Terra does the same hard task at **$0.39**, six times cheaper again, and also scores 1.00.
 - **The hard task has stopped being hard — for frontier models.** Every cell of Astra, Opus 5 and Terra on the twelve-capability MCP-server task scores **1.00** at low effort. They differ only in money and clock. The task still floors local models (the 80B manages 0.17), so it has not become easy; it has become unable to separate the top of the market. Any future frontier-model comparison here needs a task harder than this one, and building that is now the binding constraint on the cloud side of this project.

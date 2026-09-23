@@ -1,0 +1,5 @@
+# Runtime dependencies, pinned to the versions this service is tested with.
+fastapi==0.141.1
+pydantic==2.13.5
+starlette==1.6.0
+uvicorn==0.53.0

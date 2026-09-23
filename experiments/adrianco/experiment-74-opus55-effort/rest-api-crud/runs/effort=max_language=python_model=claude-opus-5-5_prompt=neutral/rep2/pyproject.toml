@@ -1,0 +1,37 @@
+[build-system]
+requires = ["setuptools>=61"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "books-api"
+dynamic = ["version"]
+description = "REST API for managing a book collection, backed by SQLite."
+readme = "README.md"
+requires-python = ">=3.10"
+# Minimum versions; requirements.txt pins the exact versions that are tested.
+dependencies = [
+    "fastapi>=0.141.1",
+    "pydantic>=2.13",
+    "starlette>=1.6",
+    "uvicorn>=0.53",
+]
+
+[project.scripts]
+books-api = "books_api.__main__:main"
+
+[tool.setuptools]
+packages = ["books_api"]
+
+[tool.setuptools.dynamic]
+version = { attr = "books_api.__version__" }
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+pythonpath = ["."]
+filterwarnings = [
+    # Emitted inside starlette.testclient under anyio >= 4.15; not from this project.
+    "ignore:The anyio.abc.BlockingPortal alias is deprecated:DeprecationWarning",
+]
+
+[tool.coverage.run]
+omit = ["tests/*", "venv/*", ".venv/*"]

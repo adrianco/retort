@@ -1,0 +1,5 @@
+-r requirements.txt
+# httpx2 is the HTTP client behind Starlette's TestClient (Starlette >= 1.0).
+httpx2==2.13.0
+pytest==9.1.1
+pytest-cov==7.1.0

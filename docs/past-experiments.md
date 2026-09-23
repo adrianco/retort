@@ -1869,3 +1869,114 @@ Codex rate-limited on two consecutive days (exp-72 at 11/12, exp-73 at 2/6). Bot
 and resumable because the runner orders cells **replicate-major** (python-rep1, go-rep1,
 python-rep2, …), so a truncation leaves balanced pairs rather than one complete arm and one empty.
 Size future codex grids to survive truncation.
+
+## exp-74 — Opus 5.5 across the effort ladder  — COMPLETE, 2026-09-23
+
+**36/36 runs completed, 0 failed, and `requirement_coverage` = 1.00 in every single one.** Opus 5.5
+(`claude-opus-5-5`, released 2026-09-22) measured on `rest-api-crud` at all six effort levels in
+python and go, n=3 per cell, prompt `neutral`, judge opus-4.8. Only 5.5 ran; Opus 5 is its existing
+master.db baseline (incremental principle).
+
+**This is an efficiency result, and the design said so in advance.** Every `claude-opus-5` row on
+this task already scored 1.00 at every effort level, so a reliability contrast was a guaranteed
+structural null — the same one that made exp-62 unanswerable. The pre-registered response was wall
+time, cost and tokens. 5.5 scoring 1.00 in all 36 runs confirms the premise rather than adding to it.
+
+### The ladder, matched against Opus 5
+
+Exact two-sided permutation tests on the difference of means. `floor` is the smallest p this design
+*can* report — with n=3 vs n=5 that is 1/C(8,3) = 0.018, so **the python low/medium/high results sit
+exactly at the floor: as significant as the data can express, not marginally significant.**
+
+**python**
+
+| effort | n (5.5 v 5.0) | wall 5.5 | wall 5.0 | speedup | p | cost 5.5 | cost 5.0 | cheaper by | p | floor |
+|---|---|---:|---:|---:|---:|---:|---:|---:|---:|---:|
+| low | 3v5 | **35 s** | 117 s | **3.33×** | 0.018 | **$0.381** | $0.750 | **1.97×** | 0.018 | 0.018 |
+| medium | 3v5 | 84 s | 159 s | 1.89× | 0.036 | $0.590 | $0.929 | 1.58× | 0.018 | 0.018 |
+| default | 3v3 | 83 s | 270 s | 3.27× | 0.100 | $0.587 | $1.381 | 2.35× | 0.100 | 0.100 |
+| high | 3v5 | 132 s | 380 s | 2.88× | 0.018 | $0.788 | $1.736 | 2.20× | 0.018 | 0.018 |
+| xhigh | 3v2 | 675 s | 716 s | 1.06× | 0.900 | $3.040 | $2.547 | **0.84×** | 0.200 | 0.100 |
+| max | 3v5 | 2017 s | 1508 s | **0.75×** | 0.482 | $10.256 | $11.732 | 1.14× | 0.804 | 0.018 |
+
+**go**
+
+| effort | n (5.5 v 5.0) | wall 5.5 | wall 5.0 | speedup | cost 5.5 | cost 5.0 | cheaper by | p (both) | floor |
+|---|---|---:|---:|---:|---:|---:|---:|---:|---:|
+| low | 3v2 | 54 s | 149 s | 2.78× | $0.441 | $0.866 | 1.96× | 0.100 | 0.100 |
+| medium | 3v2 | 135 s | 261 s | 1.93× | $0.707 | $1.253 | 1.77× | 0.100–0.200 | 0.100 |
+| default | 3v0 | 91 s | — | — | $0.650 | — | — | — | — |
+| high | 3v2 | 138 s | 449 s | 3.25× | $0.861 | $1.995 | 2.32× | 0.100 | 0.100 |
+| xhigh | 3v2 | 371 s | 1101 s | 2.97× | $1.833 | $6.705 | 3.66× | 0.100 | 0.100 |
+| max | 3v1 | 1534 s | 795 s | **0.52×** | $6.747 | $4.206 | **0.62×** | 0.500 | 0.250 |
+
+Go's baseline is n=1–2, so every go contrast sits at its own floor and is **directional
+corroboration, not an independent test.** It agrees with python on all five matched levels.
+
+### The finding: the gain is at the bottom of the dial, and it reverses at the top
+
+**Use `low`.** python low is 35 s and $0.38 at coverage 1.00. `high` buys nothing on this task for
+2.1× the price; `max` costs **27× the money and 58× the wall-clock for identical coverage**.
+
+**The pre-registered hypothesis was that 5.5 would NARROW Opus 5's 15.6× cost ladder. It is wrong,
+and in the opposite direction — 5.5 STEEPENED it:**
+
+| | wall low→max | cost low→max |
+|---|---:|---:|
+| Opus 5 python | 12.9× | 15.6× |
+| **Opus 5.5 python** | **57.4×** | **26.9×** |
+| Opus 5 go | 5.3× | 4.9× |
+| **Opus 5.5 go** | **28.6×** | **15.3×** |
+
+The ladder steepened because the **bottom** fell, not because the top rose. That is the useful
+shape: the cheap operating points got much cheaper while `max` did not, so the penalty for leaving
+the dial high has roughly doubled.
+
+**`max` is also unpredictable, not merely expensive.** Per-run wall seconds at max: python
+[1030, 1688, 3333], go [1099, 1298, 2205] — a 3.2× within-cell range, against low's [34, 34, 38].
+The non-significant `max` contrasts are non-significant *because of that variance*, and the variance
+is itself the operational point: a max-effort run's completion time cannot be predicted within a
+factor of three.
+
+**`default` moved.** For Opus 5, `default` (270 s) sat near `high` (380 s). For 5.5 it lands on
+`medium` (83 s vs 84 s). Anyone who never passes `--effort` therefore got a much cheaper model than
+the version bump alone suggests — and a different point on the curve than before.
+
+### The confound, recorded at launch rather than discovered afterwards
+
+The Claude Code CLI moved **2.1.197** (exp-55, the Opus 5 baseline) → **2.1.280** (this run). `claude`
+IS the agent in this stack, so **agent version is confounded with model version.** It cancels within
+exp-74 — all 36 runs share one CLI — but not against the baseline. So "5.5 is 2–3× cheaper at low
+effort" is a **stack** claim, model plus harness, not a model claim.
+
+One piece of evidence against it being pure harness overhead: a fixed per-run saving would appear at
+every level, and it does not. python savings by level are −82 s (low), −75 s (medium), −248 s (high),
+−41 s (xhigh), **+509 s (max)**. The effect changes sign. That is not the signature of a constant
+overhead, though it does not rule out a version-dependent one. Settling it costs a ~$106, ~5 h re-run
+of Opus 5's ladder on 2.1.280 — worth it only if the gap needs to be defensible rather than
+indicative.
+
+### Smoke test (run BEFORE the design, per CLAUDE.md)
+
+The false-null guarded against: an `--effort` flag the new model silently ignores, making all six
+arms identical and returning a confident null. Probe — Frobenius number of {17, 23, 41},
+`--output-format json`, reading `usage.output_tokens_details.thinking_tokens`:
+
+| effort | thinking | output | api time | cost |
+|---|---:|---:|---:|---:|
+| low | 606 | 1,894 | 17.8 s | $0.285 |
+| medium | 1,172 | 2,484 | 21.5 s | $0.286 |
+| high | 1,716 | 2,864 | 25.0 s | $0.303 |
+| xhigh | 2,739 | 3,935 | 35.0 s | $0.334 |
+| max | **15,258** | 16,656 | 129.3 s | $0.629 |
+
+Monotone, a 25× thinking span, with xhigh→max alone 5.6× of it. The non-uniform spacing the probe
+showed is exactly what the full grid then reproduced under load.
+
+### Operational note
+
+An orphaned `jest` process (ppid 1, 0% CPU) was found resident in a retort playpen for **18 days**
+and killed before launch — it had been present through exp-64 to exp-73. This is the second instance
+of the pathology CLAUDE.md documents. It held memory rather than CPU, so its effect on those runs'
+timings is unknown and unrecoverable; the orphan check in CLAUDE.md caught it only because it is run
+before every launch.

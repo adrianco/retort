@@ -21,81 +21,31 @@ DWQ in 0%, at the same 16 GB. See [optimal-blog.md](../optimal-blog.md).
 
 ---
 
-## 0. exp-74 — Opus 5.5 token/time efficiency across the effort ladder  — LAUNCHING 2026-09-22
+## 0. RESOLVED — Opus 5.5 on the effort ladder  — 2026-09-23
 
-**Trigger:** Opus 5.5 launched today (user, 2026-09-22). Model id `claude-opus-5-5`, **confirmed
-live** — a probe returns `"canonicalModel":"claude-opus-5-5"`, `provider: firstParty`, 1,000,000
-context, 128K max output. Not guessed, not inferred from a naming pattern.
+Complete: 36/36 runs, 0 failed, **coverage 1.00 in every one** — so it is an efficiency result, as
+pre-registered. **Use `low` with Opus 5.5**: python low is 35 s / $0.38 at coverage 1.00, where
+`high` buys nothing for 2.1× the price and `max` costs 27× the money and 58× the clock for the same
+result. Against Opus 5, 5.5 is **1.9–3.3× faster and 1.6–2.4× cheaper at low/medium/default/high**
+(python p = 0.018, the design's exact floor), with the advantage **vanishing at xhigh and reversing
+at max**. Written up in
+[past-experiments.md](past-experiments.md#exp-74--opus-55-across-the-effort-ladder--complete-2026-09-23).
 
-**THE RESPONSE IS TIME, COST AND TOKENS — NOT PASS-PROPORTION, and the data forces that.** Every
-`claude-opus-5` row on `rest-api-crud` scores `requirement_coverage` = 1.00, at every one of the six
-effort levels, in both languages. A reliability comparison is guaranteed to return 1.00 vs 1.00 and
-measure nothing — the structural null of exp-62 and exp-65. Efficiency is emphatically NOT saturated;
-Opus 5's own ladder spans **15.6x in cost and 12.9x in wall-clock** on python alone:
+**The hypothesis was wrong in the opposite direction.** It predicted 5.5 would narrow Opus 5's 15.6×
+cost ladder; 5.5 *steepened* it to 26.9× — because the bottom fell, not because the top rose. The
+penalty for leaving the dial high has roughly doubled.
 
-| effort | opus-5 python (n) | wall | cost | tokens |
-|---|---|---|---|---|
-| low | 5 | 117 s | $0.75 | 440 K |
-| medium | 5 | 159 s | $0.93 | 521 K |
-| default | 3 | 270 s | $1.38 | 950 K |
-| high | 5 | 380 s | $1.74 | 1.08 M |
-| xhigh | 2 | 716 s | $2.55 | 1.71 M |
-| max | 5 | 1508 s | $11.73 | 7.73 M |
-
-**The question:** does 5.5 preserve, flatten or steepen that curve — and at which level does it sit
-cheapest-for-equal-coverage? That is the operating-point decision every user of the model has to
-make, and it is currently unmeasured.
-
-**SMOKE TEST — run 2026-09-22 BEFORE this design was launched** (CLAUDE.md: verify the parameter
-takes effect, do not merely set it). The false-null this guards against is an `--effort` flag the new
-model silently ignores, which would make all six arms identical and return a confident null. Probe:
-one reasoning-heavy prompt (Frobenius number of {17, 23, 41} — exp-49 records that a trivial
-arithmetic prompt is too weak), `--output-format json`, reading
-`usage.output_tokens_details.thinking_tokens`:
-
-| effort | thinking | output | api time | cost |
-|---|---|---|---|---|
-| low | 606 | 1894 | 17.8 s | $0.285 |
-| medium | 1172 | 2484 | 21.5 s | $0.286 |
-| high | 1716 | 2864 | 25.0 s | $0.303 |
-| xhigh | 2739 | 3935 | 35.0 s | $0.334 |
-| max | **15258** | 16656 | 129.3 s | $0.629 |
-
-The flag REACHES the model and moves it monotonically — a **25x** thinking span low->max, with the
-step from xhigh to max alone being 5.6x. n=1 and non-agentic: this establishes the knob is real and
-observable, which is what a smoke test is for, not what it does across a full agentic run.
-
-**Design:** `claude-opus-5-5 x effort{low, medium, high, xhigh, max, default} x language{python, go}`
-on `rest-api-crud`, prompt `neutral`, n=3. Full factorial on the two factors that matter — 12 cells,
-36 runs — so no fraction and no aliasing to reason about.
-
-- **ONLY 5.5 RUNS.** Opus 5 is not re-run; it is compared against its existing master.db rows per the
-  incremental principle. `design.csv` pins that.
-- **prompt is held at `neutral`, not swept.** Every Opus 5 baseline row above is `prompt=neutral`;
-  introducing `none` into the new arm would confound the model contrast with the prompt. The factor
-  is declared with two levels only because the registry requires it, and pinned in `design.csv`.
-- **`default` is carried as its own level** — it means "pass no `--effort` flag", which is what most
-  users actually get, and exp-49 found it corresponds to no named level. Noted: opus-5 has a
-  `default` baseline for **python only**, so the go/default cell measures 5.5's own ladder shape
-  without a matched comparator.
-- `--parallel 1`, deliberately: wall-clock is the primary response here and concurrent runs contend
-  for the machine, which corrupts it invisibly (CLAUDE.md).
-
-**Estimated cost ~$106 list-equivalent and ~5 h sequential**, priced from the completed opus-5 cells
-above (not from a failed cell). This is Claude subscription spend, not codex — the codex budget
-constraint does not apply.
-
-**CONFOUND, recorded at launch rather than discovered later: the Claude Code CLI moved 2.1.197 ->
-2.1.280 between the opus-5 baseline (exp-55) and this run.** `claude` IS the agent in this stack, so
-**agent version is formally confounded with model version** — exactly the confound exp-65 hit and
-recorded. It cancels *within* exp-74 (all 36 runs share one CLI) but NOT against the baseline. So a
-cross-model efficiency difference here is a **stack** result — model + harness together — which is
-what retort measures, but it is not attributable to the model alone. De-confounding costs a ~$106,
-~5 h re-run of opus-5's ladder on 2.1.280; worth it only if the gap turns out large enough to act on.
-
-**Hypothesis:** 5.5 holds 1.00 coverage everywhere (so the grid is about efficiency), and the
-low->max cost ratio narrows relative to 5.0's 15.6x. If it does not, the finding is the operating
-point: the level at which 5.5 is cheapest at equal coverage.
+**Carried forward:**
+1. **The CLI 2.1.197 → 2.1.280 confound** makes the cross-model gap a *stack* claim, not a model one.
+   Evidence against it being pure harness overhead: the python saving by level is −82 s, −75 s,
+   −248 s, −41 s, **+509 s** — it changes sign, which a constant overhead cannot. De-confounding is a
+   ~$106 / ~5 h re-run of Opus 5's ladder on 2.1.280; worth it only if the gap must be defensible
+   rather than indicative.
+2. **`max` is unpredictable, not just dear** — a 3.2× within-cell wall-clock range (python
+   [1030, 1688, 3333] s) against low's [34, 34, 38]. Worth its own look if anyone relies on max.
+3. **Opus 5.5 on the full 13×2 grid** would make it featurable, the same gap exp-70 fills for Fable
+   5.1. Given the low-effort numbers here (~$0.38–0.44 a routine run), that grid is now *cheap* —
+   materially cheaper than exp-70's ~$110 estimate for Fable 5.1.
 
 ## 0. RESOLVED — Astra on the hard task  — 2026-09-11
 

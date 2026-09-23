@@ -1,6 +1,6 @@
 # Thinking Level: What Opus Actually Does With the Extra Time
 
-*Published 2026-07-31 · updated 2026-09-07 — Adrian Cockcroft*
+*Published 2026-07-31 · updated 2026-09-23 — Adrian Cockcroft*
 
 `--effort low|medium|high|xhigh|max` is the newest and largest cost lever in retort, and the least understood. [versions-blog.md](versions-blog.md) established *that* it costs; this page is about *what the model does* with the time, read out of the archived agent logs rather than inferred from the totals.
 
@@ -101,6 +101,34 @@ Run the identical sweep on GPT-5.6 Terra and the dial barely registers:
 Terra's whole range is $0.12–$0.29 — its `max` costs 2.4× its `medium`. Opus 5's `max` costs 25× its `low`. Both score 1.00 in all ten cells.
 
 The two CLIs accept the same five words, which makes the factor look comparable. It isn't: `max` is a mild nudge on one vendor and a regime change on the other. Any cross-vendor comparison has to pin the *level* explicitly and still report cost, because matching the name does not match the behaviour.
+
+---
+
+## Update 2026-09-23: Opus 5.5 makes the dial steeper, not flatter
+
+Opus 5.5 shipped on 2026-09-22 and was put through the same ladder — all six levels, Python and Go, three replicates a cell, 36 runs on the routine task. **Every one scored `requirement_coverage` 1.00**, which is the same saturation this page has reported since it was written, so once again the dial's effect shows up only in time and money.
+
+The expectation going in was that a point release would *narrow* the ladder — that a better model would need less of the extra thinking. It did the opposite, and the reason is worth understanding.
+
+| Python, routine task | Opus 5 | Opus 5.5 | change |
+|---|---:|---:|---|
+| low | 117 s · $0.75 | **35 s · $0.38** | 3.3× faster, 2.0× cheaper |
+| medium | 159 s · $0.93 | 84 s · $0.59 | 1.9× faster, 1.6× cheaper |
+| default | 270 s · $1.38 | 83 s · $0.59 | 3.3× faster, 2.4× cheaper |
+| high | 380 s · $1.74 | 132 s · $0.79 | 2.9× faster, 2.2× cheaper |
+| xhigh | 716 s · $2.55 | 675 s · $3.04 | no faster, slightly **dearer** |
+| max | 1508 s · $11.73 | 2017 s · $10.26 | 1.3× **slower** |
+| **low → max span** | **12.9× time, 15.6× cost** | **57.4× time, 26.9× cost** | ladder **steepened** |
+
+The three significant rows — low, medium and high — sit at p = 0.018, which is the exact floor of what three-versus-five replicates can report, so they are as strong as this design can express rather than marginal. Go agrees on all five matched levels but has an n=1–2 baseline, so it corroborates rather than tests.
+
+**The bottom of the dial fell; the top did not.** That is the whole shape of the result. The cheap operating points got roughly two to three times cheaper, `max` did not move in the same direction, and so the cost of leaving the dial turned up has about doubled. On a model where `low` already scores 1.00, the advice this page has given from the start gets stronger rather than weaker.
+
+**`max` is also erratic in a way the means hide.** Its three Python runs took 1030, 1688 and 3333 seconds — a 3.2× range inside a single cell, against low's 34, 34, 38. That variance is why the `max` comparison is not significant, and it is arguably the more useful finding: at the top of the dial you cannot predict a run's completion time within a factor of three.
+
+**`default` moved between releases.** On Opus 5 it behaved like `high` (270 s); on 5.5 it sits on `medium` (83 s). Anyone who never passes `--effort` is on a different rung than they were, without changing anything.
+
+**One confound, stated plainly.** The Claude Code CLI moved 2.1.197 → 2.1.280 between the Opus 5 baseline and this run, and the CLI is the agent here — so agent version is confounded with model version and this is a *stack* comparison. Against that: a fixed harness saving would appear at every level, and the per-level saving runs −82 s, −75 s, −248 s, −41 s, **+509 s**. It changes sign, which constant overhead cannot. Settling it properly means re-running Opus 5's ladder on the current CLI.
 
 ---
 
