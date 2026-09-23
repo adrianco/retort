@@ -21,6 +21,48 @@ DWQ in 0%, at the same 16 GB. See [optimal-blog.md](../optimal-blog.md).
 
 ---
 
+## 0. exp-75 — Opus 5.5 across ALL THIRTEEN languages, at low effort  — LAUNCHING 2026-09-23
+
+**The gap:** exp-74 settled 5.5's operating point (low: 1.00 coverage, 1.9–3.3× faster and 1.6–2.4×
+cheaper than Opus 5) but on **2 languages and 1 task**. Every stack FEATURED in `optimal-blog.md`
+carries the **13 × 2** grid, so 5.5 cannot be featured on exp-74 alone. This fills the grid.
+
+**And it is now cheap, which is the reason to do it here rather than queue it.** exp-74 priced 5.5's
+routine low-effort runs at **$0.38–0.44** — materially below the ~$1.2/run exp-70 assumes for Fable
+5.1. The full routine half costs roughly what a single `max`-effort cell did.
+
+**Design — two halves, run in order so the cheap one lands first:**
+
+| half | languages | n | runs | why |
+|---|---|---|---|---|
+| `rest-api-crud/` | the **11** 5.5 has not run | 3 | 33 | python/go already exist at low from exp-74 — the incremental principle says do not re-run them |
+| `brazil/` | **all 13** | 1 | 13 | 5.5 has NO brazil rows, so nothing to subtract |
+
+Effort is pinned to `low` by exp-74 rather than swept again; prompt `neutral` and model 5.5 are pinned
+in `design.csv` with two declared levels each, the shape exp-46/48/56 use.
+
+**n=1 on brazil is a SCREEN, not a pass-proportion, and the workspace file says so** so that no later
+table prints a 0/1 as 0.00 with the same weight as an n=3 cell. brazil runs ~10× longer and dearer
+(Opus 5 at low: ~1100 s, ~$8 a run), so 13 languages at n=3 would be ~9 h and ~$150 by itself.
+exp-56 set the precedent: screen the language matrix at one replicate, deepen where it is interesting.
+
+**PRE-FLIGHT VERIFICATION — the Apple languages are IN this time, because the toolchain was checked
+first.** exp-56 had to exclude swift and objc: `xcode-select -p` pointed at CommandLineTools, so
+`xcodebuild` and XCTest failed and either language would have scored a **harness false zero
+indistinguishable from a model capability wall** — the precise failure this repo keeps paying for.
+Checked before the design was written (2026-09-23):
+
+    xcode-select -p   -> /Applications/Xcode.app/Contents/Developer
+    xcodebuild        -> Xcode 26.6 (Build 17F113)
+    swift --version   -> Apple Swift 6.3.3, arm64-apple-macosx26.0
+
+The host has been fixed since exp-56, so both are included rather than deferred.
+
+**Expectation, recorded so a null is publishable:** on brazil, exp-73 established that the task no
+longer discriminates between frontier models at low effort (Astra, Opus 5 and Terra all 1.00 on
+python/go). So the informative cells are the **eleven other languages**, where nothing at this tier
+has been measured on the hard task — not python/go, where 1.00 is expected and uninformative.
+
 ## 0. RESOLVED — Opus 5.5 on the effort ladder  — 2026-09-23
 
 Complete: 36/36 runs, 0 failed, **coverage 1.00 in every one** — so it is an efficiency result, as

@@ -1,0 +1,48 @@
+# Experiment 75 (hard half) — Opus 5.5 on brazil-soccer-mcp, all thirteen languages.
+#
+# The other half of the 13x2 grid every FEATURED stack in optimal-blog.md carries.
+# See rest-api-crud/workspace.yaml for the rationale, the exp-74 effort result that
+# fixes effort=low, and the Apple-toolchain verification.
+#
+# ALL THIRTEEN RUN HERE, INCLUDING python AND go. Unlike the routine half, 5.5 has
+# NO brazil rows at all — exp-74 ran rest-api-crud only. So there is no gap to
+# subtract and the full language set is new.
+#
+# n=1, DELIBERATELY, and it is a screen rather than an estimate. brazil runs ~10x
+# longer and dearer than the routine task (Opus 5 at low effort: ~1100 s and ~$8 a
+# run), so 13 languages at n=3 would be ~9 h and ~$150 on its own. exp-56 set the
+# precedent of screening the language matrix at one replicate and deepening only
+# where the result is interesting. READ THE RESULT ACCORDINGLY: a 0/1 or 1/1 is a
+# screen, not a pass-proportion, and this file says so up front so no later table
+# quietly prints it as one.
+#
+# EXPECTATION, recorded before the run so a null is publishable: exp-73 established
+# that brazil no longer discriminates between FRONTIER models at low effort —
+# Astra, Opus 5 and Terra all score 1.00 on python and go. So the interesting cells
+# here are the ELEVEN OTHER LANGUAGES, where nothing at this tier has been measured
+# on the hard task, not python/go where 1.00 is the expected and uninformative
+# answer.
+experiment:
+  name: experiment-75-opus55-alllang-brazil
+  visibility: public
+factors:
+  language: { levels: [python, go, typescript, rust, java, clojure, erlang, elixir, csharp, c, cpp, swift, objc] }
+  prompt: { levels: [neutral, none] }                  # design pins neutral
+  model: { levels: [claude-opus-5-5, claude-opus-5] }  # design pins 5.5
+  effort: { levels: [low, default] }                   # design pins low
+responses: [code_quality, token_efficiency, test_coverage, defect_rate, maintainability, idiomatic]
+tasks:
+  - source: github://brazil-bench/benchmark-template/brazilian-soccer-mcp-guide.md
+playpen:
+  runner: local
+  replicates: 1
+  # brazil is long: exp-26 doubled the timeout to 60 for local, and exp-55 used 150
+  # for the cloud hard task. Keeping 150 so a slow language is not truncated into a
+  # false zero.
+  timeout_minutes: 150
+  stall_minutes: 30
+  max_turns: 200
+  prompts_dir: prompts
+design: { screening_resolution: 3, significance_threshold: 0.10 }
+promotion: { screening_to_trial: { p_value: 0.10 }, trial_to_production: { posterior_confidence: 0.80 } }
+evaluation: { enabled: true, model: opus-4.8 }

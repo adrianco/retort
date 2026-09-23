@@ -1,0 +1,56 @@
+# Experiment 75 — Opus 5.5 across ALL THIRTEEN languages, at LOW effort (routine task).
+#
+# WHY THIS EXISTS. exp-74 measured 5.5 on the effort ladder and found (a) coverage
+# 1.00 in all 36 runs, and (b) LOW is the operating point — 1.9-3.3x faster and
+# 1.6-2.4x cheaper than Opus 5 at identical coverage, with the advantage vanishing
+# at xhigh and reversing at max. But 5.5 has only 2 languages on 1 task, so it
+# cannot be FEATURED: every featured stack in optimal-blog.md carries the 13x2 grid.
+# This experiment fills the routine half of that grid; the brazil/ sibling fills the
+# hard half.
+#
+# EFFORT = low, and exp-74 is why. Sweeping the dial again would re-measure a factor
+# this project has now characterised twice on this model line, at 3-27x the cost per
+# cell. Low is both the cheapest and the measured-best operating point.
+#
+# ONLY THE GAP RUNS. python and go are NOT here — exp-74 has them at low effort,
+# n=3, on this exact task. Re-running them would spend money to re-measure a known
+# cell and would inflate their n against the other eleven. The incremental principle.
+#
+# APPLE LANGUAGES ARE IN, AND THE TOOLCHAIN WAS VERIFIED FIRST (2026-09-23).
+# exp-56 had to EXCLUDE swift and objc because `xcode-select -p` pointed at
+# /Library/Developer/CommandLineTools, so xcodebuild and XCTest failed and either
+# language would have scored a HARNESS false zero indistinguishable from a model
+# capability wall. Checked before writing this file:
+#     xcode-select -p   -> /Applications/Xcode.app/Contents/Developer
+#     xcodebuild        -> Xcode 26.6 (Build 17F113)
+#     swift --version   -> Apple Swift 6.3.3, arm64-apple-macosx26.0
+# The host has since been fixed, so both languages are included rather than deferred.
+#
+# JUDGE held at claude-code / opus-4.8, unchanged since exp-53, so
+# requirement_coverage pools with every prior experiment.
+experiment:
+  name: experiment-75-opus55-alllang-rest-api-crud
+  visibility: public
+# The factor registry requires >= 2 levels per factor, so the held-constant factors
+# declare two and design.csv PINS the one actually run (the shape exp-46/48/56 use).
+# Only `language` genuinely varies here.
+factors:
+  language: { levels: [typescript, rust, java, clojure, erlang, elixir, csharp, c, cpp, swift, objc] }
+  prompt: { levels: [neutral, none] }                  # design pins neutral
+  model: { levels: [claude-opus-5-5, claude-opus-5] }  # design pins 5.5
+  effort: { levels: [low, default] }                   # design pins low
+responses: [code_quality, token_efficiency, test_coverage, defect_rate, maintainability, idiomatic]
+tasks:
+  - source: bundled://rest-api-crud
+playpen:
+  runner: local
+  # n=3: pass-proportion is the response on this half of the grid, and 3 is the
+  # screening standard every featured stack's routine numbers were built from.
+  replicates: 3
+  timeout_minutes: 60
+  stall_minutes: 25
+  max_turns: 200
+  prompts_dir: prompts
+design: { screening_resolution: 3, significance_threshold: 0.10 }
+promotion: { screening_to_trial: { p_value: 0.10 }, trial_to_production: { posterior_confidence: 0.80 } }
+evaluation: { enabled: true, model: opus-4.8 }
