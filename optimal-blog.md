@@ -1,6 +1,6 @@
 # The Optimal Stack
 
-*Living document — last updated 2026-09-11 (first published 2026-07-14). This records **what to run today**: the leading stacks, and the exact configuration each one needs. It is not a history. Superseded stacks and rejected configurations are not discussed here; they are retired, and retirement is the point.*
+*Living document — last updated 2026-09-23 (first published 2026-07-14). This records **what to run today**: the leading stacks, and the exact configuration each one needs. It is not a history. Superseded stacks and rejected configurations are not discussed here; they are retired, and retirement is the point.*
 
 ---
 
@@ -54,17 +54,17 @@ The machine-readable form of the table below is committed at **[`optimal.json`](
 | Language | Routine → cloud | pass | $ | Routine → local | Hard → cloud | pass | $ |
 |---|---|---:|---:|---|---|---:|---:|
 | **c** | GPT-5.6 Terra @ `default` <sub>n=1</sub> | 1.00 | $0.26 | — | GPT-5.6 Terra @ `default` <sub>n=2</sub> | 1.00 | $0.57 |
-| **clojure** | GPT-5.6 Terra @ `default` <sub>n=1</sub> | 1.00 | $0.33 | — | Opus 5 @ `default` <sub>n=1</sub> | 1.00 | $2.55 |
-| **cpp** | GPT-5.6 Terra @ `default` <sub>n=1</sub> | 1.00 | $0.26 | — | Opus 5 @ `default` <sub>n=1</sub> | 1.00 | $17.50 |
-| **csharp** | GPT-5.6 Terra @ `default` <sub>n=1</sub> | 1.00 | $0.26 | — | Sonnet 5 @ `default` <sub>n=3</sub> | 1.00 | $9.96 |
-| **elixir** | GPT-5.6 Terra @ `default` <sub>n=1</sub> | 1.00 | $0.42 | — | Fable 5 @ `default` <sub>n=1</sub> | 1.00 | $13.21 |
-| **erlang** | GPT-5.6 Terra @ `default` <sub>n=1</sub> | 1.00 | $0.34 | — | Fable 5 @ `default` <sub>n=1</sub> | 1.00 | $12.06 |
+| **clojure** | GPT-5.6 Terra @ `default` <sub>n=1</sub> | 1.00 | $0.33 | — | Opus 5.5 @ `default` <sub>n=1</sub> | 1.00 | $1.46 |
+| **cpp** | GPT-5.6 Terra @ `default` <sub>n=1</sub> | 1.00 | $0.26 | — | Opus 5.5 @ `default` <sub>n=1</sub> | 1.00 | $2.30 |
+| **csharp** | GPT-5.6 Terra @ `default` <sub>n=1</sub> | 1.00 | $0.26 | — | Opus 5.5 @ `default` <sub>n=1</sub> | 1.00 | $1.93 |
+| **elixir** | GPT-5.6 Terra @ `default` <sub>n=1</sub> | 1.00 | $0.42 | — | Opus 5.5 @ `default` <sub>n=1</sub> | 1.00 | $1.97 |
+| **erlang** | GPT-5.6 Terra @ `default` <sub>n=1</sub> | 1.00 | $0.34 | — | Opus 5.5 @ `default` <sub>n=1</sub> | 1.00 | $2.73 |
 | **go** | GPT-5.6 Luna @ `default` <sub>n=3</sub> | 1.00 | $0.08 | Qwen3-Coder-Next 80B @ `default` <sub>n=3</sub> | GPT-5.6 Terra @ `low` <sub>n=1</sub> | 1.00 | $0.39 |
 | **java** | GPT-5.6 Terra @ `default` <sub>n=1</sub> | 1.00 | $0.38 | — | GPT-5.6 Terra @ `default` <sub>n=2</sub> | 1.00 | $0.69 |
-| **objc** | GPT-5.6 Terra @ `default` <sub>n=1</sub> | 1.00 | $0.24 | — | Fable 5 @ `default` <sub>n=1</sub> | 1.00 | $13.30 |
+| **objc** | GPT-5.6 Terra @ `default` <sub>n=1</sub> | 1.00 | $0.24 | — | Opus 5.5 @ `default` <sub>n=1</sub> | 1.00 | $2.46 |
 | **python** | GPT-5.6 Luna @ `default` <sub>n=3</sub> | 1.00 | $0.06 | Qwen3-Coder-Next 80B @ `default` <sub>n=3</sub> | GPT-5.6 Terra @ `high` <sub>n=1</sub> | 1.00 | $0.31 |
 | **rust** | GPT-5.6 Terra @ `default` <sub>n=1</sub> | 1.00 | $0.14 | — | GPT-5.6 Terra @ `default` <sub>n=2</sub> | 1.00 | $0.36 |
-| **swift** | GPT-5.6 Terra @ `default` <sub>n=1</sub> | 1.00 | $0.22 | — | Fable 5 @ `default` <sub>n=1</sub> | 1.00 | $9.24 |
+| **swift** | GPT-5.6 Terra @ `default` <sub>n=1</sub> | 1.00 | $0.22 | — | Opus 5.5 @ `default` <sub>n=1</sub> | 1.00 | $1.33 |
 | **typescript** | GPT-5.6 Terra @ `default` <sub>n=1</sub> | 1.00 | $0.22 | Qwen3-Coder-Next 80B @ `default` <sub>n=3</sub> | GPT-5.6 Terra @ `default` <sub>n=2</sub> | 1.00 | $0.44 |
 <!-- GEN:per-language-routing END -->
 
@@ -83,6 +83,7 @@ Reliability, cost and time are all reported **per task size** — routine and ha
 <!-- GEN:leading-stacks START -->
 | Stack | Reliability (routine · hard) | Cost (routine · hard) | Time (routine · hard) |
 |---|---:|---:|---:|
+| **Claude Opus 5.5** | 1.00 · 1.00 | $1.41 · $1.92 | 275 s · 367 s |
 | **Claude Opus 5** | 1.00 · 1.00 | $3.23 · $26.48 | 546 s · 2669 s |
 | **Claude Fable 5** | 1.00 · 1.00 | $1.58 · $10.47 | 166 s · 1090 s |
 | **GPT-5.6 Terra (codex)** | 1.00 · 0.79 | $0.24 · $1.18 | 163 s · 615 s |
@@ -139,21 +140,21 @@ Reliability, cost and time are all reported **per task size** — routine and ha
 **Start from the per-language success rate, not a single headline number.** This is the matrix that matters — routine pass-proportion for each language × stack, `pass (n)`, generated from `master.db`. A blank cell means we have no qualified runs there. Read *down* a column to see where a model is weak (Opus 4.8 on Java; the 35B local passes Python/Go but scores 0.00 on Rust/TypeScript; the 80B local is strong on Python but drops on Go/TS), and *across* a row to pick the cheapest stack that actually passes *that* language:
 
 <!-- GEN:per-language-matrix START -->
-| Language | Opus 5 | Fable 5 | Terra | Luna | Sonnet 5 | Opus 4.8 | Opus 4.7 | Qwen 35B local | Qwen 80B local |
-|---|---:|---:|---:|---:|---:|---:|---:|---:|---:|
-| **c** | 1.00 (1) | 1.00 (1) | 1.00 (1) | — | — | 1.00 (1) | — | — | — |
-| **clojure** | 1.00 (1) | 1.00 (3) | 1.00 (1) | — | — | 1.00 (6) | 1.00 (6) | 0.00 (3) | 0.00 (3) |
-| **cpp** | 1.00 (1) | 1.00 (1) | 1.00 (1) | — | — | 1.00 (1) | — | — | — |
-| **csharp** | 1.00 (1) | 1.00 (1) | 1.00 (1) | — | 1.00 (3) | 1.00 (1) | — | 0.00 (3) | 0.00 (3) |
-| **elixir** | 1.00 (1) | 1.00 (1) | 1.00 (1) | — | — | 1.00 (3) | 1.00 (3) | 0.00 (3) | 0.00 (3) |
-| **erlang** | 1.00 (1) | 1.00 (1) | 1.00 (1) | — | — | 1.00 (3) | 1.00 (3) | 0.00 (3) | 0.00 (3) |
-| **go** | 1.00 (10) | 1.00 (3) | 1.00 (10) | 1.00 (3) | 1.00 (3) | 1.00 (7) | 1.00 (6) | 0.75 (36) | 1.00 (3) |
-| **java** | 1.00 (1) | 1.00 (1) | 1.00 (1) | — | — | 0.83 (6) | 1.00 (6) | 0.00 (3) | 0.00 (3) |
-| **objc** | 1.00 (1) | 1.00 (1) | 1.00 (1) | — | — | 1.00 (1) | — | — | — |
-| **python** | 1.00 (26) | 1.00 (18) | 1.00 (10) | 1.00 (3) | 1.00 (3) | 1.00 (22) | 1.00 (21) | 0.72 (54) | 1.00 (3) |
-| **rust** | 1.00 (1) | 1.00 (3) | 1.00 (1) | — | 1.00 (3) | 1.00 (6) | 1.00 (6) | 0.18 (17) | 0.33 (3) |
-| **swift** | 1.00 (1) | 1.00 (1) | 1.00 (1) | — | — | 1.00 (1) | — | — | — |
-| **typescript** | 1.00 (1) | 1.00 (1) | 1.00 (1) | 0.00 (3) | 1.00 (3) | 1.00 (7) | 1.00 (6) | 0.28 (18) | 1.00 (3) |
+| Language | Opus 5.5 | Opus 5 | Fable 5 | Terra | Luna | Sonnet 5 | Opus 4.8 | Opus 4.7 | Qwen 35B local | Qwen 80B local |
+|---|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|
+| **c** | 1.00 (3) | 1.00 (1) | 1.00 (1) | 1.00 (1) | — | — | 1.00 (1) | — | — | — |
+| **clojure** | 1.00 (3) | 1.00 (1) | 1.00 (3) | 1.00 (1) | — | — | 1.00 (6) | 1.00 (6) | 0.00 (3) | 0.00 (3) |
+| **cpp** | 1.00 (3) | 1.00 (1) | 1.00 (1) | 1.00 (1) | — | — | 1.00 (1) | — | — | — |
+| **csharp** | 1.00 (3) | 1.00 (1) | 1.00 (1) | 1.00 (1) | — | 1.00 (3) | 1.00 (1) | — | 0.00 (3) | 0.00 (3) |
+| **elixir** | 1.00 (3) | 1.00 (1) | 1.00 (1) | 1.00 (1) | — | — | 1.00 (3) | 1.00 (3) | 0.00 (3) | 0.00 (3) |
+| **erlang** | 1.00 (3) | 1.00 (1) | 1.00 (1) | 1.00 (1) | — | — | 1.00 (3) | 1.00 (3) | 0.00 (3) | 0.00 (3) |
+| **go** | 1.00 (18) | 1.00 (10) | 1.00 (3) | 1.00 (10) | 1.00 (3) | 1.00 (3) | 1.00 (7) | 1.00 (6) | 0.75 (36) | 1.00 (3) |
+| **java** | 1.00 (3) | 1.00 (1) | 1.00 (1) | 1.00 (1) | — | — | 0.83 (6) | 1.00 (6) | 0.00 (3) | 0.00 (3) |
+| **objc** | 1.00 (3) | 1.00 (1) | 1.00 (1) | 1.00 (1) | — | — | 1.00 (1) | — | — | — |
+| **python** | 1.00 (18) | 1.00 (26) | 1.00 (18) | 1.00 (10) | 1.00 (3) | 1.00 (3) | 1.00 (22) | 1.00 (21) | 0.72 (54) | 1.00 (3) |
+| **rust** | 1.00 (3) | 1.00 (1) | 1.00 (3) | 1.00 (1) | — | 1.00 (3) | 1.00 (6) | 1.00 (6) | 0.18 (17) | 0.33 (3) |
+| **swift** | 1.00 (3) | 1.00 (1) | 1.00 (1) | 1.00 (1) | — | — | 1.00 (1) | — | — | — |
+| **typescript** | 1.00 (3) | 1.00 (1) | 1.00 (1) | 1.00 (1) | 0.00 (3) | 1.00 (3) | 1.00 (7) | 1.00 (6) | 0.28 (18) | 1.00 (3) |
 <!-- GEN:per-language-matrix END -->
 
 **The language split: Python, Go and TypeScript run locally for free (on the 80B at full context); every other language means Claude.** The 80B (`Qwen3-Coder-Next`, at `context_threshold: 0.9`) is reliable on all three — **Python 1.00, Go 1.00, TypeScript 1.00** (exp-38, n=3 each) — the last only after raising compaction to full context (it was 0.33 below that). The 35B is the faster alternative but only on **Python and Go (0.85 each)**; it scores **0.00** on TypeScript and Rust even at its tuned config, so its cross-language average (0.85 when scoped to Python/Go; lower if you blend in the languages it can't do) is exactly why this document leads with the matrix, not an average. **Rust and the five niche languages (clojure/csharp/elixir/java/erlang) still go to cloud** — the 80B either near-misses (Rust 0.33, java/erlang) or can't produce working code at all (clojure/csharp/elixir score a genuine 0.00). So local has two stacks for Python/Go and one (the 80B at 0.9) that adds TypeScript.

@@ -54,6 +54,27 @@ BASE_FILTER = "coalesce(prompt,'') != 'repair'"
 # ---------------------------------------------------------------------------
 FEATURED_STACKS = [
     {
+        # exp-74/75: 26/26 — all 13 languages on BOTH tasks, every cell 1.00, and
+        # it earned the slot in one day. Listed first because it dominates Opus 5
+        # on both axes that separate them: same perfect coverage, at roughly a
+        # fifth of the hard-task cost and clock (python brazil $1.40/210 s against
+        # Opus 5's $8.14/1121 s at the same low effort).
+        #
+        # THE HARD HALF IS n=1 PER LANGUAGE — a screen, not a pass-proportion.
+        # It is featured on that basis deliberately: 13 hard-task observations is
+        # in line with what the other featured cloud stacks carry in total, and
+        # the routine half is n=3. Deepen before quoting a per-language hard
+        # number as an estimate.
+        #
+        # OPERATING POINT: effort=low. exp-74 measured the full ladder and found
+        # `max` costs 27x the money and 58x the clock for identical coverage.
+        "name": "Claude Opus 5.5",
+        "short": "Opus 5.5",
+        "models": ["claude-opus-5-5"],
+        "kind": "cloud",
+        "pass_bar": 1.00,
+    },
+    {
         # exp-46: 26/26 — every one of the 13 languages on BOTH tasks, the only
         # model that clears the hard task everywhere. Listed first because it is
         # the broadest-coverage stack; the cheapest-qualifying logic still prefers
@@ -254,12 +275,6 @@ KNOWN_NONFEATURED = {
         "has 3 languages on 1 task against the 13x2 grid every featured stack carries -- a grid that "
         "would cost well under a dollar at this price. Do not merge with gpt-5.6-luna: the whole "
         "finding is that the cheaper successor passes where the predecessor fails.",
-    "claude-opus-5-5": "Opus 5.5 (exp-74, released 2026-09-22): measured on the EFFORT LADDER, not "
-        "featured. 36 runs, coverage 1.00 in every one, so it is an efficiency result and not a "
-        "reliability one -- 1.9-3.3x faster and 1.6-2.4x cheaper than Opus 5 at low/medium/high, "
-        "with the advantage vanishing at xhigh and reversing at max. Not featured because it has "
-        "2 languages on 1 task against the 13x2 grid every featured stack carries. Revisit if it "
-        "gets the full grid.",
     "gpt-6-astra": "GPT-6 Astra (exp-72/73, released 2026-09-03): measured, not featured. "
         "Clears both tasks at low effort -- routine 1.00 on 4 languages, hard task 1.00 on "
         "python+go -- at ~3.2x less than Opus 5 but ~6x Terra. Not featured because coverage is "

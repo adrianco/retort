@@ -1,0 +1,10 @@
+{
+  "severity_counts": {"critical": 0, "high": 0, "medium": 0, "low": 0, "info": 0},
+  "penalty_score": 1.0,
+  "top_findings": [],
+  "requirement_coverage": 1.0,
+  "model": "claude-opus-5-5",
+  "evaluated_at": "2026-09-23T18:07:11Z",
+  "min_severity": "high",
+  "note": "2 info findings in findings.jsonl were below min_severity=high and excluded from counts. file-run-issues v2.0 aggregates only; no beads/tracker records are created (tracker=beads argument has no effect in this version)."
+}

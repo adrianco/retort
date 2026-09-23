@@ -1,0 +1,8 @@
+[package]
+name = "brazilian-soccer-mcp"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+csv = "1"
+serde_json = "1"

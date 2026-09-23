@@ -2063,3 +2063,88 @@ python as **4/5** — a fabricated failure in a grid that is actually perfect. R
 `retort reevaluate` from the repo root graded it **1.00 PASS** immediately. Filed as a to-do: the
 skill lookup should resolve from the package root unconditionally, which `_find_skill` already knows
 how to do as a fallback but only reaches after the cwd walk.
+
+## exp-75 — Opus 5.5 across all thirteen languages, both tasks  — COMPLETE, 2026-09-23
+
+**46/46 runs, 0 failed, coverage 1.00 in every cell. Opus 5.5 completes the 13 × 2 grid in a day and
+is now a FEATURED stack.** Routine half n=3 across the 11 languages exp-74 had not run; hard half
+n=1 across all 13. Effort `low` throughout (fixed by exp-74), prompt `neutral`, judge opus-4.8.
+
+### Routine task — `rest-api-crud`, n=3, all 1.00
+
+| language | cost | wall | | language | cost | wall |
+|---|---:|---:|---|---|---:|---:|
+| clojure | $0.41 | 46 s | | objc | $0.54 | 74 s |
+| typescript | $0.42 | 48 s | | swift | $0.65 | 340 s |
+| rust | $0.43 | 54 s | | cpp | $0.65 | 95 s |
+| csharp | $0.43 | 51 s | | c | $0.67 | 99 s |
+| elixir | $0.44 | 58 s | | python (exp-74) | $0.38 | 35 s |
+| java | $0.46 | 58 s | | go (exp-74) | $0.44 | 54 s |
+| erlang | $0.50 | 65 s | | | | |
+
+**The whole thirteen-language routine grid cost about $16** — roughly what a single `max`-effort
+python cell cost in exp-74.
+
+**Rust has stopped being the hard language.** $0.43 and 54 s, indistinguishable from TypeScript. It
+is the language that historically separated models here — the 80B local stack manages 0.33 on it and
+Opus 4.7 scored 0.40 on the hard task largely on cells like it.
+
+**Swift is a time outlier that is NOT a difficulty signal:** 340 s but only $0.65. It is waiting on
+the Apple toolchain, not thinking harder — the token count is ordinary. Read wall-clock on swift as
+build time, not as model effort.
+
+### Hard task — `brazil-soccer-mcp`, n=1 per language, all 1.00
+
+| language | cost | wall | | language | cost | wall |
+|---|---:|---:|---|---|---:|---:|
+| swift | $1.33 | 266 s | | elixir | $1.97 | 339 s |
+| python | $1.40 | 210 s | | go | $1.99 | 331 s |
+| clojure | $1.46 | 287 s | | c | $2.29 | 416 s |
+| java | $1.48 | 251 s | | cpp | $2.30 | 429 s |
+| typescript | $1.81 | 310 s | | objc | $2.46 | 499 s |
+| rust | $1.84 | 308 s | | erlang | $2.73 | 741 s |
+| csharp | $1.93 | 382 s | | | | |
+
+**13/13 on the task that floors every local stack** (the 80B scores 0.00, the 35B 0.25). Opus 5 is
+the only other model that has cleared all 13 hard cells.
+
+**n=1 PER LANGUAGE IS A SCREEN, NOT A PASS-PROPORTION**, and the workspace file said so before the
+run. A 1/1 is "did not fail once", not 1.00 with the weight of an n=3 cell. Thirteen hard-task
+observations is in line with what the other featured cloud stacks carry in total, which is why this
+is featurable — but deepen before quoting any single language's hard number as an estimate.
+
+### The headline: same reliability as Opus 5, at about a fifth of the hard-task cost
+
+Like-for-like, **same task, same language, same `low` effort**:
+
+| brazil, low effort | Opus 5 | Opus 5.5 | |
+|---|---:|---:|---|
+| python | $8.14 · 1121 s | **$1.40 · 210 s** | 5.8× cheaper, 5.3× faster |
+| go | $7.03 · 971 s | **$1.99 · 331 s** | 3.5× cheaper, 2.9× faster |
+
+**A caution about the generated board's `Hard: $` column, which reads $26.48 for Opus 5 against
+$1.92 for Opus 5.5 — that is NOT a 13.8× result.** Opus 5's mean pools its whole effort ladder from
+exp-55, including `max` cells that cost $85; Opus 5.5's pools only `low`. The honest comparison is
+the like-for-like table above: **3.5–5.8×.** The same caveat applies to the Easy column in the other
+direction — Opus 5.5's $1.41 is inflated by exp-74's `max` cells, when its actual low-effort routine
+cost is $0.38–0.67.
+
+### Pre-flight verification that earned its keep
+
+**The Apple languages are in this grid because the toolchain was checked before the design was
+written**, not assumed. exp-56 had to exclude swift and objc: `xcode-select -p` pointed at
+CommandLineTools, so `xcodebuild` and XCTest failed and either language would have scored a
+**harness false zero indistinguishable from a model capability wall**. Verified 2026-09-23:
+`xcode-select -p` → `/Applications/Xcode.app/Contents/Developer`, Xcode 26.6, Swift 6.3.3. Both
+languages then passed 3/3 routine and 1/1 hard — results that would have read as capability walls on
+the old host configuration.
+
+### Operational note — an avoidable self-inflicted risk
+
+Mid-run, a `brew upgrade --cask codex` (for exp-76) triggered a Homebrew auto-update that **removed
+`python@3.14` entirely**, breaking the venv interpreter retort runs from. The in-flight experiment
+survived only because a running process keeps its unlinked binary mapped; any new `retort`
+invocation, or a scoring subprocess needing the interpreter, would have failed — and a scoring
+failure is indistinguishable from a model failure in the numbers. Reinstalled to the identical
+3.14.7, so no package rebuild was needed, and the run's log shows no errors. **The lesson is the
+CLAUDE.md one restated for toolchains: do not upgrade the machine while an experiment is running.**

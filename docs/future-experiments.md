@@ -21,47 +21,31 @@ DWQ in 0%, at the same 16 GB. See [optimal-blog.md](../optimal-blog.md).
 
 ---
 
-## 0. exp-75 — Opus 5.5 across ALL THIRTEEN languages, at low effort  — LAUNCHING 2026-09-23
+## 0. RESOLVED — Opus 5.5 completes the 13×2 grid and is now FEATURED  — 2026-09-23
 
-**The gap:** exp-74 settled 5.5's operating point (low: 1.00 coverage, 1.9–3.3× faster and 1.6–2.4×
-cheaper than Opus 5) but on **2 languages and 1 task**. Every stack FEATURED in `optimal-blog.md`
-carries the **13 × 2** grid, so 5.5 cannot be featured on exp-74 alone. This fills the grid.
+**46/46, coverage 1.00 in every cell.** Routine n=3 on the 11 remaining languages, hard n=1 on all
+13. Opus 5.5 is promoted into `FEATURED_STACKS` and leads the board. Written up in
+[past-experiments.md](past-experiments.md#exp-75--opus-55-across-all-thirteen-languages-both-tasks--complete-2026-09-23).
 
-**And it is now cheap, which is the reason to do it here rather than queue it.** exp-74 priced 5.5's
-routine low-effort runs at **$0.38–0.44** — materially below the ~$1.2/run exp-70 assumes for Fable
-5.1. The full routine half costs roughly what a single `max`-effort cell did.
+Like-for-like against Opus 5 on brazil at low effort: python **$1.40 · 210 s vs $8.14 · 1121 s**, go
+**$1.99 · 331 s vs $7.03 · 971 s** — 3.5–5.8× cheaper and 2.9–5.3× faster at identical coverage.
+Rust has stopped being the hard language ($0.43, 54 s routine). Swift's 340 s routine wall-clock is
+Apple build time, not model effort — its token count is ordinary.
 
-**Design — two halves, run in order so the cheap one lands first:**
-
-| half | languages | n | runs | why |
-|---|---|---|---|---|
-| `rest-api-crud/` | the **11** 5.5 has not run | 3 | 33 | python/go already exist at low from exp-74 — the incremental principle says do not re-run them |
-| `brazil/` | **all 13** | 1 | 13 | 5.5 has NO brazil rows, so nothing to subtract |
-
-Effort is pinned to `low` by exp-74 rather than swept again; prompt `neutral` and model 5.5 are pinned
-in `design.csv` with two declared levels each, the shape exp-46/48/56 use.
-
-**n=1 on brazil is a SCREEN, not a pass-proportion, and the workspace file says so** so that no later
-table prints a 0/1 as 0.00 with the same weight as an n=3 cell. brazil runs ~10× longer and dearer
-(Opus 5 at low: ~1100 s, ~$8 a run), so 13 languages at n=3 would be ~9 h and ~$150 by itself.
-exp-56 set the precedent: screen the language matrix at one replicate, deepen where it is interesting.
-
-**PRE-FLIGHT VERIFICATION — the Apple languages are IN this time, because the toolchain was checked
-first.** exp-56 had to exclude swift and objc: `xcode-select -p` pointed at CommandLineTools, so
-`xcodebuild` and XCTest failed and either language would have scored a **harness false zero
-indistinguishable from a model capability wall** — the precise failure this repo keeps paying for.
-Checked before the design was written (2026-09-23):
-
-    xcode-select -p   -> /Applications/Xcode.app/Contents/Developer
-    xcodebuild        -> Xcode 26.6 (Build 17F113)
-    swift --version   -> Apple Swift 6.3.3, arm64-apple-macosx26.0
-
-The host has been fixed since exp-56, so both are included rather than deferred.
-
-**Expectation, recorded so a null is publishable:** on brazil, exp-73 established that the task no
-longer discriminates between frontier models at low effort (Astra, Opus 5 and Terra all 1.00 on
-python/go). So the informative cells are the **eleven other languages**, where nothing at this tier
-has been measured on the hard task — not python/go, where 1.00 is expected and uninformative.
+**Open, and it needs a decision rather than a run:**
+1. **The generated board's `$` columns mix effort levels across stacks and are not comparable.**
+   Opus 5's `Hard: $26.48` pools its whole exp-55 effort ladder including $85 `max` cells; Opus 5.5's
+   `$1.92` pools only `low`. Quoting them against each other overstates the gap as 13.8× when the
+   like-for-like figure is 3.5–5.8×. Either the column should be restricted to a stated effort or
+   the table should carry the caveat in-line.
+2. **The 35B's featured predicate contradicts its own comment, and the published figure moved
+   0.86 (57) → 0.73 (90) because of it.** The block's opening says early local experiments (16–20)
+   "ran at bad configs (temp=1.0, 64/128K, wrong playpen) and are excluded on purpose — including
+   them would report 0.28, not the tuned 0.83". Its closing says exp-18/19/20/21 "are in now",
+   treating their absence as under-counting. Both cannot hold. The rest of the file's own rule —
+   a featured stack is ONE qualified config, and distinct configs are never merged (the 4bit vs
+   4bit-DWQ entries exist precisely to preserve that) — favours **excluding** them, which restores
+   0.86. **Not changed unilaterally: it moves a published headline number.**
 
 ## 0. RESOLVED — GPT-6 Luna clears TypeScript  — 2026-09-23
 
