@@ -471,7 +471,7 @@ invest in the solver dependency, master.db merge, and first-class docs.
 <!-- SCAN-HEARTBEAT: the daily scan rewrites the next line on EVERY run, including
      days it finds nothing. Do not hand-edit it. If the date is more than ~2 days
      stale, the scan is not running — see "when the heartbeat goes stale" below. -->
-**Daily scan last completed: 2026-09-08** (scanning for new 64GB-fittable coding models)
+**Daily scan last completed: 2026-09-23** (scanning for new coding models: 64GB-fittable open weights, and frontier cloud models/versions)
 
 - 2026-09-08 — **GPT-6 Astra (OpenAI) — `gpt-6-astra`** — *the "new codex model"; added by hand
   because the daily scan's scope was open-weights-only until today (widened the same day, see the
@@ -496,6 +496,66 @@ invest in the solver dependency, master.db merge, and first-class docs.
   driven through `codex exec` today. Revisit when it reaches general API availability; if it does,
   it is the cheapest possible test of whether raw tok/s converts wall-clock stalls into passes.
   Source: [OpenAI announcement](https://openai.com/index/introducing-gpt-5-3-codex-spark/).
+- 2026-09-23 — **GPT-6 Sol (OpenAI) — `gpt-6-sol`** — *released **2026-09-22**, 19 days after Astra,
+  and the first frontier-tier candidate here that is CHEAPER than a model we have already measured.*
+  Facts from OpenAI's own model page, not a news story: **$2 in / $10 out per 1M** (cached input $0.20,
+  cache writes $2.50 = 1.25× input, so `retort.pricing`'s existing `gpt-6` cache-write rule carries
+  over unchanged), **1,050,000-token context**, 922K max input, 128K max output, knowledge cutoff
+  2026-04-20, reasoning effort **none / low / medium (default) / high / xhigh / max** — the same ladder
+  as Astra plus `none`. Pitched at "complex coding and agentic workflows". **Reachable from the local
+  CLI: `codex exec -m gpt-6-sol`, added to the picker in Codex CLI 0.156.x** — check `codex --version`
+  before designing, the id is rejected on older builds.
+  **⚠ `gpt-6-sol` is NOT in `src/retort/pricing.py`** (the table has `gpt-6-astra` and the three
+  GPT-5.6 tiers only) — a run today reports **$0** and corrupts the cost columns. Add it before any
+  cell: `TokenPrice(2.00, 0.20, 10.00)`.
+  **Framing:** this is the interesting one of the pair. It is **one fifth of Astra's price** ($2/$10 vs
+  $10/$50) at the same context and the same effort ladder, and it lands at exactly Sonnet 5's list
+  price and half of Opus 5.5's. exp-72/73 established that routine work is saturated at 1.00 for every
+  frontier model, so the routine grid would measure **cost and clock only** — which is precisely the
+  axis a 5× price cut moves. The discriminating question is **Sol on the HARD task**, except that
+  exp-73's blocking finding still stands: `brazil-soccer-mcp` no longer separates frontier models
+  (Astra, Opus 5 and Terra are all 1.00 at low effort). **So Sol is a strong argument for the harder
+  task the exp-73 write-up already lists as priority 1, and a weak one for another saturated grid.**
+  As with Astra, one smoke cell first to prove the id resolves through the installed codex CLI and to
+  read a real per-run cost before sizing anything.
+  Sources: [OpenAI model page](https://developers.openai.com/api/docs/models/gpt-6-sol),
+  [The New Stack](https://thenewstack.io/openai-gpt-6-sol-luna-release/),
+  [VentureBeat](https://venturebeat.com/technology/openai-releases-gpt-6-sol-and-luna-models-slashing-api-costs-50-or-more).
+- 2026-09-23 — **GPT-6 Luna (OpenAI) — `gpt-6-luna`** — *the cheap tier of the same 2026-09-22 drop,
+  and the direct successor to the `gpt-5.6-luna` already in `master.db`.* **$0.10 in / $0.50 out per
+  1M** (cached input $0.01, cache writes $0.125) — **a 10× cut on input and 12× on output against
+  GPT-5.6 Luna's $1.00/$6.00**, and OpenAI states these are permanent, not introductory, prices.
+  **1,050,000-token context** (vs 5.6 Luna's far smaller window), 128K max output, knowledge cutoff
+  2026-05-18, same **none / low / medium / high / xhigh / max** ladder. `codex exec -m gpt-6-luna`.
+  **⚠ Also NOT in `src/retort/pricing.py`** — add `TokenPrice(0.10, 0.01, 0.50)` before any cell.
+  **Why it earns a slot on a list where the routine task is saturated:** GPT-5.6 Luna is the one
+  frontier stack in the featured table that **does not** saturate — 0.67 routine / 0.33 hard in
+  `optimal-blog.md`, the cheapest row at $0.09/$0.17 — so it is the only cloud comparator where
+  **pass-proportion is still a live response**, not just cost. A successor at a tenth the price with
+  four times the ladder and a 1M window asks a real question: does the cheap tier now pass? That makes
+  it, unusually, a *better* screening candidate than Sol despite being the lesser model — the routine
+  13-language grid would actually discriminate, and at $0.10/$0.50 a full grid is pocket change.
+  Run it before Sol.
+  Sources: [OpenAI model page](https://developers.openai.com/api/docs/models/gpt-6-luna),
+  [The New Stack](https://thenewstack.io/openai-gpt-6-sol-luna-release/).
+- 2026-09-23 — **Opus 5.5 silently reroutes to OLDER models — NOT a new candidate; a measurement-
+  validity finding about the model exp-74/exp-75 are measuring right now.** Opus 5.5 (2026-09-22,
+  $4/$20 per 1M, 20% under Opus 5) inherits Fable 5.1's safety classifiers for **cybersecurity,
+  biology and distillation**; when one fires the request is **served by a different model** —
+  cybersecurity mostly falls back to **Opus 4.8**, biology/distillation to **Opus 5**. In a multi-turn
+  agent loop that means individual turns of a "`claude-opus-5-5`" cell can be answered by two
+  generations of older model, which is exactly the kind of set-but-unverified stack parameter
+  CLAUDE.md exists for — and it would be invisible in the archive, since the run's config still says
+  5.5. **The good news is that it IS detectable and should be recorded per the tuning-parameter rule:**
+  the fallback is reported in the response's **top-level `model` field**, in a
+  `{"type": "fallback", "from": …, "to": …}` content block at each handoff, and in per-attempt
+  **`usage.iterations`** entries. Retort's tasks are benign CRUD and MCP work, so the classifiers
+  should not fire — but "should not" is the phrasing that has cost this project results before, and
+  there are open `claude-code` issues reporting the same Fable 5 → Opus 4.8 fallback on **benign**
+  deploy work. Worth a cheap check on an existing exp-74 archive before 5.5 numbers are published as a
+  model claim rather than a stack claim.
+  Sources: [The New Stack](https://thenewstack.io/claude-opus-5-5-release/) ·
+  [benign-trigger issue](https://github.com/anthropics/claude-code/issues/67246)
 
 New open-weight coding models found by the daily scan that plausibly fit 64GB at 4-bit; promote to a
 numbered experiment when prioritised.
@@ -1317,6 +1377,58 @@ survives the toggle, restart the Claude desktop app, which clears the in-memory 
   — 36B-A4B weights: https://huggingface.co/IFM/K2-Horizon-MoVA-36B-A4B
   — GGUF (BF16 only, needs the IFM llama.cpp fork): https://huggingface.co/IFM/K2-Horizon-32B-GGUF ·
   https://huggingface.co/IFM/K2-Horizon-MoVA-36B-A4B-GGUF
+
+- 2026-09-23 — **MiMo-V2.6-Distill-Qwen-9B (Xiaomi)** — *a genuinely last-cycle drop (weights
+  **2026-09-21**), the first **Xiaomi-lineage** candidate, and the best-evidenced small entry this
+  list has: it beats every other sub-10B candidate here on agentic coding while leaving ~58 GB free.*
+  **MIT licence**, **9B dense**, **SFT-distilled from `Qwen3.5-9B`** on 77.4B tokens of MiMo-V2.6
+  output — code 29.9%, general agent 28.5%, visual 27.4%, cyber 14.2%. **~5–6 GB at 4-bit.** Reported
+  **SWE-bench Verified 61.1 (avg@3), SWE-bench Pro 44.6, Terminal-Bench 2.1 37.1, AutomationBench
+  v1.0.6 30.3** — against its own Qwen3.5-9B base at 5.0 AutomationBench, i.e. the distillation is
+  doing nearly all the work. For scale on this list: 61.1 SWE-bench Verified is level with the
+  already-listed **Granite 4.2 30B (57.0)** at a third the weights, and close behind
+  **Ornith-1.5-9B (71.8)**, the current small-entry leader.
+  **Serving is a straight load on both retort backends with no gate-probe and no convert** — the arch
+  is plain Qwen3.5 dense, `ggml-org/MiMo-V2.6-Distill-Qwen-9B-GGUF` ships (i.e. a first-class
+  llama.cpp build, not a community guess) alongside bartowski-class mirrors, and a
+  `MiMo-V2.6-Distill-Qwen-9B-MLX` community build exists. Tool-use and agentic tags are on the card;
+  thinking is controlled by `enable_thinking` with a dedicated **`mimo` reasoning parser**, and the
+  chat template is **MiMo v2.6's own, not Qwen's** — *that* is the thing to smoke-test, because our
+  Hermes loop drives on OpenAI-format `tool_calls` and a non-Qwen template is exactly where the
+  `<tool_call>` shape drifts. Record the thinking mode as for KAT-Coder / Qwen3.8-27B.
+  **Two reasons to want it, and they are the same two the Nanbeige entry has — but better founded.**
+  (1) As a **draft model** for the §3 speculative-decoding lever: unlike LFM2.5 (Liquid vocab) and
+  Mellum2 (trained from scratch), this is a **Qwen3.5-9B** derivative, so its tokenizer is Qwen-family
+  and a pairing with the 35B/80B targets is *plausible* rather than hopeless — verify vocab identity
+  before assuming it, exactly as for Ornith-1.5-9B. (2) As a subject, it is the far end of the size
+  axis with real agentic-coding numbers behind it rather than inferred capability.
+  **Two caveats, stated plainly.** (a) Xiaomi positions this as "a supervised fine-tuned checkpoint
+  intended as a starting point for agentic RL research" — **not** as a shipped small coder, so treat
+  the benchmark table as a research artifact. (b) Its 1.02T-A42B **Pro** and 309B-A15B **Flash**
+  siblings are the headline models (Pro is first of 114 open-weight models on the Artificial Analysis
+  index) and both are hopelessly oversized here — ~510 GB and ~155 GB at 4-bit — so the 9B is the only
+  variant in scope. Judge priority **alongside Ornith-1.5-9B**, below every 27B–35B coder-specialised
+  entry; the two 9Bs should be run together or neither, since they are the same question asked of two
+  lineages.
+  Source: https://www.eweek.com/news/xiaomi-mimo-v26-open-source-rl-reproduction/
+  — via: https://thenextweb.com/news/xiaomi-mimo-v2-6-open-weight-model-anthropic-distillation
+  — weights: https://huggingface.co/XiaomiMiMo/MiMo-V2.6-Distill-Qwen-9B
+  — GGUF: https://huggingface.co/ggml-org/MiMo-V2.6-Distill-Qwen-9B-GGUF
+  — MLX: https://huggingface.co/prithivMLmods/MiMo-V2.6-Distill-Qwen-9B-MLX
+
+*Excluded 2026-09-23, oversized — recorded so they are not re-investigated:* **DeepSeek-V4.1-Flash**
+(2026-09-10, **MIT**, 552B total / 8–16B active multimodal MoE, coding- and long-agent-targeted, with
+a claimed 4× KV-cache reduction for long agent sessions) — **~276 GB at 4-bit**, roughly four times
+what this box holds; same verdict as the DeepSeek-V4-Flash entries above, and DeepSeek still has no
+sub-40 GB open coder. **MiMo-V2.6-Pro** (1.02T-A42B, ~510 GB) and **MiMo-V2.6-Flash** (309B-A15B,
+~155 GB) — see the 9B entry above; an `mlx-community/MiMo-V2.6-Flash-RL-mxfp4-q8` build exists but the
+footprint is the blocker, not the format. **Qwen3.8-Max-0902** (Alibaba) — the same 2.4T-A95B open
+weights already excluded 2026-08-15 at ~1.2 TB, re-dated by a September checkpoint refresh; unchanged
+verdict. *(Also seen this cycle and out of scope as closed-weight AND not reachable through the
+`claude` or `codex` CLIs retort drives: **Grok 4.7** (xAI, 2026-09-21), **MiMo V2.6 Pro/Flash** hosted
+API tiers, **Fugu Ultra v2.0 / Fugu Max** (Sakana, 2026-09-11), **Atria Dawn Preview** (2026-09-12).)*
+Sources: https://llmgateway.io/timeline ·
+https://local-ai-zone.github.io/blog/September_2026_AI_Model_Updates.html
 
 *Excluded 2026-09-05, oversized — recorded so it is not re-investigated:* **Solar Open2-250B**
 (Upstage, 2026-08-12, Upstage Solar Licence — an Apache-2.0 derivative permitting commercial use)
