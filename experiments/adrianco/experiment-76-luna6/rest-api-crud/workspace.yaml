@@ -1,0 +1,67 @@
+# Experiment 76 — GPT-6 Luna: does a 10x price cut fix the cell its predecessor FAILS?
+#
+# WHY LUNA AND NOT SOL. gpt-6-sol and gpt-6-luna dropped together on 2026-09-22.
+# Sol is the Terra-class tier, and Terra already scores 1.00 on everything this
+# project measures -- another saturated grid. Luna is the ONE featured cloud stack
+# that does NOT saturate: 0.67 on the routine task over 9 runs. A non-saturated
+# baseline is rare here and it is what makes a comparison able to move.
+#
+# THE DISCRIMINATING CELL IS TYPESCRIPT, and that is the whole design. Broken out
+# of master.db, gpt-5.6-luna on rest-api-crud is:
+#     python      3/3   cov 1.00   $0.062   145 s
+#     go          3/3   cov 1.00   $0.084   127 s
+#     typescript  0/3   cov NULL   $0.116   186 s     <- the entire 0.67
+# So "does Luna 6 beat Luna 5.6" is really "does it clear TypeScript", and python
+# and go are carried as CONTROLS -- they confirm the new model did not regress on
+# what the old one already passed, which is what makes a TypeScript change
+# attributable to the model rather than to anything that moved in the harness.
+#
+# PRICES VERIFIED FROM THE VENDOR, NOT THE RELEASE COVERAGE (2026-09-23), at
+# developers.openai.com/api/docs/models/gpt-6-luna: $0.10 in / $0.01 cached /
+# $0.50 out per 1M, cache writes $0.125 = 1.25x input. That is a 10x/12x cut on
+# gpt-5.6-luna ($1.00/$6.00). Added to src/retort/pricing.py BEFORE this run --
+# an unpriced codex model reports $0 and silently corrupts the cost columns, which
+# is the failure the daily scan flagged.
+#
+# n=5, DELIBERATELY, and it is the reason this design is worth running at all.
+# TypeScript is the cell that has to move, and n=3 vs n=3 admits only 20 splits, so
+# the smallest reportable p-value would be 0.10 EVEN ON PERFECT SEPARATION -- the
+# exp-63 power floor this project has been caught by before. n=5 against the
+# baseline's n=3 gives C(8,5)=56 and a floor of 0.018.
+#
+# ONLY LUNA 6 RUNS. gpt-5.6-luna is not re-run; it is the existing master.db
+# baseline from exp-53. The incremental principle.
+#
+# EFFORT = default, to MATCH the baseline. exp-53's rows carry no effort setting,
+# so default is the only level that compares like with like. Note gpt-6 ships
+# `none` where the 5.6 line had `ultra`, and its default is `medium`.
+# ORDER: design.csv lists TYPESCRIPT FIRST, on purpose. The runner is
+# replicate-major, so each replicate does typescript before python/go -- and codex
+# has rate-limited mid-grid twice in the last fortnight (exp-72 at 11/12, exp-73 at
+# 2/6). If it truncates here, the cell the experiment exists to measure is the one
+# already in hand, and the controls are what is lost.
+
+experiment:
+  name: experiment-76-luna6-rest-api-crud
+  visibility: public
+factors:
+  language: { levels: [python, go, typescript] }
+  agent: { levels: [codex, claude-code] }            # design pins codex
+  prompt: { levels: [neutral, none] }                # design pins neutral
+  model: { levels: [gpt-6-luna, gpt-5.6-luna] }      # design pins gpt-6-luna
+  effort: { levels: [default, medium] }              # design pins default
+responses: [code_quality, token_efficiency, test_coverage, defect_rate, maintainability, idiomatic]
+tasks:
+  - source: bundled://rest-api-crud
+playpen:
+  runner: local
+  replicates: 5
+  timeout_minutes: 60
+  stall_minutes: 25
+  max_turns: 200
+  prompts_dir: prompts
+  local_agents:
+    codex: { harness: codex, model: gpt-6-luna }
+design: { screening_resolution: 3, significance_threshold: 0.10 }
+promotion: { screening_to_trial: { p_value: 0.10 }, trial_to_production: { posterior_confidence: 0.80 } }
+evaluation: { enabled: true, model: opus-4.8 }

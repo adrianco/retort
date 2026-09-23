@@ -1,0 +1,1 @@
+{"id": "E1", "kind": "enhancement", "severity": "info", "title": "Validation exceeds spec (type-checks year/isbn and rejects malformed JSON)", "evidence": "src/books/core.clj:21-29 validate also checks year is integer and isbn is string; parse-body (core.clj:16-19) catches malformed JSON and yields a 400", "suggestion": "None — beyond the required title/author validation"}

@@ -34,7 +34,7 @@ from dataclasses import dataclass
 
 #: Where the table came from and when. Update both when you touch the numbers.
 PRICES_SOURCE = "https://developers.openai.com/api/docs/pricing"
-PRICES_AS_OF = "2026-09-08"
+PRICES_AS_OF = "2026-09-23"
 
 
 @dataclass(frozen=True)
@@ -55,6 +55,16 @@ OPENAI_PRICES: dict[str, TokenPrice] = {
     # 1,050,000 context, 128K max output; effort low/medium/high/xhigh/max -- NO
     # `ultra`, unlike Terra/Luna/Sol. Fast mode is 2x these rates.
     "gpt-6-astra": TokenPrice(10.00, 1.00, 50.00),
+    # GPT-6 Sol and Luna -- released 2026-09-22, 19 days after Astra. Verified
+    # 2026-09-23 against developers.openai.com/api/docs/models/gpt-6-{sol,luna},
+    # NOT from the release coverage: both pages give cache writes at 1.25x input
+    # ($2.50 and $0.125), so the gpt-6 cache-write rule above carries to them.
+    # Both: 1,050,000 context, 128K max output, effort none/low/medium(default)/
+    # high/xhigh/max -- `none` where the 5.6 line had `ultra`.
+    # Luna 6 is a 10x/12x cut on gpt-5.6-luna ($1.00/$6.00), which matters because
+    # 5.6-luna is the one featured cloud stack that does NOT saturate.
+    "gpt-6-sol": TokenPrice(2.00, 0.20, 10.00),
+    "gpt-6-luna": TokenPrice(0.10, 0.01, 0.50),
     # GPT-5.6
     "gpt-5.6-sol": TokenPrice(5.00, 0.50, 30.00),
     "gpt-5.6-terra": TokenPrice(2.50, 0.25, 15.00),
