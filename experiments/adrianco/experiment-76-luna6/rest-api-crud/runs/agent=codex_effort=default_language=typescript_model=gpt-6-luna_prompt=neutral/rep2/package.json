@@ -1,0 +1,17 @@
+{
+  "name": "book-collection-api",
+  "version": "1.0.0",
+  "private": true,
+  "type": "commonjs",
+  "scripts": {
+    "build": "tsc -p tsconfig.json",
+    "start": "node dist/server.js",
+    "dev": "tsx src/server.ts",
+    "test": "npm run build && node --test dist/*.test.js"
+  },
+  "devDependencies": {
+    "@types/node": "26.0.1",
+    "tsx": "4.23.15",
+    "typescript": "5.9.3"
+  }
+}

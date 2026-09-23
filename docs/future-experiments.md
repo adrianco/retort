@@ -63,6 +63,28 @@ longer discriminates between frontier models at low effort (Astra, Opus 5 and Te
 python/go). So the informative cells are the **eleven other languages**, where nothing at this tier
 has been measured on the hard task — not python/go, where 1.00 is expected and uninformative.
 
+## 0. RESOLVED — GPT-6 Luna clears TypeScript  — 2026-09-23
+
+**15/15.** `gpt-6-luna` scores 1.00 on python, go and typescript — the cell `gpt-5.6-luna` fails
+**0/3** — at **7–9× lower cost** ($0.0069–$0.0167 a run; the whole grid was ~$0.17). TypeScript 5/5
+vs 0/3, **Fisher exact two-sided p = 0.0179**, significant because the design was sized for it
+(n=3 vs n=3 could not report below 0.10 even on perfect separation). python and go held at 5/5 as
+controls, so nothing in the harness got easier. Written up in
+[past-experiments.md](past-experiments.md#exp-76--gpt-6-luna-the-10-price-cut-clears-the-cell-its-predecessor-failed--complete-2026-09-23).
+
+**Carried forward:**
+1. **Luna 6 is now a featurable candidate** — it needs the 13×2 grid, and at ~$0.01 a run that grid
+   costs well under a dollar. This is the cheapest path to a new featured stack this project has.
+   It would also be the first cloud stack to be featured on *price* rather than on being frontier.
+2. **`gpt-6-sol` is still unmeasured.** Deliberately deprioritised: it is Terra-class, and Terra
+   saturates everything here, so it would produce another 1.00 grid. Worth running only against a
+   task harder than brazil.
+3. **Harness bug: `_find_skill` resolves from the cwd, and recover does not run from the repo.**
+   `retort recover` failed re-evaluation with "evaluate-run skill not found" while the skill existed,
+   leaving one run with NULL `requirement_coverage` — which reads downstream as a FAIL and would have
+   published python as 4/5 in a perfect grid. Fix: resolve from the package root unconditionally
+   (the fallback already exists, but only after the cwd walk).
+
 ## 0. RESOLVED — Opus 5.5 on the effort ladder  — 2026-09-23
 
 Complete: 36/36 runs, 0 failed, **coverage 1.00 in every one** — so it is an efficiency result, as

@@ -1980,3 +1980,86 @@ and killed before launch — it had been present through exp-64 to exp-73. This 
 of the pathology CLAUDE.md documents. It held memory rather than CPU, so its effect on those runs'
 timings is unknown and unrecoverable; the orphan check in CLAUDE.md caught it only because it is run
 before every launch.
+
+## exp-76 — GPT-6 Luna: the 10× price cut clears the cell its predecessor failed  — COMPLETE, 2026-09-23
+
+**15/15 runs pass. GPT-6 Luna (`gpt-6-luna`, released 2026-09-22) scores 1.00 on python, go AND
+typescript — the cell `gpt-5.6-luna` fails 0/3 — at roughly one-ninth the cost.** Routine task,
+prompt `neutral`, effort `default`, n=5, judge opus-4.8, codex-cli 0.156.1.
+
+### Why Luna and not Sol
+
+Both shipped on 2026-09-22. Sol is the Terra-class tier, and **Terra already scores 1.00 on
+everything this project measures** — testing it first would have produced another saturated grid, the
+condition exp-73 named as the binding constraint on cloud work here. Luna was the one featured cloud
+stack that did **not** saturate, at 0.67 on the routine task. A non-saturated baseline is rare enough
+here that it decided the choice.
+
+### The design was built around the single cell that could move
+
+Broken out of master.db, `gpt-5.6-luna` on `rest-api-crud` is not uniformly mediocre — it is
+**bimodal**:
+
+| gpt-5.6-luna | pass | coverage | cost | wall |
+|---|---|---|---|---|
+| python | 3/3 | 1.00 | $0.062 | 145 s |
+| go | 3/3 | 1.00 | $0.084 | 127 s |
+| **typescript** | **0/3** | **NULL** | $0.116 | 186 s |
+
+The whole of the 0.67 is TypeScript. So "is Luna 6 better" was really "**does it clear TypeScript**",
+and python and go were carried as **controls** — without them, a TypeScript change could equally be
+something that moved in the harness between exp-53 and today.
+
+### Result
+
+| gpt-6-luna, n=5 | pass | cost | vs 5.6-luna cost | wall | tokens |
+|---|---|---:|---:|---:|---:|
+| python | **5/5** | $0.0069 | **9.0× cheaper** | 87 s | 258 K |
+| go | **5/5** | $0.0115 | **7.3× cheaper** | 147 s | 505 K |
+| **typescript** | **5/5** | $0.0167 | **6.9× cheaper** | 244 s | 860 K |
+
+**TypeScript: 5/5 against 0/3. Fisher exact two-sided p = 0.0179** — perfect separation, and
+significant rather than merely suggestive because the design was sized for it. n=3 vs n=3 admits only
+20 splits and could not have reported below 0.10 *even on perfect separation*; n=5 against the
+baseline's n=3 gives C(8,5) = 56 and a floor of 0.018. This is the exp-63 power floor applied in
+advance rather than discovered afterwards.
+
+The controls did what controls are for: python and go stayed at 5/5, so nothing in the harness got
+easier. **A cheaper model got strictly better**, which is not the usual shape of a price cut.
+
+### How it passes TypeScript: it spends more, on a cell that costs less
+
+The mechanism is visible in the token counts. Luna 6 is **cheaper everywhere but slower on the two
+harder languages** — go 147 s vs 127 s, typescript 244 s vs 186 s. It is not a faster model; it is a
+model that does *more work per task* at a price low enough that the extra work is nearly free.
+TypeScript takes it 860 K tokens and 244 s — more than triple python's token count — and that is
+apparently what the cell needs. Its predecessor failed the same cell in less time.
+
+At **$0.0069–$0.0167 a run, the entire 15-run grid cost about $0.17.**
+
+### Plumbing verified before the run, not assumed
+
+- **Codex CLI 0.153.4 → 0.156.1.** The scan recorded that `gpt-6-sol` enters the model picker in
+  0.156.x; exp-72 had already been bitten once when 0.148.0 rejected `gpt-6-astra` outright.
+- **The id resolves**, confirmed with a live `codex exec -m gpt-6-luna` probe reporting
+  `reasoning effort: medium` — matching the vendor's documented default.
+- **Prices added to `src/retort/pricing.py` BEFORE the run**, verified against
+  `developers.openai.com`'s own model pages rather than the release coverage: $0.10 in / $0.01 cached
+  / $0.50 out, cache writes $0.125 = 1.25× input, so the existing `gpt-6` prefix rule carries.
+  **An unpriced codex model reports $0 and silently corrupts the cost columns** — the daily scan
+  flagged exactly this risk, and every cost figure above depends on having fixed it first.
+
+### Harness defect found, and it nearly cost a data point
+
+`retort recover` completed the mechanical rescore of one python run and then failed its
+re-evaluation with **`Eval tooling preflight FAILED: evaluate-run skill not found`** — while the
+skill was present at `skills/evaluate-run/SKILL.md` the whole time. `_find_skill` walks upward from
+the **current working directory**, and recover's evaluation step does not run from inside the repo,
+so the upward walk never reaches the repo root.
+
+The consequence is worse than the error: the run kept its metrics but got **NULL
+`requirement_coverage`**, which reads downstream as *not a pass*. Left alone it would have published
+python as **4/5** — a fabricated failure in a grid that is actually perfect. Re-running
+`retort reevaluate` from the repo root graded it **1.00 PASS** immediately. Filed as a to-do: the
+skill lookup should resolve from the package root unconditionally, which `_find_skill` already knows
+how to do as a fallback but only reaches after the cwd walk.

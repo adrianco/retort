@@ -1,0 +1,13 @@
+{
+  "name": "book-collection-api",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "build": "node --experimental-strip-types --check src/server.ts",
+    "start": "node --experimental-strip-types src/server.ts",
+    "dev": "node --experimental-strip-types src/server.ts",
+    "test": "npm run build && node --experimental-strip-types --test"
+  },
+  "engines": { "node": ">=22.13.0" }
+}

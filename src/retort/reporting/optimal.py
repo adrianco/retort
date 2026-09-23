@@ -247,6 +247,13 @@ KNOWN_NONFEATURED = {
         "mlxlocal/mlx-community--Qwen3-Coder-Next-4bit; kept distinct because "
         "the id is what the run actually wrote, and silently merging two "
         "spellings is how a stack's n gets inflated",
+    "gpt-6-luna": "GPT-6 Luna (exp-76, released 2026-09-22): measured, not YET featured -- and the "
+        "strongest featurable candidate on the board. 15/15 on the routine task across python, go "
+        "and typescript at $0.0069-$0.0167 a run, 7-9x cheaper than gpt-5.6-luna, and it CLEARS the "
+        "typescript cell 5.6-luna fails 0/3 (Fisher two-sided p = 0.0179). Not featured because it "
+        "has 3 languages on 1 task against the 13x2 grid every featured stack carries -- a grid that "
+        "would cost well under a dollar at this price. Do not merge with gpt-5.6-luna: the whole "
+        "finding is that the cheaper successor passes where the predecessor fails.",
     "claude-opus-5-5": "Opus 5.5 (exp-74, released 2026-09-22): measured on the EFFORT LADDER, not "
         "featured. 36 runs, coverage 1.00 in every one, so it is an efficiency result and not a "
         "reliability one -- 1.9-3.3x faster and 1.6-2.4x cheaper than Opus 5 at low/medium/high, "

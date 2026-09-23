@@ -1,0 +1,1 @@
+{"id": "enh-1", "kind": "enhancement", "severity": "info", "title": "Robust request handling beyond spec", "evidence": "main.go:decodeBook uses http.MaxBytesReader(1MiB) + DisallowUnknownFields and rejects trailing JSON; ServeHTTP returns 405 with an Allow header for wrong methods", "suggestion": "None — hardening beyond the spec, no action needed"}

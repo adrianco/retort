@@ -1,0 +1,1 @@
+{"id": "enh-1", "kind": "enhancement", "severity": "info", "title": "Year range validation beyond spec", "evidence": "src/BookApi/Program.cs:44 rejects year <0 or >9999 with a 400, though TASK.md only requires title/author validation", "suggestion": "None — reasonable defensive validation; noted for cross-run comparison."}
