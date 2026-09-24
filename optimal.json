@@ -1,14 +1,32 @@
 {
   "source": "retort report optimal (master.db)",
+  "generated_at": "2026-09-24T08:04:35Z",
+  "master_db_runs": 1308,
   "objective": "cheapest featured stack per language/task that clears its pass-bar",
   "notes": {
-    "effort": "The thinking level of the CHOSEN cell. 'default' means that stack ran with no effort flag \u2014 it is the level those runs used, not a recommendation, and for most stacks it is the only level ever measured. Where a stack HAS been swept (GPT-5.6 Terra, Opus 5) each level competes separately and the cheapest qualifying one is picked.",
+    "generated_at": "UTC timestamp of this file's last regeneration, and the master.db run count behind it. Regenerate with `retort report optimal --routing-json optimal.json`. If this is old, the routes are too: nothing recomputes them automatically.",
+    "effort": "The thinking level of the CHOSEN cell, and it is the level to actually pass. 'default' means those runs passed no effort flag. A cell measured at exactly one level now reports THAT level; it used to be flattened to 'default', which told the reader to pass no flag when the runs behind the number had used, say, 'low'. Where a stack HAS been swept across levels, each competes separately and the cheapest qualifying one is picked -- but a single level means 'this is what was measured', not 'this was compared and won'.",
     "cheapest_cloud/cheapest_local": "The best option of each kind, because 'cheapest overall' alone is not actionable: a local stack at $0 wins every cell it qualifies for, hiding the best answer for anyone who cannot run models locally. Either may be null if nothing of that kind clears the bar.",
     "null": "No measured stack clears the bar for that cell. NOT 'untested'.",
     "n": "Replicates behind pass and cost. Several cells are n=1; cost is a point estimate with no error bar and the selection does not weight by n.",
     "cost": "List price per token for every metered stack (what Claude's CLI reports and a Max plan does not bill; computed for codex, which reports nothing). Local stacks are $0 marginal by override."
   },
   "models": [
+    {
+      "stack": "Claude Opus 5.5",
+      "short": "Opus 5.5",
+      "kind": "cloud",
+      "routine": {
+        "pass": 1.0,
+        "n": 69,
+        "cost": 1.41
+      },
+      "hard": {
+        "pass": 1.0,
+        "n": 13,
+        "cost": 1.92
+      }
+    },
     {
       "stack": "Claude Opus 5",
       "short": "Opus 5",
@@ -45,13 +63,13 @@
       "kind": "cloud",
       "routine": {
         "pass": 1.0,
-        "n": 29,
+        "n": 31,
         "cost": 0.24
       },
       "hard": {
-        "pass": 1.0,
-        "n": 19,
-        "cost": 0.81
+        "pass": 0.79,
+        "n": 38,
+        "cost": 1.18
       }
     },
     {
@@ -63,7 +81,11 @@
         "n": 9,
         "cost": 0.09
       },
-      "hard": null
+      "hard": {
+        "pass": 0.33,
+        "n": 6,
+        "cost": 0.17
+      }
     },
     {
       "stack": "Claude Sonnet 5",
@@ -115,8 +137,8 @@
       "short": "Qwen 35B local",
       "kind": "local",
       "routine": {
-        "pass": 0.86,
-        "n": 57,
+        "pass": 0.73,
+        "n": 90,
         "cost": 0.0
       },
       "hard": {
@@ -256,13 +278,12 @@
       },
       "objc": {
         "cloud": {
-          "stack": "Claude Opus 4.8",
+          "stack": "GPT-5.6 Terra (codex)",
           "models": [
-            "claude-opus-4-8",
-            "opus-4.8"
+            "gpt-5.6-terra"
           ],
           "effort": "default",
-          "cost": 1.5154185000000004,
+          "cost": 0.2428475,
           "pass": 1.0,
           "n": 1
         },
@@ -303,13 +324,12 @@
       },
       "swift": {
         "cloud": {
-          "stack": "Claude Opus 4.8",
+          "stack": "GPT-5.6 Terra (codex)",
           "models": [
-            "claude-opus-4-8",
-            "opus-4.8"
+            "gpt-5.6-terra"
           ],
           "effort": "default",
-          "cost": 1.2517565000000002,
+          "cost": 0.21515700000000001,
           "pass": 1.0,
           "n": 1
         },
@@ -344,20 +364,20 @@
             "gpt-5.6-terra"
           ],
           "effort": "default",
-          "cost": 0.4026885,
+          "cost": 0.5745312499999999,
           "pass": 1.0,
-          "n": 1
+          "n": 2
         },
         "local": null
       },
       "clojure": {
         "cloud": {
-          "stack": "GPT-5.6 Terra (codex)",
+          "stack": "Claude Opus 5.5",
           "models": [
-            "gpt-5.6-terra"
+            "claude-opus-5-5"
           ],
-          "effort": "default",
-          "cost": 0.571795,
+          "effort": "low",
+          "cost": 1.4615807999999997,
           "pass": 1.0,
           "n": 1
         },
@@ -365,12 +385,12 @@
       },
       "cpp": {
         "cloud": {
-          "stack": "GPT-5.6 Terra (codex)",
+          "stack": "Claude Opus 5.5",
           "models": [
-            "gpt-5.6-terra"
+            "claude-opus-5-5"
           ],
-          "effort": "default",
-          "cost": 0.33093,
+          "effort": "low",
+          "cost": 2.3037389999999998,
           "pass": 1.0,
           "n": 1
         },
@@ -378,12 +398,12 @@
       },
       "csharp": {
         "cloud": {
-          "stack": "GPT-5.6 Terra (codex)",
+          "stack": "Claude Opus 5.5",
           "models": [
-            "gpt-5.6-terra"
+            "claude-opus-5-5"
           ],
-          "effort": "default",
-          "cost": 1.356327,
+          "effort": "low",
+          "cost": 1.9349280000000002,
           "pass": 1.0,
           "n": 1
         },
@@ -391,12 +411,12 @@
       },
       "elixir": {
         "cloud": {
-          "stack": "GPT-5.6 Terra (codex)",
+          "stack": "Claude Opus 5.5",
           "models": [
-            "gpt-5.6-terra"
+            "claude-opus-5-5"
           ],
-          "effort": "default",
-          "cost": 0.6673595,
+          "effort": "low",
+          "cost": 1.9708937999999996,
           "pass": 1.0,
           "n": 1
         },
@@ -404,12 +424,12 @@
       },
       "erlang": {
         "cloud": {
-          "stack": "GPT-5.6 Terra (codex)",
+          "stack": "Claude Opus 5.5",
           "models": [
-            "gpt-5.6-terra"
+            "claude-opus-5-5"
           ],
-          "effort": "default",
-          "cost": 0.485014,
+          "effort": "low",
+          "cost": 2.727359399999999,
           "pass": 1.0,
           "n": 1
         },
@@ -435,20 +455,20 @@
             "gpt-5.6-terra"
           ],
           "effort": "default",
-          "cost": 0.4851135,
+          "cost": 0.68895525,
           "pass": 1.0,
-          "n": 1
+          "n": 2
         },
         "local": null
       },
       "objc": {
         "cloud": {
-          "stack": "Claude Fable 5",
+          "stack": "Claude Opus 5.5",
           "models": [
-            "claude-fable-5"
+            "claude-opus-5-5"
           ],
-          "effort": "default",
-          "cost": 13.297392999999994,
+          "effort": "low",
+          "cost": 2.4554205999999996,
           "pass": 1.0,
           "n": 1
         },
@@ -474,20 +494,20 @@
             "gpt-5.6-terra"
           ],
           "effort": "default",
-          "cost": 0.3711285,
+          "cost": 0.35551524999999995,
           "pass": 1.0,
-          "n": 1
+          "n": 2
         },
         "local": null
       },
       "swift": {
         "cloud": {
-          "stack": "Claude Fable 5",
+          "stack": "Claude Opus 5.5",
           "models": [
-            "claude-fable-5"
+            "claude-opus-5-5"
           ],
-          "effort": "default",
-          "cost": 9.243886,
+          "effort": "low",
+          "cost": 1.3256422,
           "pass": 1.0,
           "n": 1
         },
@@ -500,9 +520,9 @@
             "gpt-5.6-terra"
           ],
           "effort": "default",
-          "cost": 0.1500645,
+          "cost": 0.43631975,
           "pass": 1.0,
-          "n": 1
+          "n": 2
         },
         "local": null
       }

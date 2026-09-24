@@ -1,6 +1,6 @@
 # The Tasks: What Gets Built, and How Differently a Run Can Pass
 
-*Published 2026-07-30 · updated 2026-08-07 — Adrian Cockcroft*
+*Published 2026-07-30 · updated 2026-09-24 — Adrian Cockcroft*
 
 What retort actually asks an agent to build, and — for each task — the fastest and the slowest run that fully passed. Both mean shortest/longest `duration_seconds` among runs scoring `requirement_coverage == 1.0`, restricted to runs whose **agent log was archived**, since a record with no log can't be shown.
 
@@ -67,6 +67,14 @@ It is not slop — it scores *better* on maintainability (0.85 vs 0.27) and idio
 Build an MCP server over six real Kaggle CSVs of Brazilian football (23,954 matches across five files with three *different* schemas, plus 18,207 FIFA players). Twelve pinned requirements in [`REQUIREMENTS.json`](tasks/brazil-bench/REQUIREMENTS.json): match queries by team / date-range / competition / season, team W-D-L records, player search and filtering, season standings computed from results, aggregate statistics, head-to-head, and automated tests.
 
 It is hard for reasons that have nothing to do with algorithms: team names carry state suffixes and accents (`São Paulo-SP` vs `Sao Paulo`), one file uses Portuguese column names and `DD/MM/YYYY` dates, and **the datasets overlap** — the same real-world match appears in two or three files.
+
+> ### ⚠️ Update 2026-09-24: this task no longer separates frontier models — and that is a finding about the task
+>
+> Measured at low effort, **GPT-6 Astra, Opus 5, Opus 5.5 and GPT-5.6 Terra all score 1.00 here.** They differ only in money and clock: Terra ~\$0.39 a run, Opus 5.5 \$1.33–\$2.73, Astra ~\$2.37, Opus 5 ~\$7.59. Opus 5.5 clears **all thirteen languages** on it.
+>
+> **The task has not become easy — it has become unable to discriminate at the top of the market.** It still floors every local stack: the 80B scores **0.00** (verified config-invariant — it reaches 11 of 12 capabilities and never the twelfth), and the 35B **0.25**. So it remains a live measurement for local models and a saturated one for frontier cloud models.
+>
+> **What that costs us:** every new frontier model measured here now returns another 1.00, and the only thing left to compare is price. Designing a task harder than this one is the binding constraint on this project's cloud-model work. When you read a 1.00 in a frontier row below, read it as "cleared the bar", not as "this model is at the ceiling of what we can measure".
 
 ### Fastest logged pass — 3 min 19 s
 

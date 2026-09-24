@@ -30,6 +30,7 @@ Usage:
 """
 from __future__ import annotations
 
+import datetime as _dt
 import sqlite3
 from pathlib import Path
 
@@ -504,7 +505,11 @@ def per_language_routing(conn, task=ROUTINE_TASK):
             for eff in efforts_for(conn, s, task, lang):
                 where = stack_where(s)
                 if eff is not None:
-                    where = f"({where}) AND effort = '{eff}'"
+                    # COALESCE, not `effort = 'default'`: "default" is this
+                    # project's name for "no flag passed", which most of the
+                    # corpus records as NULL. A bare equality would match none
+                    # of those rows and silently empty the cell.
+                    where = f"({where}) AND COALESCE(effort,'default') = '{eff}'"
                 m = metrics(conn, where, task, language=lang)
                 if m["n"] and m["pass"] >= s["pass_bar"]:
                     cost = s.get(
@@ -566,10 +571,21 @@ def _best(rec, kind="cloud"):
 def efforts_for(conn, stack, task, language):
     """Thinking levels this stack has actually been MEASURED at for this cell.
 
-    Returns ``[None]`` (meaning "don't filter on effort") when the cell has only
-    ever run at one level — which is true for almost everything, since `effort`
-    only became a factor in exp-49. Reporting a level we never varied would imply
-    a comparison that was never made.
+    Returns every level the cell has runs at, INCLUDING when there is only one.
+
+    It used to collapse a single-level cell to ``[None]``, on the reasoning that
+    naming a level we never varied implies a comparison nobody made. That
+    conflated two different things and published a wrong instruction: the
+    *comparison* was not made, but the *operating point* is known, and the
+    renderer turned ``None`` into the literal string "default" — which tells the
+    reader to pass no ``--effort`` flag. For Opus 5.5 on the hard task every one
+    of the 13 runs was ``low``, and the table said ``default``; exp-74 measured
+    that stack's ``default`` at ~1.5x the cost of its ``low`` on the routine
+    task, so the published cell was not merely imprecise, it routed readers to a
+    dearer operating point than the one the numbers describe.
+
+    A cell whose runs genuinely carry no effort value still reads "default",
+    because that is what those runs did: pass no flag.
     """
     try:
         rows = q(
@@ -584,7 +600,7 @@ def efforts_for(conn, stack, task, language):
         return [None]
     # Index rather than key: callers may or may not have set a row_factory.
     levels = sorted({r[0] for r in rows if r[0]})
-    return levels if len(levels) > 1 else [None]
+    return levels or [None]
 
 
 def model_board(conn):
@@ -716,17 +732,38 @@ def routing_config(conn):
     routes = {}
     for task in (ROUTINE_TASK, HARD_TASK):
         routes[task] = per_language_routing(conn, task=task)
+    # STALENESS IS THE FAILURE MODE FOR THIS FILE, not wrongness. It is committed
+    # to the repo for other tools to consume, so nothing errors when it goes out
+    # of date -- it was found 7 weeks stale on 2026-09-24, still routing to a
+    # board that predated Opus 5.5, Sonnet 5's hard number and two 35B
+    # corrections. A consumer had no way to tell. These two fields give it one.
+    generated_at = _dt.datetime.now(_dt.timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
+    try:
+        total_runs = q(conn, f"SELECT COUNT(*) FROM runs WHERE {BASE_FILTER}")[0][0]
+    except sqlite3.OperationalError:
+        total_runs = None
     return {
         "source": "retort report optimal (master.db)",
+        "generated_at": generated_at,
+        "master_db_runs": total_runs,
         "objective": "cheapest featured stack per language/task that clears its pass-bar",
         "notes": {
+            "generated_at": (
+                "UTC timestamp of this file's last regeneration, and the master.db "
+                "run count behind it. Regenerate with `retort report optimal "
+                "--routing-json optimal.json`. If this is old, the routes are too: "
+                "nothing recomputes them automatically."
+            ),
             "effort": (
-                "The thinking level of the CHOSEN cell. 'default' means that stack "
-                "ran with no effort flag — it is the level those runs used, not a "
-                "recommendation, and for most stacks it is the only level ever "
-                "measured. Where a stack HAS been swept (GPT-5.6 Terra, Opus 5) "
-                "each level competes separately and the cheapest qualifying one "
-                "is picked."
+                "The thinking level of the CHOSEN cell, and it is the level to "
+                "actually pass. 'default' means those runs passed no effort flag. "
+                "A cell measured at exactly one level now reports THAT level; it "
+                "used to be flattened to 'default', which told the reader to pass "
+                "no flag when the runs behind the number had used, say, 'low'. "
+                "Where a stack HAS been swept across levels, each competes "
+                "separately and the cheapest qualifying one is picked -- but a "
+                "single level means 'this is what was measured', not 'this was "
+                "compared and won'."
             ),
             "cheapest_cloud/cheapest_local": (
                 "The best option of each kind, because 'cheapest overall' alone is "

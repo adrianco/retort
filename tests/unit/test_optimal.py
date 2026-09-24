@@ -198,3 +198,68 @@ def test_gptoss_runs_are_not_counted_as_the_35b():
     ])
     n = conn.execute(f"SELECT count(*) FROM runs WHERE {stack['where']}").fetchone()[0]
     assert n == 0, "gpt-oss-20b runs are being attributed to the Qwen 35B stack"
+
+
+def _db_with_effort(rows: list[tuple]) -> sqlite3.Connection:
+    """master.db shape INCLUDING `effort` — the routing table filters on it."""
+    conn = sqlite3.connect(":memory:")
+    conn.execute(
+        "CREATE TABLE runs (experiment TEXT, task TEXT, language TEXT, model TEXT, "
+        "prompt TEXT, requirement_coverage REAL, cost_usd REAL, duration_seconds REAL, "
+        "max_context_tokens REAL, test_coverage REAL, tokens REAL, effort TEXT)"
+    )
+    conn.executemany(
+        f"INSERT INTO runs ({_COLS}, effort) VALUES (?,?,?,?,?,?,?,?,?,?,?,?)", rows
+    )
+    conn.commit()
+    return conn
+
+
+def _effort_row(lang, model, cov, cost, effort, task="rest-api-crud", exp="experiment-6"):
+    return (exp, task, lang, model, "none", cov, cost, 200.0, None, cov, 1e6, effort)
+
+
+def test_single_measured_effort_is_reported_as_itself_not_default():
+    """A cell measured at ONE level must name that level, not say 'default'.
+
+    Regression: `efforts_for` used to collapse a single-level cell to None and the
+    renderer printed "default" — which instructs the reader to pass NO --effort
+    flag. Opus 5.5's whole hard-task column was published that way while every one
+    of those runs had used `low`, an operating point exp-74 measured at ~1.5x the
+    cost of `low` on the routine task. A wrong instruction, not a vague one.
+    """
+    conn = _db_with_effort([
+        _effort_row("rust", "claude-opus-5-5", 1.0, 1.5, "low"),
+        _effort_row("rust", "claude-opus-5-5", 1.0, 1.6, "low"),
+    ])
+    routing = opt.per_language_routing(conn, task="rest-api-crud")
+    cell = routing["rust"]["cloud"]
+    assert cell["effort"] == "low", cell
+    assert cell["n"] == 2
+
+
+def test_default_still_means_no_flag_for_rows_with_null_effort():
+    """Rows that genuinely recorded no effort keep reading 'default'.
+
+    The fix must not filter those out: 'default' is this project's name for
+    "passed no flag", which most of the corpus stores as NULL. Filtering with a
+    bare `effort = 'default'` would match none of them and empty the cell.
+    """
+    conn = _db_with_effort([
+        _effort_row("rust", "claude-fable-5", 1.0, 1.0, None),
+        _effort_row("rust", "claude-fable-5", 1.0, 1.1, None),
+    ])
+    cell = opt.per_language_routing(conn, task="rest-api-crud")["rust"]["cloud"]
+    assert cell["effort"] == "default", cell
+    assert cell["n"] == 2, "NULL-effort rows must survive the effort filter"
+
+
+def test_swept_cell_still_picks_the_cheapest_level():
+    """Where a stack HAS been swept, the cheapest qualifying level still wins."""
+    conn = _db_with_effort([
+        _effort_row("rust", "claude-opus-5-5", 1.0, 0.40, "low"),
+        _effort_row("rust", "claude-opus-5-5", 1.0, 9.90, "max"),
+    ])
+    cell = opt.per_language_routing(conn, task="rest-api-crud")["rust"]["cloud"]
+    assert cell["effort"] == "low"
+    assert cell["cost"] < 1.0

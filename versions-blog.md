@@ -1,12 +1,37 @@
 # The Unit of Choice Is Model × Thinking Level, Not Model
 
-*Published 2026-07-25 · updated 2026-07-30 — Adrian Cockcroft*
+*Published 2026-07-25 · updated 2026-09-24 — Adrian Cockcroft*
 
 For a year the question has been "which model should I use?" That question is underspecified. Every frontier model now has a **thinking-level** dial, and on the evidence below the dial moves cost more than the model choice does — while moving the result not at all.
 
 One task (a "bookshop" REST API), one prompt, one judge throughout. First four Claude versions × five thinking levels, three replicates each — **21 cells, 63 runs, zero failures**. Then the same sweep against **OpenAI's GPT-5.6 Terra**, to see whether any of it is a Claude peculiarity. It isn't, but the two vendors turn out to have built the dial to do different things.
 
-## Every cell passed. The bill spans 16×.
+## Update 2026-09-24: two model generations later, the finding has only got stronger
+
+This page's original sweep spanned **16×** across four Claude versions. Three later sweeps have held the conclusion and widened the number.
+
+**Opus 5.5 (exp-74, six levels × two languages, n=3 a cell) is the cleanest version of this experiment yet, because it varies only the dial.** All 36 runs scored 1.00. Python: **\$0.38 and 35 s at `low`, against \$10.26 and 2017 s at `max`** — **27× the money and 58× the wall-clock for an identical result.**
+
+| Opus 5.5, python | wall | cost | vs `low` |
+|---|---:|---:|---|
+| **low** | **35 s** | **\$0.38** | — |
+| medium | 84 s | \$0.59 | 1.6× |
+| default | 83 s | \$0.59 | 1.6× |
+| high | 132 s | \$0.79 | 2.1× |
+| xhigh | 675 s | \$3.04 | 8.0× |
+| max | 2017 s | \$10.26 | **27×** |
+
+**The newer release made the dial *steeper*, not flatter.** Opus 5's own ladder spanned 15.6× in cost; 5.5's spans 26.9×. The reason is the useful part: the **bottom** fell — `low` got 2–3× cheaper — while `max` did not. The penalty for leaving the dial turned up has roughly doubled between releases.
+
+**`max` is also unpredictable, not merely expensive.** Three python runs at `max` took 1030, 1688 and 3333 seconds — a 3.2× spread inside one cell, against `low`'s 34, 34, 38. At the top of the dial you cannot predict a run's completion time within a factor of three.
+
+**`default` moved between releases.** On Opus 5 it behaved like `high` (270 s); on 5.5 it lands on `medium` (83 s). Anyone who never passes `--effort` is on a different rung than they were, without having changed anything — which is the sharpest possible statement of this page's thesis: **the dial is part of the stack, and a version bump can move it under you.**
+
+**The caveat, stated rather than buried:** the Claude Code CLI moved 2.1.197 → 2.1.280 between the Opus 5 baseline and the 5.5 run, and the CLI *is* the agent here — so cross-model comparisons on this page are *stack* results, not pure model results. Evidence against a plain harness explanation: the per-level saving runs −82 s, −75 s, −248 s, −41 s, **+509 s**. It changes sign, which a constant overhead cannot.
+
+---
+
+## The original sweep: every cell passed, and the bill spans 16×.
 
 | model | effort | turns | tokens | **cost** | seconds |
 |---|---|---:|---:|---:|---:|

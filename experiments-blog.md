@@ -1,6 +1,6 @@
 # The Experiment Index: What Was Measured, and What the Harness Was Doing at the Time
 
-*Published 2026-07-30 · updated 2026-09-07 — Adrian Cockcroft*
+*Published 2026-07-30 · updated 2026-09-24 — Adrian Cockcroft*
 
 An index, not an argument. Retort has run **1,014 scored runs across 56 experiment groups and 13 languages**; this page says what each group was for, where to read the detail, and — the part that matters most for reading an old number — **what the harness itself was doing at the time**. Several published figures moved because the tooling was fixed, not because a model changed.
 
@@ -44,6 +44,10 @@ Check this before comparing a number from one experiment against another. None o
 | exp-55 | **`xhigh` was missing** from retort's effort levels | exp-49's "full sweep" had skipped a level that exists in both CLIs. |
 | ongoing | **Attribution** — local runs wrote a blank `model`; experiment labels are now `<githubid>/exp#` | ~250 rows are identified by experiment slug rather than model id, and a stack predicate that enumerated local models *by exclusion* once counted exp-47's gpt-oss runs as the 35B's. |
 | post-exp-55 | **Python workspaces get a provisioned venv** (`python`, `pip` and pytest on PATH) | Every earlier python run inherited a host with **no `python`** — only Homebrew's `python3`. The fastest recorded run of all three tasks, across two vendors and three models, spent a turn on `command not found` and a retry. Dependency installs were also luck: `pip` against a Homebrew interpreter fails `externally-managed-environment`, so whether an agent could install anything depended on whether it happened to build its own venv. And the scorer built a *different* interpreter than the agent's. Python runs before and after this are not turn-count comparable. |
+
+| exp-76 | **`retort recover` could not find the evaluation skill** — it resolves the skill by walking up from the *current working directory*, and recover's evaluation step does not run from inside the repo | A recovered run kept its metrics but got a **NULL `requirement_coverage`**, which reads downstream as *not a pass*. It would have published a perfect 5/5 python cell as **4/5** — a fabricated failure. Re-running `retort reevaluate` from the repo root graded it 1.00 immediately. |
+| exp-75 | **The routing table mislabelled the thinking level** — a cell measured at exactly one level was flattened to the string `default` | `default` means *pass no `--effort` flag*, so the published table told readers to run a **dearer operating point than the one the numbers describe**. Opus 5.5's entire hard-task column said `default` while all 13 runs had used `low`. A wrong instruction, not a vague one. |
+| 2026-09-24 | **`optimal.json` was 7 weeks stale** — it is committed for *other tools* to consume, and nothing errors when it rots | Downstream consumers were routing from a board that predated Opus 5.5, Sonnet 5's hard number and two 35B corrections. It now carries `generated_at` and `master_db_runs` so a consumer can tell. |
 
 The shape that keeps recurring: **a failing model and a broken harness are identical in the scores.** `retort diagnose` exists to separate them, and the standing rule is that a surprising zero gets reproduced by hand before it gets published. The full post-mortems are in [Historical: harness bugs & the local re-baseline saga](docs/past-experiments.md).
 

@@ -120,10 +120,49 @@ reflows normally.
 - Experiments live under `experiments/<owner>/experiment-NN-<slug>/` so contributions
   merge cleanly and every run is attributable. See [`experiments/README.md`](experiments/README.md).
 - **After** results land: run `retort recover` + `retort aggregate`, update the write-ups and
-  push (the model/optimal blogs), and **move the experiment's entry from the
+  push, and **move the experiment's entry from the
   [`future-experiments.md`](docs/future-experiments.md) queue to
   [`past-experiments.md`](docs/past-experiments.md)** (append in increasing experiment order). Do
   the same for a model candidate the moment you decide it isn't worth testing.
+
+## EVERY experiment result triggers a FULL review of all `*-blog.md` files
+
+**Not "the blogs it obviously touches" — all of them, every time** (user, 2026-09-24). Updating only
+the blog you were thinking about is how this project accumulates pages that contradict each other,
+and a reader has no way to tell which page is the stale one.
+
+Walk every file and ask *"does this experiment change anything asserted here?"* — then fix it or
+confirm it still holds:
+
+| file | what an experiment can invalidate here |
+|---|---|
+| `optimal-blog.md` | the recommendation itself — leading stacks, per-language picks, the decision procedure, forbidden settings |
+| `model-blog.md` | the model board, the "what's new" lead, any model's headline numbers |
+| `levels-blog.md` | anything about the effort dial — a new model's ladder changes the advice |
+| `versions-blog.md` | version-to-version claims, including "the newer release costs more" |
+| `prompt-blog.md` | prompt-method findings, which are model-strength-dependent |
+| `tasks-blog.md` | task difficulty claims — a model clearing a task changes what that task measures |
+| `harness-blog.md` | harness behaviour: gates, stall guard, judge, scoring |
+| `experiments-blog.md` | the experiment narrative and any counts |
+
+**Three failure modes this exists to catch, all of which have happened:**
+
+1. **A hand-written table drifting from a generated one in the SAME file.** optimal-blog carried a
+   generated routing table recommending Terra/Opus 5.5 and, two screens below, a hand-maintained
+   table recommending Opus 4.7/4.8 — both presented as current.
+2. **A generated file nobody regenerates.** `optimal.json` is committed for *other tools* to consume
+   and was found **7 weeks stale**, still routing to a board without Opus 5.5. Nothing errors when
+   it rots. It now carries `generated_at` and `master_db_runs` so a consumer can tell.
+3. **Superseded stacks left in place.** optimal-blog's own lifecycle says a dominated stack is
+   *removed, not demoted* — but dominated entries stayed because no one re-read the page.
+
+Mechanical aids, which check form and not content — they do **not** discharge this review:
+
+    python scripts/reflow_blogs.py --check          # wrapping + "edited today must say today"
+    retort report optimal --write optimal-blog.md   # regenerate every GEN table
+    retort report optimal --write model-blog.md
+    retort report optimal --routing-json optimal.json
+    retort report optimal --health                  # unmapped models, contaminated stacks
 
 ## Code layout — where the code lives
 
