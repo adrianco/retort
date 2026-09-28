@@ -477,7 +477,7 @@ invest in the solver dependency, master.db merge, and first-class docs.
 <!-- SCAN-HEARTBEAT: the daily scan rewrites the next line on EVERY run, including
      days it finds nothing. Do not hand-edit it. If the date is more than ~2 days
      stale, the scan is not running — see "when the heartbeat goes stale" below. -->
-**Daily scan last completed: 2026-09-24** (scanning for new coding models: 64GB-fittable open weights, and frontier cloud models/versions)
+**Daily scan last completed: 2026-09-28** (scanning for new coding models: 64GB-fittable open weights, and frontier cloud models/versions)
 
 - 2026-09-08 — **GPT-6 Astra (OpenAI) — `gpt-6-astra`** — *the "new codex model"; added by hand
   because the daily scan's scope was open-weights-only until today (widened the same day, see the
@@ -1421,6 +1421,35 @@ survives the toggle, restart the Claude desktop app, which clears the in-memory 
   — weights: https://huggingface.co/XiaomiMiMo/MiMo-V2.6-Distill-Qwen-9B
   — GGUF: https://huggingface.co/ggml-org/MiMo-V2.6-Distill-Qwen-9B-GGUF
   — MLX: https://huggingface.co/prithivMLmods/MiMo-V2.6-Distill-Qwen-9B-MLX
+
+- 2026-09-28 — **Ternary Bonsai 2 27B (PrismML)** — *published **2026-09-17**; the successor to the
+  2026-08-03 Bonsai 27B entry, and now a ternary compression of the already-listed **Qwen3.8-27B**
+  rather than of Qwen3.6-27B.* Apache 2.0, **27.36B params (24.35B backbone, same arch as the base —
+  ~75% linear-attention / 25% full-attention layers)**, 262K context, thinking mode and **tool
+  calling retained**. **5.93 GB (`PTQ1_0`, ~1.7 bits/weight) or 7.25 GB (`PQ2_0`)** — leaves ~58 GB
+  free. PrismML claims 98.2% of Qwen3.8-27B's 20-benchmark aggregate (83.9 vs 85.4), LiveCodeBench v6
+  90.07 — **but the agentic numbers are where the loss lands: SWE-bench Verified 60.8 (~75% of full
+  precision) and Terminal-Bench 2.1 retention also ~75%.** That makes it the cleanest quant-level
+  probe this list has: paired with a stock 4-bit Qwen3.8-27B it measures whether ~1.7-bit weights
+  survive a *multi-turn agent loop* — exactly the §3 finding that quantization error surfaces as
+  tool-loop stalls that single-turn benchmarks cannot see. **Measure the stall rate first.**
+  **Serving is the blocker: stock llama.cpp rejects `PTQ1_0`/`PQ2_0`** — a run needs PrismML's
+  llama.cpp fork (or their MLX build, which ships; oMLX compatibility with the ternary format is
+  unverified). Vendor decode figure on an **M5 Pro: 27.7 tok/s** with their kernels. Gate-probe the
+  fork + a real `<tool_call>` before any grid, and inherit the Qwen3.8-27B temp-1.0 / thinking-mode
+  recording caveats. Run only after the Qwen3.8-27B 4-bit baseline exists, or it has no control.
+  Source: https://prismml.com/news/bonsai-2-27b
+  — via: https://www.marktechpost.com/2026/09/18/prismml-releases-ternary-bonsai-2-27b-a-5-9-gb-apache-2-0-model-retaining-98-2-of-qwen3-8-27b-performance/
+  — docs: https://docs.prismml.com/bonsai-2-27b
+
+*Excluded 2026-09-28, recorded so they are not re-investigated:* **Step 5 Preview** (StepFun,
+2026-09-20, 600B-A27B, agentic coding) — ~300 GB at 4-bit, and weights not due until 2026-10-15.
+**GLM-5.3-FlashX / GLM-5.3 Prime** (Z.ai, 2026-09-18/23) — serving tiers of the already-excluded
+320B-A18B GLM-5.3-Flash. **Jev 1.13** (TypeSafe, 2026-09-18), **CLM-8B** (Contrastive-LM,
+2026-09-23), **GLiNER2.5-Decide** (Fastino, 2026-09-24) and **Julia 1** (Supersonic Labs,
+2026-09-26) — "System One" decision/scoring models that do not generate code. No new Track B frontier
+model or version since the 2026-09-22 Sol/Luna/Opus 5.5 drop. Sources:
+https://www.marktechpost.com/2026/09/20/stepfun-launches-step-5-preview/ · https://llm-stats.com/llm-updates
 
 *Excluded 2026-09-23, oversized — recorded so they are not re-investigated:* **DeepSeek-V4.1-Flash**
 (2026-09-10, **MIT**, 552B total / 8–16B active multimodal MoE, coding- and long-agent-targeted, with
