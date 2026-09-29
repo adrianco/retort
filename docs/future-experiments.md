@@ -477,7 +477,7 @@ invest in the solver dependency, master.db merge, and first-class docs.
 <!-- SCAN-HEARTBEAT: the daily scan rewrites the next line on EVERY run, including
      days it finds nothing. Do not hand-edit it. If the date is more than ~2 days
      stale, the scan is not running — see "when the heartbeat goes stale" below. -->
-**Daily scan last completed: 2026-09-28** (scanning for new coding models: 64GB-fittable open weights, and frontier cloud models/versions)
+**Daily scan last completed: 2026-09-29** (scanning for new coding models: 64GB-fittable open weights, and frontier cloud models/versions)
 
 - 2026-09-08 — **GPT-6 Astra (OpenAI) — `gpt-6-astra`** — *the "new codex model"; added by hand
   because the daily scan's scope was open-weights-only until today (widened the same day, see the
@@ -562,6 +562,27 @@ invest in the solver dependency, master.db merge, and first-class docs.
   model claim rather than a stack claim.
   Sources: [The New Stack](https://thenewstack.io/claude-opus-5-5-release/) ·
   [benign-trigger issue](https://github.com/anthropics/claude-code/issues/67246)
+- 2026-09-29 — **Claude Sonnet 5.5 (Anthropic) — `claude-sonnet-5-5`** — *released **2026-09-28**, the
+  successor to the Sonnet 5 already in `master.db` (exp-15).* Facts from Anthropic's own model page,
+  not a news story: **$2 in / $10 out per 1M**, cache read $0.20, cache writes $2.50 (5m) / $4 (1h) —
+  **exactly Sonnet 5's list price, half of Opus 5.5 ($4/$20), and identical to GPT-6 Sol**.
+  **1M-token context**, 128K max output, knowledge cutoff Jun 2026. **Adaptive thinking, default effort
+  `high`** (Opus 5.5 defaults to `medium`), plus a new lowest thinking setting **`between_tools`** that
+  turns off up-front thinking (valid at `high` or below). Reachable as `claude --model claude-sonnet-5-5`
+  (also Bedrock `anthropic.claude-sonnet-5-5`). **Pricing:** the claude CLI reports its own
+  `total_cost_usd`, so `src/retort/pricing.py` (OpenAI-only) does not need an entry — but check the
+  installed CLI version knows the id before a cell. **Three recording traps per CLAUDE.md:** (1) default
+  effort is `high`, not `low` — exp-65/74 showed the effort dial is the dominant cost lever on Claude,
+  so set it explicitly and record it; (2) text between tool calls now comes back in `thinking` blocks
+  and **forced tool use returns an error** — confirm the claude-code transcript parser still counts
+  turns/tokens correctly on a smoke cell; (3) non-default `temperature`/`top_p`/`top_k` return 400.
+  **Framing:** "near-Opus performance at half the price" (vendor claim). Routine and brazil are
+  saturated at 1.00 for frontier models, so a grid measures **cost and clock** — the axis this release
+  moves — and the natural comparison is **Sonnet 5.5 vs Opus 5.5 at `low`** and **vs GPT-6 Sol**
+  (same list price, different vendor). Like Luna 6, a 13×2 grid at low effort should be cheap enough
+  to make it featurable. The discriminating question still needs the harder-than-brazil task (exp-73).
+  Sources: [Anthropic model page](https://platform.claude.com/docs/en/models/sonnet-5-5/overview),
+  [The New Stack](https://thenewstack.io/claude-sonnet-55-launch/).
 
 New open-weight coding models found by the daily scan that plausibly fit 64GB at 4-bit; promote to a
 numbered experiment when prioritised.
