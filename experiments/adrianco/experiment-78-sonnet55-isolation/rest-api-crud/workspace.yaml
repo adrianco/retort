@@ -1,0 +1,58 @@
+# Experiment 78 — does isolating the claude agent from the host's config change results?
+#
+# WHY THIS EXISTS. Until commit 1e6c8437 (2026-09-29) every claude-code agent under
+# test inherited the machine owner's setup: 6 MCP servers / 418 MCP tools
+# (ruvnet-brain, claude-flow, claude.ai Gmail / Docs / Drive / Calendar), the
+# ruvnet-brain plugin's skills and hooks, and ~/.claude/CLAUDE.md. A probe showed a
+# hook making the agent run a `search_ruvnet` query before a one-line answer. The
+# harness now runs the agent with --strict-mcp-config, an empty --mcp-config and
+# --setting-sources project,local (verified: 0 MCP tools, no user plugins / hooks /
+# CLAUDE.md, OAuth intact).
+#
+# THE QUESTION: were the published claude-code numbers moved by that inherited
+# config? This re-runs part of exp-77 — identical model, task, languages, prompt,
+# judge, CLI (2.1.284) and n — with ONLY the isolation changed, so exp-77 is the
+# un-isolated arm and this is the isolated arm.
+#
+# CELLS: low / medium / high / default, python + go, n=3 = 24 runs, ~$5. xhigh and
+# max are left out ON PURPOSE: exp-74 measured a 3.2x within-cell wall-clock range at
+# max, so a harness effect would be invisible there, and those two levels would
+# multiply the cost ~10x.
+#
+# EXPECTATION, recorded before the run: coverage 1.00 in both arms (no quality
+# effect). The likely effect is on TOKENS and COST — the un-isolated prompt carries
+# the MCP tool listing, the user CLAUDE.md and hook output, so input/cache tokens
+# should FALL with isolation — with wall-clock roughly unchanged. If tokens do not
+# move, the inherited config was inert and past claude-code results stand as-is.
+#
+# THE UN-ISOLATED ARM WAS NOT EVEN STABLE. Each exp-77 transcript's init event lists
+# what the agent loaded: all 34 runs had 6 MCP servers incl. Gmail (the user's
+# mid-run Gmail disconnect never reached the CLI), but the tool count was 446 in 32
+# runs and 438 in two (go low/medium rep3, 15:07-15:11) — connector tool lists came
+# and went with nobody touching anything. The isolated arm should read 0 MCP tools in
+# every run; check that from the init events before comparing.
+#
+# JUDGE unchanged (claude-code / opus-4.8, NOT isolated), so requirement_coverage
+# pools with exp-77; only the agent's config differs between the arms.
+experiment:
+  name: experiment-78-sonnet55-isolation
+  visibility: public
+factors:
+  effort: { levels: [low, medium, high, default] }
+  language: { levels: [python, go] }
+  # Registry needs >=2 levels per factor; design.csv pins the one actually run.
+  prompt: { levels: [neutral, none] }
+  model: { levels: [claude-sonnet-5-5, claude-opus-5-5] }
+responses: [code_quality, token_efficiency, test_coverage, defect_rate, maintainability, idiomatic]
+tasks:
+  - source: bundled://rest-api-crud
+playpen:
+  runner: local
+  replicates: 3
+  timeout_minutes: 90   # matches exp-77; no cell here comes near it
+  stall_minutes: 25
+  max_turns: 200
+  prompts_dir: prompts
+design: { screening_resolution: 3, significance_threshold: 0.10 }
+promotion: { screening_to_trial: { p_value: 0.10 }, trial_to_production: { posterior_confidence: 0.80 } }
+evaluation: { enabled: true, model: opus-4.8 }

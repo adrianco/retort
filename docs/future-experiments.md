@@ -60,6 +60,30 @@ effort{low, medium, high} — the likely cheapest agentic operating point. Anthr
 **Next if it clears:** the 13×2 grid at the winning effort level (exp-75's shape), which is what
 would make it featurable against Opus 5.5 and GPT-6 Sol (same list price).
 
+## 0. exp-78 — does isolating the claude agent from the host's config change results?  — QUEUED behind exp-77
+
+**The gap:** until commit `1e6c8437` (2026-09-29) every claude-code agent under test inherited the
+machine owner's setup — 6 MCP servers / 418 tools (ruvnet-brain, claude-flow, claude.ai Gmail / Docs /
+Drive / Calendar), the ruvnet-brain plugin's skills and hooks, and `~/.claude/CLAUDE.md`. A probe
+showed a hook making the agent run a `search_ruvnet` query before a one-line answer. The harness now
+passes `--strict-mcp-config`, an empty `--mcp-config` and `--setting-sources project,local`. The
+question is whether the published claude-code numbers were moved by what it used to inherit.
+
+**Design:** re-run part of exp-77 with ONLY the isolation changed — Sonnet 5.5, `rest-api-crud`,
+effort{low, medium, high, default} × {python, go}, n=3 → 24 runs, **~$5, ~30 min**. exp-77 is the
+un-isolated arm. xhigh/max excluded: exp-74 saw a 3.2× within-cell wall-clock range at max, which
+would swamp a harness effect, and they would cost ~10× more. Judge unchanged (not isolated), so
+coverage pools.
+
+**Hypothesis:** coverage 1.00 in both arms. Input/cache **tokens and cost fall** with isolation (the
+un-isolated prompt carries the tool listing, user CLAUDE.md and hook output); wall-clock roughly
+unchanged. If tokens don't move, the inherited config was inert and past results stand.
+
+**Already found:** the un-isolated arm was not even stable — exp-77's init events show 446 tools in
+32 runs and 438 in two, with nothing changed by hand. The isolated arm must show 0 MCP tools in every
+run (check the init events). **Follow-up:** the judge also runs `claude -p` un-isolated; isolating it
+changes the grader, so it needs its own re-grade check before it is switched.
+
 ## 0. RESOLVED — Opus 5.5 completes the 13×2 grid and is now FEATURED  — 2026-09-23
 
 **46/46, coverage 1.00 in every cell.** Routine n=3 on the 11 remaining languages, hard n=1 on all
