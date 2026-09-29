@@ -1,0 +1,53 @@
+# Experiment 77 — Sonnet 5.5 across the effort ladder (routine task).
+#
+# WHY THIS EXISTS. Sonnet 5.5 (`claude-sonnet-5-5`) shipped 2026-09-28 at Sonnet 5's list
+# price ($2 in / $10 out) — half of Opus 5.5 — with the vendor claim "near-Opus performance
+# at half the price". Its DEFAULT effort is `high` (Opus 5.5 defaults to `medium`), and
+# exp-65/74 showed effort is the dominant cost lever on Claude, so the first question is
+# the same one exp-74 asked of Opus 5.5: where on the dial is the operating point?
+#
+# THIS IS exp-74's DESIGN, CELL FOR CELL — same task, languages, levels, prompt, n and
+# judge — so every cell has a matched Opus 5.5 row. Only 5.5-Sonnet runs (incremental
+# principle); Opus 5.5 (exp-74) and Sonnet 5 (exp-15, default effort only) are master.db.
+#
+# EXPECTATION, recorded before the run: coverage 1.00 everywhere — every Claude 5.x row
+# on this task already is — so this is an EFFICIENCY result (wall, cost, tokens), not a
+# reliability one. The hypothesis: Sonnet 5.5 at `low` is cheaper than Opus 5.5 at `low`
+# ($0.38 python) but by LESS than the 2x list-price ratio, because a smaller model spends
+# more turns/tokens; and `default` (= high) costs materially more than `low`, as on Opus.
+#
+# CLI VERSION IS A RECORDED TRAP. The 2.1.282 CLI did not know this model id: it printed
+# `[claude-code:unrecognized_model]` and priced it with costBasis "unknown" at ~$20/M
+# output — ~1.9x the true cost. 2.1.284 (2026-09-28) prices it at list (verified to the
+# fourth decimal against usage x list price, 2026-09-29). Do not run on an older CLI.
+# `between_tools` (the new lowest thinking setting) is NOT exposed by `claude --effort`,
+# so it cannot be a level here.
+#
+# JUDGE held at claude-code / opus-4.8, unchanged since exp-53.
+experiment:
+  name: experiment-77-sonnet55-effort
+  visibility: public
+factors:
+  # THE FOCUS. All five CLI levels plus `default` (= pass no --effort flag).
+  effort: { levels: [low, medium, high, xhigh, max, default] }
+  language: { levels: [python, go] }
+  # Registry needs >=2 levels per factor; design.csv pins the one actually run.
+  prompt: { levels: [neutral, none] }
+  model: { levels: [claude-sonnet-5-5, claude-opus-5-5] }
+responses: [code_quality, token_efficiency, test_coverage, defect_rate, maintainability, idiomatic]
+tasks:
+  - source: bundled://rest-api-crud
+playpen:
+  runner: local
+  # n=3 PER CELL, 12 cells x 3 = 36 runs, matching exp-74.
+  replicates: 3
+  # 90, not exp-74's 60: exp-74's slowest `max` run took 3333 s — 267 s inside the limit.
+  # A slower model at max must not be truncated into a false zero. Headroom only; it
+  # changes nothing for a run that finishes.
+  timeout_minutes: 90
+  stall_minutes: 25
+  max_turns: 200
+  prompts_dir: prompts
+design: { screening_resolution: 3, significance_threshold: 0.10 }
+promotion: { screening_to_trial: { p_value: 0.10 }, trial_to_production: { posterior_confidence: 0.80 } }
+evaluation: { enabled: true, model: opus-4.8 }

@@ -21,6 +21,45 @@ DWQ in 0%, at the same 16 GB. See [optimal-blog.md](../optimal-blog.md).
 
 ---
 
+## 0. exp-77 — Sonnet 5.5 across the effort ladder  — RUNNING, 2026-09-29
+
+**The gap:** Sonnet 5.5 (`claude-sonnet-5-5`, released 2026-09-28, from the daily scan) is unmeasured.
+List price is Sonnet 5's — $2 in / $10 out, **half of Opus 5.5** — and the vendor claims "near-Opus
+performance". Its default effort is `high` (Opus 5.5 defaults to `medium`), and exp-65/74 showed
+effort is the dominant cost lever on Claude, so the first question is where its operating point sits.
+
+**Design — exp-74, cell for cell:** `claude-sonnet-5-5 × effort{low, medium, high, xhigh, max,
+default} × language{python, go}` on `rest-api-crud`, prompt `neutral`, n=3 → 36 runs, judge
+opus-4.8. Every cell has a matched Opus 5.5 row (exp-74); Sonnet 5 (exp-15) is the default-effort
+baseline. Only Sonnet 5.5 runs. Timeout raised 60 → 90 min (exp-74's slowest `max` run finished 267 s
+inside 60). Estimate from exp-74's $80.64 / 4.5 h at half the list price: **~$40–60, ~4–5 h**.
+
+**Hypothesis, recorded before the run:** coverage 1.00 in every cell (every Claude 5.x row on this task
+is), so this is an **efficiency** result. Sonnet 5.5 at `low` will be cheaper than Opus 5.5 at `low`
+($0.38 python) but by **less than the 2× list-price ratio**, because a smaller model spends more
+tokens; and `default` (= high) will cost materially more than `low`, as on Opus.
+
+**Verified before launch (2026-09-29):** (1) **the CLI must be ≥ 2.1.284.** 2.1.282 did not know the id
+— it printed `[claude-code:unrecognized_model]` and priced it at `costBasis: unknown`, ~$20/M output,
+**~1.9× the true cost**; 2.1.284 reports `costBasis: list`, matching usage × list price to four
+decimals. (2) `--effort` takes effect: thinking tokens rise low → max on a fixed probe. (3) The new
+`between_tools` thinking setting is **not exposed by `claude --effort`**, so it cannot be a level.
+(4) A one-cell retort smoke (`experiment-77-sonnet55-effort/smoke/`, python/low) passed: coverage
+1.00, 32 s, $0.179, 5 turns — retort's turn count equals the CLI's own `num_turns`, cost basis `list`,
+stderr clean — so the `thinking`-block change to inter-tool text does not break the parser.
+(Opus 5.5 python/low in exp-74: 35 s, $0.38, 4–5 turns.)
+
+**`between_tools` is a thinking MODE, not an effort level** — `thinking: {"type": "between_tools"}`
+turns off up-front thinking (it replaces `disabled`, which now 400s) and is valid only at low/medium/
+high. Neither `--effort between_tools` (warns, falls back to default) nor
+`CLAUDE_CODE_EFFORT_LEVEL=between_tools` (silent, still 183 thinking tokens on a probe) reaches it on
+CLI 2.1.284. **Follow-up once a CLI exposes the thinking type:** thinking{adaptive, between_tools} ×
+effort{low, medium, high} — the likely cheapest agentic operating point. Anthropic's own guidance is
+"effort levels are recalibrated… for agentic coding, start at `medium`" — this sweep tests that.
+
+**Next if it clears:** the 13×2 grid at the winning effort level (exp-75's shape), which is what
+would make it featurable against Opus 5.5 and GPT-6 Sol (same list price).
+
 ## 0. RESOLVED — Opus 5.5 completes the 13×2 grid and is now FEATURED  — 2026-09-23
 
 **46/46, coverage 1.00 in every cell.** Routine n=3 on the 11 remaining languages, hard n=1 on all
