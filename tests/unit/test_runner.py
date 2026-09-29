@@ -1191,6 +1191,26 @@ def test_build_agent_command_includes_effort_flag():
     assert "--effort" not in runner._build_agent_command(stack, task, Path("/tmp"))
 
 
+def test_claude_agent_is_isolated_from_host_mcp_plugins_and_user_config():
+    """The agent under test must not inherit the host's MCP servers / plugins / CLAUDE.md.
+
+    Before 2026-09-29 it loaded 418 MCP tools (incl. Gmail and ruvnet-brain) and the
+    owner's ~/.claude/CLAUDE.md — none of it part of the measured stack.
+    """
+    from retort.playpen.local_runner import LocalRunner
+    runner = LocalRunner()
+    task = TaskSpec(name="t", description="d", prompt="build it")
+    stack = StackConfig(
+        language="python", agent="claude-code", framework="fastapi",
+        extra={"model": "claude-sonnet-5-5", "effort": "low", "prompt": "none"},
+    )
+    cmd = runner._build_agent_command(stack, task, Path("/tmp"))
+    assert "--strict-mcp-config" in cmd
+    assert cmd[cmd.index("--mcp-config") + 1] == '{"mcpServers":{}}'
+    assert cmd[cmd.index("--setting-sources") + 1] == "project,local"
+    assert "--bare" not in cmd  # --bare also drops OAuth, breaking subscription auth
+
+
 def test_usage_limit_detection_and_artifact_flag():
     """Usage/rate-limit signatures are recognised; ordinary failures are not."""
     from retort.playpen.local_runner import _USAGE_LIMIT_RE

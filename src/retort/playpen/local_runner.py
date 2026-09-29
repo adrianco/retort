@@ -157,6 +157,83 @@ def _kill_proc_tree(proc: subprocess.Popen) -> None:
             continue
 
 
+def _pids_with_cwd_under(root: Path) -> list[int]:
+    """PIDs (this user's, not ours) whose working directory is inside ``root``.
+
+    Best-effort via ``lsof``: returns [] if it is missing or fails, so a cleanup
+    never breaks a run.
+    """
+    try:
+        out = subprocess.run(
+            ["lsof", "-a", "-u", str(os.getuid()), "-d", "cwd", "-Fpn"],
+            capture_output=True, text=True, timeout=20,
+        ).stdout
+    except (OSError, subprocess.SubprocessError):
+        return []
+    try:
+        root_s = str(root.resolve())
+    except OSError:
+        return []
+    pids: list[int] = []
+    pid: int | None = None
+    for line in out.splitlines():
+        if line.startswith("p"):
+            pid = int(line[1:]) if line[1:].isdigit() else None
+        elif line.startswith("n") and pid is not None:
+            path = line[1:]
+            if (path == root_s or path.startswith(root_s + os.sep)) and pid != os.getpid():
+                pids.append(pid)
+    return pids
+
+
+def _reap_orphans_under(root: Path, grace_secs: float = 3.0) -> list[int]:
+    """Kill every process still running inside ``root`` — a finished playpen.
+
+    WHY. An agent that starts a server in the background (``uvicorn --reload &``,
+    ``./bookserver &``, ``nohup``/``setsid``) leaves it running after the agent
+    exits. ``_kill_proc_tree`` only fires when a guard kills the run, and a
+    daemonised server has left the process group anyway. On 2026-09-29 ten such
+    orphans were found, aged 2 hours to 68 days: one ``uvicorn --reload`` had used
+    ~9% CPU through 26 days of experiments (contaminating wall-clock, which retort
+    measures), and others held ports 8000/3000 that a later run's server would
+    collide with — a failure indistinguishable from the model's. Matching on the
+    working directory catches the daemonised ones a process-group kill misses.
+
+    Returns the PIDs signalled. SIGTERM, then SIGKILL for anything left after
+    ``grace_secs``.
+    """
+    pids = _pids_with_cwd_under(root)
+    if not pids:
+        return []
+    for p in pids:
+        try:
+            os.kill(p, signal.SIGTERM)
+        except (ProcessLookupError, PermissionError):
+            pass
+    deadline = time.monotonic() + grace_secs
+    alive = list(pids)
+    while alive and time.monotonic() < deadline:
+        time.sleep(0.2)
+        alive = [p for p in alive if _pid_alive(p)]
+    for p in alive:
+        try:
+            os.kill(p, signal.SIGKILL)
+        except (ProcessLookupError, PermissionError):
+            pass
+    logger.warning("Reaped %d orphaned process(es) left in %s: %s", len(pids), root, pids)
+    return pids
+
+
+def _pid_alive(pid: int) -> bool:
+    try:
+        os.kill(pid, 0)
+    except ProcessLookupError:
+        return False
+    except PermissionError:
+        return True
+    return True
+
+
 def _run_with_progress_guard(
     cmd: list[str],
     *,
@@ -226,6 +303,30 @@ def _run_with_progress_guard(
         stderr_text = ""
     rc = proc.returncode if proc.returncode is not None else 124
     return rc, stdout_text, stderr_text, elapsed, reason
+
+#: Isolate the claude-code agent under test from the HOST's user configuration.
+#:
+#: Without these, `claude -p` in a playpen inherits everything the machine's owner
+#: has installed. Probed 2026-09-29 (CLI 2.1.284) it loaded 6 MCP servers / 418 MCP
+#: tools (ruvnet-brain, claude-flow, and the claude.ai Gmail / Docs / Drive /
+#: Calendar connectors), the ruvnet-brain plugin's skills and hooks, and the user's
+#: ~/.claude/CLAUDE.md — whose hook made the agent run a `search_ruvnet` query
+#: before answering a one-line question. None of that is part of the stack being
+#: measured, it differs per machine, and provenance.json recorded none of it.
+#:
+#: * ``--strict-mcp-config`` + an empty ``--mcp-config`` → no MCP servers at all.
+#: * ``--setting-sources project,local`` → skip USER settings, which is what drops
+#:   user-enabled plugins (skills + hooks) and the user CLAUDE.md. Auth still works
+#:   (OAuth is not a setting), and the user settings carried no model/effort, so
+#:   the `default` effort level means the same as before.
+#:
+#: NOT ``--bare``: it also stops reading OAuth/keychain credentials, which breaks
+#: subscription auth. Built-in skills and the built-in agents-md/telemetry plugins
+#: remain — they ship with the CLI, so they are part of the CLI version recorded.
+CLAUDE_AGENT_ISOLATION_ARGS = (
+    "--strict-mcp-config", "--mcp-config", '{"mcpServers":{}}',
+    "--setting-sources", "project,local",
+)
 
 # Agent CLI commands — maps agent name to command builder
 AGENT_COMMANDS: dict[str, list[str]] = {
@@ -760,10 +861,23 @@ class LocalRunner:
             )
 
     def teardown(self, env_id: str) -> None:
-        """Optionally clean up. We keep the workspace for scoring."""
+        """Reap anything the run left running; keep the workspace for scoring.
+
+        Called after scoring and archiving, so nothing retort itself needs is
+        still running in the playpen — whatever is, the agent left behind.
+        """
         info = self._envs.pop(env_id, None)
         if info is not None:
+            _reap_orphans_under(info.workspace)
             logger.info("Env %s torn down (workspace kept at %s)", env_id, info.workspace)
+
+    def reap_orphans(self) -> list[int]:
+        """End-of-experiment sweep: kill anything still running in the work dir.
+
+        Backstop for per-run teardown — catches a process that was between
+        playpens, or a run whose teardown never ran (a crash mid-cell).
+        """
+        return _reap_orphans_under(self.work_dir) if self.work_dir.exists() else []
 
     def cleanup_all(self) -> None:
         """Remove the entire work directory after all scoring is done."""
@@ -894,6 +1008,7 @@ class LocalRunner:
                 "--output-format", "stream-json", "--verbose",
                 "--max-turns", str(effective_max_turns),
                 "--dangerously-skip-permissions",
+                *CLAUDE_AGENT_ISOLATION_ARGS,
             ]
 
             # Resolve model alias → versioned ID (+ fast-mode setting if any).

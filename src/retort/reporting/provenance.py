@@ -164,8 +164,13 @@ def _claude_code_config() -> dict[str, Any] | None:
     ver = _sh(["claude", "--version"])
     if ver is None:
         return None
+    from retort.playpen.local_runner import CLAUDE_AGENT_ISOLATION_ARGS
+
     return {"cli_version": ver,
-            "sampling": "provider-side (not observable from the client)"}
+            "sampling": "provider-side (not observable from the client)",
+            # The agent runs WITHOUT the host's MCP servers, user plugins, hooks
+            # and user CLAUDE.md (added 2026-09-29; earlier runs inherited them).
+            "isolation_args": list(CLAUDE_AGENT_ISOLATION_ARGS)}
 
 
 def _agent_harnesses(playpen_config: Any, agents: list[str] | None) -> dict[str, str]:

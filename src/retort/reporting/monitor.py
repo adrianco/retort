@@ -67,18 +67,47 @@ def _label(factors: dict, run_id: int) -> str:
     return "/".join(str(factors[k]) for k in sorted(factors)) or f"run-{run_id}"
 
 
-def find_latest_db(root: Path | None = None) -> Path | None:
-    """The most recently written ``retort.db`` — i.e. the experiment in flight.
+def _db_written_at(db: Path) -> float:
+    """When this experiment DB was last WRITTEN — including its WAL.
+
+    The DBs run in SQLite WAL mode, so a live run's writes land in ``retort.db-wal``
+    and the main file's mtime only moves on a checkpoint (typically when the
+    connection closes). Reading ``retort.db``'s mtime alone therefore ranks a
+    FINISHED run (checkpointed on exit) above the LIVE one: on 2026-09-29 exp-77's
+    one-cell smoke (closed 08:28) beat the running rest-api-crud grid, whose .db
+    said 08:23 while its -wal said 09:57.
+    """
+    times = []
+    for suffix in ("", "-wal", "-shm"):
+        try:
+            times.append(Path(f"{db}{suffix}").stat().st_mtime)
+        except OSError:
+            pass
+    return max(times, default=0.0)
+
+
+#: How many of the most-recently-written DBs to probe for a live ``retort run``.
+#: Each probe shells out (pgrep/ps/lsof), so this is bounded; a live run writes its
+#: WAL at startup and after every cell, so it is always near the top anyway.
+_LIVE_PROBE_LIMIT = 5
+
+
+def find_latest_db(root: Path | None = None, is_live=None) -> Path | None:
+    """The experiment in flight: a DB with a live ``retort run``, else the newest.
 
     Bare ``retort monitor`` should just work: the thing you almost always want is
     the run you are watching right now, and typing
     ``experiments/adrianco/experiment-28-rebaseline-sampling/bookshop`` to see it is
-    silly. Newest-mtime wins, because the live run is the one being written to.
+    silly. Among the most recently written DBs (WAL included — see
+    :func:`_db_written_at`), one that a ``retort run`` process is actually working on
+    wins; with none live, the newest-written wins.
 
     Searches both layouts (``experiments/<owner>/experiment-*/`` and the legacy flat
     ``experiment-*/``), each with the DB at the experiment root or one task
-    sub-workspace down.
+    sub-workspace down. ``is_live`` is injectable for tests.
     """
+    if is_live is None:
+        from retort.run.liveness import _run_in_flight as is_live
     root = root or Path(".")
     patterns = (
         "experiments/*/experiment-*/retort.db",
@@ -91,7 +120,14 @@ def find_latest_db(root: Path | None = None) -> Path | None:
         dbs |= set(root.glob(pat))
     if not dbs:
         return None
-    return max(dbs, key=lambda p: p.stat().st_mtime)
+    newest_first = sorted(dbs, key=_db_written_at, reverse=True)
+    for db in newest_first[:_LIVE_PROBE_LIMIT]:
+        try:
+            if is_live(db):
+                return db
+        except Exception:  # noqa: BLE001 — liveness is best-effort; fall back to recency
+            break
+    return newest_first[0]
 
 
 def resolve_target(

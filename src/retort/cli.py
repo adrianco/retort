@@ -1133,6 +1133,14 @@ def run_experiments(
     finally:
         session.close()
         engine.dispose()
+        # Post-experiment orphan sweep: anything an agent left running in the work
+        # dir (a backgrounded server) would otherwise outlive this run and contend
+        # with the next one's timings. See _reap_orphans_under.
+        reap = getattr(runner, "reap_orphans", None)
+        if reap is not None:
+            reaped = reap()
+            if reaped:
+                click.echo(f"Reaped {len(reaped)} orphaned process(es) left by agents: {reaped}")
 
     summary = f"\nDone: {completed} completed, {failed} failed out of {total_runs}"
     if crashed:

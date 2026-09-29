@@ -408,3 +408,48 @@ def test_resolve_target_requires_something():
     with patch("retort.reporting.monitor.find_latest_db", return_value=None):
         with pytest.raises(ValueError):
             resolve_target(None, None, None)
+
+
+def _mk_db(root, rel: str, db_mtime: float, wal_mtime: float | None = None):
+    import os
+
+    db = root / rel / "retort.db"
+    db.parent.mkdir(parents=True)
+    db.write_text("")
+    os.utime(db, (db_mtime, db_mtime))
+    if wal_mtime is not None:
+        wal = db.parent / "retort.db-wal"
+        wal.write_text("")
+        os.utime(wal, (wal_mtime, wal_mtime))
+    return db
+
+
+def test_find_latest_db_counts_the_wal_as_a_write(tmp_path):
+    # A live run writes to retort.db-wal; the main file only moves on checkpoint.
+    # exp-77 (2026-09-29): the finished smoke (.db 08:28, checkpointed on close)
+    # beat the running grid (.db 08:23, -wal 09:57) when only .db was read.
+    from retort.reporting.monitor import find_latest_db
+
+    _mk_db(tmp_path, "experiments/me/experiment-77-x/smoke", db_mtime=1000)
+    live = _mk_db(tmp_path, "experiments/me/experiment-77-x/grid", db_mtime=900, wal_mtime=2000)
+    assert find_latest_db(tmp_path, is_live=lambda p: False) == live
+
+
+def test_find_latest_db_prefers_a_db_with_a_live_run(tmp_path):
+    from retort.reporting.monitor import find_latest_db
+
+    live = _mk_db(tmp_path, "experiments/me/experiment-1-a", db_mtime=1000)
+    _mk_db(tmp_path, "experiments/me/experiment-2-b", db_mtime=2000)  # newer, but finished
+    assert find_latest_db(tmp_path, is_live=lambda p: p == live) == live
+
+
+def test_find_latest_db_falls_back_to_newest_when_liveness_errors(tmp_path):
+    from retort.reporting.monitor import find_latest_db
+
+    _mk_db(tmp_path, "experiments/me/experiment-1-a", db_mtime=1000)
+    newest = _mk_db(tmp_path, "experiments/me/experiment-2-b", db_mtime=2000)
+
+    def boom(p):
+        raise OSError("no process access")
+
+    assert find_latest_db(tmp_path, is_live=boom) == newest
