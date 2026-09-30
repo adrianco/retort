@@ -1,0 +1,3 @@
+{"id": "E1", "kind": "enhancement", "severity": "info", "title": "Request body capped at 1 MiB via MaxBytesReader", "evidence": "main.go:45 r.Body = http.MaxBytesReader(w, r.Body, 1<<20)", "suggestion": "None — defensive hardening beyond spec"}
+{"id": "E2", "kind": "enhancement", "severity": "info", "title": "POST sets Location header on created resource", "evidence": "main.go:80 w.Header().Set(\"Location\", \"/books/\"+id)", "suggestion": "None — REST best practice beyond spec"}
+{"id": "E3", "kind": "enhancement", "severity": "info", "title": "Extra validation: negative year and non-numeric/non-positive id rejected with 400", "evidence": "main.go:57 year<0 -> 400; main.go:66 pathID rejects id<=0", "suggestion": "None — stricter input validation than required"}

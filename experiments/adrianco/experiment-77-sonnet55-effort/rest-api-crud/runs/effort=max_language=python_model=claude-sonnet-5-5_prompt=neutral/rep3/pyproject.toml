@@ -1,0 +1,29 @@
+[build-system]
+requires = ["setuptools>=61"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "bookapi"
+version = "1.0.0"
+description = "A small REST API for managing a book collection, built on the Python standard library and SQLite."
+readme = "README.md"
+requires-python = ">=3.9"
+# The service has no third-party runtime dependencies; see requirements.txt for the test tools.
+dependencies = []
+
+[project.scripts]
+bookapi = "bookapi.server:main"
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.pytest.ini_options]
+pythonpath = ["src"]
+testpaths = ["tests"]
+
+[tool.coverage.run]
+source = ["bookapi"]
+branch = true
+
+[tool.coverage.report]
+show_missing = true

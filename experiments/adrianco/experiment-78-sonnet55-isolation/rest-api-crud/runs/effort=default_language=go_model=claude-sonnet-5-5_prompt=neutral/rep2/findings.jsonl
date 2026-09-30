@@ -1,0 +1,1 @@
+{"id": "enh-1", "kind": "enhancement", "severity": "info", "title": "Input validation and body cap exceed the spec", "evidence": "main.go:71 rejects negative year (400); main.go:60 caps request body at 1 MiB via http.MaxBytesReader", "suggestion": "None — validation beyond the required title/author checks is a positive, noted for cross-run comparison"}

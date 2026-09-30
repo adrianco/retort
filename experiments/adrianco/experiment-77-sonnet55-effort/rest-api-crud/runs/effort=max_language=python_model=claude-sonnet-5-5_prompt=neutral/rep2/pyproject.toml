@@ -1,0 +1,33 @@
+[build-system]
+requires = ["setuptools>=61"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "bookapi"
+version = "1.0.0"
+description = "REST API for managing a book collection (standard library only: WSGI + SQLite)"
+readme = "README.md"
+requires-python = ">=3.9"
+dependencies = []
+
+[project.optional-dependencies]
+dev = ["pytest>=8", "pytest-cov>=5"]
+
+[project.scripts]
+bookapi = "bookapi.server:main"
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.pytest.ini_options]
+# Lets a plain `pytest` import the package straight from src/, without installing it,
+# and the tests import their shared helpers (tests/support.py) in any import mode.
+pythonpath = ["src", "tests"]
+testpaths = ["tests"]
+
+[tool.coverage.run]
+source = ["bookapi"]
+branch = true
+
+[tool.coverage.report]
+show_missing = true

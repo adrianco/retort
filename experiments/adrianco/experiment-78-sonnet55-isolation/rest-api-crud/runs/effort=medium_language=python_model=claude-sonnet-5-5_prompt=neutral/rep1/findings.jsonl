@@ -1,0 +1,3 @@
+{"id": "enh-1", "kind": "enhancement", "severity": "info", "title": "Thread-safe DB access via a global lock", "evidence": "app.py:50,111,124,150,163 — a single threading.Lock serializes every DB operation under ThreadingHTTPServer", "suggestion": "None — beyond spec; correct for concurrent requests"}
+{"id": "enh-2", "kind": "enhancement", "severity": "info", "title": "Zero-dependency stdlib implementation", "evidence": "app.py:1-7 uses only http.server and sqlite3; no requirements.txt needed to run", "suggestion": "None"}
+{"id": "sec-1", "kind": "enhancement", "severity": "info", "title": "All SQL is parameterized", "evidence": "app.py:113,127,137,153,165 use ? placeholders throughout — no injection surface", "suggestion": "None"}

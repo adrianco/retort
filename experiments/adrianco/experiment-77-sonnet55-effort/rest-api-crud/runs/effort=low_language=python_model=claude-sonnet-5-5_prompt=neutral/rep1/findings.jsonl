@@ -1,0 +1,2 @@
+{"id": "enh-1", "kind": "enhancement", "severity": "info", "title": "Thread-safe SQLite store with an explicit lock", "evidence": "app.py:17 threading.Lock guards every BookStore operation; ThreadingHTTPServer used", "suggestion": "None — beyond spec; noted for cross-run comparison"}
+{"id": "enh-2", "kind": "enhancement", "severity": "info", "title": "Zero third-party runtime deps (stdlib http.server + sqlite3)", "evidence": "app.py:1-8 imports only stdlib; no requirements.txt/pyproject.toml", "suggestion": "None — beyond spec"}

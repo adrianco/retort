@@ -1,0 +1,4 @@
+# The service itself needs nothing beyond the Python standard library.
+# These packages are only needed to run the test suite:
+pytest>=7.0
+pytest-cov>=4.0

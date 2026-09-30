@@ -1,0 +1,1 @@
+{"id": "info-1", "kind": "enhancement", "severity": "info", "title": "PUT uses full-replace semantics", "evidence": "main.go:161 UPDATE sets year/isbn to zero values when omitted from body", "suggestion": "Acceptable REST PUT semantics; document that PUT replaces the whole resource"}

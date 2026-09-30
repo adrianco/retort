@@ -1,0 +1,6 @@
+# The service itself has no third-party dependencies: it uses only the Python
+# standard library (wsgiref, sqlite3, json, ...).
+#
+# These packages are needed only to run the test suite.
+pytest>=8
+pytest-cov>=5

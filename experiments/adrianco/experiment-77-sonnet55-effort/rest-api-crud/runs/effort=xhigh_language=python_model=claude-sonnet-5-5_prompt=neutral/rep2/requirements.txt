@@ -1,0 +1,4 @@
+# The service itself uses only the Python standard library.
+# Test dependencies:
+pytest>=8
+pytest-cov>=5

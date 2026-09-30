@@ -1,0 +1,157 @@
+package main
+
+import (
+	"encoding/json"
+	"errors"
+	"log"
+	"net/http"
+	"os"
+	"strconv"
+	"strings"
+)
+
+type server struct{ store *Store }
+
+func newHandler(s *Store) http.Handler {
+	srv := &server{store: s}
+	mux := http.NewServeMux()
+	mux.HandleFunc("GET /health", func(w http.ResponseWriter, r *http.Request) {
+		writeJSON(w, http.StatusOK, map[string]string{"status": "ok"})
+	})
+	mux.HandleFunc("POST /books", srv.create)
+	mux.HandleFunc("GET /books", srv.list)
+	mux.HandleFunc("GET /books/{id}", srv.get)
+	mux.HandleFunc("PUT /books/{id}", srv.update)
+	mux.HandleFunc("DELETE /books/{id}", srv.delete)
+	return mux
+}
+
+func writeJSON(w http.ResponseWriter, code int, v any) {
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(code)
+	json.NewEncoder(w).Encode(v)
+}
+
+func writeErr(w http.ResponseWriter, code int, msg string) {
+	writeJSON(w, code, map[string]string{"error": msg})
+}
+
+func serverErr(w http.ResponseWriter, err error) {
+	if errors.Is(err, errNotFound) {
+		writeErr(w, http.StatusNotFound, "book not found")
+		return
+	}
+	log.Printf("internal error: %v", err)
+	writeErr(w, http.StatusInternalServerError, "internal error")
+}
+
+func decodeBook(r *http.Request) (Book, string) {
+	var b Book
+	dec := json.NewDecoder(http.MaxBytesReader(nil, r.Body, 1<<20))
+	if err := dec.Decode(&b); err != nil {
+		return b, "invalid JSON body"
+	}
+	b.Title = strings.TrimSpace(b.Title)
+	b.Author = strings.TrimSpace(b.Author)
+	switch {
+	case b.Title == "":
+		return b, "title is required"
+	case b.Author == "":
+		return b, "author is required"
+	case b.Year < 0:
+		return b, "year must not be negative"
+	}
+	return b, ""
+}
+
+func pathID(r *http.Request) (int64, bool) {
+	id, err := strconv.ParseInt(r.PathValue("id"), 10, 64)
+	return id, err == nil && id > 0
+}
+
+func (s *server) create(w http.ResponseWriter, r *http.Request) {
+	b, msg := decodeBook(r)
+	if msg != "" {
+		writeErr(w, http.StatusBadRequest, msg)
+		return
+	}
+	if err := s.store.Create(&b); err != nil {
+		serverErr(w, err)
+		return
+	}
+	w.Header().Set("Location", "/books/"+strconv.FormatInt(b.ID, 10))
+	writeJSON(w, http.StatusCreated, b)
+}
+
+func (s *server) list(w http.ResponseWriter, r *http.Request) {
+	books, err := s.store.List(r.URL.Query().Get("author"))
+	if err != nil {
+		serverErr(w, err)
+		return
+	}
+	writeJSON(w, http.StatusOK, books)
+}
+
+func (s *server) get(w http.ResponseWriter, r *http.Request) {
+	id, ok := pathID(r)
+	if !ok {
+		writeErr(w, http.StatusBadRequest, "invalid id")
+		return
+	}
+	b, err := s.store.Get(id)
+	if err != nil {
+		serverErr(w, err)
+		return
+	}
+	writeJSON(w, http.StatusOK, b)
+}
+
+func (s *server) update(w http.ResponseWriter, r *http.Request) {
+	id, ok := pathID(r)
+	if !ok {
+		writeErr(w, http.StatusBadRequest, "invalid id")
+		return
+	}
+	b, msg := decodeBook(r)
+	if msg != "" {
+		writeErr(w, http.StatusBadRequest, msg)
+		return
+	}
+	b.ID = id
+	if err := s.store.Update(&b); err != nil {
+		serverErr(w, err)
+		return
+	}
+	writeJSON(w, http.StatusOK, b)
+}
+
+func (s *server) delete(w http.ResponseWriter, r *http.Request) {
+	id, ok := pathID(r)
+	if !ok {
+		writeErr(w, http.StatusBadRequest, "invalid id")
+		return
+	}
+	if err := s.store.Delete(id); err != nil {
+		serverErr(w, err)
+		return
+	}
+	w.WriteHeader(http.StatusNoContent)
+}
+
+func main() {
+	dbPath := os.Getenv("DB_PATH")
+	if dbPath == "" {
+		dbPath = "books.db"
+	}
+	addr := os.Getenv("ADDR")
+	if addr == "" {
+		addr = ":8080"
+	}
+	store, err := OpenStore(dbPath)
+	if err != nil {
+		log.Fatal(err)
+	}
+	defer store.Close()
+	log.Printf("listening on %s (db %s)", addr, dbPath)
+	log.Fatal(http.ListenAndServe(addr, newHandler(store)))
+}

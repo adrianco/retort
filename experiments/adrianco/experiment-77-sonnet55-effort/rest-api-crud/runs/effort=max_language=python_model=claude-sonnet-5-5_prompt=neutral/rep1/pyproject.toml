@@ -1,0 +1,40 @@
+[build-system]
+requires = ["setuptools>=61"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "bookapi"
+version = "1.0.0"
+description = "REST API for managing a book collection (WSGI + SQLite, standard library only)"
+readme = "README.md"
+requires-python = ">=3.9"
+dependencies = []
+
+[project.optional-dependencies]
+test = ["pytest>=7.0", "pytest-cov>=4.0"]
+
+[project.scripts]
+bookapi = "bookapi.server:main"
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+pythonpath = ["src"]
+# Every test takes milliseconds. If one ever exceeds this (say, a locking regression that
+# deadlocks SQLite), dump all thread stacks instead of hanging silently.
+faulthandler_timeout = 120
+
+[tool.coverage.run]
+source = ["bookapi"]
+branch = true
+
+[tool.ruff]
+line-length = 100
+target-version = "py39"
+
+[tool.ruff.lint]
+select = ["E", "F", "W", "B", "UP", "SIM", "C4", "RUF"]
+# The tests use accented and non-Latin text on purpose.
+ignore = ["RUF001", "RUF002", "RUF003"]
