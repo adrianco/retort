@@ -328,6 +328,36 @@ CLAUDE_AGENT_ISOLATION_ARGS = (
     "--setting-sources", "project,local",
 )
 
+def _real_codex_home() -> Path:
+    return Path(os.environ.get("CODEX_HOME") or Path.home() / ".codex")
+
+
+def _make_clean_codex_home(dest: Path, real_home: Path) -> Path:
+    """A fresh CODEX_HOME holding ONLY a link to the owner's ``auth.json``.
+
+    Codex isolation, the counterpart of CLAUDE_AGENT_ISOLATION_ARGS. The owner's
+    CODEX_HOME carries config.toml (5 MCP servers — ruvnet-brain, ruflo,
+    computer-use, node_repl, openaiDeveloperDocs — a plugin, and a default
+    model + ``model_reasoning_effort``), AGENTS.md, and memories. exp-57..60's
+    agents CALLED ruvnet-brain / ruflo ~240 times, and an effort=`default` cell ran
+    at the owner's configured effort, not the model's. ``--ignore-user-config`` is
+    NOT enough: probed 2026-09-30 (codex-cli 0.156.1), AGENTS.md still loaded under
+    it. A clean home drops all of it (verified: agent reports no such instructions;
+    `search_ruvnet` → "is not a function"; auth works). One home PER RUN, because
+    Codex writes memories/state into it and a shared one would carry them between
+    runs. Removed at teardown.
+    """
+    shutil.rmtree(dest, ignore_errors=True)
+    dest.mkdir(parents=True)
+    auth = real_home / "auth.json"
+    if auth.exists():
+        (dest / "auth.json").symlink_to(auth)
+    return dest
+
+
+#: Recorded in provenance so a reader (and `agent_context`) can see the isolation.
+CODEX_AGENT_ISOLATION = ("CODEX_HOME=<fresh per-run dir with only a link to auth.json>",)
+
 # Agent CLI commands — maps agent name to command builder
 AGENT_COMMANDS: dict[str, list[str]] = {
     "claude-code": [
@@ -714,6 +744,9 @@ class LocalRunner:
         _assert_inside_playpen_root(info.workspace, self.work_dir, what="execute")
 
         env = self._build_env(stack, info.workspace)
+        if self._resolve_harness(stack) == "codex":
+            env["CODEX_HOME"] = str(_make_clean_codex_home(
+                self._codex_home_for(env_id), _real_codex_home()))
         if self._resolve_harness(stack) == "opencode":
             self._write_opencode_config(info.workspace, stack)
             env["OPENCODE_DB"] = str(self._opencode_db_path(info.workspace))
@@ -869,7 +902,13 @@ class LocalRunner:
         info = self._envs.pop(env_id, None)
         if info is not None:
             _reap_orphans_under(info.workspace)
+            shutil.rmtree(self._codex_home_for(env_id), ignore_errors=True)
             logger.info("Env %s torn down (workspace kept at %s)", env_id, info.workspace)
+
+    def _codex_home_for(self, env_id: str) -> Path:
+        """This run's private CODEX_HOME — beside the playpen, not inside it, so
+        the agent never sees it in its workspace."""
+        return self.work_dir / f"{env_id}.codex-home"
 
     def reap_orphans(self) -> list[int]:
         """End-of-experiment sweep: kill anything still running in the work dir.
@@ -1159,8 +1198,10 @@ class LocalRunner:
 
             # THINKING LEVEL. Codex has no --effort flag; the level is a config
             # key, so it goes through `-c`. Without this the `effort` factor was
-            # silently ignored for codex cells — they all ran at the model's
-            # DEFAULT (medium for Terra/Luna, low for Sol) while the design
+            # silently ignored for codex cells — they all ran at a default
+            # (NOT the model's: the owner's config.toml set model_reasoning_effort,
+            # so until the 2026-09-30 clean CODEX_HOME an effort=`default` cell ran
+            # at that value, e.g. medium even on Sol) while the design
             # claimed to be sweeping it, which is the set-but-unverified failure
             # this project keeps paying for. Same five names as Claude
             # (low/medium/high/xhigh/max) so the two are directly comparable;

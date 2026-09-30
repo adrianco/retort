@@ -157,7 +157,15 @@ def _codex_config() -> dict[str, Any] | None:
         # run's: a hosted model's temperature/top_p are set server-side and are
         # not observable from here. Saying so beats implying a value we made up.
         "sampling": "provider-side (not observable from the client)",
+        # Codex runs WITHOUT the owner's config.toml / AGENTS.md / MCP servers /
+        # memories (added 2026-09-30; earlier runs inherited them).
+        "isolation_args": list(_codex_isolation()),
     }
+
+
+def _codex_isolation() -> tuple[str, ...]:
+    from retort.playpen.local_runner import CODEX_AGENT_ISOLATION
+    return CODEX_AGENT_ISOLATION
 
 
 def _claude_code_config() -> dict[str, Any] | None:

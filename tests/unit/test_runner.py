@@ -1824,3 +1824,24 @@ def test_the_repair_attempt_is_not_seeded_with_a_poisoned_build_tree(tmp_path):
     assert (env / "Package.swift").exists()
     assert not (env / ".build").exists(), "a path-pinned build tree was copied"
     assert not (env / "node_modules").exists()
+
+
+def test_codex_runs_get_a_fresh_codex_home_with_only_auth(tmp_path, monkeypatch):
+    """Codex must not see the owner's config.toml / AGENTS.md / MCP / memories.
+
+    exp-57..60 agents called ruvnet-brain / ruflo ~240 times via the owner's
+    config; `--ignore-user-config` still loads AGENTS.md, so the home is replaced.
+    """
+    from retort.playpen.local_runner import LocalRunner, _make_clean_codex_home
+    real = tmp_path / "real-codex"
+    real.mkdir()
+    (real / "auth.json").write_text("{}")
+    (real / "config.toml").write_text("[mcp_servers.ruflo]\n")
+    (real / "AGENTS.md").write_text("use ruflo")
+    home = _make_clean_codex_home(tmp_path / "work" / "r1.codex-home", real)
+    assert sorted(p.name for p in home.iterdir()) == ["auth.json"]
+    assert (home / "auth.json").resolve() == (real / "auth.json").resolve()
+
+    runner = LocalRunner(work_dir=tmp_path / "work")
+    assert runner._codex_home_for("r1") == home  # beside the playpen, not in it
+    assert home.parent == runner.work_dir and home.name != "r1"

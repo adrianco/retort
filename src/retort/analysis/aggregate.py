@@ -15,6 +15,8 @@ import re
 import sqlite3
 from pathlib import Path
 
+from retort.analysis.agent_context import agent_context_for
+
 # Scored response metrics, in canonical column order.
 METRICS = [
     "code_quality", "test_coverage", "defect_rate", "maintainability",
@@ -63,7 +65,13 @@ FACTORS = ["language", "model", "tooling", "prompt", "effort", "agent", "stack"]
 # (e.g. compare only your own runs, or audit a contributor's before merging).
 TEXT_COLS = [
     "experiment", "owner", "task", "judge", "status", "started_at", "finished_at",
-] + FACTORS
+] + FACTORS + [
+    # DERIVED factor, not a design column: what the agent had loaded besides the
+    # task (mcp-cleared / mcp-enabled / unverified). See analysis/agent_context.py.
+    "agent_context",
+]
+# Measured evidence behind `agent_context`, per run.
+CONTEXT_COLS = ["mcp_tools_loaded", "mcp_calls", "first_turn_prompt_tokens"]
 
 
 # Keys that appear in a run_config but are NOT design factors, so their absence
@@ -317,6 +325,7 @@ def collect_runs(experiments_dir: Path) -> list[dict]:
                 # Archives first (the effective model the runner recorded), then
                 # the design's own agent profile keyed by THIS row's agent.
                 row["model"] = fallback_model or profile_models.get(row.get("agent")) or None
+            row.update(agent_context_for(parent, cfg, r["replicate"]))
             for m in METRICS:
                 row[m] = None
             for c in TELEMETRY.values():
@@ -338,7 +347,7 @@ def build_master_db(experiments_dir: Path, out_path: Path,
                     allow_shrink: bool = False) -> int:
     """(Re)build the master DB from all experiment DBs. Returns the run count."""
     rows = collect_runs(experiments_dir)
-    cols = TEXT_COLS + ["replicate"] + METRICS + list(TELEMETRY.values())
+    cols = TEXT_COLS + ["replicate"] + METRICS + list(TELEMETRY.values()) + CONTEXT_COLS
 
     def coltype(c: str) -> str:
         if c == "replicate":
@@ -385,7 +394,7 @@ def write_csv(experiments_dir: Path, out_path: Path) -> int:
     """Also emit a CSV of the same wide table (handy for pandas/sharing)."""
     import csv
     rows = collect_runs(experiments_dir)
-    cols = TEXT_COLS + ["replicate"] + METRICS + list(TELEMETRY.values())
+    cols = TEXT_COLS + ["replicate"] + METRICS + list(TELEMETRY.values()) + CONTEXT_COLS
     with open(out_path, "w", newline="") as f:
         w = csv.DictWriter(f, fieldnames=cols)
         w.writeheader()
