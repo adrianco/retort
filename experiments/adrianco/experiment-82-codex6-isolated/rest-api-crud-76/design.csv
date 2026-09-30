@@ -1,0 +1,4 @@
+run,language,agent,model,prompt,effort
+0,typescript,codex,gpt-6-luna,neutral,default
+1,python,codex,gpt-6-luna,neutral,default
+2,go,codex,gpt-6-luna,neutral,default

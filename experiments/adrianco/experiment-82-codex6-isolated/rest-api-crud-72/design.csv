@@ -1,0 +1,5 @@
+run,language,agent,prompt,model,effort
+0,python,codex,neutral,gpt-6-astra,low
+1,go,codex,neutral,gpt-6-astra,low
+2,rust,codex,neutral,gpt-6-astra,low
+3,typescript,codex,neutral,gpt-6-astra,low

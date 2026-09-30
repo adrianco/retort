@@ -60,7 +60,46 @@ effort{low, medium, high} — the likely cheapest agentic operating point. Anthr
 **Next if it clears:** the 13×2 grid at the winning effort level (exp-75's shape), which is what
 would make it featurable against Opus 5.5 and GPT-6 Sol (same list price).
 
-## 0. exp-78 — does isolating the claude agent from the host's config change results?  — QUEUED behind exp-77
+## 0. exp-79..82 — isolated RE-RUNS of every experiment that inherited the host's MCP config  — QUEUED 2026-09-30
+
+**Why:** exp-78 showed the inherited host config (MCP servers, user plugins/hooks, user CLAUDE.md)
+cost Sonnet 5.5 **+43% tokens, +39% cost, +36% wall-clock** with no quality effect. `master.db` now
+labels every run with the derived `agent_context` factor (`c09d7f95`): **mcp-enabled** = Claude
+exp-63/65/74/75/77 (337–418 MCP tools, ~34–54K first-turn prompt) and Codex exp-57/58/59/60/73/76
+(~240 ruvnet-brain/ruflo calls; exp-57–60 agents opened with the plugin announcing itself). July
+Claude (exp-43–55) measured **mcp-cleared** (0 MCP tools, ~21K prompt) and needs nothing.
+
+**Design — new directories, originals untouched.** Each sub-dir COPIES its original's workspace.yaml
+(task, design, n, timeouts, judge, gates, prompts) and changes only the isolation — Claude
+`--strict-mcp-config` + empty `--mcp-config` + `--setting-sources project,local`; Codex a fresh
+per-run `CODEX_HOME` with only `auth.json` (probed: `--ignore-user-config` alone still loads
+AGENTS.md). Judge unchanged (un-isolated, as in the originals), so coverage pools.
+
+| new | sub-dir | re-runs | runs |
+|---|---|---|---|
+| exp-79 Opus 5.5 | rest-api-crud | exp-75 routine (all 13 langs @ low) + exp-74 cheap cells (medium/high/default × py/go), n=3 | 57 |
+| | brazil | exp-75 hard half, 13 langs @ low, n=1 | 13 |
+| exp-80 Fable 5.1 | rest-api-crud | exp-65 (low/default × prompt × 4 langs), n=3 | 24 |
+| exp-81 Codex GPT-5.6 | brazil-57/58/59/60 | exp-57 Luna, exp-58 Sol, exp-59 Terra-ultra, exp-60 Terra 11 langs | 35 |
+| exp-82 Codex GPT-6 | rest-api-crud-72 / brazil-73 / rest-api-crud-76 | Astra low (crud + hard), Luna 6 | 33 |
+
+**162 runs, estimate ~$125, ~11 h**, one sub-dir at a time via a driver. Not re-run: exp-74/77
+xhigh/max (within-cell spread swamps the effect, ~10× the cost — they stay labelled mcp-enabled),
+exp-63 (graphify vs not — both arms equally contaminated, so its comparison stands).
+
+**Hypothesis:** coverage/pass unchanged everywhere; tokens, cost and wall-clock fall, by more for
+Codex exp-57–60 (active MCP use wasted turns) than for Claude (passive prompt overhead).
+**Consequence if it holds:** exp-74's "Opus 5.5 is 2–3× cheaper than Opus 5" compared a
+contaminated 5.5 against a clean July Opus 5, so the true advantage is LARGER than published.
+
+**Verified before launch:** exp-78 (Claude isolation through retort, 24 runs). Codex: a one-run smoke
+through retort (`experiment-82-codex6-isolated/smoke/`, Luna 6 python) — 0 MCP calls, no ruvnet
+announcement, 135K tokens vs 258K in exp-76's python runs, cost priced, per-run CODEX_HOME removed at
+teardown, provenance records the isolation. **Known confound:** exp-58's Sol `default` ran at the
+owner's configured `model_reasoning_effort` (medium today, unrecorded then); isolated, `default` is
+Sol's own (low), so a Sol difference mixes isolation with effort.
+
+## 0. exp-78 — does isolating the claude agent from the host's config change results?  — COMPLETE 2026-09-29, write-up pending
 
 **The gap:** until commit `1e6c8437` (2026-09-29) every claude-code agent under test inherited the
 machine owner's setup — 6 MCP servers / 418 tools (ruvnet-brain, claude-flow, claude.ai Gmail / Docs /
