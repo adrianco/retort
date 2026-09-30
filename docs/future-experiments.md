@@ -579,7 +579,7 @@ invest in the solver dependency, master.db merge, and first-class docs.
 <!-- SCAN-HEARTBEAT: the daily scan rewrites the next line on EVERY run, including
      days it finds nothing. Do not hand-edit it. If the date is more than ~2 days
      stale, the scan is not running — see "when the heartbeat goes stale" below. -->
-**Daily scan last completed: 2026-09-29** (scanning for new coding models: 64GB-fittable open weights, and frontier cloud models/versions)
+**Daily scan last completed: 2026-09-30** (scanning for new coding models: 64GB-fittable open weights, and frontier cloud models/versions)
 
 - 2026-09-08 — **GPT-6 Astra (OpenAI) — `gpt-6-astra`** — *the "new codex model"; added by hand
   because the daily scan's scope was open-weights-only until today (widened the same day, see the
@@ -685,6 +685,37 @@ invest in the solver dependency, master.db merge, and first-class docs.
   to make it featurable. The discriminating question still needs the harder-than-brazil task (exp-73).
   Sources: [Anthropic model page](https://platform.claude.com/docs/en/models/sonnet-5-5/overview),
   [The New Stack](https://thenewstack.io/claude-sonnet-55-launch/).
+- 2026-09-30 — **GPT-6.1 Sol (OpenAI) — `gpt-6.1-sol`** — *released **2026-09-29** at DevDay, one week
+  after the still-unmeasured `gpt-6-sol`; a point release that supersedes it as the Sol to measure.*
+  Facts from OpenAI's own model page, not a news story: **$2 in / $10 out per 1M** — unchanged from
+  GPT-6 Sol — but **cached input is $0.10, half of GPT-6 Sol's $0.20**; cache writes $2.50 = 1.25×
+  input, so `retort.pricing`'s `gpt-6` cache-write rule carries over (`"gpt-6.1-sol"` does start with
+  the `gpt-6` prefix). **1,050,000-token context**, 922K max input, 128K max output, knowledge cutoff
+  2026-04-30. Reasoning effort **low / medium (default) / high / xhigh / max — `none` is NOT
+  supported**, unlike GPT-6 Sol/Luna, so an effort ladder copied from a Sol 6 or Luna 6 workspace has
+  one invalid level. Same-day in Codex for Plus/Pro/Business/Enterprise/Edu: `codex exec -m
+  gpt-6.1-sol`. **CLI version is unverified** — a third-party guide shows it on codex-cli 0.155.0,
+  while the GPT-6 Sol entry above records 0.156.x for that id; check `codex --version` and prove the id
+  resolves on a smoke cell.
+  **⚠ `gpt-6.1-sol` is NOT in `src/retort/pricing.py`** (checked 2026-09-30: the table has
+  `gpt-6-astra`, `gpt-6-sol`, `gpt-6-luna`; `normalize_model` does not fall back to `gpt-6-sol`, so it
+  returns `None`) — a run today reports **$0** and corrupts the cost columns. Add
+  `TokenPrice(2.00, 0.10, 10.00)` before any cell; do NOT reuse the `gpt-6-sol` row, whose cached rate
+  is 2× too high, and cache reads dominate agentic runs. **Second pricing trap:** requests with
+  **>272K input tokens bill at 2× input/cache and 1.5× output**, and `pricing.py` has no long-context
+  tier — check a brazil transcript's per-request prompt size before trusting a hard-task cost.
+  **Framing:** vendor claims near-Astra agentic coding at a fifth of Astra's price — DeepSWE v1.1
+  matching Astra and +6.4 over GPT-6 Sol, OSWorld 2.0 71.4 vs Astra's 73.5. Same list price as
+  Sonnet 5.5 (exp-77, running) and GPT-6 Sol, so the natural cell is **6.1 Sol vs Sonnet 5.5 at
+  matched effort**; with cache reads halved, its cost per run should undercut both if token counts
+  hold. exp-73's caveat stands: routine and brazil are saturated, so this measures cost and clock.
+  It should run **isolated** (exp-82's per-run `CODEX_HOME`), not under the inherited host config.
+  *(A **GPT-6.1 Sol Ultrafast** tier — "up to 8× faster token generation" in Codex — is announced for
+  "the coming days" with no id or price yet; re-check, it is the §3 speed lever on a cloud stack.)*
+  Sources: [OpenAI model page](https://developers.openai.com/api/docs/models/gpt-6.1-sol),
+  [The New Stack](https://thenewstack.io/openai-gpt-6-1-sol/),
+  [Unite.AI](https://www.unite.ai/openai-unveils-gpt-6-1-sol-at-devday-with-new-codex-and-chatgpt-tools/),
+  [release guide](https://www.developersdigest.tech/blog/gpt-6-1-sol-release-guide-2026).
 
 New open-weight coding models found by the daily scan that plausibly fit 64GB at 4-bit; promote to a
 numbered experiment when prioritised.
@@ -1564,6 +1595,39 @@ survives the toggle, restart the Claude desktop app, which clears the in-memory 
   Source: https://prismml.com/news/bonsai-2-27b
   — via: https://www.marktechpost.com/2026/09/18/prismml-releases-ternary-bonsai-2-27b-a-5-9-gb-apache-2-0-model-retaining-98-2-of-qwen3-8-27b-performance/
   — docs: https://docs.prismml.com/bonsai-2-27b
+
+- 2026-09-30 — **ThinkingCap-Qwen3.8-27B (BottleCap AI)** — *published **2026-09-24**; a fine-tune of
+  the already-listed **Qwen3.8-27B** with one narrow goal — shorter reasoning traces — which is
+  exactly the cost the JetBrains Junie entry above flagged (3.8 "needs reasoning enabled to work
+  reliably, and with it on, tasks run roughly four times slower").* 28B bf16, same arch, multimodal.
+  Vendor-reported across 12 benchmarks: **37.2% fewer thinking tokens for a 0.86 pp accuracy cost** —
+  but the saving is smallest where retort works: **Terminal-Bench 2.1 −0.56 pp for only a 10.7% cut**,
+  τ²-bench −1.01 pp for 30.9%, LiveCodeBench v6 +0.07 pp for 20.3%. **First-party
+  `bottlecapai/ThinkingCap-Qwen3.8-27B-MLX-4bit-DWQ` at 21 GB** (mixed 4/8-bit — DWQ is the scheme
+  exp-68/69 found eliminates stalls on the 30B) plus first-party GGUF (16–55 GB) → fits 64GB with
+  enormous headroom, no convert. Tool calls use the Qwen3 reasoning parser + `qwen3_xml`, our parser
+  family. **Caveats:** (1) **licence is PolyForm Small Business 1.0.0 + a personal-use grant, and the
+  weights are gated** — not Apache like its base; read it before use. (2) Recommended sampling is
+  **temperature 1.0 / top_p 0.95 / top_k 20** with `xhigh` effort — the temp-1.0 trap; set, verify and
+  record both. (3) Inherits Qwen3.8-27B's llama.cpp Gated-DeltaNet build requirement and the
+  smoke-test-a-real-`<tool_call>` rule. **Why it earns a slot:** a matched-base probe where the only
+  variable is thinking length, so tokens and wall-clock — first-class retort responses — are the
+  response, not pass-proportion. Run only after the stock Qwen3.8-27B 4-bit baseline exists, or it has
+  no control. (A `ThinkingCap-Qwen3.6-27B` sibling also ships.)
+  Source: https://bottlecapai.com/post/thinkingcap-qwen3-8-27b/
+  — via: https://www.marktechpost.com/2026/09/24/bottlecap-ai-releases-thinkingcap-qwen3-8-27b-37-2-fewer-thinking-tokens-at-a-0-86pp-accuracy-cost/
+  — weights: https://huggingface.co/bottlecapai/ThinkingCap-Qwen3.8-27B
+  — MLX 4-bit DWQ: https://huggingface.co/bottlecapai/ThinkingCap-Qwen3.8-27B-MLX-4bit-DWQ
+  — GGUF: https://huggingface.co/bottlecapai/ThinkingCap-Qwen3.8-27B-GGUF
+
+*Excluded 2026-09-30, recorded so they are not re-investigated:* **Ember-1** (Fireworks, 2026-09-28) —
+a post-trained Kimi K3 using ~40% fewer tokens, but **closed weights, Fireworks serverless API only**,
+and its base is the 2.8T K3. **Altar-1** (Aikido Security, 2026-09-25) — open weights, but a
+*security* model pruned from GLM-5.3 to 328 GB. **Liquid d1** (2026-09-29) — another "System One"
+decision model; no code generation. **ZDTaichu5.0-9B** (2026-09-24) — a spatial vision-language model.
+OpenAI's DevDay **Decisions API** is an API on Luna, not a new model. Sources:
+https://www.marktechpost.com/2026/09/28/fireworks-ai-releases-ember-1-a-post-trained-kimi-k3-that-uses-about-40-fewer-tokens/
+· https://www.llm-releases.com/
 
 *Excluded 2026-09-28, recorded so they are not re-investigated:* **Step 5 Preview** (StepFun,
 2026-09-20, 600B-A27B, agentic coding) — ~300 GB at 4-bit, and weights not due until 2026-10-15.
