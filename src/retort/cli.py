@@ -740,6 +740,30 @@ def run_experiments(
                     f"Remove or replace unsupported agent levels in your workspace config."
                 )
 
+        # PLUGIN-PROMPT PRECHECK. A plugin prompt level (atdd-skill) is only the
+        # treatment if the isolated agent can reach the plugin's MCP server at the
+        # right tier. Unreached, every such cell quietly measures the prompt text
+        # alone — the 2026-10-01 probe showed it fails silently. One billed call.
+        from retort.playpen import prompt_plugins as _pp
+        from retort.playpen.local_runner import CLAUDE_AGENT_ISOLATION_ARGS as _iso
+        _plugin_levels = sorted({
+            str(rc.get("prompt")) for rc in design.run_configs()
+            if rc.get("prompt") in _pp.PROMPT_PLUGINS
+            and (rc.get("agent") or "claude-code") == "claude-code"
+        })
+        for _lvl in _plugin_levels:
+            try:
+                _ok, _msg = _pp.preflight(_lvl, _iso)
+            except FileNotFoundError as _exc:
+                _ok, _msg = False, str(_exc)
+            if not _ok:
+                raise click.ClickException(
+                    f"PLUGIN PREFLIGHT FAILED for prompt level {_lvl!r} — {_msg}\n"
+                    "  If the MCP server needs sign-in, run /mcp in an interactive "
+                    "claude session and authenticate, then retry."
+                )
+            click.echo(f"Plugin preflight ({_lvl}): {_msg}")
+
     # Capture the FULL stack this experiment runs on — versions, model revisions,
     # sampling params, agent config, harness settings — and write it beside the
     # data. A pass-proportion is meaningless without the stack it was measured on:
@@ -766,6 +790,8 @@ def run_experiments(
             # stack that ran rather than every stack installed on the box.
             agents=sorted({str(rc.get("agent") or "claude-code")
                            for rc in design.run_configs()}),
+            prompt_levels=sorted({str(rc["prompt"]) for rc in design.run_configs()
+                                  if rc.get("prompt")}),
         )
         _path = _prov.write(_manifest, config_dir)
         click.echo("\nStack provenance (recorded to %s):" % _path.name)

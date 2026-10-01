@@ -259,8 +259,12 @@ def capture(
     stack_presets: dict[str, Any] | None = None,
     model_ids: list[str] | None = None,
     agents: list[str] | None = None,
+    prompt_levels: list[str] | None = None,
 ) -> dict[str, Any]:
     """Collect the stack manifest for an experiment run.
+
+    `prompt_levels` is the set of prompt levels the design runs; a plugin level
+    (atdd-skill) adds back a plugin + MCP server, which is recorded here.
 
     `agents` is the set of agent levels the design actually runs. It matters
     because provenance used to record the LOCAL stack unconditionally: a Codex
@@ -315,6 +319,12 @@ def capture(
         agent_config["codex"] = _codex_config()
     if "claude-code" in kinds:
         agent_config["claude_code"] = _claude_code_config()
+        if agent_config["claude_code"] is not None:
+            from retort.playpen.prompt_plugins import provenance as _plugin_prov
+            plugins = _plugin_prov(list(prompt_levels or []))
+            if plugins:
+                # The ONLY host config a plugin level adds back, per level.
+                agent_config["claude_code"]["prompt_plugins"] = plugins
 
     return {
         "retort": _git(repo),

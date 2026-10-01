@@ -14,6 +14,8 @@ Levels:
     mcp-cleared   verified clean: the run's provenance records the isolation args,
                   or its Claude init event lists zero MCP tools.
     mcp-enabled   MCP tools were loaded (Claude init event) or called (any agent).
+                  A plugin prompt level's own server (msec-mcp) does not count:
+                  it is the treatment, recorded in provenance's prompt_plugins.
     unverified    no evidence either way (no transcript, or a Codex run that made
                   no MCP calls — Codex logs do not list the servers it loaded).
     local-harness a local agent harness (Hermes, omp, opencode, ...) — it does not
@@ -25,6 +27,8 @@ from __future__ import annotations
 import json
 from pathlib import Path
 
+from retort.playpen.prompt_plugins import TREATMENT_MCP_SERVERS
+
 CLEARED, ENABLED, UNVERIFIED, LOCAL = "mcp-cleared", "mcp-enabled", "unverified", "local-harness"
 
 #: Agents that inherit the host's Claude / Codex config. A NULL agent is claude-code
@@ -34,6 +38,14 @@ CLOUD_AGENTS = {None, "", "claude-code", "codex"}
 #: Only the head of a transcript is needed for the Claude init event and the first
 #: turn's usage; MCP calls are counted over the whole file line by line.
 _HEAD_BYTES = 400_000
+
+#: A plugin prompt level's own MCP tools (atdd-skill -> msec-mcp) are the
+#: treatment, not host context, so they do not make a run `mcp-enabled`.
+_TREATMENT_PREFIXES = tuple(f"mcp__{s}__" for s in TREATMENT_MCP_SERVERS)
+
+
+def _is_host_mcp(name: str) -> bool:
+    return name.startswith("mcp__") and not name.startswith(_TREATMENT_PREFIXES)
 
 
 def run_archive_dir(exp_dir: Path, run_config: dict, replicate: int) -> Path | None:
@@ -74,7 +86,7 @@ def classify_transcript(stdout_log: Path) -> dict:
             if out["mcp_tools_loaded"] is None and '"subtype":"init"' in compact:
                 try:
                     tools = json.loads(line).get("tools") or []
-                    out["mcp_tools_loaded"] = sum(1 for t in tools if str(t).startswith("mcp__"))
+                    out["mcp_tools_loaded"] = sum(1 for t in tools if _is_host_mcp(str(t)))
                 except ValueError:
                     pass
             elif out["first_turn_prompt_tokens"] is None and '"type":"assistant"' in compact:
@@ -89,7 +101,8 @@ def classify_transcript(stdout_log: Path) -> dict:
                 saw_codex = True
             # Claude: an MCP tool_use block. Codex: a completed mcp_tool_call item.
             if '"type":"tool_use"' in compact and '"name":"mcp__' in compact:
-                calls += compact.count('"name":"mcp__')
+                calls += compact.count('"name":"mcp__') - sum(
+                    compact.count(f'"name":"{p}') for p in _TREATMENT_PREFIXES)
             elif '"item.completed"' in compact and '"mcp_tool_call"' in compact:
                 calls += 1
     if out["mcp_tools_loaded"] is None and not saw_codex:

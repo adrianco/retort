@@ -21,6 +21,7 @@ import uuid
 from pathlib import Path
 
 from retort.config.schema import LocalAgentConfig, LocalInferenceCost
+from retort.playpen.prompt_plugins import claude_isolation_args
 from retort.playpen.runner import (
     RunArtifacts,
     StackConfig,
@@ -1047,7 +1048,9 @@ class LocalRunner:
                 "--output-format", "stream-json", "--verbose",
                 "--max-turns", str(effective_max_turns),
                 "--dangerously-skip-permissions",
-                *CLAUDE_AGENT_ISOLATION_ARGS,
+                # A plugin prompt level (atdd-skill) adds back exactly its plugin
+                # and the MCP servers its manifest declares; others stay isolated.
+                *claude_isolation_args(prompt_level, CLAUDE_AGENT_ISOLATION_ARGS),
             ]
 
             # Resolve model alias → versioned ID (+ fast-mode setting if any).
