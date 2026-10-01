@@ -579,7 +579,7 @@ invest in the solver dependency, master.db merge, and first-class docs.
 <!-- SCAN-HEARTBEAT: the daily scan rewrites the next line on EVERY run, including
      days it finds nothing. Do not hand-edit it. If the date is more than ~2 days
      stale, the scan is not running — see "when the heartbeat goes stale" below. -->
-**Daily scan last completed: 2026-09-30** (scanning for new coding models: 64GB-fittable open weights, and frontier cloud models/versions)
+**Daily scan last completed: 2026-10-01** (scanning for new coding models: 64GB-fittable open weights, and frontier cloud models/versions)
 
 - 2026-09-08 — **GPT-6 Astra (OpenAI) — `gpt-6-astra`** — *the "new codex model"; added by hand
   because the daily scan's scope was open-weights-only until today (widened the same day, see the
@@ -716,6 +716,26 @@ invest in the solver dependency, master.db merge, and first-class docs.
   [The New Stack](https://thenewstack.io/openai-gpt-6-1-sol/),
   [Unite.AI](https://www.unite.ai/openai-unveils-gpt-6-1-sol-at-devday-with-new-codex-and-chatgpt-tools/),
   [release guide](https://www.developersdigest.tech/blog/gpt-6-1-sol-release-guide-2026).
+- 2026-10-01 — **Gemini 4 Argon (Google DeepMind) — API id NOT YET PUBLISHED — BLOCKED, re-check.**
+  *Announced **2026-09-30**; the first new Google frontier model this list has recorded as a candidate.*
+  Facts from Google's own launch post: **introductory $2 in / $10 out per 1M** (cached input 95% off,
+  i.e. ~$0.10), rising to **$4 / $20 after the introductory period** — so a cost column computed at
+  one rate goes wrong when the other applies; record which. **Up to 1M output tokens** in a single
+  response (vs 64K on earlier Gemini); input window not stated. Coding: **DeepSWE v1.1 77.9%**,
+  AutomationBench #1 at 51.3%, CWE-bench 68% (vendor-reported). Thinking/effort levels not documented.
+  **Not runnable today:** it is rolling out only to vetted Google Cloud customers, government and
+  cyber partners via the **Fairwind Program**; paid-API and AI Ultra access is promised with no date,
+  and **no stable public API model id** exists in the launch material. Also unverified: whether it is
+  reachable through a coding-agent CLI retort drives (Gemini CLI or other) — check the installed
+  runners before designing anything, and note `src/retort/pricing.py` would need an entry (with the
+  intro/standard split) if retort computes its cost. **Framing:** same intro list price as Sonnet 5.5
+  and GPT-6.1 Sol, and DeepSWE 77.9 is in the range GPT-6.1 Sol's vendor claims put it near Astra — so
+  once an id ships, the natural cell is the same cost/clock comparison at matched effort; routine and
+  brazil are saturated, so it too argues for the harder-than-brazil task (exp-73).
+  Sources: [Google](https://blog.google/innovation-and-ai/models-and-research/gemini-models/gemini-4-argon/),
+  [The New Stack](https://thenewstack.io/google-gemini-4-argon/),
+  [MarkTechPost](https://www.marktechpost.com/2026/09/30/google-deepmind-unveils-gemini-4-argon-with-1m-output-tokens-for-coding-knowledge-work-and-cyber-defense/).
+  *(GPT-6.1 Sol **Ultrafast** — re-checked 2026-10-01: still "coming soon", no id or price.)*
 
 New open-weight coding models found by the daily scan that plausibly fit 64GB at 4-bit; promote to a
 numbered experiment when prioritised.
@@ -1619,6 +1639,34 @@ survives the toggle, restart the Claude desktop app, which clears the in-memory 
   — weights: https://huggingface.co/bottlecapai/ThinkingCap-Qwen3.8-27B
   — MLX 4-bit DWQ: https://huggingface.co/bottlecapai/ThinkingCap-Qwen3.8-27B-MLX-4bit-DWQ
   — GGUF: https://huggingface.co/bottlecapai/ThinkingCap-Qwen3.8-27B-GGUF
+
+- 2026-10-01 — **Holo4-35B-A3B (H Company)** — *published **2026-09-28/29**; a borderline admit in the
+  Agents-A1/Apodex class, but unlike both it is a **true matched-base probe on the exact
+  `Qwen3.6-35B-A3B` in our hermes-lcm+35B stack**.* **Apache 2.0** (the sibling **Holo4-27B**, on a
+  Qwen3.8-27B base, is **CC BY-NC 4.0** — non-commercial; the 35B is the one to use), 256K context,
+  **~20–22 GB at 4-bit → fits 64GB with enormous headroom**. Post-trained as a *generalist
+  computer-use* agent — GUI, written code, MCP and direct API calls — so it is tool-calling native,
+  but **it reports no SWE-bench, Terminal-Bench or LiveCodeBench at all** (OSWorld 2.0, AndroidWorld,
+  AutomationBench only). Weights ship in BF16 / FP8 / NVFP4 / **4-bit GGUF**, with MLX quants mentioned
+  in its deployment notes (unconfirmed which repo) — the arch is our incumbent's, so oMLX/llamacpp
+  should be a straight load with no arch gate-probe. **Why it earns a slot:** it asks the Agents-A1
+  control question — what does heavy *non-coding* agentic post-training do to coding? — on a
+  **matched** base rather than a sibling generation, so a regression or gain against our existing 35B
+  numbers is attributable to post-training alone. **Caveats:** tool-call format/parser is not
+  documented (it ships its own `hai-agents` harness) — smoke-test a real `<tool_call>` through Hermes
+  before any cell; sampling and thinking mode undocumented, so set, verify and record them. Judge
+  priority below every coder-specialised entry, alongside Agents-A1 and Apodex.
+  Source: https://huggingface.co/blog/Hcompany/holo4
+  — via: https://www.marktechpost.com/2026/09/29/h-company-releases-holo4-open-weight-computer-use-models-that-click-code-and-call-tools-across-desktop-web-android-and-apis/
+  — weights: https://huggingface.co/Hcompany/Holo4-35B-A3B
+
+*Excluded 2026-10-01, recorded so they are not re-investigated:* **OrcaSAQ-2 27B** (OrcaRouter,
+2026-09-28, Apache 2.0) — a 3.21-bpw 12.3 GB mixed-precision quant of the already-listed Qwen3.8-27B
+(vendor: SWE-bench Verified 70.0, Terminal-Bench 2.1 58.4), but the format **requires OrcaRouter's
+custom vLLM kernel and is explicitly not compatible with llama.cpp or MLX**, so it cannot be served on
+this box. **MiniMax-M3.1-Flash-Preview** (2026-09-27) — no open weights. **Cohere Embed Pro Fast** and
+**NVIDIA Kumo Tabular** (2026-09-30) — not coding models. Sources:
+https://huggingface.co/orcarouter/OrcaSAQ-2-27B · https://www.llm-releases.com/
 
 *Excluded 2026-09-30, recorded so they are not re-investigated:* **Ember-1** (Fireworks, 2026-09-28) —
 a post-trained Kimi K3 using ~40% fewer tokens, but **closed weights, Fireworks serverless API only**,
