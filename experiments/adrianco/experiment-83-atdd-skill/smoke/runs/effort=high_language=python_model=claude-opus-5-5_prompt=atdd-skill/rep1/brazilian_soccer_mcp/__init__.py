@@ -1,0 +1,1 @@
+"""Brazilian Soccer MCP server."""

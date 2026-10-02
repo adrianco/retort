@@ -1,0 +1,13 @@
+run,language,model,prompt,effort
+0,python,claude-opus-5-5,neutral,low
+1,python,claude-opus-5-5,atdd-skill,low
+2,python,claude-opus-5-5,neutral,high
+3,python,claude-opus-5-5,atdd-skill,high
+4,go,claude-opus-5-5,neutral,low
+5,go,claude-opus-5-5,atdd-skill,low
+6,go,claude-opus-5-5,neutral,high
+7,go,claude-opus-5-5,atdd-skill,high
+8,typescript,claude-opus-5-5,neutral,low
+9,typescript,claude-opus-5-5,atdd-skill,low
+10,typescript,claude-opus-5-5,neutral,high
+11,typescript,claude-opus-5-5,atdd-skill,high

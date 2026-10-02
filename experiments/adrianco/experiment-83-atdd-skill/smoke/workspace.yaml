@@ -1,0 +1,36 @@
+# experiment-83 SMOKE — ONE cell (python x high x atdd-skill, n=1) proving the skill
+# fires and fetches course content before the grid. Kept apart so it never
+# pools with the grid's retort.db. Otherwise identical to ../brazil/workspace.yaml.
+#
+# experiment-83 — Dave Farley's own ATDD skill (msec:atdd-build) vs neutral on brazil.
+# Plan, hypothesis and smoke-test criteria: docs/future-experiments.md (exp-83).
+#
+# Task is brazil-bench-NEUTRAL (BDD stripped), as exp-13, so the methodology comes
+# only from the prompt. The neutral arm is re-run here, not borrowed from exp-79,
+# because exp-79 used the BDD-bearing template.
+#
+# atdd-skill adds back EXACTLY the msec plugin (--plugin-dir) and the MCP server
+# its manifest declares; every other level stays isolated
+# (retort/playpen/prompt_plugins.py). `retort run` preflights the server at the
+# paid tier before any cell and records the plugin in provenance.json.
+experiment:
+  name: experiment-83-atdd-skill-smoke
+  visibility: public
+factors:
+  language: { levels: [python, go, typescript] }
+  effort: { levels: [low, high] }
+  prompt: { levels: [neutral, atdd-skill] }
+  model: { levels: [claude-opus-5-5, claude-opus-5] }  # design pins 5.5
+responses: [code_quality, token_efficiency, test_coverage, defect_rate, maintainability, idiomatic, atdd_review]  # atdd_review = msec:atdd-review grades A-G
+tasks:
+  - source: github://adrianco/brazil-bench-neutral/brazilian-soccer-mcp-guide.md
+playpen:
+  runner: local
+  replicates: 1
+  timeout_minutes: 150
+  stall_minutes: 30
+  max_turns: 200
+  prompts_dir: prompts
+design: { screening_resolution: 3, significance_threshold: 0.10 }
+promotion: { screening_to_trial: { p_value: 0.10 }, trial_to_production: { posterior_confidence: 0.80 } }
+evaluation: { enabled: true, model: opus-4.8 }

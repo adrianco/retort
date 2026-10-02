@@ -123,6 +123,11 @@ def create_default_registry() -> ScorerRegistry:
     # rate. See mcp_conformance.py.
     from retort.scoring.scorers.mcp_conformance import McpConformanceScorer
     registry.register(McpConformanceScorer())
+    # Opt-in via responses: Dave Farley's own `msec:atdd-review` skill grades the
+    # acceptance tests (A-G) with criteria fetched from the course server. One
+    # multi-turn review per run; NULL when the skill or course was not reached.
+    from retort.scoring.scorers.atdd_review import AtddReviewScorer
+    registry.register(AtddReviewScorer())
     # The golden answers as read by a REAL MCP client rather than by a parser
     # here: hands the server to Claude Code, asks in a prompt, and computes the
     # verdict from the TRANSCRIPT (a run whose transcript shows no MCP tool call
