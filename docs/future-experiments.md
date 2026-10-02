@@ -51,7 +51,17 @@ the skill — fix before running.
 only from the prompt, as exp-13). `language[python, go, typescript] × effort[low, high] ×
 prompt[neutral, atdd-skill]`, model `claude-opus-5-5`, n=2 → 24 runs, timeout 150 min. The neutral
 arm is re-run here rather than borrowed from exp-79 because exp-79 used the BDD-bearing template.
-Also score the exp-13 ATDD-conformance rubric on both arms.
+**Scoring ATDD conformance:** response `atdd_review` (`scorers/atdd_review.py`) hands each finished
+workspace — both arms — to Dave's own `msec:atdd-review` skill, run isolated with only the msec plugin +
+server, on a copy. It rates categories A-G (spec quality, 4-layer architecture, isolation, DSL, protocol
+drivers, intermittency, releasability) 0-4 from criteria it fetches from the course; score = sum/28.
+Reviewer `claude-opus-4-8` (fixed, not the model under test). NULL — never a guess — when the review
+did not invoke the skill or fetch course content. Full review kept as `_atdd_review.md` per run.
+
+**Smoke status 2026-10-01:** harness plugin preflight passed in the real run (paid tier); the build
+agent invoked `msec:atdd-build` and, as that skill directs, fetched course topics (bdd, dsl,
+protocol-drivers, four-layer-model) and 4 lessons. `atdd_review` to be applied to the smoke cell
+with `retort rescore --metrics atdd_review` once it finishes.
 
 **Hypothesis (recorded before running):** on a frontier model brazil is near-saturated, so
 pass-proportion is flat (≈1.00 both arms) — the owner's expectation too: brazil is probably not hard
@@ -620,7 +630,7 @@ invest in the solver dependency, master.db merge, and first-class docs.
 <!-- SCAN-HEARTBEAT: the daily scan rewrites the next line on EVERY run, including
      days it finds nothing. Do not hand-edit it. If the date is more than ~2 days
      stale, the scan is not running — see "when the heartbeat goes stale" below. -->
-**Daily scan last completed: 2026-10-01** (scanning for new coding models: 64GB-fittable open weights, and frontier cloud models/versions)
+**Daily scan last completed: 2026-10-02** (scanning for new coding models: 64GB-fittable open weights, and frontier cloud models/versions)
 
 - 2026-09-08 — **GPT-6 Astra (OpenAI) — `gpt-6-astra`** — *the "new codex model"; added by hand
   because the daily scan's scope was open-weights-only until today (widened the same day, see the
@@ -1700,6 +1710,14 @@ survives the toggle, restart the Claude desktop app, which clears the in-memory 
   Source: https://huggingface.co/blog/Hcompany/holo4
   — via: https://www.marktechpost.com/2026/09/29/h-company-releases-holo4-open-weight-computer-use-models-that-click-code-and-call-tools-across-desktop-web-android-and-apis/
   — weights: https://huggingface.co/Hcompany/Holo4-35B-A3B
+
+*Excluded 2026-10-02, recorded so they are not re-investigated:* **Clef / Clef-flash** (Cloudflare,
+2026-10-01, Apache 2.0, 27B on Qwen3.8-27B / 9B on Qwen3.5-9B) — open weights and would fit, but they
+are "System One" **decision models** that return probabilities over typed options in one forward
+pass (64K context), not code generators — same class as Jev / GLiNER2.5-Decide. Re-checked and still
+blocked: **Gemini 4 Argon** (no public API id) and **GPT-6.1 Sol Ultrafast** ("coming days", no id).
+Sources: https://blog.cloudflare.com/clef-decision-models/ ·
+https://huggingface.co/Cloudflare/clef
 
 *Excluded 2026-10-01, recorded so they are not re-investigated:* **OrcaSAQ-2 27B** (OrcaRouter,
 2026-09-28, Apache 2.0) — a 3.21-bpw 12.3 GB mixed-precision quant of the already-listed Qwen3.8-27B
