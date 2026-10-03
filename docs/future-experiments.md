@@ -630,7 +630,7 @@ invest in the solver dependency, master.db merge, and first-class docs.
 <!-- SCAN-HEARTBEAT: the daily scan rewrites the next line on EVERY run, including
      days it finds nothing. Do not hand-edit it. If the date is more than ~2 days
      stale, the scan is not running — see "when the heartbeat goes stale" below. -->
-**Daily scan last completed: 2026-10-02** (scanning for new coding models: 64GB-fittable open weights, and frontier cloud models/versions)
+**Daily scan last completed: 2026-10-03** (scanning for new coding models: 64GB-fittable open weights, and frontier cloud models/versions)
 
 - 2026-09-08 — **GPT-6 Astra (OpenAI) — `gpt-6-astra`** — *the "new codex model"; added by hand
   because the daily scan's scope was open-weights-only until today (widened the same day, see the
@@ -1710,6 +1710,17 @@ survives the toggle, restart the Claude desktop app, which clears the in-memory 
   Source: https://huggingface.co/blog/Hcompany/holo4
   — via: https://www.marktechpost.com/2026/09/29/h-company-releases-holo4-open-weight-computer-use-models-that-click-code-and-call-tools-across-desktop-web-android-and-apis/
   — weights: https://huggingface.co/Hcompany/Holo4-35B-A3B
+
+*Excluded 2026-10-03, recorded so they are not re-investigated:* **Ling-3.1-flash** (Ant Group /
+inclusionAI, 2026-09-29, 560B total / ~25B active, weights announced but rolling out after a trial) —
+~280 GB at 4-bit, same verdict as Ling-3.0-flash. **Strands Decider 2B** (AWS Strands Labs,
+2026-10-02) — another "System One" decision model, same class as Jev / Clef. **GPT-6.1 Sol
+Ultrafast** — reported as a `service_tier=ultrafast` on the existing `gpt-6.1-sol` id, not a new model
+(unconfirmed reports: ~$12 in / $60 out per 1M, Codex Pro 500 / Enterprise / Edu only); if it ships to
+the API it is a speed-tier factor on the already-listed 6.1 Sol entry, and `pricing.py` would need a
+tier-aware rate. Still blocked: **Gemini 4 Argon** (no public API id). Sources:
+https://www.llm-releases.com/ · https://www.marktechpost.com/ ·
+https://aicatchup.com/news/openai-gpt-6-1-sol
 
 *Excluded 2026-10-02, recorded so they are not re-investigated:* **Clef / Clef-flash** (Cloudflare,
 2026-10-01, Apache 2.0, 27B on Qwen3.8-27B / 9B on Qwen3.5-9B) — open weights and would fit, but they
