@@ -1,0 +1,10 @@
+{
+  "severity_counts": {"critical": 0, "high": 0, "medium": 0, "low": 0, "info": 0},
+  "penalty_score": 1.0,
+  "top_findings": [],
+  "requirement_coverage": 1.0,
+  "model": "claude-fable-5-1",
+  "evaluated_at": "2026-09-30T15:01:37Z",
+  "min_severity": "high",
+  "note": "min_severity=high filters out the run's 1 low + 1 info finding; no high+ findings. 12/12 pinned requirements implemented. tracker=beads requested but file-run-issues v2.0 aggregates to assessment.json and does not create tracker records."
+}

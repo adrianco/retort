@@ -243,6 +243,48 @@ def _go_integration_profile(out: Path) -> str | None:
         return text_profile.read_text(errors="replace") if text_profile.exists() else None
 
 
+_PY_SUBPROCESS_RE = re.compile(r"\bsubprocess\.(?:Popen|run|call|check_call|check_output)\(|\bcreate_subprocess_exec\(")
+
+
+def _python_subprocess_coverage_rc(out: Path) -> Path | None:
+    """A coverage rc that also measures Python subprocesses the TESTS start.
+
+    The Python twin of `_go_integration_profile`: an ATDD protocol driver that
+    launches the server with `sys.executable -m <pkg>` and talks to it over stdio
+    runs all the server code in another process, which pytest-cov alone never
+    sees (exp-83: a suite measured 67% in-process, 97% with the server counted).
+    coverage >= 7.10 `[run] patch = subprocess` starts measurement in child
+    Python processes and pytest-cov combines their data. Only used when some
+    test-side file starts a subprocess, so other suites keep their own config;
+    when used, it carries the project's `.coveragerc` [run]/[report] settings
+    across. Returns the rc path (in a temp dir the caller removes) or None.
+    """
+    import configparser
+    import tempfile
+
+    test_files = [p for p in out.rglob("*.py")
+                  if not ({".venv", "venv", "site-packages", "node_modules"} & set(p.parts))
+                  and ("tests" in p.parts or "test" in p.parts
+                       or p.name.startswith("test_") or p.name == "conftest.py")]
+    if not any(_PY_SUBPROCESS_RE.search(p.read_text(errors="replace")) for p in test_files):
+        return None
+    cfg = configparser.ConfigParser()
+    own = out / ".coveragerc"
+    if own.exists():
+        try:
+            cfg.read(own)
+        except configparser.Error:
+            cfg = configparser.ConfigParser()
+    if not cfg.has_section("run"):
+        cfg.add_section("run")
+    cfg.set("run", "patch", "subprocess")
+    cfg.set("run", "source", cfg.get("run", "source", fallback="."))
+    rc = Path(tempfile.mkdtemp(prefix="retort-pycov-")) / "coveragerc"
+    with rc.open("w") as fh:
+        cfg.write(fh)
+    return rc
+
+
 def _merge_go_profiles(*profiles: str) -> float | None:
     """Statement coverage % over the UNION of Go text profiles.
 
@@ -392,11 +434,15 @@ class TestCoverageScorer:
         # need DEVELOPER_DIR pointed at a full Xcode so XCTest resolves.
         env = _apple_env(language)
         cleanup: Path | None = None
+        subproc_rc: Path | None = None
         if language == "python":
             # Find an existing venv or create one with the project's deps, so a
             # passing suite isn't scored 0 because no venv was shipped (the deps
             # would be missing and pytest would ModuleNotFoundError at collection).
             env, cleanup = ensure_python_env(output_dir)
+            subproc_rc = _python_subprocess_coverage_rc(output_dir)
+            if subproc_rc is not None:
+                cmd = [*cmd[:4], "--cov-config", str(subproc_rc), *cmd[4:]]
 
         try:
             try:
@@ -437,6 +483,8 @@ class TestCoverageScorer:
             rate2 = self._tests_pass_rate(output_dir, language, env=env)
             return rate2 * 100.0 if rate2 is not None else None
         finally:
+            if subproc_rc is not None:
+                shutil.rmtree(subproc_rc.parent, ignore_errors=True)
             if cleanup is not None:
                 shutil.rmtree(cleanup, ignore_errors=True)
 

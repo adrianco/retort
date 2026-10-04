@@ -1,0 +1,19 @@
+{
+  "name": "books-api",
+  "version": "1.0.0",
+  "description": "REST API for managing a book collection (TypeScript, node:http, SQLite)",
+  "type": "module",
+  "private": true,
+  "engines": {
+    "node": ">=22.13"
+  },
+  "scripts": {
+    "build": "tsc",
+    "start": "node dist/src/server.js",
+    "test": "tsc && node --test \"dist/tests/**/*.test.js\""
+  },
+  "devDependencies": {
+    "@types/node": "^24.0.0",
+    "typescript": "^5.9.0"
+  }
+}

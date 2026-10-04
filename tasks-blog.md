@@ -14,11 +14,13 @@ Task definitions live in [`tasks/`](tasks/) and are indexed by [`tasks/registry.
 
 ## 1. `rest-api-crud` — the routine task
 
-**Source:** [`tasks/rest-api-crud/`](tasks/rest-api-crud/) · 712 runs · the "easy" task
+**Source:** [`tasks/rest-api-crud/`](tasks/rest-api-crud/) · 1,110 runs · the "easy" task
 
 Build a CRUD REST API for a books collection: `POST /books`, `GET /books` (with `?author=` filter), `GET/PUT/DELETE /books/{id}`, plus `GET /health`. Data in SQLite or the language's embedded equivalent, JSON responses with correct status codes, input validation, a README, and at least 3 tests. Scored in all 13 languages.
 
 This is the workhorse. It's deliberately unremarkable — the point is that a competent stack should score 1.00 on it every time, so it measures *reliability*, not capability.
+
+> **New records, 2026-10-04 — both set by Sonnet 5.5, at opposite ends of its effort dial.** Fastest pass: **23.1 s**, Sonnet 5.5 at `effort=low`, python (exp-78 rep1, isolated agent): 6 turns, \$0.098, 103 K tokens, 12/12 requirements, coverage 0.98. Slowest pass: **63.4 min**, Sonnet 5.5 at `effort=max`, go (exp-77 rep3): 162 turns, \$14.18, 31.4 M tokens, for the same 12/12 — a 165× spread in wall-clock between two runs of one model on one task. The write-ups below are the previous records, kept for what they show.
 
 ### Fastest logged pass — 44.5s
 
@@ -62,7 +64,7 @@ It is not slop — it scores *better* on maintainability (0.85 vs 0.27) and idio
 
 ## 2. `brazil-bench` — the hard task
 
-**Source:** [`github://brazil-bench/benchmark-template`](https://github.com/brazil-bench/benchmark-template) · 284 runs
+**Source:** [`github://brazil-bench/benchmark-template`](https://github.com/brazil-bench/benchmark-template) · 407 runs (including its methodology-neutral variant)
 
 Build an MCP server over six real Kaggle CSVs of Brazilian football (23,954 matches across five files with three *different* schemas, plus 18,207 FIFA players). Twelve pinned requirements in [`REQUIREMENTS.json`](tasks/brazil-bench/REQUIREMENTS.json): match queries by team / date-range / competition / season, team W-D-L records, player search and filtering, season standings computed from results, aggregate statistics, head-to-head, and automated tests.
 
@@ -77,6 +79,8 @@ It is hard for reasons that have nothing to do with algorithms: team names carry
 > **What that costs us:** every new frontier model measured here now returns another 1.00, and the only thing left to compare is price. Designing a task harder than this one is the binding constraint on this project's cloud-model work. When you read a 1.00 in a frontier row below, read it as "cleared the bar", not as "this model is at the ceiling of what we can measure".
 >
 > **Confirmed again 2026-10-04 (exp-83):** 24 more Opus 5.5 runs on the methodology-neutral variant of this task — Python, Go and TypeScript, `low` and `high` effort, with and without Dave Farley's ATDD skill — all 24 at 1.00. That experiment could only measure *how* the tests were built, not whether the method helps the model pass, because nothing here fails it.
+
+> **New record, 2026-10-04: 2 min 49 s.** Opus 5.5 at `effort=low`, python, with Dave Farley's ATDD skill (exp-83 rep2): 14 turns, \$0.86, 462 K tokens, 12/12 requirements, coverage 0.96 — on the methodology-neutral variant of this task (same spec, the BDD section stripped). Even with the four-layer acceptance scaffolding, it beat the previous record below by half a minute.
 
 ### Fastest logged pass — 3 min 19 s
 

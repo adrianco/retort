@@ -1,0 +1,10 @@
+{
+  "severity_counts": {"critical": 0, "high": 0, "medium": 0, "low": 0, "info": 0},
+  "penalty_score": 1.0,
+  "top_findings": [],
+  "requirement_coverage": 1.0,
+  "model": "gpt-6-luna",
+  "evaluated_at": "2026-09-30T18:25:58Z",
+  "min_severity": "high",
+  "note": "12/12 requirements implemented; all findings (1 low, 2 info) are below the high threshold and filtered out. No tracker issues filed."
+}

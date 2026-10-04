@@ -1,0 +1,3 @@
+{"id": "enh-1", "kind": "enhancement", "severity": "info", "title": "POST /books sets a Location header", "evidence": "main.go:131 sets Location to /books/{id} on 201 Created", "suggestion": "None — this is correct REST behaviour beyond the spec."}
+{"id": "enh-2", "kind": "enhancement", "severity": "info", "title": "Health check verifies DB connectivity", "evidence": "main.go:68-74 pings the DB and returns 503 when unavailable", "suggestion": "None — exceeds the bare /health requirement."}
+{"id": "enh-3", "kind": "enhancement", "severity": "info", "title": "Request body size is bounded", "evidence": "main.go:97 wraps the body in http.MaxBytesReader(1MB)", "suggestion": "None — guards against unbounded request bodies."}

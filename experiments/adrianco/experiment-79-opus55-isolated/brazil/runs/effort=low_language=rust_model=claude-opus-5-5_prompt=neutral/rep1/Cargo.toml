@@ -1,0 +1,17 @@
+[package]
+name = "brazilian-soccer-mcp"
+version = "0.1.0"
+edition = "2021"
+description = "MCP server exposing a Brazilian soccer knowledge base (matches, teams, players, competitions)"
+
+[lib]
+name = "brazilian_soccer_mcp"
+path = "src/lib.rs"
+
+[[bin]]
+name = "brazilian-soccer-mcp"
+path = "src/main.rs"
+
+[dependencies]
+csv = "1"
+serde_json = "1"

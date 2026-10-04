@@ -378,3 +378,6 @@ agentdb.rvf.lock
 
 # graphify code-graph artifact — regenerate with `graphify update src`, never commit
 **/graphify-out/
+
+# macOS Finder metadata
+.DS_Store

@@ -1,7 +1,7 @@
 {
   "source": "retort report optimal (master.db)",
-  "generated_at": "2026-10-04T14:16:20Z",
-  "master_db_runs": 1380,
+  "generated_at": "2026-10-04T17:50:52Z",
+  "master_db_runs": 1502,
   "objective": "cheapest featured stack per language/task that clears its pass-bar",
   "notes": {
     "generated_at": "UTC timestamp of this file's last regeneration, and the master.db run count behind it. Regenerate with `retort report optimal --routing-json optimal.json`. If this is old, the routes are too: nothing recomputes them automatically.",
@@ -18,13 +18,13 @@
       "kind": "cloud",
       "routine": {
         "pass": 1.0,
-        "n": 69,
-        "cost": 1.41
+        "n": 126,
+        "cost": 1.0
       },
       "hard": {
         "pass": 1.0,
-        "n": 25,
-        "cost": 2.42
+        "n": 38,
+        "cost": 2.57
       }
     },
     {
@@ -219,14 +219,14 @@
       },
       "elixir": {
         "cloud": {
-          "stack": "GPT-5.6 Terra (codex)",
+          "stack": "Claude Opus 5.5",
           "models": [
-            "gpt-5.6-terra"
+            "claude-opus-5-5"
           ],
-          "effort": "default",
-          "cost": 0.42447599999999996,
+          "effort": "low",
+          "cost": 0.3936557666666667,
           "pass": 1.0,
-          "n": 1
+          "n": 6
         },
         "local": null
       },
@@ -377,9 +377,9 @@
             "claude-opus-5-5"
           ],
           "effort": "low",
-          "cost": 1.4615807999999997,
+          "cost": 2.0396893,
           "pass": 1.0,
-          "n": 1
+          "n": 2
         },
         "local": null
       },
@@ -390,9 +390,9 @@
             "claude-opus-5-5"
           ],
           "effort": "low",
-          "cost": 2.3037389999999998,
+          "cost": 2.9822625999999994,
           "pass": 1.0,
-          "n": 1
+          "n": 2
         },
         "local": null
       },
@@ -403,9 +403,9 @@
             "claude-opus-5-5"
           ],
           "effort": "low",
-          "cost": 1.9349280000000002,
+          "cost": 2.6661386,
           "pass": 1.0,
-          "n": 1
+          "n": 2
         },
         "local": null
       },
@@ -416,9 +416,9 @@
             "claude-opus-5-5"
           ],
           "effort": "low",
-          "cost": 1.9708937999999996,
+          "cost": 2.108376,
           "pass": 1.0,
-          "n": 1
+          "n": 2
         },
         "local": null
       },
@@ -429,9 +429,9 @@
             "claude-opus-5-5"
           ],
           "effort": "low",
-          "cost": 2.727359399999999,
+          "cost": 2.8814836999999995,
           "pass": 1.0,
-          "n": 1
+          "n": 2
         },
         "local": null
       },
@@ -468,9 +468,9 @@
             "claude-opus-5-5"
           ],
           "effort": "low",
-          "cost": 2.4554205999999996,
+          "cost": 2.8308538999999993,
           "pass": 1.0,
-          "n": 1
+          "n": 2
         },
         "local": null
       },
@@ -507,9 +507,9 @@
             "claude-opus-5-5"
           ],
           "effort": "low",
-          "cost": 1.3256422,
+          "cost": 1.8389414999999998,
           "pass": 1.0,
-          "n": 1
+          "n": 2
         },
         "local": null
       },

@@ -311,6 +311,11 @@ KNOWN_NONFEATURED = {
         "(same reasoning as the Qwen3-Coder-Next spellings below). Not featured yet "
         "because coverage is thin: 4 languages on rest-api-crud only, against the 13x2 "
         "grid every featured stack carries. Feature it once it has that coverage.",
+    "claude-sonnet-5-5": "Sonnet 5.5 (exp-77/78, released 2026-09-28): measured, not yet "
+        "featured. 35/36 on the routine task across the whole effort ladder in python and go "
+        "(the one miss a 90-min timeout at max), 2-3x cheaper than Opus 5.5 at low-high. Not "
+        "featured because coverage is 2 languages on 1 task against the 13x2 grid every "
+        "featured stack carries.",
     "mlxlocal/devstral": "Devstral (exp-23): evaluated, not featured",
     "gpt-5.6-sol": "GPT-5.6 Sol (exp-58/59): evaluated, not featured",
     "opus": "legacy bare 'opus' (exp-1/2)",

@@ -1,0 +1,1 @@
+{"id": "R3", "kind": "enhancement", "severity": "info", "title": "?author= filter is exact, case-sensitive match", "evidence": "src/server.ts:66 `WHERE author = ?` — exact equality, no LIKE/lower()", "suggestion": "Meets spec (filter supported). Consider case-insensitive/partial match only if desired."}

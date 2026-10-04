@@ -82,7 +82,7 @@ Everything else is flat or worse. `requirement_coverage` is 1.00 at all ten cell
 
 **Fable 5.1 turns the dial the other way (exp-65).** On the routine task across four languages, with twelve runs per arm and a paired design that crosses effort against language so no language artifact can masquerade as an effort effect, *default* costs **1.68× the wall-clock and 1.45× the money** of *low* — for test coverage that is statistically identical (exact paired permutation test over all 4,096 sign-flips: p = 0.0015 for time, 0.0010 for cost, 0.75 for coverage; eleven of twelve matched pairs favour low). Where Opus 5 buys fifteen points of go coverage by turning the dial up, Fable 5.1 buys nothing and pays 45% more. So the dial is not the same instrument across *models* any more than across vendors, and the operating point has to be measured per model rather than assumed. For Fable 5.1 it is low.
 
-**A caution that is flagged rather than claimed.** On the one cell Fable 5 and 5.1 have both run, 5.1 used 1.74× the wall-clock and 2.19× the tokens of 5.0 at low effort. That is three runs a side, 5.1's spread on that cell is wide, and the Claude Code CLI moved 2.1.250 → 2.1.257 between the two, so agent version is confounded with model version. The full-grid run planned as exp-70 is designed to settle it on 26 cells instead of one.
+**A caution that turned out to be contamination (withdrawn 2026-10-04).** On the one cell Fable 5 and 5.1 have both run, 5.1 appeared to use 1.74× the wall-clock and 2.19× the tokens of 5.0 at low effort. Those 5.1 runs (exp-65) had inherited the host machine's MCP servers, plugins and personal instructions; 5.0's had not. Re-run isolated (exp-80), 5.1 uses **0.68× the tokens and 0.71× the money** of 5.0 on that cell, at 1.17× the wall-clock. The effort finding above stands — both of exp-65's arms carried the same contamination, and the isolated re-run shows `default` still costing more than `low`.
 
 ---
 
@@ -129,6 +129,12 @@ The three significant rows — low, medium and high — sit at p = 0.018, which 
 **`default` moved between releases.** On Opus 5 it behaved like `high` (270 s); on 5.5 it sits on `medium` (83 s). Anyone who never passes `--effort` is on a different rung than they were, without changing anything.
 
 **One confound, stated plainly.** The Claude Code CLI moved 2.1.197 → 2.1.280 between the Opus 5 baseline and this run, and the CLI is the agent here — so agent version is confounded with model version and this is a *stack* comparison. Against that: a fixed harness saving would appear at every level, and the per-level saving runs −82 s, −75 s, −248 s, −41 s, **+509 s**. It changes sign, which constant overhead cannot. Settling it properly means re-running Opus 5's ladder on the current CLI.
+
+---
+
+## Update 2026-10-04: Sonnet 5.5 has the same shape, one notch cheaper
+
+Sonnet 5.5 (exp-77) went through the identical ladder: Python and Go, six levels, three runs each, routine task. It passed 35 of 36; the miss was a `max` run killed at the 90-minute timeout. The shape matches Opus 5.5, flat and cheap at the bottom, explosive at the top, but every rung up to `high` is **2.1–3.4× cheaper than Opus 5.5's**: $0.18 → $0.27 a Python run from `low` to `high`, against $0.38 → $0.79. `default` again lands on `medium`, not on the `high` the documentation names. At `max` the advantage inverts: $9.56–$12.11 a run and 52–60 minutes, dearer and slower than Opus 5.5 `max`. The advice is unchanged and now applies to two models: run at `low`, and treat `max` as a different mode.
 
 ---
 

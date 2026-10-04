@@ -1,0 +1,11 @@
+{
+  "replicate": 1,
+  "run_config": {
+    "effort": "low",
+    "language": "rust",
+    "model": "claude-fable-5-1",
+    "prompt": "neutral"
+  },
+  "succeeded": true,
+  "visibility": "public"
+}

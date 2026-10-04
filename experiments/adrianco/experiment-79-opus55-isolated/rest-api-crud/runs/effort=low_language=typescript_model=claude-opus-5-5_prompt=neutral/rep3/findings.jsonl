@@ -1,0 +1,3 @@
+{"id": "E1", "kind": "enhancement", "severity": "info", "title": "1 MB request-body size guard beyond spec", "evidence": "src/app.ts:32 throws HttpError(413) when the body exceeds MAX_BODY_BYTES", "suggestion": "None — hardening beyond the spec."}
+{"id": "E2", "kind": "enhancement", "severity": "info", "title": "405 Method Not Allowed with Allow header beyond spec", "evidence": "src/app.ts:56-59 methodNotAllowed sets Allow and returns 405", "suggestion": "None — correct HTTP semantics beyond the spec."}
+{"id": "E3", "kind": "enhancement", "severity": "info", "title": "Parameterized SQL and RETURNING clause avoid injection and extra round-trips", "evidence": "src/store.ts:29 INSERT ... RETURNING with bound params", "suggestion": "None — good practice."}

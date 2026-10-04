@@ -1,0 +1,10 @@
+{
+  "severity_counts": {"critical": 0, "high": 0, "medium": 0, "low": 0, "info": 0},
+  "penalty_score": 1.0,
+  "top_findings": [],
+  "requirement_coverage": 1.0,
+  "model": "claude-fable-5-1",
+  "evaluated_at": "2026-09-30T15:41:17Z",
+  "min_severity": "high",
+  "note": "3 findings in findings.jsonl (1 low, 2 info) all below min_severity=high, so excluded from counts. 12/12 pinned requirements implemented."
+}

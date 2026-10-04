@@ -8,7 +8,14 @@ Every few weeks a new frontier model tops the leaderboards, and the implicit adv
 
 Those are the variables that decide a real project. So I built **[retort](https://github.com/adrianco/retort)** to measure them properly — with statistical Design of Experiments, the same technique you'd use to tune a manufacturing process. Vary the factors you care about (here: programming **language** × **model version** × **tooling** — and, newly, the **coding agent**, the **prompt methodology**, and **local self-hosted models**), run a factorial grid on a real task, score every cell, and let the analysis tell you which factors actually matter. And because retort accumulates results across a shared database, each new model just gets *added* to what's already known — the point of the project is to measure how each new release behaves without re-running everything. It now spans two tasks, **thirteen** languages, the Claude Sonnet/Opus lines (plus a fast-mode variant, the tier-above Fable 5, and the newest Opus 5), **OpenAI's Codex line (GPT-5.6)**, and **local models running for free on a laptop**.
 
-## What's new (2026-09-23)
+## What's new (2026-10-04)
+
+- **Sonnet 5.5 is two to three times cheaper than Opus 5.5 on routine work, and just as reliable** — up to `high` effort. Across the whole effort ladder in Python and Go (36 runs), it passed 35; the one miss was a `max` run that hit the 90-minute timeout. From `low` to `high` it costs **$0.18–$0.29 a run against Opus 5.5's $0.38–$0.86**. At `max` it flips: dearer *and* slower than Opus 5.5 `max`, at 126–165 turns. It isn't on the board yet because it has two languages on one task.
+- **The agent under test had been carrying the machine owner's setup, and that inflated costs.** Until 2026-09-29 every Claude Code run inherited my MCP servers, plugins and personal instructions: about 400 extra tools and a first prompt up to 2.5× the size it needed to be. Measured head-to-head on Sonnet 5.5, isolating the agent cut **tokens 43%, cost 39% and wall-clock 36%, with pass rate and coverage unchanged**. Re-running the affected experiments isolated made Fable 5.1 49% cheaper and the GPT-6 runs 17–44% cheaper, and it withdrew the "Fable 5.1 costs more than 5.0" caution below.
+- **Opus 5.5's isolated re-run went the other way, and that wasn't isolation.** It wrote 59–77% more output on the same tasks at the same effort. It ran on a newer Claude Code CLI (2.1.284), and isolated runs two days later on 2.1.287 produced the original volume, so I've put that down to the CLI release or that day. The hard-task cost cells on the board now average both runs, which is why Opus 5.5's hard cells read higher.
+- **Dave Farley's own ATDD skill changes the tests, not the pass rate** — see the prompt-lever section below and the [prompt blog](prompt-blog.md).
+
+### Earlier (2026-09-23)
 
 - **A 10× cheaper model got strictly better, which is not how price cuts usually go.** OpenAI's new **GPT-6 Luna** costs $0.10 per million tokens in and $0.50 out — a tenfold cut on its predecessor — and it passes a test its predecessor **fails outright**. GPT-5.6 Luna is the one cloud stack here that never saturated, and breaking its 0.67 apart shows why: it scores 3/3 on Python and 3/3 on Go, and **0/3 on TypeScript**. Luna 6 scores **5/5 on all three**, at roughly one-ninth the cost. The TypeScript result is 5 of 5 against 0 of 3, Fisher exact two-sided p = 0.0179.
 - **How it passes is the interesting part: it spends more, on a task that costs less.** Luna 6 is cheaper everywhere but actually *slower* on the two harder languages — 244 seconds on TypeScript against its predecessor's 186. It burns 860,000 tokens getting TypeScript right, more than triple what Python takes. It is not a faster model; it is one that does more work per task at a price low enough that the extra work is nearly free. The whole fifteen-run grid cost about **17 cents**.
@@ -36,7 +43,7 @@ Those are the variables that decide a real project. So I built **[retort](https:
 ### Earlier (2026-09-01)
 
 - **Fable 5.1 landed, and the headline is: run it at low effort.** Across four languages with twelve runs per arm, **default effort costs 1.68× the wall-clock and 1.45× the money for statistically identical test coverage** (exact paired permutation test, p = 0.0015 for time and 0.0010 for cost; 11 of 12 matched pairs favour low). Turning the dial up on this model buys nothing measurable and bills you 45% more for it.
-- **A caution on the new release itself.** On the one cell Fable 5 and 5.1 have both run, 5.1 used **1.74× the wall-clock and 2.19× the tokens** of 5.0. That is flagged rather than claimed — it is three runs a side, 5.1's own spread on that cell is wide, and the Claude Code CLI version moved between the two, so agent version is confounded with model version. Worth knowing before assuming a point release is a free upgrade.
+- **~~A caution on the new release itself~~ — withdrawn 2026-10-04.** This bullet reported 5.1 using 1.74× the wall-clock and 2.19× the tokens of 5.0 on their one shared cell. Those 5.1 runs had inherited the host machine's MCP servers and plugins (a 52K-token first prompt, against 5.0's clean July runs). Re-run isolated (exp-80), 5.1 on that cell uses **0.68× the tokens and 0.71× the money** of 5.0, at 1.17× the wall-clock. The point release is not more expensive; the measurement was.
 - **A note on how these numbers are earned.** An earlier experiment the same week ran three runs per arm and could not have reached significance *whatever* the effect: with three-vs-three there are only twenty ways to split the runs, so the smallest achievable p-value is 0.10. It found perfect separation on one metric and still scored 0.10. The Fable 5.1 result above is trustworthy because the design was sized to be, not because the effect looked big.
 
 ### Earlier (2026-07-30)
@@ -60,7 +67,7 @@ Here is the full board, every model measured on the two tasks — **pass-proport
 <!-- GEN:model-board START -->
 | Stack | Serving | Easy: pass | Easy: $ | Hard: pass | Hard: $ |
 |---|---|---:|---:|---:|---:|
-| Claude Opus 5.5 | cloud | **1.00 (69)** | $1.41 | **1.00 (25)** | $2.42 |
+| Claude Opus 5.5 | cloud | **1.00 (126)** | $1.00 | **1.00 (38)** | $2.57 |
 | Claude Opus 5 | cloud | **1.00 (47)** | $3.23 | **1.00 (23)** | $26.48 |
 | Claude Fable 5 | cloud | **1.00 (36)** | $1.58 | **1.00 (21)** | $10.47 |
 | GPT-5.6 Terra (codex) | cloud | **1.00 (31)** | $0.24 | 0.79 (38) | $1.18 |

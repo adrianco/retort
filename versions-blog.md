@@ -1,6 +1,6 @@
 # The Unit of Choice Is Model × Thinking Level, Not Model
 
-*Published 2026-07-25 · updated 2026-09-24 — Adrian Cockcroft*
+*Published 2026-07-25 · updated 2026-10-04 — Adrian Cockcroft*
 
 For a year the question has been "which model should I use?" That question is underspecified. Every frontier model now has a **thinking-level** dial, and on the evidence below the dial moves cost more than the model choice does — while moving the result not at all.
 
@@ -28,6 +28,8 @@ This page's original sweep spanned **16×** across four Claude versions. Three l
 **`default` moved between releases.** On Opus 5 it behaved like `high` (270 s); on 5.5 it lands on `medium` (83 s). Anyone who never passes `--effort` is on a different rung than they were, without having changed anything — which is the sharpest possible statement of this page's thesis: **the dial is part of the stack, and a version bump can move it under you.**
 
 **The caveat, stated rather than buried:** the Claude Code CLI moved 2.1.197 → 2.1.280 between the Opus 5 baseline and the 5.5 run, and the CLI *is* the agent here — so cross-model comparisons on this page are *stack* results, not pure model results. Evidence against a plain harness explanation: the per-level saving runs −82 s, −75 s, −248 s, −41 s, **+509 s**. It changes sign, which a constant overhead cannot.
+
+**A second confound, found 2026-10-04:** the Opus 5.5 ladder above ran with the agent inheriting the machine owner's MCP servers, plugins and instructions, while the Opus 5 baseline was clean. Isolating the agent lowered cost by 17–49% for every other model re-run (39% on Sonnet 5.5, measured head-to-head), so if anything 5.5's advantage at `low` is understated here. The isolated Opus 5.5 re-run (exp-79) can't settle it: it ran on a newer CLI (2.1.284) that wrote 59–77% more output for the same work, and later isolated runs on 2.1.287 went back to the original volume. One more instance of the point this page makes: the agent version is part of the stack, and it moves the bill.
 
 ---
 

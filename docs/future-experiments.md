@@ -21,107 +21,15 @@ DWQ in 0%, at the same 16 GB. See [optimal-blog.md](../optimal-blog.md).
 
 ---
 
-## 0. exp-77 — Sonnet 5.5 across the effort ladder  — RUNNING, 2026-09-29
+## 0. exp-81 + exp-82 brazil-73 — finish the isolated Codex re-runs  — PAUSED (Codex usage limit), 2026-09-30
 
-**The gap:** Sonnet 5.5 (`claude-sonnet-5-5`, released 2026-09-28, from the daily scan) is unmeasured.
-List price is Sonnet 5's — $2 in / $10 out, **half of Opus 5.5** — and the vendor claims "near-Opus
-performance". Its default effort is `high` (Opus 5.5 defaults to `medium`), and exp-65/74 showed
-effort is the dominant cost lever on Claude, so the first question is where its operating point sits.
+exp-79/80 and exp-82's routine half are written up in past-experiments.md (exp-79..82). Left: **exp-81**
+(`experiment-81-codex56-isolated/brazil-57`, `-58`, `-59`, `-60` — GPT-5.6 Luna/Sol/Terra, 35 runs)
+and **exp-82 brazil-73** (5 of 6 runs). Both stopped cleanly on the Codex usage limit with nothing
+lost. Resume each sub-dir with
+`retort run --phase screening --config workspace.yaml --design design.csv --resume`, one at a time, then `retort recover` + `aggregate` and extend
+the exp-79..82 write-up. Billed against the OpenAI API key, not a subscription.
 
-**Design — exp-74, cell for cell:** `claude-sonnet-5-5 × effort{low, medium, high, xhigh, max,
-default} × language{python, go}` on `rest-api-crud`, prompt `neutral`, n=3 → 36 runs, judge
-opus-4.8. Every cell has a matched Opus 5.5 row (exp-74); Sonnet 5 (exp-15) is the default-effort
-baseline. Only Sonnet 5.5 runs. Timeout raised 60 → 90 min (exp-74's slowest `max` run finished 267 s
-inside 60). Estimate from exp-74's $80.64 / 4.5 h at half the list price: **~$40–60, ~4–5 h**.
-
-**Hypothesis, recorded before the run:** coverage 1.00 in every cell (every Claude 5.x row on this task
-is), so this is an **efficiency** result. Sonnet 5.5 at `low` will be cheaper than Opus 5.5 at `low`
-($0.38 python) but by **less than the 2× list-price ratio**, because a smaller model spends more
-tokens; and `default` (= high) will cost materially more than `low`, as on Opus.
-
-**Verified before launch (2026-09-29):** (1) **the CLI must be ≥ 2.1.284.** 2.1.282 did not know the id
-— it printed `[claude-code:unrecognized_model]` and priced it at `costBasis: unknown`, ~$20/M output,
-**~1.9× the true cost**; 2.1.284 reports `costBasis: list`, matching usage × list price to four
-decimals. (2) `--effort` takes effect: thinking tokens rise low → max on a fixed probe. (3) The new
-`between_tools` thinking setting is **not exposed by `claude --effort`**, so it cannot be a level.
-(4) A one-cell retort smoke (`experiment-77-sonnet55-effort/smoke/`, python/low) passed: coverage
-1.00, 32 s, $0.179, 5 turns — retort's turn count equals the CLI's own `num_turns`, cost basis `list`,
-stderr clean — so the `thinking`-block change to inter-tool text does not break the parser.
-(Opus 5.5 python/low in exp-74: 35 s, $0.38, 4–5 turns.)
-
-**`between_tools` is a thinking MODE, not an effort level** — `thinking: {"type": "between_tools"}`
-turns off up-front thinking (it replaces `disabled`, which now 400s) and is valid only at low/medium/
-high. Neither `--effort between_tools` (warns, falls back to default) nor
-`CLAUDE_CODE_EFFORT_LEVEL=between_tools` (silent, still 183 thinking tokens on a probe) reaches it on
-CLI 2.1.284. **Follow-up once a CLI exposes the thinking type:** thinking{adaptive, between_tools} ×
-effort{low, medium, high} — the likely cheapest agentic operating point. Anthropic's own guidance is
-"effort levels are recalibrated… for agentic coding, start at `medium`" — this sweep tests that.
-
-**Next if it clears:** the 13×2 grid at the winning effort level (exp-75's shape), which is what
-would make it featurable against Opus 5.5 and GPT-6 Sol (same list price).
-
-## 0. exp-79..82 — isolated RE-RUNS of every experiment that inherited the host's MCP config  — QUEUED 2026-09-30
-
-**Why:** exp-78 showed the inherited host config (MCP servers, user plugins/hooks, user CLAUDE.md)
-cost Sonnet 5.5 **+43% tokens, +39% cost, +36% wall-clock** with no quality effect. `master.db` now
-labels every run with the derived `agent_context` factor (`c09d7f95`): **mcp-enabled** = Claude
-exp-63/65/74/75/77 (337–418 MCP tools, ~34–54K first-turn prompt) and Codex exp-57/58/59/60/73/76
-(~240 ruvnet-brain/ruflo calls; exp-57–60 agents opened with the plugin announcing itself). July
-Claude (exp-43–55) measured **mcp-cleared** (0 MCP tools, ~21K prompt) and needs nothing.
-
-**Design — new directories, originals untouched.** Each sub-dir COPIES its original's workspace.yaml
-(task, design, n, timeouts, judge, gates, prompts) and changes only the isolation — Claude
-`--strict-mcp-config` + empty `--mcp-config` + `--setting-sources project,local`; Codex a fresh
-per-run `CODEX_HOME` with only `auth.json` (probed: `--ignore-user-config` alone still loads
-AGENTS.md). Judge unchanged (un-isolated, as in the originals), so coverage pools.
-
-| new | sub-dir | re-runs | runs |
-|---|---|---|---|
-| exp-79 Opus 5.5 | rest-api-crud | exp-75 routine (all 13 langs @ low) + exp-74 cheap cells (medium/high/default × py/go), n=3 | 57 |
-| | brazil | exp-75 hard half, 13 langs @ low, n=1 | 13 |
-| exp-80 Fable 5.1 | rest-api-crud | exp-65 (low/default × prompt × 4 langs), n=3 | 24 |
-| exp-81 Codex GPT-5.6 | brazil-57/58/59/60 | exp-57 Luna, exp-58 Sol, exp-59 Terra-ultra, exp-60 Terra 11 langs | 35 |
-| exp-82 Codex GPT-6 | rest-api-crud-72 / brazil-73 / rest-api-crud-76 | Astra low (crud + hard), Luna 6 | 33 |
-
-**162 runs, estimate ~$125, ~11 h**, one sub-dir at a time via a driver. Not re-run: exp-74/77
-xhigh/max (within-cell spread swamps the effect, ~10× the cost — they stay labelled mcp-enabled),
-exp-63 (graphify vs not — both arms equally contaminated, so its comparison stands).
-
-**Hypothesis:** coverage/pass unchanged everywhere; tokens, cost and wall-clock fall, by more for
-Codex exp-57–60 (active MCP use wasted turns) than for Claude (passive prompt overhead).
-**Consequence if it holds:** exp-74's "Opus 5.5 is 2–3× cheaper than Opus 5" compared a
-contaminated 5.5 against a clean July Opus 5, so the true advantage is LARGER than published.
-
-**Verified before launch:** exp-78 (Claude isolation through retort, 24 runs). Codex: a one-run smoke
-through retort (`experiment-82-codex6-isolated/smoke/`, Luna 6 python) — 0 MCP calls, no ruvnet
-announcement, 135K tokens vs 258K in exp-76's python runs, cost priced, per-run CODEX_HOME removed at
-teardown, provenance records the isolation. **Known confound:** exp-58's Sol `default` ran at the
-owner's configured `model_reasoning_effort` (medium today, unrecorded then); isolated, `default` is
-Sol's own (low), so a Sol difference mixes isolation with effort.
-
-## 0. exp-78 — does isolating the claude agent from the host's config change results?  — COMPLETE 2026-09-29, write-up pending
-
-**The gap:** until commit `1e6c8437` (2026-09-29) every claude-code agent under test inherited the
-machine owner's setup — 6 MCP servers / 418 tools (ruvnet-brain, claude-flow, claude.ai Gmail / Docs /
-Drive / Calendar), the ruvnet-brain plugin's skills and hooks, and `~/.claude/CLAUDE.md`. A probe
-showed a hook making the agent run a `search_ruvnet` query before a one-line answer. The harness now
-passes `--strict-mcp-config`, an empty `--mcp-config` and `--setting-sources project,local`. The
-question is whether the published claude-code numbers were moved by what it used to inherit.
-
-**Design:** re-run part of exp-77 with ONLY the isolation changed — Sonnet 5.5, `rest-api-crud`,
-effort{low, medium, high, default} × {python, go}, n=3 → 24 runs, **~$5, ~30 min**. exp-77 is the
-un-isolated arm. xhigh/max excluded: exp-74 saw a 3.2× within-cell wall-clock range at max, which
-would swamp a harness effect, and they would cost ~10× more. Judge unchanged (not isolated), so
-coverage pools.
-
-**Hypothesis:** coverage 1.00 in both arms. Input/cache **tokens and cost fall** with isolation (the
-un-isolated prompt carries the tool listing, user CLAUDE.md and hook output); wall-clock roughly
-unchanged. If tokens don't move, the inherited config was inert and past results stand.
-
-**Already found:** the un-isolated arm was not even stable — exp-77's init events show 446 tools in
-32 runs and 438 in two, with nothing changed by hand. The isolated arm must show 0 MCP tools in every
-run (check the init events). **Follow-up:** the judge also runs `claude -p` un-isolated; isolating it
-changes the grader, so it needs its own re-grade check before it is switched.
 
 ## 0. RESOLVED — Opus 5.5 completes the 13×2 grid and is now FEATURED  — 2026-09-23
 

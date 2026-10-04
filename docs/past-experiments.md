@@ -2149,6 +2149,88 @@ failure is indistinguishable from a model failure in the numbers. Reinstalled to
 3.14.7, so no package rebuild was needed, and the run's log shows no errors. **The lesson is the
 CLAUDE.md one restated for toolchains: do not upgrade the machine while an experiment is running.**
 
+## exp-77 — Sonnet 5.5 across the effort ladder  — COMPLETE, 2026-09-29
+
+**Design:** exp-74 cell for cell — `claude-sonnet-5-5 × effort{low, medium, default, high, xhigh,
+max} × language{python, go}` on `rest-api-crud`, neutral prompt, n=3 → 36 runs, judge opus-4.8, CLI
+2.1.284 (2.1.282 did not know the model id and mis-priced it ~1.9× high). Ran **un-isolated** (the host
+MCP config was still inherited — see exp-78).
+
+**Result: 35/36 pass;** the one miss is a go/`max` run killed at the 90-min timeout (`crashed`), not a
+wrong answer. Against Opus 5.5 (exp-74), same cell:
+
+| effort | python $ · s (Sonnet 5.5) | python $ · s (Opus 5.5) | go $ · s (Sonnet 5.5) | go $ · s (Opus 5.5) |
+|---|---|---|---|---|
+| low | $0.18 · 34 s | $0.38 · 35 s | $0.20 · 45 s | $0.44 · 53 s |
+| medium | $0.19 · 34 s | $0.59 · 83 s | $0.21 · 62 s | $0.71 · 135 s |
+| default | $0.19 · 37 s | $0.59 · 82 s | $0.21 · 80 s | $0.65 · 91 s |
+| high | $0.27 · 69 s | $0.79 · 131 s | $0.29 · 106 s | $0.86 · 138 s |
+| xhigh | $0.74 · 254 s | $3.04 · 675 s | $0.77 · 245 s | $1.83 · 371 s |
+| max | $12.11 · 3100 s | $10.26 · 2016 s | $9.56 · 3581 s | $6.75 · 1533 s |
+
+* **low → high: 2.1-3.4× cheaper than Opus 5.5** — at or beyond the 2× list-price ratio, so the
+  hypothesis that a smaller model would spend enough extra tokens to erode the price gap is NOT
+  supported there.
+* **`default` sits on `medium`** in cost and time (python $0.19 / 37 s), despite `high` being its
+  documented default.
+* **`max` is the exception: dearer AND slower than Opus 5.5 `max`** (126-165 turns), and one go run
+  did not finish in 90 min. Never run Sonnet 5.5 at `max`.
+* Not featured: 2 languages on 1 task (`KNOWN_NONFEATURED` in `reporting/optimal.py`). **Next if
+  pursued:** the 13×2 grid at `low`.
+
+## exp-78 — does isolating the claude agent from the host's config change results?  — COMPLETE, 2026-09-29
+
+**Design:** exp-77's low/medium/default/high × {python, go} cells (n=3, 24 runs) re-run with ONLY the
+isolation changed (`--strict-mcp-config`, empty `--mcp-config`, `--setting-sources project,local`;
+commit `1e6c8437`). Same CLI (2.1.284), same model, judge un-isolated so coverage pools.
+
+| arm | n | pass | coverage | tokens | cost | wall | turns | first-turn prompt | MCP tools |
+|---|---:|---:|---:|---:|---:|---:|---:|---:|---:|
+| inherited (exp-77) | 24 | 24 | 0.86 | 0.180 M | $0.217 | 58 s | 5.6 | 33.9 K | 416 |
+| isolated (exp-78) | 24 | 24 | 0.85 | 0.104 M | $0.132 | 37 s | 5.3 | 18.8 K | 0 |
+
+**The inherited host config cost Sonnet 5.5 +43% tokens, +39% cost and +36% wall-clock, with no
+effect on pass or coverage.** Every isolated run's init event lists 0 MCP tools; the inherited arm
+was not even stable (446 tools in 32 of exp-77's runs, 438 in two). This is what motivated
+`agent_context` as a derived factor (`c09d7f95`) and the exp-79..82 re-runs.
+
+## exp-79..82 — isolated re-runs of the experiments that inherited the host config  — PARTIAL, 2026-09-30
+
+**Design:** new directories, originals untouched; each copies its original's workspace and changes
+only the isolation (Claude: as exp-78; Codex: a fresh per-run `CODEX_HOME` holding only `auth.json`).
+Queued by a driver on 2026-09-30. **exp-79 (Opus 5.5) and exp-80 (Fable 5.1) completed; exp-82
+completed its two routine sub-dirs and 1 of 6 brazil-73 runs; all of exp-81 (Codex GPT-5.6 brazil-57
+to -60) and the rest of brazil-73 stopped cleanly on the Codex usage limit** with 0 runs recorded —
+resumable with `--resume`. Isolation verified in every completed run: 0 MCP tools / 0 MCP calls; Claude
+first-turn prompt ~19.6 K (originals 48-52 K).
+
+| re-run (matched cells) | n orig → iso | pass orig → iso | coverage | tokens | cost | wall |
+|---|---|---|---|---:|---:|---:|
+| exp-79 Opus 5.5 · rest-api-crud | 57 → 57 | 57/57 → 57/57 | 0.94 → 0.94 | -55% | -8% | +39% |
+| exp-79 Opus 5.5 · brazil | 13 → 13 | 13/13 → 13/13 | 0.99 → 0.99 | -11% | +49% | +94% |
+| exp-80 Fable 5.1 · rest-api-crud | 24 → 24 | 24/24 → 24/24 | 0.93 → 0.92 | -79% | -49% | -48% |
+| exp-82 GPT-6 Astra · rest-api-crud | 11 → 12 | 11/11 → 12/12 | 0.92 → 0.92 | -23% | -20% | -1% |
+| exp-82 GPT-6 Luna · rest-api-crud | 15 → 15 | 15/15 → 15/15 | 0.81 → 0.80 | -57% | -44% | -22% |
+| exp-82 GPT-6 Astra · brazil | 3 → 1 | 3/3 → 1/1 | 0.94 → 0.96 | -28% | -17% | -1% |
+
+* **Pass and coverage unchanged everywhere** — as hypothesised.
+* **Fable 5.1 and the Codex GPT-6 models got cheaper**, by 17-49%, consistent with exp-78.
+* **Opus 5.5 did NOT, and that is not isolation.** Its isolated runs wrote a median **77% more output
+  tokens on brazil and 59% more on the routine task** at the same `low` effort and the same turn count,
+  doubling API time. They ran on CLI **2.1.284** (originals: 2.1.280). exp-83's isolated Opus 5.5
+  runs on CLI 2.1.287 two days later produced the *original* volume (brazil low python ~28 K output vs
+  exp-75's 26 K and exp-79's 63 K; go 41 K vs 42 K vs 93 K). So exp-79's cost/time reflect that CLI
+  release or that day, not the isolation; its pass/coverage stand. **The hypothesis that Opus 5.5's
+  true advantage over Opus 5 is larger than published is untested** by this run.
+* exp-82 rest-api-crud-72 python rep2 first recorded as a gate failure (test_coverage 0); `retort
+  diagnose` classified it TOOLING (tests run, 98% coverage) and `retort recover` restored it;
+  re-judged with the workspace's own judge (opus-4.8) after `recover`'s default second opinion used
+  the CLI-default model.
+* master.db pools these with the originals (each row keeps its `agent_context` label), so Opus 5.5's
+  hard-task board cells now average exp-75 with exp-79's inflated CLI-2.1.284 costs.
+
+**Still to run:** exp-81 (35 runs) and exp-82 brazil-73 (5 runs) — see future-experiments.md.
+
 ## exp-83 — Dave Farley's own ATDD skill vs the neutral prompt on brazil  — COMPLETE, 2026-10-04
 
 **The gap:** every ATDD result before this (exp-13/16/18/19/20/32) used `ATDD`, *our* paraphrase of
@@ -2186,10 +2268,10 @@ scores far higher on ATDD conformance, and leaves lower unit coverage.
 
 | cell (n=2) | atdd_review | test_coverage | cost | wall | tokens | turns |
 |---|---:|---:|---:|---:|---:|---:|
-| python · low · neutral | 0.43 | 0.89 | $1.11 | 245 s | 0.67 M | 15 |
-| python · low · **atdd-skill** | **0.77** | 0.68 | $1.13 | 218 s | 0.89 M | 20 |
+| python · low · neutral | 0.43 | 0.92 | $1.11 | 245 s | 0.67 M | 15 |
+| python · low · **atdd-skill** | **0.77** | 0.96 | $1.13 | 218 s | 0.89 M | 20 |
 | python · high · neutral | 0.50 | 0.94 | $4.23 | 904 s | 4.27 M | 40 |
-| python · high · **atdd-skill** | **0.96** | 0.61 | $5.89 | 1239 s | 7.90 M | 73 |
+| python · high · **atdd-skill** | **0.96** | 0.97 | $5.89 | 1239 s | 7.90 M | 73 |
 | go · low · neutral | 0.52 | 0.86 | $1.55 | 366 s | 1.18 M | 23 |
 | go · low · **atdd-skill** | **0.80** | 0.89 | $0.76 † | 144 s † | 0.53 M † | 15 |
 | go · high · neutral | 0.59 | 0.87 | $5.49 | 1117 s | 6.58 M | 51 |
@@ -2219,12 +2301,10 @@ cost and time. Its first attempt ($1.60, 349 s) was a harness false-fail — see
 * **Cost: +33% for the arm** ($35.54 neutral vs $45.75 + $1.60 first attempt = $47.35 skill). At low
   effort it is a wash ($1.13-1.28 vs $1.11-1.55); at high effort +36-53% cost, 1.5-1.9× tokens,
   1.4-1.8× turns, 1.3-1.5× wall-clock — the 4-layer scaffolding is real work.
-* **Coverage: lower in python only** (0.61-0.68 vs 0.89-0.94). go and typescript are level. *Caveat,
-  unverified:* the python skill suites also drive the server as a subprocess, which in-process
-  coverage cannot see — the same artefact fixed for Go below — so python's gap may be measurement,
-  not testing.
+* **Coverage: level** (0.95 skill vs 0.93 neutral) once the scorers count the server process the
+  tests start — both Go and Python originally under-counted the skill arm; see below.
 
-### Harness false-fail found and fixed: Go coverage was blind to ATDD protocol drivers
+### Harness false-fail found and fixed: Go and Python coverage were blind to ATDD protocol drivers
 
 go/low/atdd-skill rep 1 completed with a passing suite (`go test ./...` → `ok brsoccer/acceptance`)
 yet scored **test_coverage 0.0%**, which the gate reads as "tests did not run" — so it was failed and
@@ -2242,6 +2322,15 @@ scores 86.9%; go/high/atdd-skill went 0.38/0.47 → 0.87/0.88. All 8 go runs wer
 (`retort rescore --languages go --metrics test_coverage`). The second-try flag on that cell is left as
 recorded — retort has no supported way to promote a superseded first attempt, and the DB is not
 hand-edited — so read go/low/atdd-skill as **2/2 genuine passes, one recorded as a repair**.
+
+**Python had the same blind spot** (fixed 2026-10-04): the skill's suites launch the server with
+`sys.executable -m <pkg>` and drive it over stdio, so pytest-cov saw only the test process — a suite
+measured 67% in-process, 97% with the server counted. When a test-side file starts a subprocess the
+scorer now passes pytest-cov an rc with coverage's `[run] patch = subprocess` (coverage ≥ 7.10),
+carrying the project's own `.coveragerc` settings. All 8 python runs rescored: skill 0.41-0.67 →
+0.96-0.97; neutral moved a little too (0.86-0.95 → 0.91-0.95), since some neutral suites also start
+the server. Python wasn't failed by the gate — its in-process coverage was never 0 — so only the
+numbers changed.
 
 Also fixed: `retort aggregate` silently dropped `atdd_review` (fixed column list); it is now a
 master.db column.

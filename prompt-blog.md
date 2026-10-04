@@ -23,7 +23,7 @@ Grading conformance needed a judge that knows the method, so the course's *own* 
 
 This also rewrites the old reading of ATDD on this page. "ATDD is the worst prompt" was our paraphrase on models near their limit (the local 35B scored 0.00 with it). Dave's real method, on a model with headroom, costs nothing in reliability and produces the test architecture his course describes. Whether it *helps* reliability is the next question, and it needs a task the model doesn't already clear.
 
-One harness lesson came with it. The first Go run with the skill had a passing suite but scored **0% test coverage**, so the harness failed it as "tests did not run". Its tests build the real server and drive it as a separate process — Dave's protocol-driver pattern exactly — and Go's normal coverage can't see inside another process. The measurement was biased against the very method being tested. Go coverage now follows the server process too, and that run scores 87%.
+One harness lesson came with it. The first Go run with the skill had a passing suite but scored **0% test coverage**, so the harness failed it as "tests did not run". Its tests build the real server and drive it as a separate process — Dave's protocol-driver pattern exactly — and Go's normal coverage can't see inside another process. The measurement was biased against the very method being tested. Go coverage now follows the server process too, and that run scores 87%. Python had the same blind spot without the failure — its skill suites read 0.41–0.67 — and with the server counted they score 0.96–0.97, slightly *above* neutral.
 
 ## The prompt bites in proportion to how *weak* the model is
 

@@ -1,0 +1,2 @@
+/usr/bin/ar qc libbooks_core.a CMakeFiles/books_core.dir/src/json.cpp.o CMakeFiles/books_core.dir/src/store.cpp.o CMakeFiles/books_core.dir/src/app.cpp.o CMakeFiles/books_core.dir/src/server.cpp.o
+/usr/bin/ranlib libbooks_core.a
