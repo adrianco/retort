@@ -1,6 +1,6 @@
 # The Tasks: What Gets Built, and How Differently a Run Can Pass
 
-*Published 2026-07-30 · updated 2026-09-24 — Adrian Cockcroft*
+*Published 2026-07-30 · updated 2026-10-04 — Adrian Cockcroft*
 
 What retort actually asks an agent to build, and — for each task — the fastest and the slowest run that fully passed. Both mean shortest/longest `duration_seconds` among runs scoring `requirement_coverage == 1.0`, restricted to runs whose **agent log was archived**, since a record with no log can't be shown.
 
@@ -75,6 +75,8 @@ It is hard for reasons that have nothing to do with algorithms: team names carry
 > **The task has not become easy — it has become unable to discriminate at the top of the market.** It still floors every local stack: the 80B scores **0.00** (verified config-invariant — it reaches 11 of 12 capabilities and never the twelfth), and the 35B **0.25**. So it remains a live measurement for local models and a saturated one for frontier cloud models.
 >
 > **What that costs us:** every new frontier model measured here now returns another 1.00, and the only thing left to compare is price. Designing a task harder than this one is the binding constraint on this project's cloud-model work. When you read a 1.00 in a frontier row below, read it as "cleared the bar", not as "this model is at the ceiling of what we can measure".
+>
+> **Confirmed again 2026-10-04 (exp-83):** 24 more Opus 5.5 runs on the methodology-neutral variant of this task — Python, Go and TypeScript, `low` and `high` effort, with and without Dave Farley's ATDD skill — all 24 at 1.00. That experiment could only measure *how* the tests were built, not whether the method helps the model pass, because nothing here fails it.
 
 ### Fastest logged pass — 3 min 19 s
 

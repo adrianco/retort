@@ -188,6 +188,87 @@ def _run_reaped(cmd, *, cwd, timeout, env=None, stdin=None) -> _Reaped:
     return _Reaped(out, err, proc.returncode)
 
 
+_SUBPROCESS_TEST_RE = re.compile(r'exec\.Command(?:Context)?\(')
+
+
+def _go_integration_profile(out: Path) -> str | None:
+    """Coverage of binaries the TESTS build and run as subprocesses, as a text profile.
+
+    Neither obvious route works under `go test` (both probed, go 1.26): it
+    overrides GOCOVERDIR for everything it starts whenever coverage is on (and
+    GOFLAGS=-cover turns it on), and it puts GOROOT/bin first on the tests'
+    PATH, so a `go` shim is bypassed. So when the module starts a subprocess
+    anywhere, each test package is compiled with `go test -c` and its test
+    binary run DIRECTLY, with GOFLAGS=-cover (the tests' own `go build`/`go run`
+    then emit an instrumented binary) and our GOCOVERDIR (where that binary
+    writes its counters on exit). A module that never starts a subprocess is not
+    run twice. None when nothing was captured.
+    """
+    import tempfile
+
+    # The exec.Command often lives in a driver package, not a *_test.go file
+    # (exp-83: acceptance/drivers/connection.go), so gate on the whole module
+    # and then run every package that has tests.
+    go_files = [p for p in out.rglob("*.go") if "vendor" not in p.parts]
+    if not any(_SUBPROCESS_TEST_RE.search(p.read_text(errors="replace")) for p in go_files):
+        return None
+    dirs = sorted({p.parent for p in go_files if p.name.endswith("_test.go")})
+    go = shutil.which("go")
+    if not dirs or go is None:
+        return None
+    base_env = {k: v for k, v in os.environ.items() if k != "GOFLAGS"}
+    with tempfile.TemporaryDirectory(prefix="retort-gocov-") as tmp:
+        covdir = Path(tmp) / "covdata"
+        covdir.mkdir()
+        for i, d in enumerate(dirs):
+            test_bin = Path(tmp) / f"pkg{i}.test"
+            try:
+                subprocess.run([go, "test", "-c", "-o", str(test_bin), "."], cwd=d,
+                               env=base_env, capture_output=True, timeout=300)
+                if test_bin.exists():
+                    _run_reaped([str(test_bin), "-test.count=1"], cwd=d, timeout=300,
+                                env={**base_env, "GOFLAGS": "-cover",
+                                     "GOCOVERDIR": str(covdir)})
+            except (subprocess.TimeoutExpired, OSError):
+                continue
+        if not any(covdir.iterdir()):
+            return None
+        text_profile = Path(tmp) / "integ.out"
+        try:
+            subprocess.run([go, "tool", "covdata", "textfmt", f"-i={covdir}",
+                            f"-o={text_profile}"], cwd=out, capture_output=True,
+                           timeout=60, check=True)
+        except (subprocess.SubprocessError, OSError):
+            return None
+        return text_profile.read_text(errors="replace") if text_profile.exists() else None
+
+
+def _merge_go_profiles(*profiles: str) -> float | None:
+    """Statement coverage % over the UNION of Go text profiles.
+
+    A block (``file:start,end``) counts as covered if ANY profile executed it;
+    its statement count is taken once. The in-process `-coverpkg=./...` profile
+    lists every module block, so it fixes the denominator.
+    """
+    blocks: dict[str, tuple[int, bool]] = {}
+    for text in profiles:
+        for line in text.splitlines():
+            parts = line.split()
+            if len(parts) != 3 or line.startswith("mode:"):
+                continue
+            key, nstmt, count = parts
+            try:
+                n, hit = int(nstmt), int(count) > 0
+            except ValueError:
+                continue
+            prev = blocks.get(key)
+            blocks[key] = (n, hit or (prev[1] if prev else False))
+    total = sum(n for n, _ in blocks.values())
+    if not total:
+        return None
+    return 100.0 * sum(n for n, hit in blocks.values() if hit) / total
+
+
 # Apple languages need XCTest/Foundation, which ship with a FULL Xcode — not the
 # Command Line Tools.
 _APPLE_LANGUAGES = frozenset({"swift", "objc"})
@@ -397,6 +478,15 @@ class TestCoverageScorer:
             return None
         try:
             if profile.exists():
+                # A fourth gotcha: tests that `go build` the server and drive it as
+                # a SUBPROCESS (the ATDD protocol-driver pattern) run code no
+                # in-process profile can see — exp-83's first Go cell scored 0.0%
+                # on a passing suite and was failed as "tests did not run".
+                integ = _go_integration_profile(out)
+                if integ:
+                    merged = _merge_go_profiles(profile.read_text(errors="replace"), integ)
+                    if merged is not None:
+                        return merged
                 func = subprocess.run(
                     ["go", "tool", "cover", "-func", str(profile)],
                     cwd=out, capture_output=True, text=True, timeout=60,

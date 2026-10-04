@@ -43,7 +43,11 @@ HARD_TASK = "brazil-soccer-mcp"
 
 # Rows we never count toward a headline number: the self-repair second-attempt runs
 # (experiment-21) are a different question than "does one unattended run pass".
-BASE_FILTER = "coalesce(prompt,'') != 'repair'"
+#
+# Nor do plugin prompt levels (exp-83 `atdd-skill`): they add a Claude Code plugin
+# AND its MCP server to the agent, so they are a different stack than the bare model
+# a board row names — and they ran 1.3-1.5x the clock for the same reliability.
+BASE_FILTER = "coalesce(prompt,'') NOT IN ('repair', 'atdd-skill')"
 
 # ---------------------------------------------------------------------------
 # CURATION. Each featured stack declares a SQL predicate selecting the rows that

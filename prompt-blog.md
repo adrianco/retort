@@ -1,12 +1,31 @@
 # Does *How* You Ask Change How Reliable It Is? Testing the Prompt
 
-*Published 2026-06-11 · updated 2026-07-30 — Adrian Cockcroft*
+*Published 2026-06-11 · updated 2026-10-04 — Adrian Cockcroft*
 
 In the [model blog](model-blog.md) I varied the language, the model, and the tooling, and held one big lever deliberately constant: **the prompt**. Every run got the same terse *"implement TASK.md, make the tests pass."* But how you ask plausibly moves reliability as much as which model you pick — and unlike a model upgrade, it's nearly free. This is the experiment that varies it.
 
 The specific knob here is **test methodology**. When you tell a coding agent *how* to test — write the tests first, drive from acceptance criteria, use behaviour scenarios — does the resulting code come out more reliably correct? Or is methodology a ritual the model can take or leave on a task it already knows how to do?
 
-## Newest first: the prompt bites in proportion to how *weak* the model is
+## Newest: Dave Farley's own ATDD skill, not our paraphrase of it
+
+Every ATDD result further down this page used **our** one-paragraph summary of Dave Farley's method. That tests our summary, not the method. Dave's CD.Training ATDD course now ships as a [Claude Code plugin](https://github.com/cd-training-courses/claude-skills) (`msec`): a build skill, `msec:atdd-build`, that walks the agent through his four layers (executable specification → domain-specific language → protocol driver → system) and pulls the actual course lessons from the course server as it goes. So experiment 83 asked the question properly: Opus 5.5 on the methodology-neutral hard task, `neutral` against `atdd-skill`, in Python, Go and TypeScript, at `low` and `high` effort, two replicates each — 24 runs.
+
+Grading conformance needed a judge that knows the method, so the course's *own* review skill, `msec:atdd-review`, grades every finished project — both arms — against seven of Dave's criteria (spec quality, four-layer architecture, isolation, DSL, protocol drivers, intermittency, honest releasability), fetching his criteria from the course as it reviews. A different model (Opus 4.8) does the reviewing, so the builder never grades itself.
+
+| Opus 5.5, brazil (neutral template), n=12 per arm | neutral | atdd-skill |
+|---|:--:|:--:|
+| pass (full requirement coverage) | **12/12** | **12/12** |
+| ATDD conformance (course reviewer, 0-1) | 0.52 | **0.87** |
+| conformance at `high` effort | 0.50–0.59 | **0.96 in all six runs** |
+| total cost | $35.54 | $47.35 (+33%) |
+
+**Reliability did not move — every run passed — and that was the prediction:** this task no longer discriminates frontier models, so it cannot show a methodology improving reliability. What moved is *the tests you are left with*. Unprompted, Opus 5.5 already writes acceptance tests (12/12) and keeps them honest, but without the architecture: the reviewer scores its four-layer separation 1.42/4 and its DSL 0.92/4. With Dave's skill those become 3.75 and 3.58. The skill also makes effort matter: conformance climbs from 0.77 at `low` to 0.96 at `high`, while the neutral arm stays near 0.5 at either setting. At `low` effort it costs about the same as neutral; at `high` it is 36–53% more money and 1.5–1.9× the tokens — the scaffolding is real work.
+
+This also rewrites the old reading of ATDD on this page. "ATDD is the worst prompt" was our paraphrase on models near their limit (the local 35B scored 0.00 with it). Dave's real method, on a model with headroom, costs nothing in reliability and produces the test architecture his course describes. Whether it *helps* reliability is the next question, and it needs a task the model doesn't already clear.
+
+One harness lesson came with it. The first Go run with the skill had a passing suite but scored **0% test coverage**, so the harness failed it as "tests did not run". Its tests build the real server and drive it as a separate process — Dave's protocol-driver pattern exactly — and Go's normal coverage can't see inside another process. The measurement was biased against the very method being tested. Go coverage now follows the server process too, and that run scores 87%.
+
+## The prompt bites in proportion to how *weak* the model is
 
 The most recent prompt data comes from the other end of the capability range — **local** models on a laptop (served with MLX/oMLX, driven by the Hermes agent, the stack from the [model blog](model-blog.md)) — and it splits cleanly by model strength.
 

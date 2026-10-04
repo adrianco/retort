@@ -1,6 +1,6 @@
 # The Optimal Stack
 
-*Living document — last updated 2026-09-24 (first published 2026-07-14). This records **what to run today**: the leading stacks, and the exact configuration each one needs. It is not a history. Superseded stacks and rejected configurations are not discussed here; they are retired, and retirement is the point.*
+*Living document — last updated 2026-10-04 (first published 2026-07-14). This records **what to run today**: the leading stacks, and the exact configuration each one needs. It is not a history. Superseded stacks and rejected configurations are not discussed here; they are retired, and retirement is the point.*
 
 ---
 
@@ -85,7 +85,7 @@ Reliability, cost and time are all reported **per task size** — routine and ha
 <!-- GEN:leading-stacks START -->
 | Stack | Reliability (routine · hard) | Cost (routine · hard) | Time (routine · hard) |
 |---|---:|---:|---:|
-| **Claude Opus 5.5** | 1.00 · 1.00 | $1.41 · $1.92 | 275 s · 367 s |
+| **Claude Opus 5.5** | 1.00 · 1.00 | $1.41 · $2.42 | 275 s · 492 s |
 | **Claude Opus 5** | 1.00 · 1.00 | $3.23 · $26.48 | 546 s · 2669 s |
 | **Claude Fable 5** | 1.00 · 1.00 | $1.58 · $10.47 | 166 s · 1090 s |
 | **GPT-5.6 Terra (codex)** | 1.00 · 0.79 | $0.24 · $1.18 | 163 s · 615 s |
@@ -97,7 +97,7 @@ Reliability, cost and time are all reported **per task size** — routine and ha
 | **Qwen3-Coder-Next 80B (local, $0, ctx 0.9)** | 1.00 · 0.00 | $0.00 · $0.00 | 604 s · 2014 s |
 <!-- GEN:leading-stacks END -->
 
-> ⚠️ **The cost and time columns pool whatever effort levels each stack was measured at, and those differ between stacks — so do not read them against each other as like-for-like.** Opus 5's `$26.48` hard figure averages its entire exp-55 effort ladder including `max` cells that cost \$85; Opus 5.5's `$1.92` averages `low` runs only. Compared properly — same task, same language, same `low` effort — Opus 5.5 is **3.5–5.8×** cheaper than Opus 5 on the hard task (python \$1.40 vs \$8.14, go \$1.99 vs \$7.03), not 13.8×. The same distortion inflates Opus 5.5's own routine figure to \$1.41 when its actual `low`-effort routine cost is **\$0.38–0.67**. The per-cell routing table above is filtered by effort and does not have this problem; this summary table is a sort key, not a quote.
+> ⚠️ **The cost and time columns pool whatever effort levels each stack was measured at, and those differ between stacks — so do not read them against each other as like-for-like.** Opus 5's `$26.48` hard figure averages its entire exp-55 effort ladder including `max` cells that cost \$85; Opus 5.5's `$2.42` pools exp-75's `low` runs with exp-83's `low` and `high` neutral-prompt runs. Compared properly — same task, same language, same `low` effort — Opus 5.5 is **3.5–5.8×** cheaper than Opus 5 on the hard task (python \$1.40 vs \$8.14, go \$1.99 vs \$7.03), not 13.8×. The same distortion inflates Opus 5.5's own routine figure to \$1.41 when its actual `low`-effort routine cost is **\$0.38–0.67**. The per-cell routing table above is filtered by effort and does not have this problem; this summary table is a sort key, not a quote.
 
 *(Table generated from `master.db` by `retort report optimal` — do not hand-edit between the markers.)* Each local stack's routine number is scoped to the languages it is **recommended** for (35B: Python/Go; 80B: Python/Go/TypeScript) — the full per-language truth, including the languages they fail, is in the matrix below. **On the hard task local models are now measured and both do poorly** — 35B **0.25**, 80B **0.00** (see the per-stack bullets). Rust local is unqualified (80B 0.33, near-misses).
 
@@ -172,9 +172,10 @@ What the hand table carried that the generated one does not is the **prompt / te
 **Prompt / testing method — it matters only in proportion to how weak the model is.** **The prompt is a lever on a weak model and a no-op on a strong one.**
 
 * **Strong models (all cloud, and the local 80B): flat line.** Every methodology passes — the 80B goes **1.00 on all four**, ATDD included. Pick **neutral** and spend nothing on methodology ceremony; it's the cheapest and loses nothing.
-* **Weak models (the local 35B): the prompt bites.** neutral/BDD 0.67, TDD 0.33, and **ATDD 0.00** — a weak model can't carry ATDD's front-loaded discipline and burns the run. So on the 35B: neutral (cheapest) or BDD, and **never ATDD**.
+* **Weak models (the local 35B): the prompt bites.** neutral/BDD 0.67, TDD 0.33, and **ATDD 0.00** — a weak model can't carry ATDD's front-loaded discipline and burns the run. So on the 35B: neutral (cheapest) or BDD, and **never ATDD**. (That ATDD was our one-paragraph paraphrase of the method.)
+* **Dave Farley's own ATDD skill on Opus 5.5 (exp-83): reliability flat, test architecture transformed.** With his `msec:atdd-build` plugin skill, 12/12 pass — the same as neutral — while his course's own reviewer rates the tests **0.87 against 0.52** (0.96 at `high` effort, in every language). It costs about the same at `low` effort and +36–53% at `high`. It is a choice about *what tests you get*, not about reliability; see the [prompt blog](prompt-blog.md).
 
-The takeaway: reach for a disciplined methodology only when you're near a model's capability edge; on a model that clears the task comfortably, the prompt is ritual.
+The takeaway: for *reliability*, reach for a disciplined methodology only when you're near a model's capability edge; on a model that clears the task comfortably, the prompt is ritual. If you want an acceptance-test architecture as a deliverable, use the real method (Dave's skill, at `high` effort), not a paraphrase in the prompt.
 
 **The decision procedure:**
 
@@ -247,7 +248,7 @@ There is no single cloud winner — the pick is set by task size and budget (see
 |---|---|
 | **Effort** | **`low`**, on every cloud stack, unless its `low` fails your cell. `claude --effort low`; `codex exec -c model_reasoning_effort=low`. This is the single largest cost lever on this page — 27× on Opus 5.5. |
 | **Sampling** | Run the model as shipped. No tuning is required or recommended; unlike local, the provider's defaults are tuned for agentic use. |
-| **Prompt** | Plain *neutral*. On cloud models the prompt methodology is a flat line — don't pay for ceremony. |
+| **Prompt** | Plain *neutral*. On cloud models the prompt methodology is a flat line for reliability — don't pay for ceremony. Exception: if you want Dave Farley's four-layer acceptance tests, run his `msec:atdd-build` skill at `high` effort (exp-83: same reliability, conformance 0.96, +36–53% cost). |
 
 The stack that matters on cloud is the agent around the model, not the model's knobs.
 

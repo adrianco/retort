@@ -2148,3 +2148,110 @@ invocation, or a scoring subprocess needing the interpreter, would have failed �
 failure is indistinguishable from a model failure in the numbers. Reinstalled to the identical
 3.14.7, so no package rebuild was needed, and the run's log shows no errors. **The lesson is the
 CLAUDE.md one restated for toolchains: do not upgrade the machine while an experiment is running.**
+
+## exp-83 — Dave Farley's own ATDD skill vs the neutral prompt on brazil  — COMPLETE, 2026-10-04
+
+**The gap:** every ATDD result before this (exp-13/16/18/19/20/32) used `ATDD`, *our* paraphrase of
+Farley's CD guide — it tested our summary of the method, not the method. Dave Farley's CD.Training ATDD
+course ships as a Claude Code plugin (`msec@cd-training` 0.6.0, commit `83e4dacc`), a thin client that
+pulls the course lessons from an OAuth-protected MCP server (`msec-mcp-production.fly.dev`), signed in
+on the **paid** tier (`disclosure: full`).
+
+**Design:** task `github://adrianco/brazil-bench-neutral` (BDD stripped, so the methodology comes only
+from the prompt, as exp-13). `language[python, go, typescript] × effort[low, high] ×
+prompt[neutral, atdd-skill]`, `claude-opus-5-5`, n=2 → **24 runs, all completed**. Prompt level
+`atdd-skill` ([`prompts/atdd-skill.md`](../prompts/atdd-skill.md)) tells the agent to invoke
+`msec:atdd-build` and follow its 4-layer workflow (spec → DSL → protocol driver → implementation),
+headless. Workspace: `experiments/adrianco/experiment-83-atdd-skill/brazil/`.
+
+**Harness (new for this run):** the claude agent runs isolated (no host plugins/MCP servers). A
+plugin prompt level adds back EXACTLY its plugin (`--plugin-dir`) and the MCP servers its own
+manifest declares (`playpen/prompt_plugins.py`) — probed 2026-10-01: `--plugin-dir` alone loads the
+skills but `--strict-mcp-config` drops the server, so the skill silently cannot reach the course.
+`retort run` preflights `list_catalog` at the paid tier before any cell; provenance records the
+plugin version, install commit and server URL.
+
+**New response `atdd_review`** (`scorers/atdd_review.py`): Dave's own `msec:atdd-review` skill grades
+each finished workspace — both arms — isolated, on a copy, with criteria it fetches from the course.
+Categories A-G (spec quality, 4-layer architecture, isolation, DSL, protocol drivers, intermittency,
+releasability) rated 0-4; score = sum/28. Reviewer `claude-opus-4-8`, fixed, never the model under
+test. NULL (never a guess) if the review did not invoke the skill or fetch course content: all 24
+reviews invoked it, fetched ~20 course items each, and saw `disclosure: full`.
+
+**Hypothesis (recorded before running):** pass-proportion flat (brazil near-saturated for a frontier
+model — the owner's expectation too), so this is a **baseline**; the skill costs more tokens/turns,
+scores far higher on ATDD conformance, and leaves lower unit coverage.
+
+### Result — reliability flat, conformance transformed, about +33% cost
+
+| cell (n=2) | atdd_review | test_coverage | cost | wall | tokens | turns |
+|---|---:|---:|---:|---:|---:|---:|
+| python · low · neutral | 0.43 | 0.89 | $1.11 | 245 s | 0.67 M | 15 |
+| python · low · **atdd-skill** | **0.77** | 0.68 | $1.13 | 218 s | 0.89 M | 20 |
+| python · high · neutral | 0.50 | 0.94 | $4.23 | 904 s | 4.27 M | 40 |
+| python · high · **atdd-skill** | **0.96** | 0.61 | $5.89 | 1239 s | 7.90 M | 73 |
+| go · low · neutral | 0.52 | 0.86 | $1.55 | 366 s | 1.18 M | 23 |
+| go · low · **atdd-skill** | **0.80** | 0.89 | $0.76 † | 144 s † | 0.53 M † | 15 |
+| go · high · neutral | 0.59 | 0.87 | $5.49 | 1117 s | 6.58 M | 51 |
+| go · high · **atdd-skill** | **0.96** | 0.88 | $7.47 | 1473 s | 10.01 M | 70 |
+| typescript · low · neutral | 0.50 | 1.00 | $1.24 | 276 s | 0.85 M | 19 |
+| typescript · low · **atdd-skill** | **0.75** | 1.00 | $1.28 | 265 s | 1.22 M | 26 |
+| typescript · high · neutral | 0.59 | 1.00 | $4.15 | 858 s | 4.27 M | 40 |
+| typescript · high · **atdd-skill** | **0.96** | 1.00 | $6.33 | 1271 s | 8.22 M | 73 |
+
+† One go/low/atdd-skill run passed only on its repair attempt; the harness records only the repair's
+cost and time. Its first attempt ($1.60, 349 s) was a harness false-fail — see below.
+
+* **Reliability: flat, as predicted.** requirement_coverage 1.00 in all 24 runs; every run passed.
+  brazil does not discriminate the arms on Opus 5.5 — a harder task is needed for that question.
+* **ATDD conformance: 0.52 → 0.87 mean.** At high effort the skill scores **0.96 in all six runs**
+  (every language, both replicates); neutral never exceeds 0.61. The gain is concentrated where
+  Dave's method is most specific — per-category means, neutral → skill:
+
+  | A spec | B 4-layer | C isolation | D DSL | E protocol driver | F intermittency | G releasability |
+  |---:|---:|---:|---:|---:|---:|---:|
+  | 2.00 → 3.58 | **1.42 → 3.75** | 2.50 → 3.08 | **0.92 → 3.58** | 1.67 → 3.58 | 2.42 → 2.83 | 3.67 → 3.92 |
+
+  Neutral Opus 5.5 writes acceptance tests unprompted (12/12) and keeps them honest (G 3.67), but
+  without a DSL or protocol-driver layer. The one category the skill barely moves is F: its suites
+  assert wall-clock budgets on the real dataset, which the reviewer flags as an intermittency risk.
+* **Effort matters only with the skill:** atdd-skill 0.77 (low) → 0.96 (high); neutral 0.48 → 0.56.
+* **Cost: +33% for the arm** ($35.54 neutral vs $45.75 + $1.60 first attempt = $47.35 skill). At low
+  effort it is a wash ($1.13-1.28 vs $1.11-1.55); at high effort +36-53% cost, 1.5-1.9× tokens,
+  1.4-1.8× turns, 1.3-1.5× wall-clock — the 4-layer scaffolding is real work.
+* **Coverage: lower in python only** (0.61-0.68 vs 0.89-0.94). go and typescript are level. *Caveat,
+  unverified:* the python skill suites also drive the server as a subprocess, which in-process
+  coverage cannot see — the same artefact fixed for Go below — so python's gap may be measurement,
+  not testing.
+
+### Harness false-fail found and fixed: Go coverage was blind to ATDD protocol drivers
+
+go/low/atdd-skill rep 1 completed with a passing suite (`go test ./...` → `ok brsoccer/acceptance`)
+yet scored **test_coverage 0.0%**, which the gate reads as "tests did not run" — so it was failed and
+sent to repair, recording a half-credit second-try pass. Its only tests `go build` the server and
+drive it over stdio as a subprocess (Dave's protocol-driver pattern), and in-process coverage counts
+none of that. **The coverage scorer was biased against exactly the method under test.**
+
+Fixed in `scorers/test_coverage.py` (`_go_integration_profile`): when a module starts a subprocess
+anywhere, each test package is compiled with `go test -c` and run directly with `GOFLAGS=-cover` and a
+private `GOCOVERDIR`, so the tests' own `go build` emits an instrumented binary that writes its
+counters on exit; the result is merged block-wise with the normal `-coverpkg=./...` profile. (Both
+obvious routes fail, probed on go 1.26: `go test` overrides `GOCOVERDIR` whenever coverage is on, and
+puts `GOROOT/bin` first on the tests' PATH so a `go` shim is bypassed.) The false-failed attempt now
+scores 86.9%; go/high/atdd-skill went 0.38/0.47 → 0.87/0.88. All 8 go runs were rescored
+(`retort rescore --languages go --metrics test_coverage`). The second-try flag on that cell is left as
+recorded — retort has no supported way to promote a superseded first attempt, and the DB is not
+hand-edited — so read go/low/atdd-skill as **2/2 genuine passes, one recorded as a repair**.
+
+Also fixed: `retort aggregate` silently dropped `atdd_review` (fixed column list); it is now a
+master.db column.
+
+### What this does and doesn't say
+
+* It replaces the old reading "ATDD is the worst prompt": that was *our paraphrase* on *weak* models
+  near their edge (exp-19: the 35B, ATDD 0.00). Dave's actual method, on a frontier model, costs
+  nothing in reliability and buys a test architecture the course's own reviewer rates 0.96.
+* It does not show the skill improves *reliability* — brazil is saturated. The next step is the same
+  design on a task Opus 5.5 does not clear, or on a weaker model where exp-19 saw ATDD hurt.
+* One reviewer, from the course itself, grading against the course's criteria: `atdd_review`
+  measures conformance to Dave's method, by design — not general test quality.

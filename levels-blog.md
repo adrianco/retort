@@ -1,6 +1,6 @@
 # Thinking Level: What Opus Actually Does With the Extra Time
 
-*Published 2026-07-31 · updated 2026-09-23 — Adrian Cockcroft*
+*Published 2026-07-31 · updated 2026-10-04 — Adrian Cockcroft*
 
 `--effort low|medium|high|xhigh|max` is the newest and largest cost lever in retort, and the least understood. [versions-blog.md](versions-blog.md) established *that* it costs; this page is about *what the model does* with the time, read out of the archived agent logs rather than inferred from the totals.
 
@@ -136,6 +136,7 @@ The three significant rows — low, medium and high — sit at p = 0.018, which 
 
 - **On routine work, leave it at `low`.** Ten of ten cells scored 1.00; `low` did it in 2 minutes for 76 cents. Everything above it is paying for revision of an already-correct answer.
 - **Raise it when a measured response has headroom** — the go coverage gain is real. That is a reason to go to `xhigh`, and the gain is already there at `xhigh` rather than `max`.
+- **Raise it when the deliverable is a method, not just working code.** With Dave Farley's ATDD skill (exp-83, Opus 5.5, hard task), going from `low` to `high` lifts the course reviewer's conformance score from **0.77 to 0.96** in every language; with the neutral prompt the same step moves it only 0.48 → 0.56. Reliability is 1.00 at both settings either way — the extra thinking buys the test architecture, not the pass.
 - **Treat `max` as a different mode, not one more notch.** It is where the model starts auditing itself, where cost goes super-linear, and where it does work nobody asked for.
 
 ---

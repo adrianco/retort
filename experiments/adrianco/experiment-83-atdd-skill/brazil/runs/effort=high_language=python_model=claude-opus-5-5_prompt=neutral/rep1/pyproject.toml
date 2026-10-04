@@ -1,0 +1,23 @@
+[build-system]
+requires = ["setuptools>=61"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "brazilian-soccer-mcp"
+version = "1.0.0"
+description = "MCP server answering questions about Brazilian soccer from Kaggle datasets"
+readme = "README.md"
+requires-python = ">=3.10"
+dependencies = []
+
+[project.optional-dependencies]
+test = ["pytest"]
+
+[project.scripts]
+brazilian-soccer-mcp = "brsoccer.server:main"
+
+[tool.setuptools]
+packages = ["brsoccer"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]

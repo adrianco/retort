@@ -1,0 +1,27 @@
+{
+  "name": "brazilian-soccer-mcp",
+  "version": "1.0.0",
+  "description": "MCP server answering questions about Brazilian soccer from Kaggle match and FIFA player datasets",
+  "type": "module",
+  "main": "dist/src/index.js",
+  "bin": {
+    "brazilian-soccer-mcp": "dist/src/index.js"
+  },
+  "scripts": {
+    "build": "tsc -p tsconfig.json",
+    "start": "node dist/src/index.js",
+    "test": "npm run build && vitest run",
+    "test:acceptance": "npm run build && vitest run tests/acceptance",
+    "test:unit": "vitest run tests/unit"
+  },
+  "license": "MIT",
+  "dependencies": {
+    "@modelcontextprotocol/sdk": "^1.32.0",
+    "zod": "^4.6.5"
+  },
+  "devDependencies": {
+    "@types/node": "^26.6.4",
+    "typescript": "^7.0.2",
+    "vitest": "^5.0.3"
+  }
+}

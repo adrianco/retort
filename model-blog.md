@@ -1,6 +1,6 @@
 # How Reliable Is Your AI Coding Stack? I Measured It
 
-*Published 2026-06-11 · updated 2026-09-23 — Adrian Cockcroft*
+*Published 2026-06-11 · updated 2026-10-04 — Adrian Cockcroft*
 
 ---
 
@@ -60,7 +60,7 @@ Here is the full board, every model measured on the two tasks — **pass-proport
 <!-- GEN:model-board START -->
 | Stack | Serving | Easy: pass | Easy: $ | Hard: pass | Hard: $ |
 |---|---|---:|---:|---:|---:|
-| Claude Opus 5.5 | cloud | **1.00 (69)** | $1.41 | **1.00 (13)** | $1.92 |
+| Claude Opus 5.5 | cloud | **1.00 (69)** | $1.41 | **1.00 (25)** | $2.42 |
 | Claude Opus 5 | cloud | **1.00 (47)** | $3.23 | **1.00 (23)** | $26.48 |
 | Claude Fable 5 | cloud | **1.00 (36)** | $1.58 | **1.00 (21)** | $10.47 |
 | GPT-5.6 Terra (codex) | cloud | **1.00 (31)** | $0.24 | 0.79 (38) | $1.18 |
@@ -333,6 +333,8 @@ For most of these experiments I held one big lever constant: **the prompt** — 
 What's still missing is the *cross-model* version. The high-value question is whether a better prompt lifts a **cheap** model's hard-task pass rate from 0.5 toward the expensive model's 1.0 — because if it does, a prompt change could be worth more than a model upgrade at a fraction of the cost. retort treats `prompt` as just another factor, so the study writes itself: **`prompt × model` on a hard task**, sweeping the full model range rather than one model. That's the experiment I'd run next, and the one with the most direct impact on an engineering budget.
 
 I did get a first four-way sweep — all of neutral / TDD / ATDD / BDD on the local 35B stack, Python only. The ranking was clarifying: **neutral and BDD tied for best** (both 2/3, ~0.97 coverage), **TDD** was middling (1/3), and **ATDD was dead last** (0/3) — the *fourth* experiment running to show the front-loaded acceptance-test discipline actively hurts a local model rather than helping it. And where neutral and BDD tie on reliability, neutral wins on cost by ~2.5× the tokens. For a local model, then, the practical prompt advice inverts the usual "more discipline is better": keep it plain, and *don't* reach for ATDD.
+
+**And the real ATDD, not our paraphrase (exp-83).** Dave Farley's own ATDD course now ships as a Claude Code plugin skill, so I ran it on Opus 5.5 against the neutral prompt on the hard task: **24/24 runs pass either way**, but the course's own reviewer rates the skill's tests **0.87 against 0.52** for ATDD conformance — 0.96 at `high` effort — for about a third more money. The full result is in the [prompt blog](prompt-blog.md). The Opus 5.5 hard-task cell on the board above now pools those neutral runs, at both effort levels, which is why its cost reads higher than the `low`-effort-only figure it showed before.
 
 ## Beyond the model: varying the *agent* itself
 

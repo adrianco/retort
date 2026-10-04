@@ -21,57 +21,6 @@ DWQ in 0%, at the same 16 GB. See [optimal-blog.md](../optimal-blog.md).
 
 ---
 
-## 0. exp-83 — Dave Farley's own ATDD skill vs the neutral prompt on brazil  — DRAFT 2026-10-01, blocked on smoke test
-
-**The gap:** every ATDD result so far (exp-13/16/18/19/20/32) used `ATDD`, *our* paraphrase of
-Farley's CD guide, and it was the worst or tied-worst prompt wherever the model was near its edge.
-That tests our summary of the method, not the method. Dave Farley's CD.Training ATDD course now ships
-as a Claude Code plugin (`msec@cd-training` 0.6.0, `/msec:atdd-build`), a thin client that pulls the
-course lessons live from an OAuth-protected MCP server (`msec-mcp-production.fly.dev`). Signed in on
-the **paid** tier (`caller_tier: {"atdd-course": "paid"}`, `disclosure: full`), so the agent gets
-Dave's full lesson bodies, not summaries.
-
-**New prompt level `atdd-skill`** ([`prompts/atdd-skill.md`](../prompts/atdd-skill.md)): instructs
-the agent to invoke `msec:atdd-build` via the Skill tool and follow its 4-layer workflow (spec → DSL →
-protocol driver → implementation), headless (no questions). Deliberately NOT named `atdd` — it would
-collide case-insensitively with exp-13's `ATDD` on macOS and in reports.
-
-**Harness change needed:** the claude agent runs isolated (`--setting-sources project,local`,
-`--strict-mcp-config`, empty `--mcp-config`), which drops user plugins and MCP servers. This level
-must add back exactly `--plugin-dir <msec cache>` and the `msec-mcp` server, recorded in
-provenance (plugin version + commit, MCP server URL, tier). Nothing else from the host.
-
-**Smoke test (must pass before the grid):** an isolated `claude -p` (1) lists the `msec:*` skills,
-(2) calls `list_catalog` and gets `caller_tier=paid, disclosure=full` (the OAuth token reaches the
-isolated agent), then a one-cell brazil run whose `_agent_stdout.log` shows the Skill invocation and
-≥1 `get_item`/`find_by_topic` call. If the skill never fires, the cell measures the prompt text, not
-the skill — fix before running.
-
-**Design:** task `github://adrianco/brazil-bench-neutral` (BDD stripped, so the methodology comes
-only from the prompt, as exp-13). `language[python, go, typescript] × effort[low, high] ×
-prompt[neutral, atdd-skill]`, model `claude-opus-5-5`, n=2 → 24 runs, timeout 150 min. The neutral
-arm is re-run here rather than borrowed from exp-79 because exp-79 used the BDD-bearing template.
-**Scoring ATDD conformance:** response `atdd_review` (`scorers/atdd_review.py`) hands each finished
-workspace — both arms — to Dave's own `msec:atdd-review` skill, run isolated with only the msec plugin +
-server, on a copy. It rates categories A-G (spec quality, 4-layer architecture, isolation, DSL, protocol
-drivers, intermittency, releasability) 0-4 from criteria it fetches from the course; score = sum/28.
-Reviewer `claude-opus-4-8` (fixed, not the model under test). NULL — never a guess — when the review
-did not invoke the skill or fetch course content. Full review kept as `_atdd_review.md` per run.
-
-**Smoke status 2026-10-01:** harness plugin preflight passed in the real run (paid tier); the build
-agent invoked `msec:atdd-build` and, as that skill directs, fetched course topics (bdd, dsl,
-protocol-drivers, four-layer-model) and 4 lessons. `atdd_review` to be applied to the smoke cell
-with `retort rescore --metrics atdd_review` once it finishes.
-
-**Hypothesis (recorded before running):** on a frontier model brazil is near-saturated, so
-pass-proportion is flat (≈1.00 both arms) — the owner's expectation too: brazil is probably not hard
-enough to exercise the skill, so this run is a **baseline** (cost, conformance, does the plumbing
-work) ahead of a harder task; the skill will cost more tokens/turns (extra skill + lesson
-fetches, 4-layer scaffolding), score far higher on ATDD conformance, and leave lower unit coverage
-(acceptance-heavy). A pass-proportion difference, if any, shows first in TypeScript at low effort.
-
----
-
 ## 0. exp-77 — Sonnet 5.5 across the effort ladder  — RUNNING, 2026-09-29
 
 **The gap:** Sonnet 5.5 (`claude-sonnet-5-5`, released 2026-09-28, from the daily scan) is unmeasured.

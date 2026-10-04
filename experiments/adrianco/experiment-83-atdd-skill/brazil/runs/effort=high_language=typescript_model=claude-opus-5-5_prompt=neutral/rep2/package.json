@@ -1,0 +1,31 @@
+{
+  "name": "brazilian-soccer-mcp",
+  "version": "1.0.0",
+  "description": "MCP server exposing a queryable knowledge graph of Brazilian soccer data (matches, teams, competitions, players)",
+  "type": "module",
+  "main": "dist/index.js",
+  "bin": {
+    "brazilian-soccer-mcp": "dist/index.js"
+  },
+  "scripts": {
+    "build": "tsc -p tsconfig.json",
+    "start": "node dist/index.js",
+    "dev": "tsx src/index.ts",
+    "test": "vitest run",
+    "typecheck": "tsc -p tsconfig.test.json"
+  },
+  "license": "MIT",
+  "dependencies": {
+    "@modelcontextprotocol/sdk": "^1.32.0",
+    "zod": "^4.6.5"
+  },
+  "devDependencies": {
+    "@types/node": "^26.6.4",
+    "tsx": "^4.23.15",
+    "typescript": "^7.0.2",
+    "vitest": "^5.0.3"
+  },
+  "engines": {
+    "node": ">=20"
+  }
+}

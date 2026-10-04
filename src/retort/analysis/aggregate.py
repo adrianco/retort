@@ -30,6 +30,9 @@ METRICS = [
     "factual_accuracy",
     # Measurement, not a gate: how fast the produced program actually runs.
     "runtime",
+    # ATDD conformance graded by Dave Farley's msec:atdd-review (exp-83+). NULL
+    # for every run not scored with it — it is opt-in and costs a review per run.
+    "atdd_review",
 ]
 # Side-channel telemetry (underscore-prefixed in run_results) -> clean column.
 TELEMETRY = {

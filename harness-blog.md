@@ -1,6 +1,6 @@
 # The Stack Under the Model: oMLX, llama.cpp, Hermes, and Why There Are So Many
 
-*Published 2026-07-22 · updated 2026-09-24 — Adrian Cockcroft*
+*Published 2026-07-22 · updated 2026-10-04 — Adrian Cockcroft*
 
 Most benchmarks answer "which *model* is best?" Retort insists that's the wrong unit. A coding result is produced by a whole **stack** — and the model is only one layer of it:
 
@@ -83,6 +83,10 @@ The harnesses Retort supports:
 - **`omp`** — [oh-my-pi](https://github.com/can1357/oh-my-pi), an early community-contributed local harness (it talked to **llama.cpp**, not Ollama). It's documented as a **legacy** path — the first, honest dead-end on a 24 GB Mac before the Hermes + oMLX stack became the featured one.
 
 **Why the agent is its own layer (and its own zoo):** each vendor ships the harness tuned for its own model, and open harnesses exist to run *any* model. They genuinely differ — a weak model can pass under a forgiving harness and fail under a strict one — which is exactly why "which harness?" deserves measurement rather than assumption. That's what the metaharness (last section) is for.
+
+**What the agent has loaded is part of the stack too — and now a deliberate factor.** The claude-code agent under test runs isolated from whatever the machine's owner has installed: no host MCP servers, plugins, hooks or personal instructions. Experiment 83 then added one back *on purpose*: Dave Farley's ATDD course, packaged as a Claude Code plugin whose skill fetches the course lessons from an MCP server. Getting that right needed a probe — loading the plugin directory alone brings in its skills but silently drops the MCP server they depend on, so the skill would have run without its course. The prompt level now adds back exactly that plugin and the server its manifest declares, checks before the first run that the server answers at the paid tier, and records both in each run's provenance.
+
+The same experiment turned up a scoring blind spot. Its acceptance tests build the real server and drive it as a separate process, which is the method's protocol-driver layer, and Go's normal coverage only counts code inside the test process. A passing suite therefore scored 0% and was failed as "tests did not run": the harness was biased against the very method under test. Go coverage now also counts the server process the tests start, and the method's conformance is graded by the course's own review skill rather than by a rubric of ours.
 
 ---
 

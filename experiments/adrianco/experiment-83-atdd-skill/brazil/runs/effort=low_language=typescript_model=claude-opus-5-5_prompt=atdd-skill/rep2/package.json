@@ -1,0 +1,29 @@
+{
+  "name": "retort-f6c6df6e179a",
+  "version": "1.0.0",
+  "description": "brazilian-soccer-mcp-guide.md",
+  "main": "index.js",
+  "scripts": {
+    "build": "tsc",
+    "start": "node dist/server.js",
+    "test": "npm run build && vitest run"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "type": "module",
+  "dependencies": {
+    "@modelcontextprotocol/sdk": "^1.32.0",
+    "csv-parse": "^7.0.3",
+    "zod": "^4.6.5"
+  },
+  "devDependencies": {
+    "@types/node": "^26.6.4",
+    "tsx": "^4.23.15",
+    "typescript": "^5.9.3",
+    "vitest": "^5.0.3"
+  },
+  "bin": {
+    "brazilian-soccer-mcp": "dist/server.js"
+  }
+}

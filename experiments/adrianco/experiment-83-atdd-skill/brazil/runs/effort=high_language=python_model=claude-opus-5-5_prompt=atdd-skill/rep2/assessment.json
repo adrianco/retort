@@ -1,0 +1,10 @@
+{
+  "severity_counts": {"critical": 0, "high": 0, "medium": 0, "low": 0, "info": 0},
+  "penalty_score": 1.0,
+  "top_findings": [],
+  "requirement_coverage": 1.0,
+  "model": "claude-opus-5-5",
+  "evaluated_at": "2026-10-03T21:26:16Z",
+  "min_severity": "high",
+  "note": "5 findings in findings.jsonl (1 low, 4 info) all fall below min_severity=high, so none are counted; penalty_score is 1.0. 12/12 requirements implemented. No tracker records created (file-run-issues v2.0 aggregates only)."
+}
