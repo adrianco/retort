@@ -630,7 +630,7 @@ invest in the solver dependency, master.db merge, and first-class docs.
 <!-- SCAN-HEARTBEAT: the daily scan rewrites the next line on EVERY run, including
      days it finds nothing. Do not hand-edit it. If the date is more than ~2 days
      stale, the scan is not running — see "when the heartbeat goes stale" below. -->
-**Daily scan last completed: 2026-10-03** (scanning for new coding models: 64GB-fittable open weights, and frontier cloud models/versions)
+**Daily scan last completed: 2026-10-04** (scanning for new coding models: 64GB-fittable open weights, and frontier cloud models/versions)
 
 - 2026-09-08 — **GPT-6 Astra (OpenAI) — `gpt-6-astra`** — *the "new codex model"; added by hand
   because the daily scan's scope was open-weights-only until today (widened the same day, see the
@@ -1710,6 +1710,11 @@ survives the toggle, restart the Claude desktop app, which clears the in-memory 
   Source: https://huggingface.co/blog/Hcompany/holo4
   — via: https://www.marktechpost.com/2026/09/29/h-company-releases-holo4-open-weight-computer-use-models-that-click-code-and-call-tools-across-desktop-web-android-and-apis/
   — weights: https://huggingface.co/Hcompany/Holo4-35B-A3B
+
+*Excluded 2026-10-04, recorded so it is not re-investigated:* **Index-Translate-35B-A3B** (Bilibili,
+2026-09-30, open weights, 35B-A3B) — fits at 4-bit but is a **translation** model, not a coder (same
+class as Hy-MT2-30B-A3B). No new Track B model or version; still blocked: **Gemini 4 Argon** (no public
+API id, Fairwind-only). Sources: https://www.llm-releases.com/ · https://llm-stats.com/llm-updates
 
 *Excluded 2026-10-03, recorded so they are not re-investigated:* **Ling-3.1-flash** (Ant Group /
 inclusionAI, 2026-09-29, 560B total / ~25B active, weights announced but rolling out after a trial) —
