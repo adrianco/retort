@@ -487,7 +487,7 @@ invest in the solver dependency, master.db merge, and first-class docs.
 <!-- SCAN-HEARTBEAT: the daily scan rewrites the next line on EVERY run, including
      days it finds nothing. Do not hand-edit it. If the date is more than ~2 days
      stale, the scan is not running — see "when the heartbeat goes stale" below. -->
-**Daily scan last completed: 2026-10-04** (scanning for new coding models: 64GB-fittable open weights, and frontier cloud models/versions)
+**Daily scan last completed: 2026-10-05** (scanning for new coding models: 64GB-fittable open weights, and frontier cloud models/versions)
 
 - 2026-09-08 — **GPT-6 Astra (OpenAI) — `gpt-6-astra`** — *the "new codex model"; added by hand
   because the daily scan's scope was open-weights-only until today (widened the same day, see the
@@ -1567,6 +1567,46 @@ survives the toggle, restart the Claude desktop app, which clears the in-memory 
   Source: https://huggingface.co/blog/Hcompany/holo4
   — via: https://www.marktechpost.com/2026/09/29/h-company-releases-holo4-open-weight-computer-use-models-that-click-code-and-call-tools-across-desktop-web-android-and-apis/
   — weights: https://huggingface.co/Hcompany/Holo4-35B-A3B
+
+- 2026-10-05 — **Qwen3.8-Flash-Next-GSQ-RCO-Coder (ISTA-DASLab) — NOT a new model; a coder-targeted
+  expert-pruned + 3.5-bpw quant of the already-listed Qwen3.8-Flash-Next, and it changes that entry's
+  memory verdict.** Half the routed experts (256 of 512 per layer) are **removed** rather than
+  quantized, the rest stored at 3.5 bpw: **29.6 GB resident shard + a 28.8 GB n-gram lookup shard that
+  can be disk-served** (58.4 GB on disk vs 354 GB BF16). The 2026-08-28 entry's blocker was AtomicChat's
+  ~45.8 GB resident build sitting over exp-62's 54 GB ceiling; **~30 GB resident leaves real room for
+  KV cache on this box.** Vendor-reported retention vs the full model: **LiveCodeBench v6 86.28 vs
+  87.43 (98.7%), SWE-bench Verified 75.60 vs 82.80 (91.3%)** — i.e. above Qwen3.8-27B-class coding
+  numbers at roughly twice its resident footprint. Card says **stock llama.cpp** (pin a build after
+  PR #27742). **Caveats:** (1) **tool-calling is not documented at all** — expert pruning is exactly
+  where a tool-call format can silently break; smoke-test a real `<tool_call>` through Hermes first.
+  (2) The card says **Apache 2.0, inherited** — but the Flash-Next entry above records the base as
+  `qwen-community-1.0`; read the base licence before use. (3) Pruning + 3.5 bpw is a quant-scheme
+  change; per §3, **measure the stall rate first**. Still ranks below Qwen3.8-27B (run that first), but
+  this is now the realistic way to run a Flash-Next cell here.
+  Source: https://huggingface.co/ISTA-DASLab/Qwen3.8-Flash-Next-GSQ-RCO-Coder-GGUF
+
+- 2026-10-05 — **Xing4.0-29B-A4B (China Telecom AI / XingChen-AGI)** — *surfaced via Hugging Face
+  trending (GGUF updated ~2026-09-28); the training report is arXiv 2512.24157 (Dec 2025), so treat it
+  as a gap entry rather than a last-cycle drop until the weights' publish date is confirmed.* **Apache
+  2.0, 29B total / 4B active MoE** (64 routed experts, 4 active; **MLA + mHC + MTP** architecture —
+  not a Qwen derivative, first China-Telecom-lineage candidate), **256K context, extensible to 512K**.
+  Explicitly targets agent frameworks **including Hermes**, plus OpenCode / Claude Code. Vendor-reported
+  **SWE-bench Verified 75.0, Terminal-Bench 2.1 57.5**, Claw-Eval 76.55. **Q4_K_M 19 GB → fits 64GB with
+  enormous headroom**; community GGUF ships (IQ2_M 9.9 GB → F16 62.5 GB) with llama.cpp instructions,
+  **no MLX build**. **Caveats:** (1) MLA + mHC is an unusual arch — confirm **mainline** llama.cpp
+  loads it (not a fork) before scheduling, a Laguna-class gate; (2) tool-call parser not documented —
+  smoke-test a real `<tool_call>`; (3) recommended sampling **temp 0.8 / top_p 0.95 /
+  repetition_penalty 1.05** for coding — repetition_penalty derailed our tool loop before (CLAUDE.md),
+  so set, verify and record it, and record the `enable_thinking` mode. Its built-in **MTP head** also
+  makes it a no-draft-model probe for §3's speculative-decoding lever.
+  Source: https://huggingface.co/XingChen-AGI/Xing4.0-29B-A4B
+  — GGUF: https://huggingface.co/Venastine-Research/Xing4.0-29B-A4B-GGUF
+
+*Excluded 2026-10-05, recorded so it is not re-investigated:* **Kolibri-1** (Aleph Alpha, 2026-10-03,
+78B dense, open weights) — a bilingual German/English general model, not coding-targeted, and ~44 GB at
+4-bit puts it at the exp-62 memory ceiling. No new Track B model or version (Claude Haiku 5.5 is
+rumoured, not released); still blocked: **Gemini 4 Argon** (no public API id). Sources:
+https://www.llm-releases.com/ · https://huggingface.co/Aleph-Alpha/Kolibri-1
 
 *Excluded 2026-10-04, recorded so it is not re-investigated:* **Index-Translate-35B-A3B** (Bilibili,
 2026-09-30, open weights, 35B-A3B) — fits at 4-bit but is a **translation** model, not a coder (same
