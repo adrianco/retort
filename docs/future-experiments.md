@@ -487,7 +487,7 @@ invest in the solver dependency, master.db merge, and first-class docs.
 <!-- SCAN-HEARTBEAT: the daily scan rewrites the next line on EVERY run, including
      days it finds nothing. Do not hand-edit it. If the date is more than ~2 days
      stale, the scan is not running — see "when the heartbeat goes stale" below. -->
-**Daily scan last completed: 2026-10-07** (scanning for new coding models: 64GB-fittable open weights, and frontier cloud models/versions)
+**Daily scan last completed: 2026-10-08** (scanning for new coding models: 64GB-fittable open weights, and frontier cloud models/versions)
 
 - 2026-09-08 — **GPT-6 Astra (OpenAI) — `gpt-6-astra`** — *the "new codex model"; added by hand
   because the daily scan's scope was open-weights-only until today (widened the same day, see the
@@ -644,6 +644,28 @@ invest in the solver dependency, master.db merge, and first-class docs.
   [The New Stack](https://thenewstack.io/google-gemini-4-argon/),
   [MarkTechPost](https://www.marktechpost.com/2026/09/30/google-deepmind-unveils-gemini-4-argon-with-1m-output-tokens-for-coding-knowledge-work-and-cyber-defense/).
   *(GPT-6.1 Sol **Ultrafast** — re-checked 2026-10-01: still "coming soon", no id or price.)*
+- 2026-10-08 — **Claude Haiku 5.5 (Anthropic) — `claude-haiku-5-5`** — *released **2026-10-07**; the
+  first Haiku since 4.5 and Anthropic's direct answer to GPT-6 Luna.* Facts from Anthropic's own model
+  page, not a news story: **tiered by prompt length — $0.10 in / $0.50 out per 1M for prompts ≤100K
+  tokens, $0.50 / $2.50 above 100K**; cache read $0.01 (≤100K) / $0.05; cache writes $0.125 (5m) /
+  $0.20 (1h) ≤100K, 5× that above. **1M-token context**, 128K max output, knowledge cutoff Jun 2026.
+  **Adaptive thinking, default effort `medium`**; non-default `temperature`/`top_p`/`top_k` return 400.
+  New tokenizer: the same text is **~30% more tokens than on Haiku 4.5**. Reachable as
+  `claude --model claude-haiku-5-5` (also Bedrock `anthropic.claude-haiku-5-5`); check the installed
+  CLI knows the id on a smoke cell. **Pricing:** the claude CLI reports its own `total_cost_usd`, so
+  `src/retort/pricing.py` (OpenAI-only) needs no entry — but **the 100K tier is a real trap for agentic
+  runs**: a long brazil session's later turns will cross 100K and bill at 5×, so a cost column read
+  as "$0.10/$0.50" will be wrong; trust the CLI's figure, not a list-price projection. **Effort is a
+  first-order lever here, not a detail:** vendor-reported Terminal-Bench 4.0 is **~39% at max effort
+  vs ~20% at the default `medium`** (Sonnet 5.5 70.6, GPT-6 Luna 16.4, Haiku 4.5 0.0) — set, record
+  and sweep it. **Framing:** same base list price as **GPT-6 Luna**, which exp-76 showed clears
+  python/go/typescript at ~$0.01 a run — so the natural cell is **Haiku 5.5 vs Luna 6 at matched
+  effort on the routine grid**, where pass-proportion (not just cost) is still a live response for a
+  small model. Anthropic itself recommends Sonnet/Opus for demanding coding, so expect the hard task to
+  discriminate. Cheap enough that a 13×2 grid at low/medium is pocket change.
+  Sources: [Anthropic model page](https://platform.claude.com/docs/en/models/haiku-5-5/overview),
+  [The New Stack](https://thenewstack.io/anthropic-claude-haiku-5-5/),
+  [VentureBeat](https://venturebeat.com/technology/anthropic-launches-claude-haiku-5-5-with-90-api-price-reduction-matching-gpt-6-luna).
 
 New open-weight coding models found by the daily scan that plausibly fit 64GB at 4-bit; promote to a
 numbered experiment when prioritised.
