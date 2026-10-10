@@ -487,7 +487,7 @@ invest in the solver dependency, master.db merge, and first-class docs.
 <!-- SCAN-HEARTBEAT: the daily scan rewrites the next line on EVERY run, including
      days it finds nothing. Do not hand-edit it. If the date is more than ~2 days
      stale, the scan is not running — see "when the heartbeat goes stale" below. -->
-**Daily scan last completed: 2026-10-09** (scanning for new coding models: 64GB-fittable open weights, and frontier cloud models/versions)
+**Daily scan last completed: 2026-10-10** (scanning for new coding models: 64GB-fittable open weights, and frontier cloud models/versions)
 
 - 2026-09-08 — **GPT-6 Astra (OpenAI) — `gpt-6-astra`** — *the "new codex model"; added by hand
   because the daily scan's scope was open-weights-only until today (widened the same day, see the
@@ -1623,6 +1623,25 @@ survives the toggle, restart the Claude desktop app, which clears the in-memory 
   makes it a no-draft-model probe for §3's speculative-decoding lever.
   Source: https://huggingface.co/XingChen-AGI/Xing4.0-29B-A4B
   — GGUF: https://huggingface.co/Venastine-Research/Xing4.0-29B-A4B-GGUF
+
+- 2026-10-10 — **Mellum2.1-12B-A2.5B-Thinking (JetBrains)** — *published **2026-10-08**; the successor
+  to the already-listed **Mellum2** (2026-08-14 borderline entry), same architecture, with the gain
+  coming almost entirely from RL in real software environments.* **Apache 2.0**, **12B total / 2.5B
+  active MoE** (64 experts, 8 active), **131,072 context**. **GGUF builds from ~7.0 GB** (llama.cpp /
+  Ollama / LM Studio) → leaves essentially the whole 64GB free; no MLX build confirmed. Vendor-reported
+  **SWE-bench Verified 47.0 vs 2.0 for Mellum2 Thinking** under the same Pi harness, LiveCodeBench v6
+  82.0, but **Terminal-Bench 2.1 17.4** — below Qwen3.5-9B's 21.7. Serving guidance is vLLM with the
+  `qwen3` reasoning parser and **optional Hermes tool calling** (our parser family); "GGUF/MTP heads
+  coming soon" per the card. **Why it moves from borderline toward admissible:** Mellum2 was marked
+  down for having no agentic-coding numbers worth the name; 2.1 is a matched-architecture probe where
+  **RL-on-repos is the only variable**, and 47.0 SWE-bench Verified puts it near MiMo-V2.6-Distill-9B
+  (61.1) / Ornith-1.5-9B (71.8) in the small-model slot. **Caveats:** (1) verify mainline llama.cpp
+  loads the GGUF and that a real `<tool_call>` survives through Hermes; (2) record the thinking mode
+  and sampling (set/verify per CLAUDE.md); (3) as a §3 **draft model** it still needs a vocab-identity
+  check against the Qwen targets — trained from scratch, so likely its own vocab. Judge priority:
+  alongside the two 9Bs, below every 27B–35B coder.
+  Source: https://www.marktechpost.com/2026/10/08/jetbrains-releases-mellum2-1-a-12b-moe-open-model-for-coding-agents/
+  — tracker: https://www.llmreference.com/model/mellum2-1-12b-thinking
 
 *Excluded 2026-10-07, oversized — recorded so they are not re-investigated:* **Mistral Large 4**
 (Mistral, announced 2026-10-06, 1.05T total / 52B active, weights promised end of October) and
