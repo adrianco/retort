@@ -487,7 +487,7 @@ invest in the solver dependency, master.db merge, and first-class docs.
 <!-- SCAN-HEARTBEAT: the daily scan rewrites the next line on EVERY run, including
      days it finds nothing. Do not hand-edit it. If the date is more than ~2 days
      stale, the scan is not running — see "when the heartbeat goes stale" below. -->
-**Daily scan last completed: 2026-10-10** (scanning for new coding models: 64GB-fittable open weights, and frontier cloud models/versions)
+**Daily scan last completed: 2026-10-11** (scanning for new coding models: 64GB-fittable open weights, and frontier cloud models/versions)
 
 - 2026-09-08 — **GPT-6 Astra (OpenAI) — `gpt-6-astra`** — *the "new codex model"; added by hand
   because the daily scan's scope was open-weights-only until today (widened the same day, see the
@@ -1642,6 +1642,17 @@ survives the toggle, restart the Claude desktop app, which clears the in-memory 
   alongside the two 9Bs, below every 27B–35B coder.
   Source: https://www.marktechpost.com/2026/10/08/jetbrains-releases-mellum2-1-a-12b-moe-open-model-for-coding-agents/
   — tracker: https://www.llmreference.com/model/mellum2-1-12b-thinking
+
+*Excluded 2026-10-11, recorded so they are not re-investigated:* **Underdog Saluki 27B 1.0**
+(ConwayResearch, HF trending ~2026-10-10, Apache 2.0) — not a new model: an IQ2-mix 7.89 GB GGUF requant
+of the already-listed Qwen3.8-27B, "tuned to keep tool calling intact" (vendor: SWE-bench Verified 30 vs
+33 on a 50-issue subset). Same quant-level-probe class as Ternary Bonsai 2 / OrcaSAQ-2; only worth a
+cell after the stock Qwen3.8-27B 4-bit baseline exists, and measure the stall rate first. **Rho-1**
+(Reka, 2026-10-05, 19B) — an omni text/image/video/robot-action model, not a coder, weights not
+confirmed. **Clef-omni** (Cloudflare, 2026-10-09) — another "System One" decision model. No new Track B
+model or version (Haiku 5.5 and GPT-6.1 Sol already listed); still blocked: **Gemini 4 Argon** (no
+public API id). Sources: https://huggingface.co/ConwayResearch/Underdog-Saluki-27B-1.0 ·
+https://www.nocode.mba/ai-release-tracker/2026/10 · https://thenewstack.io/category/ai/
 
 *Excluded 2026-10-07, oversized — recorded so they are not re-investigated:* **Mistral Large 4**
 (Mistral, announced 2026-10-06, 1.05T total / 52B active, weights promised end of October) and
