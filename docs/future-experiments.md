@@ -487,7 +487,7 @@ invest in the solver dependency, master.db merge, and first-class docs.
 <!-- SCAN-HEARTBEAT: the daily scan rewrites the next line on EVERY run, including
      days it finds nothing. Do not hand-edit it. If the date is more than ~2 days
      stale, the scan is not running — see "when the heartbeat goes stale" below. -->
-**Daily scan last completed: 2026-10-13** (scanning for new coding models: 64GB-fittable open weights, and frontier cloud models/versions)
+**Daily scan last completed: 2026-10-14** (scanning for new coding models: 64GB-fittable open weights, and frontier cloud models/versions)
 
 - 2026-09-08 — **GPT-6 Astra (OpenAI) — `gpt-6-astra`** — *the "new codex model"; added by hand
   because the daily scan's scope was open-weights-only until today (widened the same day, see the
@@ -666,6 +666,27 @@ invest in the solver dependency, master.db merge, and first-class docs.
   Sources: [Anthropic model page](https://platform.claude.com/docs/en/models/haiku-5-5/overview),
   [The New Stack](https://thenewstack.io/anthropic-claude-haiku-5-5/),
   [VentureBeat](https://venturebeat.com/technology/anthropic-launches-claude-haiku-5-5-with-90-api-price-reduction-matching-gpt-6-luna).
+- 2026-10-14 — **Gemini 4 Argon is now GENERALLY AVAILABLE — `gemini-4-argon` — UNBLOCKS the 2026-10-01
+  entry above** (same model, not a second candidate). Google opened it to the paid Gemini API, AI Studio
+  and Antigravity on **2026-10-13**. Facts from Google's own docs, not a news story: the models page
+  lists **`gemini-4-argon` as Stable**, with a **unified 1M context and decodes up to 1M tokens**. Pricing
+  page, standard tier per 1M: **$2 in / $10 out (thinking billed as output), cached input $0.10 —
+  introductory through 2026-11-30; $4 / $20 / $0.20 from 2026-12-01**. Batch/Flex are half that,
+  Priority 1.8×. No long-context tier listed; **implicit caching only** (no explicit cache writes); no
+  free tier. Thinking/effort levels are still **not documented** — find them on a smoke cell and record
+  them per CLAUDE.md. **Reachability is the open gate:** retort drives the `claude` and `codex` CLIs, and
+  nothing confirms the Gemini CLI (or another runner retort has) accepts this id yet; its docs still
+  show only Gemini 3. Check the installed runners before designing anything. **`src/retort/pricing.py`
+  has no Gemini entry**, so if retort computes this cost a run reports **$0** and corrupts the cost
+  columns. Any entry also needs the **intro/standard date split**: a cell run before 12-01 and one after
+  are not cost-comparable at a single rate, so record which rate applied. **Framing unchanged from the
+  10-01 entry:** same intro price as Sonnet 5.5 and GPT-6.1 Sol. Routine and brazil are saturated for
+  frontier models, so a grid measures cost and clock. The discriminating question still needs the
+  harder-than-brazil task (exp-73). Running before 11-30 gets the intro rate.
+  Sources: [Gemini models page](https://ai.google.dev/gemini-api/docs/models),
+  [Gemini pricing](https://ai.google.dev/gemini-api/docs/pricing),
+  [The New Stack](https://thenewstack.io/category/ai/) (2026-10-13),
+  [VentureBeat](https://venturebeat.com/technology/google-makes-gemini-4-argon-broadly-available-with-limited-time-low-api-pricing-of-2-10-per-1m-token).
 
 New open-weight coding models found by the daily scan that plausibly fit 64GB at 4-bit; promote to a
 numbered experiment when prioritised.
