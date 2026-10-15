@@ -487,7 +487,7 @@ invest in the solver dependency, master.db merge, and first-class docs.
 <!-- SCAN-HEARTBEAT: the daily scan rewrites the next line on EVERY run, including
      days it finds nothing. Do not hand-edit it. If the date is more than ~2 days
      stale, the scan is not running — see "when the heartbeat goes stale" below. -->
-**Daily scan last completed: 2026-10-14** (scanning for new coding models: 64GB-fittable open weights, and frontier cloud models/versions)
+**Daily scan last completed: 2026-10-15** (scanning for new coding models: 64GB-fittable open weights, and frontier cloud models/versions)
 
 - 2026-09-08 — **GPT-6 Astra (OpenAI) — `gpt-6-astra`** — *the "new codex model"; added by hand
   because the daily scan's scope was open-weights-only until today (widened the same day, see the
@@ -687,6 +687,20 @@ invest in the solver dependency, master.db merge, and first-class docs.
   [Gemini pricing](https://ai.google.dev/gemini-api/docs/pricing),
   [The New Stack](https://thenewstack.io/category/ai/) (2026-10-13),
   [VentureBeat](https://venturebeat.com/technology/google-makes-gemini-4-argon-broadly-available-with-limited-time-low-api-pricing-of-2-10-per-1m-token).
+- 2026-10-15 — **GPT-6.1 Sol Ultrafast is now in the API — a speed TIER of the already-listed `gpt-6.1-sol`,
+  not a new model; updates the 2026-10-03 exclusion note.** Announced **2026-10-08**: "near-Astra
+  intelligence at up to 8× faster than Sol Standard", **$12 in / $60 out per 1M** (1.2× Astra, 6× Sol
+  Standard), API in all regions; in Codex/ChatGPT Work only for Pro 500, usage-based Enterprise and
+  credit-based Edu. **Invocation is unverified** — no model id or `service_tier` value appears in the
+  release notes (Codex 0.162.0 mentions Ultrafast tiers only for Bedrock Astra), so find it in OpenAI's
+  model docs before designing. **`src/retort/pricing.py` has no tier-aware rate**: an Ultrafast run on
+  the `gpt-6.1-sol` id would be costed at Standard's $2/$10, understating cost 6×. Also context: Codex
+  0.161.0 (2026-10-08) made `gpt-6.1-sol` the CLI **default** — an unpinned codex cell now silently runs
+  6.1 Sol, so always pass `-m` explicitly. **Why it matters:** the §3 speed lever on a cloud stack —
+  same weights class, only throughput varies — so a matched Sol Standard vs Ultrafast cell measures
+  whether tok/s alone moves wall-clock and pass-proportion. Sources:
+  [Releasebot (OpenAI)](https://releasebot.io/updates/openai),
+  [LLM Gateway timeline](https://llmgateway.io/timeline).
 
 New open-weight coding models found by the daily scan that plausibly fit 64GB at 4-bit; promote to a
 numbered experiment when prioritised.
@@ -1663,6 +1677,29 @@ survives the toggle, restart the Claude desktop app, which clears the in-memory 
   alongside the two 9Bs, below every 27B–35B coder.
   Source: https://www.marktechpost.com/2026/10/08/jetbrains-releases-mellum2-1-a-12b-moe-open-model-for-coding-agents/
   — tracker: https://www.llmreference.com/model/mellum2-1-12b-thinking
+
+- 2026-10-15 — **LFM2.5-24B-A2B (Liquid AI)** — *published **2026-10-13**; a borderline admit in the
+  LFM2.5-2.6B / Agents-A1 class: agentic and tool-calling native, explicitly benchmarked against our
+  incumbent Qwen3.6-35B-A3B, but not coding-specialised.* **24.0B total / 2.45B active MoE** (64
+  experts, top-4; 40 layers = 30 double-gated short-conv + 10 GQA — Liquid's hybrid-conv arch),
+  **131,072 context**, 128K vocab, reasoning-only (always emits a chain of thought), 36T training
+  tokens. **~13–14 GB at 4-bit → fits 64GB with enormous headroom.** **Serving is first-party on both
+  backends** — Liquid ships GGUF and **MLX-4bit** checkpoints with day-one llama.cpp/MLX support
+  (vendor: 184 tok/s on M5 Max at Q4_K_M), so no arch gate-probe beyond confirming oMLX loads the
+  LFM2 MoE. **Evidence vs our incumbent (vendor-reported):** matches Qwen3.6-35B-A3B on BFCL v4 (65.01
+  vs 65.00), ToolSandbox 80.71, leads or ties on 5 of 8 tool/agentic benchmarks — but **Qwen3.6-35B
+  leads on SWE-bench Verified (OpenCode harness)**, the one coding number reported. **Caveats:** (1)
+  tool calls are **Pythonic syntax between special tokens**, not `<tool_call>` JSON/XML — the likeliest
+  silent false zero through Hermes; smoke-test a real call first. (2) Recommended sampling is temp 0.1
+  / top_k 50 / **repetition_penalty 1.05** — repetition_penalty derailed our tool loop before
+  (CLAUDE.md); set, verify and record. (3) Licence is presumably Liquid's own `lfm1.0` (as for
+  LFM2.5-2.6B) — confirm on the card. **Why list it:** the first LFM model large enough to be a real
+  subject, with a ~1/14 active-param ratio and a direct head-to-head against the 35B already in
+  `master.db`; judge priority below every coder-specialised entry. Not a draft-model candidate
+  (Liquid vocab, see LFM2.5-2.6B).
+  Source: https://www.liquid.ai/blog/lfm2-5-24b-a2b
+  — via: https://www.unite.ai/liquid-ai-releases-open-weight-lfm2-5-24b-a2b-for-on-device-agents/
+  — weights: https://huggingface.co/LiquidAI/LFM2.5-24B-A2B
 
 *Excluded 2026-10-11, recorded so they are not re-investigated:* **Underdog Saluki 27B 1.0**
 (ConwayResearch, HF trending ~2026-10-10, Apache 2.0) — not a new model: an IQ2-mix 7.89 GB GGUF requant
