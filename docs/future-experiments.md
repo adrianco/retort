@@ -487,7 +487,7 @@ invest in the solver dependency, master.db merge, and first-class docs.
 <!-- SCAN-HEARTBEAT: the daily scan rewrites the next line on EVERY run, including
      days it finds nothing. Do not hand-edit it. If the date is more than ~2 days
      stale, the scan is not running — see "when the heartbeat goes stale" below. -->
-**Daily scan last completed: 2026-10-15** (scanning for new coding models: 64GB-fittable open weights, and frontier cloud models/versions)
+**Daily scan last completed: 2026-10-16** (scanning for new coding models: 64GB-fittable open weights, and frontier cloud models/versions)
 
 - 2026-09-08 — **GPT-6 Astra (OpenAI) — `gpt-6-astra`** — *the "new codex model"; added by hand
   because the daily scan's scope was open-weights-only until today (widened the same day, see the
@@ -1700,6 +1700,50 @@ survives the toggle, restart the Claude desktop app, which clears the in-memory 
   Source: https://www.liquid.ai/blog/lfm2-5-24b-a2b
   — via: https://www.unite.ai/liquid-ai-releases-open-weight-lfm2-5-24b-a2b-for-on-device-agents/
   — weights: https://huggingface.co/LiquidAI/LFM2.5-24B-A2B
+
+- 2026-10-16 — **NVIDIA Nemotron 3.5 Bolt / `NVIDIA-Nemotron-3.5-Bolt-74B-A9B-24GB`** — *published
+  **2026-10-15**, same-day via The New Stack; the first entry on this list that is **natively 2-bit**
+  rather than a community requant, and the largest-parameter model that plausibly fits here.*
+  **OpenMDW-1.1**, **74B total / 9B active Mamba-2–Transformer hybrid "LatentMoE"** (plus a C-RADIO v4-H
+  vision encoder — dead weight for retort's text tasks), compressed via NVIDIA's Star Elastic from
+  Nemotron 3.5 Super VL 120B-A12B, **256K context**. **~24 GB packed** — routed/shared experts at
+  IQ2-XXS (~2.06 bpw) with quantization-aware training, Mamba layers NVFP4, embeddings Q8_0 → fits 64GB
+  with ~40 GB to spare. Tool calling native with the **`qwen3_coder` parser** (our parser family);
+  `enable_thinking` toggle plus a `medium_effort` mode, `ultra_v3` reasoning parser. Vendor-reported
+  **Terminal-Bench 2.1 50.98**, PinchBench 87.82, MCP-Atlas 52.20 — **no SWE-bench reported** (card
+  says SWE-style RL was used). For scale: the already-listed Nemotron 3.5 Lightning 30B-A3B reports
+  Terminal-Bench 24.58, so Bolt roughly doubles it at ~the same resident footprint.
+  **Serving is the gate, and it is real.** The card documents **vLLM (nightly + `b12x`) and SGLang on
+  NVIDIA Ampere/Hopper/Blackwell only**; a GGUF build is listed but **llama.cpp, MLX and Apple Silicon
+  are not mentioned**, and the **NVFP4 Mamba layers** are a CUDA format — confirm mainline llama.cpp
+  loads the mixed IQ2_XXS/NVFP4/Q8_0 GGUF on Metal before anything else; no `mlx-community` build exists.
+  *Side note on the hybrid-arch gate:* unsloth now ships a llama.cpp **UD-Q4_K_XL GGUF of Nemotron 3.5
+  Lightning 30B-A3B (~20 GB) with Metal instructions**, which suggests the `nemotron-h` loading blocker
+  recorded in the 2026-08-11 Lightning entry has been fixed upstream — one probe of that GGUF may unblock
+  Lightning, Nemotron-Cascade-2 and this entry's arch together. **Caveats per CLAUDE.md:** (1) sampling
+  is **temperature 1.0 / top_p 0.95** — the temp-1.0 trap; set, verify, record; (2) record thinking mode;
+  (3) a 2-bit model is exactly where §3 found quantization error surfaces as **tool-loop stalls** — measure
+  the stall rate first, and smoke-test a real `<tool_call>` through Hermes. **Why it earns a slot:** a
+  74B-class agent model at a 9B-active / 24 GB footprint is a new point on the size-vs-memory frontier
+  (cf. the 80B incumbent at ~42 GB), and its QAT 2-bit is the vendor-native answer to the quant-level
+  question Bonsai/OrcaSAQ ask with post-hoc requants. A 4 GB sibling, **Bolt E4B**, is due 2026-10-23.
+  Source: https://research.nvidia.com/labs/nemotron/Nemotron-3.5-Bolt-24GB/
+  — via: https://thenewstack.io/nvidia-nemotron-bolt-laptop/ (The New Stack, 2026-10-15)
+  — announcement: https://blogs.nvidia.com/blog/nemotron-3-5-super-vl/
+  — weights: https://huggingface.co/nvidia/NVIDIA-Nemotron-3.5-Bolt-74B-A9B-24GB
+  — Lightning GGUF (arch-gate probe): https://huggingface.co/unsloth/NVIDIA-Nemotron-3.5-Lightning-30B-A3B-GGUF
+
+*Excluded 2026-10-16, oversized — recorded because it **closes the standing Muse Spark re-check note**
+(2026-08-17 / 2026-09-03 entries below):* **Muse Spark Open** (Meta, weights **2026-10-15** on Hugging
+Face as `meta-models/Muse-Spark-Open-816B-A42B`) — the open release of Muse Spark 1.2, the frontier
+sibling Muse Glimmer was distilled from; coding/agent-targeted, 1M context, multimodal input, **Muse
+Model License** (not open source; attribution and commercial-threshold terms). **816B total / ~42B
+active → ~410 GB at 4-bit** (Meta's own local target is two M5 Ultra Mac Studios), so it fails the size
+bar; **Muse Glimmer 30B remains the way Meta lineage enters the local leaderboard.** Its companion
+**Nemotron 3.5 Super VL** (NVIDIA, 120B-A12B, same day) is ~60 GB at 4-bit — the exp-62 ceiling verdict;
+Bolt above is its 64GB-fittable compression. No new Track B model or version since Haiku 5.5 /
+GPT-6.1 Sol Ultrafast (already listed). Sources: https://huggingface.co/blog/meta-muse-spark-open ·
+https://thenewstack.io/meta-muse-spark-open/
 
 *Excluded 2026-10-11, recorded so they are not re-investigated:* **Underdog Saluki 27B 1.0**
 (ConwayResearch, HF trending ~2026-10-10, Apache 2.0) — not a new model: an IQ2-mix 7.89 GB GGUF requant
