@@ -48,6 +48,14 @@ bigger goes back to the user first.
   the Homebrew cask changes the CLI for exp-81's pending resumes too, so finish or explicitly split
   those before upgrading. exp-85's smoke recorded a 2.9 s crash for this reason, not a model result.
 
+**Hermes upgrade (user, 2026-10-17: "pull latest hermes and smoke test for changes"):** v0.20.5 →
+**v0.22.2** (latest stable; `main` is daily canary tags). Queued after the Codex runs: checkout +
+`uv pip install -e ".[all]"` into its venv, then a one-run routine smoke
+(`experiment-71-dwq-hard-task/smoke-hermes/`, python, dwq4). Check before exp-71 proceeds: the agent's
+file tools write inside the playpen (the 0.20 `$HOME` regression), provenance shows the EFFECTIVE
+context 262144 / threshold 0.9 / sampling, the new version string, coverage, and a stall-free run.
+Rollback: `git checkout 261a4efb90` + the same install. exp-71's agent label is now `hermes-0222`.
+
 **Blocked:** Gemini 4 Argon — no Gemini CLI installed, no API key in env, no pricing entry. Local
 candidates (Nemotron 3.5 Bolt, LFM2.5-24B, Holo4-35B, …) — each needs a download + oMLX load check; one
 is picked after #4 frees the machine.

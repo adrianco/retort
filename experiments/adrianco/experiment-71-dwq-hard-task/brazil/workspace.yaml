@@ -9,7 +9,7 @@
 # pass, the effect is task-independent and the "measure the stall rate" rule generalises.
 #
 # ONE VARIABLE: q4 vs dwq4 (stacks.yaml presets, copied from exp-69 unchanged except the oMLX log
-# path). Same serving layer (oMLX), agent (Hermes 0.20.5), context (262144, threshold 0.9), sampling
+# path). Same serving layer (oMLX), agent (Hermes v0.22.2, upgraded 2026-10-17 from 0.20.5 — user: run the latest; smoke-tested first, see smoke-hermes/), context (262144, threshold 0.9), sampling
 # (temp 0.6 / top_p 0.95 / top_k 20 / rep 1.0), prompt (neutral). Timeout 90 min (brazil is long);
 # stall guard 25 min. $0 marginal — local.
 #
@@ -20,7 +20,7 @@ experiment:
 factors:
   language: { levels: [python, go] }
   # Registry needs >=2 levels per factor; design.csv pins what actually runs.
-  agent: { levels: [hermes-0205, hermes-local] }
+  agent: { levels: [hermes-0222, hermes-local] }
   prompt: { levels: [neutral, none] }
   stack: { levels: [q4, dwq4] }
   model:
@@ -49,7 +49,7 @@ playpen:
     # Pin the SAME hermes binary for both arms: the variable is the model's bit-width,
     # not the agent version. Without the pin every hermes level falls back to
     # serving.hermes_bin and a version difference could ride along invisibly.
-    hermes-0205:
+    hermes-0222:
       harness: hermes
       bin: /Users/adriancockcroft/code/hermes-agent/.venv/bin/hermes
 design: { screening_resolution: 3, significance_threshold: 0.10 }
