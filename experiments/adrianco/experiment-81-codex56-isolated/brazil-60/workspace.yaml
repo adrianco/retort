@@ -1,3 +1,9 @@
+# 2026-10-17 CHANGE (user): Codex runs only at LOW effort and only Luna/Terra, to stretch the
+# ChatGPT-subscription token allowance. This sub-dir now runs Terra at effort=low (the original
+# exp-60 ran at `default` = the owner's configured effort), so it is NO LONGER a like-for-like
+# re-run: it measures isolated Terra-at-low on the hard task. exp-81's brazil-57/58/59 (5.6 Luna,
+# Sol, Terra-ultra) were dropped before any run.
+#
 # experiment-81-codex56-isolated — ISOLATED RE-RUN of experiment-60-terra-facts/brazil. NEW directory; the original is untouched.
 #
 # Covers exp-60 (Terra, 11 languages, n=1). Those agents opened with the ruvnet-brain plugin announcing itself and made
@@ -39,7 +45,7 @@ factors:
   agent: { levels: [codex, claude-code] }          # design pins codex
   prompt: { levels: [neutral, none] }              # design pins neutral
   model: { levels: [gpt-5.6-terra, gpt-5.6-sol] } # design pins terra
-  effort: { levels: [default, medium] }            # design pins default
+  effort: { levels: [low, default] }            # design pins low (2026-10-17)
 # factual_accuracy GATES (see docs/future-experiments.md §0); runtime is
 # measurement only. BOTH run live for the first time here — runtime has only
 # ever been invoked over archives via `retort rebuild`, and its numbers here are

@@ -1,0 +1,41 @@
+# Experiment 85 — GPT-6 Luna at LOW effort across all 13 languages (routine task), Codex, ISOLATED.
+#
+# REPLACES the planned GPT-6.1 Sol effort ladder (dropped 2026-10-17 before any measured run): the
+# user restricted Codex to LOW effort and Luna/Terra models, because Codex bills the ChatGPT
+# subscription and one hard-task run used a whole ~5 h allowance window. Sol was also rejected by
+# codex-cli 0.156.1 on a ChatGPT account.
+#
+# WHY THIS CELL. Luna 6 is the cheapest cloud model retort has measured (~$0.01 a routine run in
+# exp-76, which cleared python/go/typescript at `default`). Haiku 5.5 (exp-84) has the same base list
+# price. This fills Luna 6's routine half across all 13 languages at low, so "cheapest cloud stack per
+# language" can be answered against Haiku 5.5 at its best effort.
+#
+# EXPECTATION, recorded before the run: python/go/typescript pass (as exp-76 did at default); the
+# niche languages (clojure, erlang, elixir, objc, swift) are where a small model at low effort
+# misses — pass-proportion is a live response here, not saturated.
+#
+# codex-cli 0.163.0 (upgraded 2026-10-17; user: run the latest versions and record them).
+experiment:
+  name: experiment-85-luna6-low-alllang-rest-api-crud
+  visibility: public
+factors:
+  language: { levels: [python, go, typescript, rust, java, clojure, erlang, elixir, csharp, c, cpp, swift, objc] }
+  agent: { levels: [codex, claude-code] }
+  prompt: { levels: [neutral, none] }
+  model: { levels: [gpt-6-luna, gpt-5.6-terra] }
+  effort: { levels: [low, default] }
+responses: [code_quality, token_efficiency, test_coverage, defect_rate, maintainability, idiomatic]
+tasks:
+  - source: bundled://rest-api-crud
+playpen:
+  runner: local
+  replicates: 3
+  timeout_minutes: 60
+  stall_minutes: 25
+  max_turns: 200
+  prompts_dir: prompts
+  local_agents:
+    codex: { harness: codex, model: gpt-6-luna }
+design: { screening_resolution: 3, significance_threshold: 0.10 }
+promotion: { screening_to_trial: { p_value: 0.10 }, trial_to_production: { posterior_confidence: 0.80 } }
+evaluation: { enabled: true, model: opus-4.8 }

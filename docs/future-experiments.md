@@ -32,7 +32,7 @@ bigger goes back to the user first.
 |---|---|---|---|
 | 1 | **finish exp-81 + exp-82 brazil-73** (resume) | completes the isolated Codex re-runs; started work | ~$50 |
 | 2 | **exp-84 Haiku 5.5 effort ladder** (exp-74/77 shape, 36 runs) | new model, Luna-6 price; vendor says effort doubles its Terminal-Bench — the dial is first-order | ~$5–15 |
-| 3 | **exp-85 GPT-6.1 Sol effort ladder** (low…max × py/go × 3) | new frontier version; needs `pricing.py` entry first (none ⇒ $0 cost) | ~$20–40 |
+| 3 | **exp-85 GPT-6 Luna at low, 13 languages** (replaces the 6.1 Sol ladder — Codex is low + Luna/Terra only) | cheapest-stack question vs Haiku 5.5 | ~$1 + allowance |
 | 4 | **exp-71 DWQ on the hard task** (local, 20 runs) | $0, long — overnight slot | $0 |
 | 5 | **Haiku 5.5 vs Luna 6 on the 13-language routine grid** | only if exp-84 shows Haiku clears routine — cheapest-stack question | ~$5 |
 | 6 | exp-70 Fable 5.1 13×2 grid | premium-tier featuring; ~$65 isolated — ask before spending | ~$65 |
@@ -61,17 +61,23 @@ price; vendor Terminal-Bench ~39% at max vs ~20% at default `medium`, so the dia
 < $0.05 a run except at max, where the >100K-prompt 5× tier bites. **Verified:** CLI 2.1.287 priced the
 id at `costBasis: unknown` (~40× list); 2.1.302 matches list. One-run smoke queued first. ~$5–15.
 
-## 0. exp-85 — GPT-6.1 Sol across the effort ladder (Codex, isolated)  — QUEUED 2026-10-17
+## 0. exp-85 — GPT-6 Luna at LOW across all 13 languages (Codex, isolated)  — QUEUED 2026-10-17
 
-`gpt-6.1-sol` × effort{low, medium, high, xhigh, max, default} × {python, go}, n=3 = 36 runs — the same
-cells as exp-77 so 6.1 Sol vs Sonnet 5.5 (same $2/$10 list) is matched. `none` is not supported on 6.1
-Sol. **`default` is a check of the CODEX_HOME fix:** isolated, it must behave like `medium` (the
-documented default). **Pricing** added to `pricing.py` from OpenAI's page ($2 / cached $0.10 / $10;
-cache write $2.50); the >272K-prompt 2×/1.5× tier is NOT modelled — check per-request prompt size.
-**Hypothesis:** coverage 1.00; low cheaper than Sonnet 5.5's isolated $0.10–0.12. One-run smoke first.
-~$20–40.
+**Replaces the GPT-6.1 Sol ladder** (dropped before any measured run). **User rule, 2026-10-17: Codex
+only at `low` effort, and only Luna/Terra** — Codex bills the ChatGPT subscription and one hard-task
+run used a whole ~5 h allowance window. `gpt-6-luna` × low × 13 languages on `rest-api-crud`, n=3 =
+39 runs. Luna 6 is the cheapest cloud model measured (~$0.01 a routine run, exp-76 at default);
+Haiku 5.5 (exp-84) has the same base list price, so this answers "cheapest cloud stack per language".
+**Hypothesis:** python/go/typescript pass; the niche languages are where a small model at low misses.
+codex-cli **0.163.0** (upgraded per the user's run-latest-versions rule).
 
 ## 0. exp-81 + exp-82 brazil-73 — finish the isolated Codex re-runs  — PAUSED (Codex usage limit), 2026-09-30
+
+**Rescoped 2026-10-17 (Codex: low effort, Luna/Terra only):** exp-81 keeps only **brazil-60 = Terra at
+`low`, 11 languages, n=1** — no longer like-for-like with exp-60 (which ran at the owner's configured
+effort), so it measures isolated Terra-at-low on the hard task. brazil-57 (5.6 Luna — superseded by
+Luna 6), -58 (Sol) and -59 (Terra-ultra) were removed; none had recorded a run. exp-82 brazil-73 (Astra)
+stops at the 5 of 6 runs it has.
 
 exp-79/80 and exp-82's routine half are written up in past-experiments.md (exp-79..82). Left: **exp-81**
 (`experiment-81-codex56-isolated/brazil-57`, `-58`, `-59`, `-60` — GPT-5.6 Luna/Sol/Terra, 35 runs)
