@@ -1,0 +1,57 @@
+# Experiment 71 — does 4bit-DWQ's stall-elimination survive the HARD task?
+#
+# exp-68/69 showed `4bit-DWQ` eliminates Qwen3-Coder-30B's agentic stall pathology on the ROUTINE
+# task across four languages (0/20 stalls vs 17/20 for plain 4-bit, p = 2.6e-8). Untested on
+# brazil-soccer-mcp, where even the 80B floors at 0.17.
+#
+# STALLS ARE THE PRE-REGISTERED RESPONSE, NOT PASSES. A 30B will floor on passes here in both arms,
+# which is exactly the situation exp-69 designed around. If DWQ stalls 0/10 again on a task it cannot
+# pass, the effect is task-independent and the "measure the stall rate" rule generalises.
+#
+# ONE VARIABLE: q4 vs dwq4 (stacks.yaml presets, copied from exp-69 unchanged except the oMLX log
+# path). Same serving layer (oMLX), agent (Hermes 0.20.5), context (262144, threshold 0.9), sampling
+# (temp 0.6 / top_p 0.95 / top_k 20 / rep 1.0), prompt (neutral). Timeout 90 min (brazil is long);
+# stall guard 25 min. $0 marginal — local.
+#
+# Local harness, so agent_context = local-harness (no host MCP leak applies).
+experiment:
+  name: experiment-71-dwq-hard-task-brazil
+  visibility: public
+factors:
+  language: { levels: [python, go] }
+  # Registry needs >=2 levels per factor; design.csv pins what actually runs.
+  agent: { levels: [hermes-0205, hermes-local] }
+  prompt: { levels: [neutral, none] }
+  stack: { levels: [q4, dwq4] }
+  model:
+    levels:
+      - mlxlocal/mlx-community--Qwen3-Coder-30B-A3B-Instruct-4bit
+      - mlxlocal/mlx-community--Qwen3-Coder-30B-A3B-Instruct-8bit
+responses: [code_quality, token_efficiency, test_coverage, defect_rate, maintainability, idiomatic]
+tasks:
+  - source: github://brazil-bench/benchmark-template/brazilian-soccer-mcp-guide.md
+playpen:
+  runner: local
+  # 5 per cell -- see the n=5 note above. 4 design rows x 5 = 20 runs.
+  replicates: 5
+  # 60 for local (CLAUDE.md: local models are slow; ~60 local vs ~30 cloud). The 30B
+  # is smaller and faster than the 35B/80B, so 60 is generous rather than tight, and
+  # generous is correct here: a truncated cell would be scored as a capability failure.
+  timeout_minutes: 90
+  stall_minutes: 25
+  # 400 to match exp-62. python on this class of stack averages ~17 turns, so this is
+  # far out of reach for both arms -- which is the point. A cap that binds on one arm
+  # and not the other would report the ceiling as the capability.
+  max_turns: 400
+  stack_presets: stacks.yaml
+  prompts_dir: prompts
+  local_agents:
+    # Pin the SAME hermes binary for both arms: the variable is the model's bit-width,
+    # not the agent version. Without the pin every hermes level falls back to
+    # serving.hermes_bin and a version difference could ride along invisibly.
+    hermes-0205:
+      harness: hermes
+      bin: /Users/adriancockcroft/code/hermes-agent/.venv/bin/hermes
+design: { screening_resolution: 3, significance_threshold: 0.10 }
+promotion: { screening_to_trial: { p_value: 0.10 }, trial_to_production: { posterior_confidence: 0.80 } }
+evaluation: { enabled: true, model: opus-4.8 }

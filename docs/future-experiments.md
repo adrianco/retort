@@ -188,7 +188,9 @@ whether 5.1 holds that); time and cost come free.
 **What it answers:** whether 5.1 belongs in the featured table, at what price, and — because 5.0 has
 the same grid — the cost question §2 below asks, on 26 cells instead of one.
 
-## 1. exp-71 — does DWQ's stall-elimination survive the HARD task?  — ready to run, $0
+## 1. exp-71 — does DWQ's stall-elimination survive the HARD task?  — QUEUED 2026-10-17, $0
+
+Set up at `experiments/adrianco/experiment-71-dwq-hard-task/brazil/` from exp-69's workspace + stacks.yaml (unchanged but the task, languages, 90-min timeout and oMLX log path). Verification: exp-69's presets were smoke-verified then; the first live run's provenance.json is checked for effective context/sampling/Hermes version before the rest proceed.
 
 exp-68/69 showed `4bit-DWQ` eliminates the 30B's agentic stall pathology on the routine task across
 four languages (0/20 stalls vs 17/20 plain, p = 2.6e-8). Untested on `brazil-soccer-mcp`, where even
