@@ -1,0 +1,34 @@
+# Experiment 84 — Haiku 5.5 across the effort ladder (routine task). exp-77's design, cell for cell.
+#
+# WHY. Haiku 5.5 (`claude-haiku-5-5`, 2026-10-07) is Anthropic's cheapest model at GPT-6 Luna's list
+# price ($0.10 / $0.50 per 1M below 100K-token prompts, 5x above). The vendor reports Terminal-Bench
+# ~39% at max vs ~20% at its DEFAULT `medium` — the dial is first-order, so measure it first, on the
+# exact ladder exp-74 (Opus 5.5) and exp-77 (Sonnet 5.5) used.
+#
+# EXPECTATION, recorded before the run: unlike Opus/Sonnet, coverage is NOT guaranteed at 1.00 for a
+# small model, so pass-proportion is a live response; low/medium may miss on go, high/xhigh recover it;
+# cost per run stays < $0.05 at every level except max, where the >100K-token prompt tier (5x) bites.
+#
+# VERIFIED FIRST (2026-10-17): CLI 2.1.287 priced this id at costBasis "unknown", ~40x list; 2.1.302
+# matches list to 5 decimals. Run on >= 2.1.302. Agent ISOLATED (agent_context = mcp-cleared).
+experiment:
+  name: experiment-84-haiku55-effort
+  visibility: public
+factors:
+  effort: { levels: [low, medium, high, xhigh, max, default] }
+  language: { levels: [python, go] }
+  prompt: { levels: [neutral, none] }
+  model: { levels: [claude-haiku-5-5, claude-sonnet-5-5] }
+responses: [code_quality, token_efficiency, test_coverage, defect_rate, maintainability, idiomatic]
+tasks:
+  - source: bundled://rest-api-crud
+playpen:
+  runner: local
+  replicates: 3
+  timeout_minutes: 90   # exp-77's go/max needed >90 once; headroom only
+  stall_minutes: 25
+  max_turns: 200
+  prompts_dir: prompts
+design: { screening_resolution: 3, significance_threshold: 0.10 }
+promotion: { screening_to_trial: { p_value: 0.10 }, trial_to_production: { posterior_confidence: 0.80 } }
+evaluation: { enabled: true, model: opus-4.8 }

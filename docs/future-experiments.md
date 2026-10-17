@@ -41,6 +41,25 @@ bigger goes back to the user first.
 candidates (Nemotron 3.5 Bolt, LFM2.5-24B, Holo4-35B, …) — each needs a download + oMLX load check; one
 is picked after #4 frees the machine.
 
+## 0. exp-84 — Haiku 5.5 across the effort ladder  — QUEUED 2026-10-17
+
+`claude-haiku-5-5` × effort{low, medium, high, xhigh, max, default} × {python, go} on `rest-api-crud`,
+n=3 = 36 runs, isolated, exp-77's cells exactly. **Why:** Anthropic's cheapest model, at Luna 6's list
+price; vendor Terminal-Bench ~39% at max vs ~20% at default `medium`, so the dial is first-order.
+**Hypothesis:** unlike Opus/Sonnet, coverage is NOT guaranteed 1.00 — pass-proportion is live; cost
+< $0.05 a run except at max, where the >100K-prompt 5× tier bites. **Verified:** CLI 2.1.287 priced the
+id at `costBasis: unknown` (~40× list); 2.1.302 matches list. One-run smoke queued first. ~$5–15.
+
+## 0. exp-85 — GPT-6.1 Sol across the effort ladder (Codex, isolated)  — QUEUED 2026-10-17
+
+`gpt-6.1-sol` × effort{low, medium, high, xhigh, max, default} × {python, go}, n=3 = 36 runs — the same
+cells as exp-77 so 6.1 Sol vs Sonnet 5.5 (same $2/$10 list) is matched. `none` is not supported on 6.1
+Sol. **`default` is a check of the CODEX_HOME fix:** isolated, it must behave like `medium` (the
+documented default). **Pricing** added to `pricing.py` from OpenAI's page ($2 / cached $0.10 / $10;
+cache write $2.50); the >272K-prompt 2×/1.5× tier is NOT modelled — check per-request prompt size.
+**Hypothesis:** coverage 1.00; low cheaper than Sonnet 5.5's isolated $0.10–0.12. One-run smoke first.
+~$20–40.
+
 ## 0. exp-81 + exp-82 brazil-73 — finish the isolated Codex re-runs  — PAUSED (Codex usage limit), 2026-09-30
 
 exp-79/80 and exp-82's routine half are written up in past-experiments.md (exp-79..82). Left: **exp-81**

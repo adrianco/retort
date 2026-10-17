@@ -123,3 +123,14 @@ def test_real_terra_cell_reproduces_the_recorded_cost():
         cache_write_input_tokens=0, output_tokens=6_770,
     )
     assert cost == pytest.approx(0.1956, abs=0.001)
+
+
+def test_gpt61_sol_is_priced_with_its_own_halved_cache_rate():
+    # Unpriced, every exp-85 cell would report $0. Reusing gpt-6-sol's row would
+    # double the cached rate ($0.20 vs $0.10) — and cache reads dominate agentic runs.
+    from retort.pricing import estimate_openai_cost_usd
+    cost = estimate_openai_cost_usd(
+        "gpt-6.1-sol", input_tokens=1_000_000, cached_input_tokens=900_000,
+        output_tokens=10_000)
+    # 100K uncached @ $2 + 900K cached @ $0.10 + 10K out @ $10
+    assert cost == pytest.approx(0.20 + 0.09 + 0.10)

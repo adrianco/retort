@@ -65,6 +65,12 @@ OPENAI_PRICES: dict[str, TokenPrice] = {
     # 5.6-luna is the one featured cloud stack that does NOT saturate.
     "gpt-6-sol": TokenPrice(2.00, 0.20, 10.00),
     "gpt-6-luna": TokenPrice(0.10, 0.01, 0.50),
+    # GPT-6.1 Sol -- released 2026-09-29. Verified 2026-10-17 against
+    # developers.openai.com/api/docs/models/gpt-6.1-sol: $2 / cached $0.10 / cache
+    # write $2.50 / $10 -- cached input is HALF gpt-6-sol's, so do not reuse that
+    # row. Effort low/medium(default)/high/xhigh/max; `none` is NOT supported.
+    # NOT MODELLED: prompts >272K input tokens bill 2x input/cache, 1.5x output.
+    "gpt-6.1-sol": TokenPrice(2.00, 0.10, 10.00),
     # GPT-5.6
     "gpt-5.6-sol": TokenPrice(5.00, 0.50, 30.00),
     "gpt-5.6-terra": TokenPrice(2.50, 0.25, 15.00),
