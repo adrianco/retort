@@ -21,6 +21,26 @@ DWQ in 0%, at the same 16 GB. See [optimal-blog.md](../optimal-blog.md).
 
 ---
 
+## PLAN 2026-10-17 — run order for the next batch (autonomous; one experiment at a time)
+
+Chosen for **information per dollar**. Every claude/codex run is isolated (`agent_context=mcp-cleared`);
+CLI **2.1.302** (2.1.287 priced `claude-haiku-5-5` at `costBasis: unknown`, ~40× list — the Sonnet 5.5
+trap again; 2.1.302 matches list to 5 decimals). Soft budget for the batch: **~$200**; anything
+bigger goes back to the user first.
+
+| # | experiment | why now | est. |
+|---|---|---|---|
+| 1 | **finish exp-81 + exp-82 brazil-73** (resume) | completes the isolated Codex re-runs; started work | ~$50 |
+| 2 | **exp-84 Haiku 5.5 effort ladder** (exp-74/77 shape, 36 runs) | new model, Luna-6 price; vendor says effort doubles its Terminal-Bench — the dial is first-order | ~$5–15 |
+| 3 | **exp-85 GPT-6.1 Sol effort ladder** (low…max × py/go × 3) | new frontier version; needs `pricing.py` entry first (none ⇒ $0 cost) | ~$20–40 |
+| 4 | **exp-71 DWQ on the hard task** (local, 20 runs) | $0, long — overnight slot | $0 |
+| 5 | **Haiku 5.5 vs Luna 6 on the 13-language routine grid** | only if exp-84 shows Haiku clears routine — cheapest-stack question | ~$5 |
+| 6 | exp-70 Fable 5.1 13×2 grid | premium-tier featuring; ~$65 isolated — ask before spending | ~$65 |
+
+**Blocked:** Gemini 4 Argon — no Gemini CLI installed, no API key in env, no pricing entry. Local
+candidates (Nemotron 3.5 Bolt, LFM2.5-24B, Holo4-35B, …) — each needs a download + oMLX load check; one
+is picked after #4 frees the machine.
+
 ## 0. exp-81 + exp-82 brazil-73 — finish the isolated Codex re-runs  — PAUSED (Codex usage limit), 2026-09-30
 
 exp-79/80 and exp-82's routine half are written up in past-experiments.md (exp-79..82). Left: **exp-81**
