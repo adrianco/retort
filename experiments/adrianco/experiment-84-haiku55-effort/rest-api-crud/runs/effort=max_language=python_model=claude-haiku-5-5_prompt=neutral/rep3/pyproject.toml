@@ -1,0 +1,21 @@
+[build-system]
+requires = ["setuptools>=70"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "bookapi"
+version = "0.1.0"
+description = "REST API for managing a book collection, stored in SQLite"
+readme = "README.md"
+requires-python = ">=3.10"
+dependencies = ["Flask>=3.1,<4"]
+
+[project.optional-dependencies]
+test = ["pytest>=8"]
+
+[tool.setuptools]
+packages = ["bookapi"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+pythonpath = ["."]

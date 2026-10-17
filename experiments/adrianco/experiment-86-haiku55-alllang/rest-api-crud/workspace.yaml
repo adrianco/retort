@@ -1,0 +1,40 @@
+# Experiment 86 (rest-api-crud) — Haiku 5.5 at LOW effort across all 13 languages, ISOLATED. routine half: 13 languages at low, n=3.
+#
+# WHY. exp-84 put Haiku 5.5 at 1.00 coverage in all 36 ladder runs and made `low` its operating point:
+# $0.011-0.013 a routine run, ~9x below Sonnet 5.5 and ~28x below Opus 5.5 (both isolated), at 2-3x
+# Sonnet's wall-clock. Every featured stack carries the 13-language x 2-task grid; this is that grid.
+# Config copied from exp-79 (Opus 5.5's isolated grid) with the model swapped, so the two compare cell
+# for cell.
+#
+# EXPECTATION, recorded before the run: routine 1.00 in the mainstream languages; the hard task and
+# the niche languages (objc, swift, erlang, clojure) are where a small model may miss — pass-
+# proportion is the live response. Hard-task cost may jump: long brazil sessions can cross Haiku's
+# 100K-token prompt tier (5x) — check per-request prompt size before quoting a cost.
+#
+# CLI 2.1.302 (2.1.287 priced this id at ~40x list). Agent isolated (agent_context = mcp-cleared).
+experiment:
+  name: experiment-86-haiku55-alllang-rest-api-crud
+  visibility: public
+# The factor registry requires >= 2 levels per factor, so the held-constant factors
+# declare two and design.csv PINS the one actually run (the shape exp-46/48/56 use).
+# Only `language` genuinely varies here.
+factors:
+  language: { levels: [python, go, typescript, rust, java, clojure, erlang, elixir, csharp, c, cpp, swift, objc] }
+  prompt: { levels: [neutral, none] }                  # design pins neutral
+  model: { levels: [claude-haiku-5-5, claude-opus-5] }  # design pins 5.5
+  effort: { levels: [low, default] }                   # design pins low
+responses: [code_quality, token_efficiency, test_coverage, defect_rate, maintainability, idiomatic]
+tasks:
+  - source: bundled://rest-api-crud
+playpen:
+  runner: local
+  # n=3: pass-proportion is the response on this half of the grid, and 3 is the
+  # screening standard every featured stack's routine numbers were built from.
+  replicates: 3
+  timeout_minutes: 60
+  stall_minutes: 25
+  max_turns: 200
+  prompts_dir: prompts
+design: { screening_resolution: 3, significance_threshold: 0.10 }
+promotion: { screening_to_trial: { p_value: 0.10 }, trial_to_production: { posterior_confidence: 0.80 } }
+evaluation: { enabled: true, model: opus-4.8 }

@@ -1,0 +1,14 @@
+run,language,model,prompt,effort
+0,python,claude-haiku-5-5,neutral,low
+1,go,claude-haiku-5-5,neutral,low
+2,typescript,claude-haiku-5-5,neutral,low
+3,rust,claude-haiku-5-5,neutral,low
+4,java,claude-haiku-5-5,neutral,low
+5,clojure,claude-haiku-5-5,neutral,low
+6,erlang,claude-haiku-5-5,neutral,low
+7,elixir,claude-haiku-5-5,neutral,low
+8,csharp,claude-haiku-5-5,neutral,low
+9,c,claude-haiku-5-5,neutral,low
+10,cpp,claude-haiku-5-5,neutral,low
+11,swift,claude-haiku-5-5,neutral,low
+12,objc,claude-haiku-5-5,neutral,low

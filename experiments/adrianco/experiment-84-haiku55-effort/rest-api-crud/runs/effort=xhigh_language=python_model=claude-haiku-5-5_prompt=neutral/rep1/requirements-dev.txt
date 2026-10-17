@@ -1,0 +1,3 @@
+# Runtime needs only the Python standard library (3.10+).
+# Development and test dependencies:
+pytest>=8

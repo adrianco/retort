@@ -60,14 +60,22 @@ Rollback: `git checkout 261a4efb90` + the same install. exp-71's agent label is 
 candidates (Nemotron 3.5 Bolt, LFM2.5-24B, Holo4-35B, …) — each needs a download + oMLX load check; one
 is picked after #4 frees the machine.
 
-## 0. exp-84 — Haiku 5.5 across the effort ladder  — QUEUED 2026-10-17
+## 0. exp-84 — Haiku 5.5 across the effort ladder  — COMPLETE 2026-10-17 (write-up pending)
 
-`claude-haiku-5-5` × effort{low, medium, high, xhigh, max, default} × {python, go} on `rest-api-crud`,
-n=3 = 36 runs, isolated, exp-77's cells exactly. **Why:** Anthropic's cheapest model, at Luna 6's list
-price; vendor Terminal-Bench ~39% at max vs ~20% at default `medium`, so the dial is first-order.
-**Hypothesis:** unlike Opus/Sonnet, coverage is NOT guaranteed 1.00 — pass-proportion is live; cost
-< $0.05 a run except at max, where the >100K-prompt 5× tier bites. **Verified:** CLI 2.1.287 priced the
-id at `costBasis: unknown` (~40× list); 2.1.302 matches list. One-run smoke queued first. ~$5–15.
+36/36 completed, **coverage 1.00 in every run** — the hypothesis that pass-proportion would be live for a
+small model was WRONG; routine saturates even Haiku. **`low` is the operating point:** $0.011 python /
+$0.013 go a run (54 s / 98 s), ~9× below Sonnet 5.5 and ~28× below Opus 5.5 (both isolated), at 2–3×
+Sonnet's wall-clock. `default` (= medium) costs ~2× low for nothing. Max is tame next to the big models:
+$0.29–0.47 and 7–10 min a run (Sonnet 5.5: $5–18, 26–63 min). No request crossed the 100K prompt tier
+at low. CLI 2.1.302, isolated.
+
+## 0. exp-86 — Haiku 5.5 at LOW across the 13×2 grid  — QUEUED 2026-10-17
+
+The featurable grid for the cheapest Claude: 13 languages × {rest-api-crud, brazil} at low, **n=3 on
+both halves** (Opus 5.5 used n=1 on brazil as a cost screen; Haiku is ~30× cheaper) = 78 runs, ~$8.
+Copied from exp-79 (Opus 5.5's isolated grid) with the model swapped — cell for cell. **Hypothesis:**
+routine 1.00 in the mainstream languages; the hard task and niche languages are where a small model
+misses. Check brazil per-request prompt size against the 100K tier (5×) before quoting its cost.
 
 ## 0. exp-85 — GPT-6 Luna at LOW across all 13 languages (Codex, isolated)  — QUEUED 2026-10-17
 
