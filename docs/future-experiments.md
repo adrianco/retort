@@ -37,6 +37,17 @@ bigger goes back to the user first.
 | 5 | **Haiku 5.5 vs Luna 6 on the 13-language routine grid** | only if exp-84 shows Haiku clears routine — cheapest-stack question | ~$5 |
 | 6 | exp-70 Fable 5.1 13×2 grid | premium-tier featuring; ~$65 isolated — ask before spending | ~$65 |
 
+**Codex constraints found 2026-10-17 (block #1 and #3 for now):**
+- The Codex runs bill the **ChatGPT subscription**, not an API key: the limit message is "You've hit
+  your usage limit … try again at 11:48 PM" (≈5 h windows). One brazil run exhausted a fresh window,
+  so exp-81's 35 brazil runs need many windows unless the plan is upgraded or credits are bought —
+  the user's call. Resume opportunistically after each reset.
+- **codex-cli 0.156.1 rejects `gpt-6.1-sol`**: "not supported when using Codex with a ChatGPT
+  account" (+ "Model metadata … not found"). `npx @openai/codex@0.163.0` gets past that check and only
+  hits the usage limit, so 0.163.0 probably supports it — **unproven until a run completes**. Upgrading
+  the Homebrew cask changes the CLI for exp-81's pending resumes too, so finish or explicitly split
+  those before upgrading. exp-85's smoke recorded a 2.9 s crash for this reason, not a model result.
+
 **Blocked:** Gemini 4 Argon — no Gemini CLI installed, no API key in env, no pricing entry. Local
 candidates (Nemotron 3.5 Bolt, LFM2.5-24B, Holo4-35B, …) — each needs a download + oMLX load check; one
 is picked after #4 frees the machine.
