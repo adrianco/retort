@@ -69,47 +69,6 @@ earlier hermes runs peaked above it, max 147,628).
 candidates (Nemotron 3.5 Bolt, LFM2.5-24B, Holo4-35B, …) — each needs a download + oMLX load check; one
 is picked after #4 frees the machine.
 
-## 0. exp-84 — Haiku 5.5 across the effort ladder  — COMPLETE 2026-10-17 (write-up pending)
-
-36/36 completed, **coverage 1.00 in every run** — the hypothesis that pass-proportion would be live for a
-small model was WRONG; routine saturates even Haiku. **`low` is the operating point:** $0.011 python /
-$0.013 go a run (54 s / 98 s), ~9× below Sonnet 5.5 and ~28× below Opus 5.5 (both isolated), at 2–3×
-Sonnet's wall-clock. `default` (= medium) costs ~2× low for nothing. Max is tame next to the big models:
-$0.29–0.47 and 7–10 min a run (Sonnet 5.5: $5–18, 26–63 min). No request crossed the 100K prompt tier
-at low. CLI 2.1.302, isolated.
-
-## 0. exp-86 — Haiku 5.5 at LOW across the 13×2 grid  — COMPLETE 2026-10-18 (recover + write-up pending)
-
-**76/78 pass** — routine 38/39 (csharp 2/3), brazil 38/39 (c 2/3), i.e. within one run per half of
-Opus 5.5's isolated grid (exp-79). Routine $0.011–0.085 a run (8–30× below Opus 5.5); brazil ~$0.30 a
-run — peak context reached 153K, **crossing Haiku's 100K tier (5×)**, as predicted. Total ≈ $12.
-Hypothesis that a small model would miss niche languages: WRONG — it cleared all 13.
-
-## 0. exp-85 — GPT-6 Luna at LOW across all 13 languages (Codex, isolated)  — COMPLETE 2026-10-18 (write-up pending)
-
-**33/39 after recovery** (`retort diagnose`: all 7 original failures GENUINE; one passed on rescore).
-Misses: csharp 1, elixir 1, erlang 1, **objc 2, swift 2** — the .NET/BEAM/Apple tail. Every pass at
-coverage 1.00; ~$0.006–0.009 and ~1 min a run. Several Apple-language agents wrote their own test
-scripts that pass when run directly but not via the language's standard test command (counted as
-genuine). Codex's `workspace-write` sandbox also blocked binding a local port for HTTP tests.
-Did NOT hit the subscription limit. codex-cli 0.163.0.
-
-## 0. exp-81 + exp-82 brazil-73 — finish the isolated Codex re-runs  — exp-81 brazil-60 RUN 2026-10-18: 3/11 after recovery (8 fail the factual gate — answers wrong, code complete), as in the original exp-60  — PAUSED (Codex usage limit), 2026-09-30
-
-**Rescoped 2026-10-17 (Codex: low effort, Luna/Terra only):** exp-81 keeps only **brazil-60 = Terra at
-`low`, 11 languages, n=1** — no longer like-for-like with exp-60 (which ran at the owner's configured
-effort), so it measures isolated Terra-at-low on the hard task. brazil-57 (5.6 Luna — superseded by
-Luna 6), -58 (Sol) and -59 (Terra-ultra) were removed; none had recorded a run. exp-82 brazil-73 (Astra)
-stops at the 5 of 6 runs it has.
-
-exp-79/80 and exp-82's routine half are written up in past-experiments.md (exp-79..82). Left: **exp-81**
-(`experiment-81-codex56-isolated/brazil-57`, `-58`, `-59`, `-60` — GPT-5.6 Luna/Sol/Terra, 35 runs)
-and **exp-82 brazil-73** (5 of 6 runs). Both stopped cleanly on the Codex usage limit with nothing
-lost. Resume each sub-dir with
-`retort run --phase screening --config workspace.yaml --design design.csv --resume`, one at a time, then `retort recover` + `aggregate` and extend
-the exp-79..82 write-up. Billed against the OpenAI API key, not a subscription.
-
-
 ## 0. RESOLVED — Opus 5.5 completes the 13×2 grid and is now FEATURED  — 2026-09-23
 
 **46/46, coverage 1.00 in every cell.** Routine n=3 on the 11 remaining languages, hard n=1 on all

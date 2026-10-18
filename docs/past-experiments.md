@@ -2229,7 +2229,13 @@ first-turn prompt ~19.6 K (originals 48-52 K).
 * master.db pools these with the originals (each row keeps its `agent_context` label), so Opus 5.5's
   hard-task board cells now average exp-75 with exp-79's inflated CLI-2.1.284 costs.
 
-**Still to run:** exp-81 (35 runs) and exp-82 brazil-73 (5 runs) — see future-experiments.md.
+**Finished 2026-10-17/18 under a narrower Codex scope.** The user restricted Codex to `low` effort and
+Luna/Terra models (Codex bills the ChatGPT subscription; one brazil run used a whole ~5 h window), so
+exp-81 was cut to **brazil-60 = Terra at `low`, 11 languages** — no longer like-for-like with exp-60,
+which ran at the owner's configured effort; brazil-57/58/59 (5.6 Luna, Sol, Terra-ultra) were removed
+before any run. **brazil-60: 3/11 after recovery** — 8 complete the spec (coverage ≈1.0) but fail the
+factual gate (answers wrong), the same failure mode as the original exp-60, so isolation did not
+change it. **exp-82 brazil-73 (Astra): 5/5 completed** of 6 (stopped there under the new scope).
 
 ## exp-83 — Dave Farley's own ATDD skill vs the neutral prompt on brazil  — COMPLETE, 2026-10-04
 
@@ -2344,3 +2350,55 @@ master.db column.
   design on a task Opus 5.5 does not clear, or on a weaker model where exp-19 saw ATDD hurt.
 * One reviewer, from the course itself, grading against the course's criteria: `atdd_review`
   measures conformance to Dave's method, by design — not general test quality.
+
+## exp-84 — Haiku 5.5 across the effort ladder  — COMPLETE, 2026-10-17
+
+`claude-haiku-5-5` (released 2026-10-07) × effort{low, medium, high, xhigh, max, default} × {python, go}
+on `rest-api-crud`, n=3, isolated — exp-77's cells exactly. **36/36 at coverage 1.00.** The
+pre-registered hypothesis — that a small model would make pass-proportion a live response — was
+**wrong**: the routine task saturates even Haiku.
+
+| effort | python $ / s | go $ / s |
+|---|---:|---:|
+| **low** | **$0.011 / 54 s** | **$0.013 / 98 s** |
+| medium | $0.020 / 102 s | $0.021 / 98 s |
+| default (= medium) | $0.022 / 122 s | $0.022 / 99 s |
+| high | $0.029 / 146 s | $0.035 / 160 s |
+| xhigh | $0.056 / 307 s | $0.058 / 255 s |
+| max | $0.288 / 445 s | $0.472 / 596 s |
+
+**`low` is the operating point** — ~9× below Sonnet 5.5 and ~28× below Opus 5.5 (both isolated) at 2–3×
+Sonnet's wall-clock. Max is tame next to the large models ($0.29–0.47, 7–10 min vs Sonnet 5.5's $5–18,
+26–63 min). **Harness trap caught first:** CLI 2.1.287 did not know the id and priced it at
+`costBasis: unknown`, ~40× list; 2.1.302 matches list to 5 decimals.
+
+## exp-85 — GPT-6 Luna at low across all thirteen languages (routine)  — COMPLETE, 2026-10-18
+
+Codex, isolated (fresh per-run `CODEX_HOME`), codex-cli 0.163.0. Replaced a planned GPT-6.1 Sol ladder
+after the user restricted Codex to low effort + Luna/Terra (and codex-cli 0.156.1 rejected
+`gpt-6.1-sol` on a ChatGPT account). **33/39 after `retort recover`** — `diagnose` classified all 7
+original failures GENUINE (one then passed on rescore). Misses are the language tail: **csharp 1,
+elixir 1, erlang 1, objc 2, swift 2**; every pass at coverage 1.00. **$0.34 for all 39 runs** (~$0.009
+a run, 71 s). Two observed causes: Apple-language agents wrote their own test scripts that pass when run
+directly but not through the language's standard test command; and Codex's `workspace-write` sandbox
+refused to bind a local port, so HTTP integration tests could not run.
+
+## exp-86 — Haiku 5.5 at low across all thirteen languages, both tasks  — COMPLETE, 2026-10-18
+
+Copied cell for cell from exp-79 (Opus 5.5's isolated grid), model swapped; n=3 on both halves.
+**76/78** — routine 38/39 (csharp 2/3), brazil 38/39 (c 2/3). Opus 5.5 (exp-79) was 39/39 + 13/13.
+
+| | Haiku 5.5 low | Opus 5.5 low (exp-75 / exp-79) |
+|---|---:|---:|
+| routine, per run | **$0.025**, 118 s | $0.51 / $0.47, 90 / 118 s |
+| brazil, per run | **$0.33**, 472 s | $1.92 / $2.86, 367 / 711 s |
+| total | $13.81 for 78 runs | |
+
+* **Routine 8–30× cheaper than Opus 5.5 by language** ($0.011 rust/go … $0.085 c), similar wall-clock in
+  the mainstream languages, ~1.5× slower in erlang/c.
+* **Brazil 6–9× cheaper** but no faster. Its peak context reached **226 K**, so long sessions cross Haiku's
+  **100 K-prompt tier (5×)** — as pre-registered; elixir ($0.71) and erlang ($0.54) are the dearest cells.
+* **Hypothesis wrong again in Haiku's favour:** the niche languages did not floor; the two misses are
+  in csharp and c.
+* Makes Haiku 5.5 the leading candidate for the **cheapest featured stack** on both tasks.
+
