@@ -327,6 +327,12 @@ KNOWN_NONFEATURED = {
         "35/36 on the routine task across the effort ladder in python and go; isolated (exp-78) "
         "low is ~$0.10 a run. Not featured: 2 languages on 1 task, and Haiku 5.5 (featured) clears "
         "the same cells at 1.00 for ~9x less.",
+    "mlxlocal/mlx-community--Qwen3.8-27B-4bit": "Qwen3.8-27B dense 4-bit (exp-87): screened, not "
+        "featured -- wrote complete, well-tested code then never declared itself done (60-min wall on "
+        "python). Its shorter-trace fine-tune ThinkingCap (exp-88) is the build that terminates.",
+    "mlxlocal/bottlecapai--ThinkingCap-Qwen3.8-27B-MLX-4bit-DWQ": "ThinkingCap-Qwen3.8-27B 4-bit DWQ "
+        "(exp-88): 1.00 on python/go/typescript at n=1, 1.5-3.6x slower than the Qwen 80B at half the "
+        "memory (21 GB). Being deepened to n=3 -- feature only if it holds 1.00 there.",
     "mlxlocal/devstral": "Devstral (exp-23): evaluated, not featured",
     "gpt-5.6-sol": "GPT-5.6 Sol (exp-58/59): evaluated, not featured",
     "opus": "legacy bare 'opus' (exp-1/2)",
