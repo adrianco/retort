@@ -187,7 +187,9 @@ whether 5.1 holds that); time and cost come free.
 **What it answers:** whether 5.1 belongs in the featured table, at what price, and — because 5.0 has
 the same grid — the cost question §2 below asks, on 26 cells instead of one.
 
-## 1. exp-71 — does DWQ's stall-elimination survive the HARD task?  — QUEUED 2026-10-17, $0
+## 1. exp-71 — does DWQ's stall-elimination survive the HARD task?  — RUNNING as an n=1 SCREEN, 2026-10-18, $0
+
+**Cut from n=5 to a 1-run screen per cell (user, 2026-10-18: never high reps on a slow run of a new stack)** — ~40 min a cell on the just-upgraded Hermes v0.22.2, so n=5 was ~13 h. 4 cells × 1 = 4 runs; deepen only a cell whose result is interesting. Plain 4-bit python already failed twice in seconds by emitting a tool call as text (`<function=read_file>`) that Hermes treats as a final answer — a known 4-bit failure mode, also seen on 0.20.5 in exp-69, not a regression.
 
 Set up at `experiments/adrianco/experiment-71-dwq-hard-task/brazil/` from exp-69's workspace + stacks.yaml (unchanged but the task, languages, 90-min timeout and oMLX log path). Verification: exp-69's presets were smoke-verified then; the first live run's provenance.json is checked for effective context/sampling/Hermes version before the rest proceed.
 
