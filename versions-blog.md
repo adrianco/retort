@@ -1,6 +1,6 @@
 # The Unit of Choice Is Model × Thinking Level, Not Model
 
-*Published 2026-07-25 · updated 2026-10-04 — Adrian Cockcroft*
+*Published 2026-07-25 · updated 2026-10-18 — Adrian Cockcroft*
 
 For a year the question has been "which model should I use?" That question is underspecified. Every frontier model now has a **thinking-level** dial, and on the evidence below the dial moves cost more than the model choice does — while moving the result not at all.
 
@@ -8,7 +8,7 @@ One task (a "bookshop" REST API), one prompt, one judge throughout. First four C
 
 ## Update 2026-09-24: two model generations later, the finding has only got stronger
 
-This page's original sweep spanned **16×** across four Claude versions. Three later sweeps have held the conclusion and widened the number.
+This page's original sweep spanned **16×** across four Claude versions. Five later sweeps have held the conclusion and widened the number, most recently Sonnet 5.5 (exp-77) and Haiku 5.5 (exp-84, every level 1.00, `max` 25–36× the cost of `low`).
 
 **Opus 5.5 (exp-74, six levels × two languages, n=3 a cell) is the cleanest version of this experiment yet, because it varies only the dial.** All 36 runs scored 1.00. Python: **\$0.38 and 35 s at `low`, against \$10.26 and 2017 s at `max`** — **27× the money and 58× the wall-clock for an identical result.**
 
@@ -28,6 +28,8 @@ This page's original sweep spanned **16×** across four Claude versions. Three l
 **`default` moved between releases.** On Opus 5 it behaved like `high` (270 s); on 5.5 it lands on `medium` (83 s). Anyone who never passes `--effort` is on a different rung than they were, without having changed anything — which is the sharpest possible statement of this page's thesis: **the dial is part of the stack, and a version bump can move it under you.**
 
 **The caveat, stated rather than buried:** the Claude Code CLI moved 2.1.197 → 2.1.280 between the Opus 5 baseline and the 5.5 run, and the CLI *is* the agent here — so cross-model comparisons on this page are *stack* results, not pure model results. Evidence against a plain harness explanation: the per-level saving runs −82 s, −75 s, −248 s, −41 s, **+509 s**. It changes sign, which a constant overhead cannot.
+
+**Version changes now arrive faster than models, and they break pricing before they break code (2026-10-18).** Three tool releases in three weeks would have corrupted a result if a one-run smoke test had not caught them first: Claude Code 2.1.282 billed Sonnet 5.5 at ~1.9× its list price and 2.1.287 billed Haiku 5.5 at ~40× (both reported `costBasis: unknown`); codex-cli 0.156.1 refused GPT-6.1 Sol on a ChatGPT account; and Hermes v0.22.2 shipped without a dependency on Python 3.11, so every tool call failed. The policy here is now to run the latest version of everything and record it, and to treat a new release as unverified until a smoke run prices at list and completes.
 
 **A second confound, found 2026-10-04:** the Opus 5.5 ladder above ran with the agent inheriting the machine owner's MCP servers, plugins and instructions, while the Opus 5 baseline was clean. Isolating the agent lowered cost by 17–49% for every other model re-run (39% on Sonnet 5.5, measured head-to-head), so if anything 5.5's advantage at `low` is understated here. The isolated Opus 5.5 re-run (exp-79) can't settle it: it ran on a newer CLI (2.1.284) that wrote 59–77% more output for the same work, and later isolated runs on 2.1.287 went back to the original volume. One more instance of the point this page makes: the agent version is part of the stack, and it moves the bill.
 

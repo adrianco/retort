@@ -1,6 +1,6 @@
 # How Reliable Is Your AI Coding Stack? I Measured It
 
-*Published 2026-06-11 · updated 2026-10-04 — Adrian Cockcroft*
+*Published 2026-06-11 · updated 2026-10-18 — Adrian Cockcroft*
 
 ---
 
@@ -8,7 +8,15 @@ Every few weeks a new frontier model tops the leaderboards, and the implicit adv
 
 Those are the variables that decide a real project. So I built **[retort](https://github.com/adrianco/retort)** to measure them properly — with statistical Design of Experiments, the same technique you'd use to tune a manufacturing process. Vary the factors you care about (here: programming **language** × **model version** × **tooling** — and, newly, the **coding agent**, the **prompt methodology**, and **local self-hosted models**), run a factorial grid on a real task, score every cell, and let the analysis tell you which factors actually matter. And because retort accumulates results across a shared database, each new model just gets *added* to what's already known — the point of the project is to measure how each new release behaves without re-running everything. It now spans two tasks, **thirteen** languages, the Claude Sonnet/Opus lines (plus a fast-mode variant, the tier-above Fable 5, and the newest Opus 5), **OpenAI's Codex line (GPT-5.6)**, and **local models running for free on a laptop**.
 
-## What's new (2026-10-04)
+## What's new (2026-10-18)
+
+- **Haiku 5.5 is now the stack to start with, and it took two days to earn it.** Anthropic's cheapest model scored 1.00 in all 36 runs of the effort ladder, and then **76 of 78 across all thirteen languages on both tasks**. It missed one C# routine run and one C hard run. Opus 5.5 managed all 52 of its runs. On routine work Haiku costs **$0.01–0.09 a run, 8–30× less than Opus 5.5**; on the hard task about **$0.33, 6–9× less**. It is now the cheapest qualifying stack in 12 of 13 routine cells and 10 of 13 hard ones, and it retires Sonnet 5 and GPT-5.6 Luna from the recommendations.
+- **It is cheap, not fast.** On the hard task Haiku takes about eight minutes a cell, no quicker than Opus 5.5. Its long sessions also run past 100,000 tokens of context, where Haiku's price per token rises fivefold, so its hard-task bill is not its routine price scaled up.
+- **Low effort is the right setting for Haiku too.** That makes six models whose effort dial I've now swept, and every sweep found the top of the dial buying nothing the tests can see. On Haiku, `max` cost 25–36× as much as `low` for the same 1.00.
+- **GPT-6 Luna across all thirteen languages: 33 of 39, at under a cent a run.** It passes everything mainstream and misses in C#, Elixir, Erlang, Objective-C and Swift. Several of those misses were tests that the agent could run by hand but that didn't run through the language's normal test command.
+- **New releases keep breaking the tooling before they break the model.** The Claude Code CLI I had installed didn't recognise Haiku 5.5 and billed it at about 40× its list price. The Codex CLI refused GPT-6.1 Sol outright. An upgrade of the local Hermes agent shipped with a dependency missing on Python 3.11, so every tool call failed. Each one would have scored as a model failure, or as a wildly wrong cost, if a one-run smoke test hadn't caught it first.
+
+### Earlier (2026-10-04)
 
 - **Sonnet 5.5 is two to three times cheaper than Opus 5.5 on routine work, and just as reliable** — up to `high` effort. Across the whole effort ladder in Python and Go (36 runs), it passed 35; the one miss was a `max` run that hit the 90-minute timeout. From `low` to `high` it costs **$0.18–$0.29 a run against Opus 5.5's $0.38–$0.86**. At `max` it flips: dearer *and* slower than Opus 5.5 `max`, at 126–165 turns. It isn't on the board yet because it has two languages on one task.
 - **The agent under test had been carrying the machine owner's setup, and that inflated costs.** Until 2026-09-29 every Claude Code run inherited my MCP servers, plugins and personal instructions: about 400 extra tools and a first prompt up to 2.5× the size it needed to be. Measured head-to-head on Sonnet 5.5, isolating the agent cut **tokens 43%, cost 39% and wall-clock 36%, with pass rate and coverage unchanged**. Re-running the affected experiments isolated made Fable 5.1 49% cheaper and the GPT-6 runs 17–44% cheaper, and it withdrew the "Fable 5.1 costs more than 5.0" caution below.
@@ -68,9 +76,10 @@ Here is the full board, every model measured on the two tasks — **pass-proport
 | Stack | Serving | Easy: pass | Easy: $ | Hard: pass | Hard: $ |
 |---|---|---:|---:|---:|---:|
 | Claude Opus 5.5 | cloud | **1.00 (126)** | $1.00 | **1.00 (38)** | $2.57 |
+| Claude Haiku 5.5 | cloud | 0.99 (75) | $0.05 | 0.97 (39) | $0.33 |
 | Claude Opus 5 | cloud | **1.00 (47)** | $3.23 | **1.00 (23)** | $26.48 |
 | Claude Fable 5 | cloud | **1.00 (36)** | $1.58 | **1.00 (21)** | $10.47 |
-| GPT-5.6 Terra (codex) | cloud | **1.00 (31)** | $0.24 | 0.79 (38) | $1.18 |
+| GPT-5.6 Terra (codex) | cloud | **1.00 (31)** | $0.24 | 0.65 (49) | $1.00 |
 | GPT-5.6 Luna (codex) | cloud | 0.67 (9) | $0.09 | 0.33 (6) | $0.17 |
 | Claude Sonnet 5 | cloud | **1.00 (15)** | $1.10 | 0.93 (15) | $7.64 |
 | Claude Opus 4.8 | cloud | 0.98 (65) | $0.93 | 0.59 (44) | $3.27 |
@@ -404,13 +413,14 @@ The lesson is methodological, and it's why the harness exists: **measure where t
 
 ## So how should you actually choose?
 
-The data suggests a simple decision procedure:
+The data suggests a simple decision procedure. The live, regenerated version, with exact per-language picks, is the [optimal stack page](optimal-blog.md).
 
 1. **Classify the task.** Is it routine (CRUD, glue, well-trodden patterns) or genuinely hard (novel domain, many interacting requirements)?
-2. **Easy task → optimize for cost/speed.** Almost every model fully implements it, so take the cheapest fast one — here that's Opus-4.7, with 4.6 and Sonnet close behind. Paying for the newest model is wasted.
-3. **Hard task → pay for reliability if you need it right.** Opus-4.8 was the only model that got the hard task completely right every time. If a half-chance of a subtly-incomplete implementation is unacceptable, that premium is the cost of trust.
-4. **Pick the language for quality, not the model.** If you have latitude, Go/Java/Rust score top marks for code quality on these tasks — but check *reliability* for your specific task, because that's where languages diverge.
-5. **Don't add tooling for its own sake.** It cost time and money here and changed nothing else.
+2. **Easy task → optimize for cost.** Almost every current model fully implements it, so take the cheapest one that clears your language. Today that's **Haiku 5.5 at low effort**, about a cent a run in twelve of thirteen languages. Paying for a bigger model buys nothing.
+3. **Hard task → decide what a miss costs you.** **Haiku 5.5** cleared 38 of 39 hard runs at about $0.33 each. **Opus 5.5** cleared all 26 at several times the price. If one subtly-incomplete result in forty is unacceptable, the premium is the cost of trust.
+4. **Turn the effort dial down.** Pass `low` unless `low` fails your cell. Six sweeps agree that the top of the dial costs multiples and buys nothing measurable.
+5. **Run the agent clean.** Your own MCP servers, plugins and instruction files rode along into every run here until I stripped them out, and they cost about 40% more tokens for identical results.
+6. **Don't add tooling for its own sake.** It cost time and money here and changed nothing else.
 
 ## How it's measured
 

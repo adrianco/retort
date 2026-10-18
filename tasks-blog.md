@@ -1,6 +1,6 @@
 # The Tasks: What Gets Built, and How Differently a Run Can Pass
 
-*Published 2026-07-30 · updated 2026-10-04 — Adrian Cockcroft*
+*Published 2026-07-30 · updated 2026-10-18 — Adrian Cockcroft*
 
 What retort actually asks an agent to build, and — for each task — the fastest and the slowest run that fully passed. Both mean shortest/longest `duration_seconds` among runs scoring `requirement_coverage == 1.0`, restricted to runs whose **agent log was archived**, since a record with no log can't be shown.
 
@@ -73,6 +73,8 @@ It is hard for reasons that have nothing to do with algorithms: team names carry
 > ### ⚠️ Update 2026-09-24: this task no longer separates frontier models — and that is a finding about the task
 >
 > Measured at low effort, **GPT-6 Astra, Opus 5, Opus 5.5 and GPT-5.6 Terra all score 1.00 here.** They differ only in money and clock: Terra ~\$0.39 a run, Opus 5.5 \$1.33–\$2.73, Astra ~\$2.37, Opus 5 ~\$7.59. Opus 5.5 clears **all thirteen languages** on it.
+>
+> **Update 2026-10-18: the saturation now reaches down to the cheapest Claude.** Haiku 5.5 at `low` cleared **38 of 39** brazil runs across all thirteen languages (exp-86), at about \$0.33 a run. On the cloud side this task now separates almost nothing but price and clock — which makes a harder task more urgent, not less.
 >
 > **The task has not become easy — it has become unable to discriminate at the top of the market.** It still floors every local stack: the 80B scores **0.00** (verified config-invariant — it reaches 11 of 12 capabilities and never the twelfth), and the 35B **0.25**. So it remains a live measurement for local models and a saturated one for frontier cloud models.
 >
@@ -230,27 +232,27 @@ One pattern worth flagging inside this experiment: the three slowest passing run
 
 ## Cheapest passing configuration, per language, per task
 
-Every row below scores `requirement_coverage = 1.00`. This is the cheapest stack *measured so far* that fully implements the spec in that language — not the only one that passes, and at n=1 for most codex cells.
+Every row below scores `requirement_coverage = 1.00`. This is the cheapest stack *measured so far* that fully implements the spec in that language — not the only one that passes. **Rebuilt 2026-10-18 from the same routing data as [`optimal.json`](optimal.json)**, rather than maintained by hand: the hand version had drifted to recommend stacks the generated routing no longer chose.
 
 | language | bookshop — stack | $ | min | brazil — stack | $ | min |
 |---|---|---:|---:|---|---:|---:|
-| typescript | Terra `default` | 0.22 | 1.8 | Terra `default` | **0.15** | 1.2 |
-| rust | Terra `default` | 0.14 | 1.6 | Terra `default` | 0.37 | 3.3 |
-| python | Luna `default` | **0.06** | 3.8 | Terra `high` | 0.31 | 4.1 |
-| go | Luna `default` | 0.08 | 2.0 | Terra `low` | 0.39 | 3.5 |
-| c | Terra `default` | 0.26 | 2.9 | Terra `default` | 0.40 | 4.5 |
-| cpp | Terra `default` | 0.26 | 2.7 | Terra `default` | 0.33 | 5.4 |
-| csharp | Terra `default` | 0.26 | 4.3 | Terra `default` | 1.36 | 11.6 |
-| java | Terra `default` | 0.38 | 3.5 | Terra `default` | 0.49 | 5.0 |
-| clojure | Terra `default` | 0.33 | 2.7 | Terra `default` | 0.57 | 6.9 |
-| erlang | Terra `default` | 0.34 | 3.3 | Terra `default` | 0.49 | 4.6 |
-| elixir | Terra `default` | 0.42 | 4.5 | Terra `default` | 0.67 | 6.1 |
-| swift | Opus 4.8 `default` | 1.25 | 5.2 | Fable 5 `default` | 9.24 | 15.9 |
-| objc | Opus 4.8 `default` | 1.52 | 5.5 | Fable 5 `default` | **13.30** | 23.5 |
+| typescript | Haiku 5.5 `low` | **0.01** | 0.9 | Haiku 5.5 `low` | 0.16 | 6.0 |
+| rust | Haiku 5.5 `low` | 0.01 | 1.0 | Haiku 5.5 `low` | **0.14** | 5.1 |
+| python | Haiku 5.5 `low` | 0.01 | 1.0 | Haiku 5.5 `low` | 0.17 | 5.8 |
+| go | Haiku 5.5 `low` | 0.01 | 1.2 | Terra `low` | 0.39 | 3.5 |
+| c | Haiku 5.5 `low` | 0.09 | 5.1 | Terra `default` | 0.57 | 5.5 |
+| cpp | Haiku 5.5 `low` | 0.03 | 2.2 | Haiku 5.5 `low` | 0.38 | 8.4 |
+| csharp | Terra `default` | 0.26 | 4.3 | Haiku 5.5 `low` | 0.24 | 6.4 |
+| java | Haiku 5.5 `low` | 0.02 | 1.5 | Haiku 5.5 `low` | 0.34 | 7.4 |
+| clojure | Haiku 5.5 `low` | 0.01 | 1.6 | Haiku 5.5 `low` | 0.28 | 8.2 |
+| erlang | Haiku 5.5 `low` | 0.04 | 3.8 | Haiku 5.5 `low` | 0.54 | 12.0 |
+| elixir | Haiku 5.5 `low` | 0.01 | 1.4 | Haiku 5.5 `low` | 0.71 | 12.7 |
+| swift | Haiku 5.5 `low` | 0.02 | 2.2 | Haiku 5.5 `low` | 0.25 | 7.1 |
+| objc | Haiku 5.5 `low` | 0.04 | 3.1 | Haiku 5.5 `low` | 0.28 | 7.4 |
 
-Two things stand out. **A codex tier is cheapest in 11 of 13 languages on both tasks** — the Claude entries survive only for Swift and Objective-C, and only because Terra has never been run on them (their toolchain was broken on this host until 2026-08-01, so those two cells are a gap, not a verdict). And **the hard task costs remarkably little more than the easy one** on the cheap stacks: TypeScript is *cheaper* on brazil (\$0.15) than on bookshop (\$0.22), because the routine task's floor is dominated by fixed overhead rather than by the work.
+Two things stand out. **Haiku 5.5 at `low` is cheapest in 12 of 13 languages on the routine task and 11 of 13 on the hard one** (exp-84/86); Terra keeps C# routine, where Haiku passed 2 of 3, and Go and C on the hard task. **Cheapest is not fastest:** on brazil Haiku takes 5–13 minutes a cell, where the cloud record is under 3, and its long sessions cross a 100K-token prompt tier that bills at 5×.
 
-The Apple pair is the outlier by two orders of magnitude — \$13.30 for Objective-C on brazil against \$0.15 for TypeScript. That gap is a language-and-model artifact, not a difficulty one: the same spec, the same judge.
+The Apple pair stopped being an outlier. Objective-C on brazil used to cost \$13.30 because only Fable 5 had been run on it; Haiku 5.5 clears it for \$0.28. That gap was a which-model-got-measured artifact, not a difficulty one.
 
 ## Runtime: what the produced programs actually cost to *run*
 

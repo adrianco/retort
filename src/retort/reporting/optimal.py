@@ -80,6 +80,20 @@ FEATURED_STACKS = [
         "pass_bar": 1.00,
     },
     {
+        # exp-84/86: the cheapest Claude, featured 2026-10-18. 76/78 on the 13x2 grid at
+        # effort=low, n=3 on BOTH halves (routine 38/39 — csharp 2/3; brazil 38/39 —
+        # c 2/3), isolated, CLI 2.1.302. Routine $0.011-0.085 a run (8-30x below Opus
+        # 5.5); brazil ~$0.33 a run (6-9x below), but long sessions cross Haiku's
+        # 100K-prompt tier (5x), so its hard-task cost is not the routine price x 20.
+        # OPERATING POINT: effort=low — exp-84 measured all six levels at 1.00; low is
+        # the cheapest and among the fastest.
+        "name": "Claude Haiku 5.5",
+        "short": "Haiku 5.5",
+        "models": ["claude-haiku-5-5"],
+        "kind": "cloud",
+        "pass_bar": 1.00,
+    },
+    {
         # exp-46: 26/26 — every one of the 13 languages on BOTH tasks, the only
         # model that clears the hard task everywhere. Listed first because it is
         # the broadest-coverage stack; the cheapest-qualifying logic still prefers
@@ -273,13 +287,11 @@ KNOWN_NONFEATURED = {
         "mlxlocal/mlx-community--Qwen3-Coder-Next-4bit; kept distinct because "
         "the id is what the run actually wrote, and silently merging two "
         "spellings is how a stack's n gets inflated",
-    "gpt-6-luna": "GPT-6 Luna (exp-76, released 2026-09-22): measured, not YET featured -- and the "
-        "strongest featurable candidate on the board. 15/15 on the routine task across python, go "
-        "and typescript at $0.0069-$0.0167 a run, 7-9x cheaper than gpt-5.6-luna, and it CLEARS the "
-        "typescript cell 5.6-luna fails 0/3 (Fisher two-sided p = 0.0179). Not featured because it "
-        "has 3 languages on 1 task against the 13x2 grid every featured stack carries -- a grid that "
-        "would cost well under a dollar at this price. Do not merge with gpt-5.6-luna: the whole "
-        "finding is that the cheaper successor passes where the predecessor fails.",
+    "gpt-6-luna": "GPT-6 Luna (exp-76/85): measured, not featured. Routine task now covers all 13 "
+        "languages (exp-85, effort=low, isolated): 33/39, under a cent a run -- misses only in csharp, "
+        "elixir, erlang, objc and swift. Not featured because it has no hard-task grid; Haiku 5.5 "
+        "(featured) has the same base list price and clears 38/39 on the same routine grid. Do not "
+        "merge with gpt-5.6-luna: the cheaper successor passes cells the predecessor fails.",
     "gpt-6-astra": "GPT-6 Astra (exp-72/73, released 2026-09-03): measured, not featured. "
         "Clears both tasks at low effort -- routine 1.00 on 4 languages, hard task 1.00 on "
         "python+go -- at ~3.2x less than Opus 5 but ~6x Terra. Not featured because coverage is "
@@ -311,11 +323,10 @@ KNOWN_NONFEATURED = {
         "(same reasoning as the Qwen3-Coder-Next spellings below). Not featured yet "
         "because coverage is thin: 4 languages on rest-api-crud only, against the 13x2 "
         "grid every featured stack carries. Feature it once it has that coverage.",
-    "claude-sonnet-5-5": "Sonnet 5.5 (exp-77/78, released 2026-09-28): measured, not yet "
-        "featured. 35/36 on the routine task across the whole effort ladder in python and go "
-        "(the one miss a 90-min timeout at max), 2-3x cheaper than Opus 5.5 at low-high. Not "
-        "featured because coverage is 2 languages on 1 task against the 13x2 grid every "
-        "featured stack carries.",
+    "claude-sonnet-5-5": "Sonnet 5.5 (exp-77/78, released 2026-09-28): measured, not featured. "
+        "35/36 on the routine task across the effort ladder in python and go; isolated (exp-78) "
+        "low is ~$0.10 a run. Not featured: 2 languages on 1 task, and Haiku 5.5 (featured) clears "
+        "the same cells at 1.00 for ~9x less.",
     "mlxlocal/devstral": "Devstral (exp-23): evaluated, not featured",
     "gpt-5.6-sol": "GPT-5.6 Sol (exp-58/59): evaluated, not featured",
     "opus": "legacy bare 'opus' (exp-1/2)",

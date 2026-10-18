@@ -1,7 +1,7 @@
 {
   "source": "retort report optimal (master.db)",
-  "generated_at": "2026-10-04T17:50:52Z",
-  "master_db_runs": 1502,
+  "generated_at": "2026-10-18T16:35:31Z",
+  "master_db_runs": 1671,
   "objective": "cheapest featured stack per language/task that clears its pass-bar",
   "notes": {
     "generated_at": "UTC timestamp of this file's last regeneration, and the master.db run count behind it. Regenerate with `retort report optimal --routing-json optimal.json`. If this is old, the routes are too: nothing recomputes them automatically.",
@@ -25,6 +25,21 @@
         "pass": 1.0,
         "n": 38,
         "cost": 2.57
+      }
+    },
+    {
+      "stack": "Claude Haiku 5.5",
+      "short": "Haiku 5.5",
+      "kind": "cloud",
+      "routine": {
+        "pass": 0.99,
+        "n": 75,
+        "cost": 0.05
+      },
+      "hard": {
+        "pass": 0.97,
+        "n": 39,
+        "cost": 0.33
       }
     },
     {
@@ -67,9 +82,9 @@
         "cost": 0.24
       },
       "hard": {
-        "pass": 0.79,
-        "n": 38,
-        "cost": 1.18
+        "pass": 0.65,
+        "n": 49,
+        "cost": 1.0
       }
     },
     {
@@ -167,40 +182,40 @@
     "rest-api-crud": {
       "c": {
         "cloud": {
-          "stack": "GPT-5.6 Terra (codex)",
+          "stack": "Claude Haiku 5.5",
           "models": [
-            "gpt-5.6-terra"
+            "claude-haiku-5-5"
           ],
-          "effort": "default",
-          "cost": 0.25985100000000005,
+          "effort": "low",
+          "cost": 0.08514988666666666,
           "pass": 1.0,
-          "n": 1
+          "n": 3
         },
         "local": null
       },
       "clojure": {
         "cloud": {
-          "stack": "GPT-5.6 Terra (codex)",
+          "stack": "Claude Haiku 5.5",
           "models": [
-            "gpt-5.6-terra"
+            "claude-haiku-5-5"
           ],
-          "effort": "default",
-          "cost": 0.3288275,
+          "effort": "low",
+          "cost": 0.014411003333333334,
           "pass": 1.0,
-          "n": 1
+          "n": 3
         },
         "local": null
       },
       "cpp": {
         "cloud": {
-          "stack": "GPT-5.6 Terra (codex)",
+          "stack": "Claude Haiku 5.5",
           "models": [
-            "gpt-5.6-terra"
+            "claude-haiku-5-5"
           ],
-          "effort": "default",
-          "cost": 0.2640765,
+          "effort": "low",
+          "cost": 0.028552789999999998,
           "pass": 1.0,
-          "n": 1
+          "n": 3
         },
         "local": null
       },
@@ -219,40 +234,40 @@
       },
       "elixir": {
         "cloud": {
-          "stack": "Claude Opus 5.5",
+          "stack": "Claude Haiku 5.5",
           "models": [
-            "claude-opus-5-5"
+            "claude-haiku-5-5"
           ],
           "effort": "low",
-          "cost": 0.3936557666666667,
+          "cost": 0.01493846,
           "pass": 1.0,
-          "n": 6
+          "n": 3
         },
         "local": null
       },
       "erlang": {
         "cloud": {
-          "stack": "GPT-5.6 Terra (codex)",
+          "stack": "Claude Haiku 5.5",
           "models": [
-            "gpt-5.6-terra"
+            "claude-haiku-5-5"
           ],
-          "effort": "default",
-          "cost": 0.3419185,
+          "effort": "low",
+          "cost": 0.04215773666666667,
           "pass": 1.0,
-          "n": 1
+          "n": 3
         },
         "local": null
       },
       "go": {
         "cloud": {
-          "stack": "GPT-5.6 Luna (codex)",
+          "stack": "Claude Haiku 5.5",
           "models": [
-            "gpt-5.6-luna"
+            "claude-haiku-5-5"
           ],
-          "effort": "default",
-          "cost": 0.08434506666666668,
+          "effort": "low",
+          "cost": 0.012083433333333332,
           "pass": 1.0,
-          "n": 3
+          "n": 6
         },
         "local": {
           "stack": "Qwen3-Coder-Next 80B (local, $0, ctx 0.9)",
@@ -265,40 +280,40 @@
       },
       "java": {
         "cloud": {
-          "stack": "GPT-5.6 Terra (codex)",
+          "stack": "Claude Haiku 5.5",
           "models": [
-            "gpt-5.6-terra"
+            "claude-haiku-5-5"
           ],
-          "effort": "default",
-          "cost": 0.3795,
+          "effort": "low",
+          "cost": 0.018034193333333334,
           "pass": 1.0,
-          "n": 1
+          "n": 3
         },
         "local": null
       },
       "objc": {
         "cloud": {
-          "stack": "GPT-5.6 Terra (codex)",
+          "stack": "Claude Haiku 5.5",
           "models": [
-            "gpt-5.6-terra"
+            "claude-haiku-5-5"
           ],
-          "effort": "default",
-          "cost": 0.2428475,
+          "effort": "low",
+          "cost": 0.04130518333333333,
           "pass": 1.0,
-          "n": 1
+          "n": 3
         },
         "local": null
       },
       "python": {
         "cloud": {
-          "stack": "GPT-5.6 Luna (codex)",
+          "stack": "Claude Haiku 5.5",
           "models": [
-            "gpt-5.6-luna"
+            "claude-haiku-5-5"
           ],
-          "effort": "default",
-          "cost": 0.06169993333333334,
+          "effort": "low",
+          "cost": 0.011522381666666666,
           "pass": 1.0,
-          "n": 3
+          "n": 6
         },
         "local": {
           "stack": "Qwen3-Coder-Next 80B (local, $0, ctx 0.9)",
@@ -311,40 +326,40 @@
       },
       "rust": {
         "cloud": {
-          "stack": "GPT-5.6 Terra (codex)",
+          "stack": "Claude Haiku 5.5",
           "models": [
-            "gpt-5.6-terra"
+            "claude-haiku-5-5"
           ],
-          "effort": "default",
-          "cost": 0.1419695,
+          "effort": "low",
+          "cost": 0.011231173333333332,
           "pass": 1.0,
-          "n": 1
+          "n": 3
         },
         "local": null
       },
       "swift": {
         "cloud": {
-          "stack": "GPT-5.6 Terra (codex)",
+          "stack": "Claude Haiku 5.5",
           "models": [
-            "gpt-5.6-terra"
+            "claude-haiku-5-5"
           ],
-          "effort": "default",
-          "cost": 0.21515700000000001,
+          "effort": "low",
+          "cost": 0.018462403333333332,
           "pass": 1.0,
-          "n": 1
+          "n": 3
         },
         "local": null
       },
       "typescript": {
         "cloud": {
-          "stack": "GPT-5.6 Terra (codex)",
+          "stack": "Claude Haiku 5.5",
           "models": [
-            "gpt-5.6-terra"
+            "claude-haiku-5-5"
           ],
-          "effort": "default",
-          "cost": 0.21962150000000003,
+          "effort": "low",
+          "cost": 0.012172726666666666,
           "pass": 1.0,
-          "n": 1
+          "n": 3
         },
         "local": {
           "stack": "Qwen3-Coder-Next 80B (local, $0, ctx 0.9)",
@@ -372,66 +387,66 @@
       },
       "clojure": {
         "cloud": {
-          "stack": "Claude Opus 5.5",
+          "stack": "Claude Haiku 5.5",
           "models": [
-            "claude-opus-5-5"
+            "claude-haiku-5-5"
           ],
           "effort": "low",
-          "cost": 2.0396893,
+          "cost": 0.28030160666666676,
           "pass": 1.0,
-          "n": 2
+          "n": 3
         },
         "local": null
       },
       "cpp": {
         "cloud": {
-          "stack": "Claude Opus 5.5",
+          "stack": "Claude Haiku 5.5",
           "models": [
-            "claude-opus-5-5"
+            "claude-haiku-5-5"
           ],
           "effort": "low",
-          "cost": 2.9822625999999994,
+          "cost": 0.3849957366666667,
           "pass": 1.0,
-          "n": 2
+          "n": 3
         },
         "local": null
       },
       "csharp": {
         "cloud": {
-          "stack": "Claude Opus 5.5",
+          "stack": "Claude Haiku 5.5",
           "models": [
-            "claude-opus-5-5"
+            "claude-haiku-5-5"
           ],
           "effort": "low",
-          "cost": 2.6661386,
+          "cost": 0.24042533333333327,
           "pass": 1.0,
-          "n": 2
+          "n": 3
         },
         "local": null
       },
       "elixir": {
         "cloud": {
-          "stack": "Claude Opus 5.5",
+          "stack": "Claude Haiku 5.5",
           "models": [
-            "claude-opus-5-5"
+            "claude-haiku-5-5"
           ],
           "effort": "low",
-          "cost": 2.108376,
+          "cost": 0.7080355799999999,
           "pass": 1.0,
-          "n": 2
+          "n": 3
         },
         "local": null
       },
       "erlang": {
         "cloud": {
-          "stack": "Claude Opus 5.5",
+          "stack": "Claude Haiku 5.5",
           "models": [
-            "claude-opus-5-5"
+            "claude-haiku-5-5"
           ],
           "effort": "low",
-          "cost": 2.8814836999999995,
+          "cost": 0.54144022,
           "pass": 1.0,
-          "n": 2
+          "n": 3
         },
         "local": null
       },
@@ -450,79 +465,79 @@
       },
       "java": {
         "cloud": {
-          "stack": "GPT-5.6 Terra (codex)",
+          "stack": "Claude Haiku 5.5",
           "models": [
-            "gpt-5.6-terra"
+            "claude-haiku-5-5"
           ],
-          "effort": "default",
-          "cost": 0.68895525,
+          "effort": "low",
+          "cost": 0.3379637166666667,
           "pass": 1.0,
-          "n": 2
+          "n": 3
         },
         "local": null
       },
       "objc": {
         "cloud": {
-          "stack": "Claude Opus 5.5",
+          "stack": "Claude Haiku 5.5",
           "models": [
-            "claude-opus-5-5"
+            "claude-haiku-5-5"
           ],
           "effort": "low",
-          "cost": 2.8308538999999993,
+          "cost": 0.27591365333333334,
           "pass": 1.0,
-          "n": 2
+          "n": 3
         },
         "local": null
       },
       "python": {
         "cloud": {
-          "stack": "GPT-5.6 Terra (codex)",
+          "stack": "Claude Haiku 5.5",
           "models": [
-            "gpt-5.6-terra"
+            "claude-haiku-5-5"
           ],
-          "effort": "high",
-          "cost": 0.305717,
+          "effort": "low",
+          "cost": 0.1742913633333333,
           "pass": 1.0,
-          "n": 1
+          "n": 3
         },
         "local": null
       },
       "rust": {
         "cloud": {
-          "stack": "GPT-5.6 Terra (codex)",
+          "stack": "Claude Haiku 5.5",
           "models": [
-            "gpt-5.6-terra"
+            "claude-haiku-5-5"
           ],
-          "effort": "default",
-          "cost": 0.35551524999999995,
+          "effort": "low",
+          "cost": 0.13705886,
           "pass": 1.0,
-          "n": 2
+          "n": 3
         },
         "local": null
       },
       "swift": {
         "cloud": {
-          "stack": "Claude Opus 5.5",
+          "stack": "Claude Haiku 5.5",
           "models": [
-            "claude-opus-5-5"
+            "claude-haiku-5-5"
           ],
           "effort": "low",
-          "cost": 1.8389414999999998,
+          "cost": 0.24504352333333335,
           "pass": 1.0,
-          "n": 2
+          "n": 3
         },
         "local": null
       },
       "typescript": {
         "cloud": {
-          "stack": "GPT-5.6 Terra (codex)",
+          "stack": "Claude Haiku 5.5",
           "models": [
-            "gpt-5.6-terra"
+            "claude-haiku-5-5"
           ],
-          "effort": "default",
-          "cost": 0.43631975,
+          "effort": "low",
+          "cost": 0.15810746,
           "pass": 1.0,
-          "n": 2
+          "n": 3
         },
         "local": null
       }

@@ -1,6 +1,6 @@
 # Thinking Level: What Opus Actually Does With the Extra Time
 
-*Published 2026-07-31 · updated 2026-10-04 — Adrian Cockcroft*
+*Published 2026-07-31 · updated 2026-10-18 — Adrian Cockcroft*
 
 `--effort low|medium|high|xhigh|max` is the newest and largest cost lever in retort, and the least understood. [versions-blog.md](versions-blog.md) established *that* it costs; this page is about *what the model does* with the time, read out of the archived agent logs rather than inferred from the totals.
 
@@ -135,6 +135,10 @@ The three significant rows — low, medium and high — sit at p = 0.018, which 
 ## Update 2026-10-04: Sonnet 5.5 has the same shape, one notch cheaper
 
 Sonnet 5.5 (exp-77) went through the identical ladder: Python and Go, six levels, three runs each, routine task. It passed 35 of 36; the miss was a `max` run killed at the 90-minute timeout. The shape matches Opus 5.5, flat and cheap at the bottom, explosive at the top, but every rung up to `high` is **2.1–3.4× cheaper than Opus 5.5's**: $0.18 → $0.27 a Python run from `low` to `high`, against $0.38 → $0.79. `default` again lands on `medium`, not on the `high` the documentation names. At `max` the advantage inverts: $9.56–$12.11 a run and 52–60 minutes, dearer and slower than Opus 5.5 `max`. The advice is unchanged and now applies to two models: run at `low`, and treat `max` as a different mode.
+
+## Update 2026-10-18: Haiku 5.5, the same shape at a tenth of Sonnet's price
+
+Haiku 5.5 (exp-84) went through the same ladder: Python and Go, six levels, three runs each. **All 36 runs scored 1.00** — the small model did not need the dial to clear routine work. At `low` it costs **\$0.011 a Python run and \$0.013 a Go run** (54 s and 98 s), about 9× below Sonnet 5.5 and 28× below Opus 5.5 on the same cells. `max` costs \$0.29–0.47 and 7–10 minutes: **25–36× the price of `low`**, for the same score. The top of Haiku's dial is far gentler in absolute terms than Sonnet's (\$5–18 and 26–63 minutes at `max`), but the ratio is the same story. That makes six models swept; none of them bought anything measurable above `low`.
 
 ---
 

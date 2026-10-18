@@ -1,6 +1,6 @@
 # The Optimal Stack
 
-*Living document — last updated 2026-10-04 (first published 2026-07-14). This records **what to run today**: the leading stacks, and the exact configuration each one needs. It is not a history. Superseded stacks and rejected configurations are not discussed here; they are retired, and retirement is the point.*
+*Living document — last updated 2026-10-18 (first published 2026-07-14). This records **what to run today**: the leading stacks, and the exact configuration each one needs. It is not a history. Superseded stacks and rejected configurations are not discussed here; they are retired, and retirement is the point.*
 
 ---
 
@@ -53,24 +53,24 @@ The machine-readable form of the table below is committed at **[`optimal.json`](
 <!-- GEN:per-language-routing START -->
 | Language | Routine → cloud | pass | $ | Routine → local | Hard → cloud | pass | $ |
 |---|---|---:|---:|---|---|---:|---:|
-| **c** | GPT-5.6 Terra @ `default` <sub>n=1</sub> | 1.00 | $0.26 | — | GPT-5.6 Terra @ `default` <sub>n=2</sub> | 1.00 | $0.57 |
-| **clojure** | GPT-5.6 Terra @ `default` <sub>n=1</sub> | 1.00 | $0.33 | — | Opus 5.5 @ `low` <sub>n=2</sub> | 1.00 | $2.04 |
-| **cpp** | GPT-5.6 Terra @ `default` <sub>n=1</sub> | 1.00 | $0.26 | — | Opus 5.5 @ `low` <sub>n=2</sub> | 1.00 | $2.98 |
-| **csharp** | GPT-5.6 Terra @ `default` <sub>n=1</sub> | 1.00 | $0.26 | — | Opus 5.5 @ `low` <sub>n=2</sub> | 1.00 | $2.67 |
-| **elixir** | Opus 5.5 @ `low` <sub>n=6</sub> | 1.00 | $0.39 | — | Opus 5.5 @ `low` <sub>n=2</sub> | 1.00 | $2.11 |
-| **erlang** | GPT-5.6 Terra @ `default` <sub>n=1</sub> | 1.00 | $0.34 | — | Opus 5.5 @ `low` <sub>n=2</sub> | 1.00 | $2.88 |
-| **go** | GPT-5.6 Luna @ `default` <sub>n=3</sub> | 1.00 | $0.08 | Qwen3-Coder-Next 80B @ `default` <sub>n=3</sub> | GPT-5.6 Terra @ `low` <sub>n=1</sub> | 1.00 | $0.39 |
-| **java** | GPT-5.6 Terra @ `default` <sub>n=1</sub> | 1.00 | $0.38 | — | GPT-5.6 Terra @ `default` <sub>n=2</sub> | 1.00 | $0.69 |
-| **objc** | GPT-5.6 Terra @ `default` <sub>n=1</sub> | 1.00 | $0.24 | — | Opus 5.5 @ `low` <sub>n=2</sub> | 1.00 | $2.83 |
-| **python** | GPT-5.6 Luna @ `default` <sub>n=3</sub> | 1.00 | $0.06 | Qwen3-Coder-Next 80B @ `default` <sub>n=3</sub> | GPT-5.6 Terra @ `high` <sub>n=1</sub> | 1.00 | $0.31 |
-| **rust** | GPT-5.6 Terra @ `default` <sub>n=1</sub> | 1.00 | $0.14 | — | GPT-5.6 Terra @ `default` <sub>n=2</sub> | 1.00 | $0.36 |
-| **swift** | GPT-5.6 Terra @ `default` <sub>n=1</sub> | 1.00 | $0.22 | — | Opus 5.5 @ `low` <sub>n=2</sub> | 1.00 | $1.84 |
-| **typescript** | GPT-5.6 Terra @ `default` <sub>n=1</sub> | 1.00 | $0.22 | Qwen3-Coder-Next 80B @ `default` <sub>n=3</sub> | GPT-5.6 Terra @ `default` <sub>n=2</sub> | 1.00 | $0.44 |
+| **c** | Haiku 5.5 @ `low` <sub>n=3</sub> | 1.00 | $0.09 | — | GPT-5.6 Terra @ `default` <sub>n=2</sub> | 1.00 | $0.57 |
+| **clojure** | Haiku 5.5 @ `low` <sub>n=3</sub> | 1.00 | $0.01 | — | Haiku 5.5 @ `low` <sub>n=3</sub> | 1.00 | $0.28 |
+| **cpp** | Haiku 5.5 @ `low` <sub>n=3</sub> | 1.00 | $0.03 | — | Haiku 5.5 @ `low` <sub>n=3</sub> | 1.00 | $0.38 |
+| **csharp** | GPT-5.6 Terra @ `default` <sub>n=1</sub> | 1.00 | $0.26 | — | Haiku 5.5 @ `low` <sub>n=3</sub> | 1.00 | $0.24 |
+| **elixir** | Haiku 5.5 @ `low` <sub>n=3</sub> | 1.00 | $0.01 | — | Haiku 5.5 @ `low` <sub>n=3</sub> | 1.00 | $0.71 |
+| **erlang** | Haiku 5.5 @ `low` <sub>n=3</sub> | 1.00 | $0.04 | — | Haiku 5.5 @ `low` <sub>n=3</sub> | 1.00 | $0.54 |
+| **go** | Haiku 5.5 @ `low` <sub>n=6</sub> | 1.00 | $0.01 | Qwen3-Coder-Next 80B @ `default` <sub>n=3</sub> | GPT-5.6 Terra @ `low` <sub>n=1</sub> | 1.00 | $0.39 |
+| **java** | Haiku 5.5 @ `low` <sub>n=3</sub> | 1.00 | $0.02 | — | Haiku 5.5 @ `low` <sub>n=3</sub> | 1.00 | $0.34 |
+| **objc** | Haiku 5.5 @ `low` <sub>n=3</sub> | 1.00 | $0.04 | — | Haiku 5.5 @ `low` <sub>n=3</sub> | 1.00 | $0.28 |
+| **python** | Haiku 5.5 @ `low` <sub>n=6</sub> | 1.00 | $0.01 | Qwen3-Coder-Next 80B @ `default` <sub>n=3</sub> | Haiku 5.5 @ `low` <sub>n=3</sub> | 1.00 | $0.17 |
+| **rust** | Haiku 5.5 @ `low` <sub>n=3</sub> | 1.00 | $0.01 | — | Haiku 5.5 @ `low` <sub>n=3</sub> | 1.00 | $0.14 |
+| **swift** | Haiku 5.5 @ `low` <sub>n=3</sub> | 1.00 | $0.02 | — | Haiku 5.5 @ `low` <sub>n=3</sub> | 1.00 | $0.25 |
+| **typescript** | Haiku 5.5 @ `low` <sub>n=3</sub> | 1.00 | $0.01 | Qwen3-Coder-Next 80B @ `default` <sub>n=3</sub> | Haiku 5.5 @ `low` <sub>n=3</sub> | 1.00 | $0.16 |
 <!-- GEN:per-language-routing END -->
 
 > **Reading the `effort` column — it is the level to actually pass.** Each cell names the thinking level the winning runs used: `default` means they passed no `--effort` flag, and a named level means they used it. A cell measured at exactly one level used to be flattened to `default`, which told you to pass no flag when the runs behind the number had used, say, `low` — Opus 5.5's hard-task cells were mislabelled that way until 2026-09-24. Where a stack has been swept across levels, each level competes separately and the cheapest qualifying one wins; where it has not, a single level means *"this is what was measured"*, not *"this was compared and won"*.
 >
-> **The dial has now been swept four times, and the answer has not changed once:** exp-49 (four Claude versions, one cell), exp-55 (Terra and Opus 5, five levels, python and go), exp-65 (Fable 5.1, four languages) and exp-74 (Opus 5.5, six levels). Every sweep found the top of the dial buying nothing measurable and costing multiples. **Default to `low` on any model whose `low` clears your cell.**
+> **The dial has now been swept six times, and the answer has not changed once:** exp-49 (four Claude versions, one cell), exp-55 (Terra and Opus 5, five levels, python and go), exp-65 (Fable 5.1, four languages), exp-74 (Opus 5.5, six levels), exp-77 (Sonnet 5.5, six levels) and exp-84 (Haiku 5.5, six levels — all 36 runs 1.00, `max` 25–36× the cost of `low`). Every sweep found the top of the dial buying nothing measurable and costing multiples. **Default to `low` on any model whose `low` clears your cell.**
 >
 > **A `null` means nothing measured clears the bar for that cell** — not "untested". And read the `n`: several cells are n=1, where a 1.00 is much weaker evidence than a 1.00 at n=9.
 >
@@ -86,9 +86,10 @@ Reliability, cost and time are all reported **per task size** — routine and ha
 | Stack | Reliability (routine · hard) | Cost (routine · hard) | Time (routine · hard) |
 |---|---:|---:|---:|
 | **Claude Opus 5.5** | 1.00 · 1.00 | $1.00 · $2.57 | 208 s · 567 s |
+| **Claude Haiku 5.5** | 0.99 · 0.97 | $0.05 · $0.33 | 161 s · 472 s |
 | **Claude Opus 5** | 1.00 · 1.00 | $3.23 · $26.48 | 546 s · 2669 s |
 | **Claude Fable 5** | 1.00 · 1.00 | $1.58 · $10.47 | 166 s · 1090 s |
-| **GPT-5.6 Terra (codex)** | 1.00 · 0.79 | $0.24 · $1.18 | 163 s · 615 s |
+| **GPT-5.6 Terra (codex)** | 1.00 · 0.65 | $0.24 · $1.00 | 163 s · 522 s |
 | **GPT-5.6 Luna (codex)** | 0.67 · 0.33 | $0.09 · $0.17 | 153 s · 170 s |
 | **Claude Sonnet 5** | 1.00 · 0.93 | $1.10 · $7.64 | 237 s · 1252 s |
 | **Claude Opus 4.8** | 0.98 · 0.59 | $0.93 · $3.27 | 258 s · 608 s |
@@ -113,15 +114,15 @@ Reliability, cost and time are all reported **per task size** — routine and ha
 
 **Pick by task size — the two columns tell different stories:**
 
-* **Opus 5.5 — the hard-task pick, and it is not close on price.** 1.00 in all thirteen languages on both tasks, at **\$1.33–\$2.73 and 3.5–12 min** a hard cell, run at `effort: low` (exp-75; the isolated re-run exp-79 cost \$2.25–\$3.72 on Claude Code 2.1.284 — see the caveat above). Against Opus 5 on the identical cell it is **3.5–5.8× cheaper and 2.9–5.3× faster** for the same 1.00. **Read the hard number as a screen:** it is n=2 per language (exp-75 plus its isolated re-run exp-79, all 26 at 1.00), where Fable 5 has 21 hard observations. It is the recommendation because nothing measured beats it on cost at 1.00, not because it is the most-replicated.
+* **Haiku 5.5 at `low` — the new default for nearly everything, featured 2026-10-18.** 76/78 on the full 13×2 grid at n=3 (routine 38/39, hard 38/39; the misses are one csharp routine run and one c hard run), at **\$0.01–0.09 a routine cell and \$0.14–0.71 a hard cell** — 8–30× below Opus 5.5 on routine and 6–9× below on hard. It is now the cheapest qualifying stack in 12 of 13 routine cells and 10 of 13 hard cells. Two cautions: it is **no faster** than Opus 5.5 on the hard task (~8 min a cell), and long hard sessions cross Haiku's **100K-prompt price tier (5×)**, so its hard cost is not its routine price scaled up. Needs **Claude Code ≥ 2.1.302** — 2.1.287 mispriced the model ~40× (exp-84).
+* **Opus 5.5 — the hard-task pick when it must be right every time.** 1.00 in all thirteen languages on both tasks, at **\$1.33–\$2.73 and 3.5–12 min** a hard cell, run at `effort: low` (exp-75; the isolated re-run exp-79 cost \$2.25–\$3.72 on Claude Code 2.1.284 — see the caveat above). Against Opus 5 on the identical cell it is **3.5–5.8× cheaper and 2.9–5.3× faster** for the same 1.00. **Read the hard number as a screen:** it is n=2 per language (exp-75 plus its isolated re-run exp-79, all 26 at 1.00), where Fable 5 has 21 hard observations. It is the recommendation because nothing measured beats it on cost at 1.00, not because it is the most-replicated.
 * **Fable 5 — the better-replicated hard-task alternative** at 1.00 across thirteen languages, n=21, but **~\$10.47 and ~18 min** a cell. Choose it over Opus 5.5 when you want the deeper evidence behind the 1.00 more than you want the 5× saving.
-* **GPT-5.6 Terra — the cheapest thing that is *nearly* right on hard work:** **0.79**, at \$1.18. That is roughly a 1-in-5 miss, so it needs a review loop; where it does clear a language it is the cheapest qualifying hard-task stack in the routing table.
-* **Sonnet 5** lands **0.93 on hard** — the middle option when a ~1-in-14 miss is acceptable.
-* **Routine work is now a solved, near-free problem.** Every cloud stack here reaches ~1.00 on routine, so the only live question is price: **GPT-5.6 Luna at \$0.06–0.08** where it qualifies, **Terra at \$0.14–0.42** elsewhere, or **\$0 locally** on the 80B for Python, Go and TypeScript. Paying Opus prices for routine work buys nothing.
+* **GPT-5.6 Terra — kept for one cell.** Haiku 5.5 now dominates it on the hard task (0.97 at \$0.33 against Terra's **0.65** at \$1.00 — Terra fell from 0.79 when exp-81's isolated `low`-effort runs pooled in, 8 of 11 failing the factual gate). It survives because it still clears **csharp routine**, the one routine cell Haiku misses (2/3), and c on the hard task.
+* **Routine work is now a solved, near-free problem.** Every cloud stack here reaches ~1.00 on routine, so the only live question is price: **Haiku 5.5 at \$0.01–0.09** in twelve languages, **Terra** for csharp, or **\$0 locally** on the 80B for Python, Go and TypeScript. Paying Opus prices for routine work buys nothing.
 * **Qwen 80B local (`Qwen3-Coder-Next`, `context_threshold: 0.9`) — the best free stack**, and the only one that clears **Python 1.00, Go 1.00 and TypeScript 1.00** (exp-38, n=3 each). TypeScript is the unlock: 0.33 below full context, 3/3 at 0.9. Slower than the 35B (~600 s routine). **Rust is 0.33 — near-misses, not stalls** (req-coverage 0.92; the code compiles and its tests pass, it misses 1–2 spec requirements). The other five languages → cloud: java/erlang near-miss, and **clojure/csharp/elixir score a genuine 0.00** — they cannot produce working code at all (diagnosed GENUINE, not harness). **On the hard task it is 0.00, verified config-invariant** (exp-39 at full context = 0/6, same as 0.7): Python reaches 11/12 capabilities but never 12.
 * **Qwen 35B local — the faster free option for Python and Go only**, at **0.72 / 0.75**. Rust **0.18** and TypeScript **0.28** are unqualified, and on the hard task it scores **0.25**. Its blended routine figure (0.73) sits *below* both of its good languages because the blend includes the languages it fails — the clearest reason in this document to read the matrix rather than an average.
 
-**Retired — dominated on every axis, and this document removes rather than demotes.** **Opus 5** (1.00/1.00 but 3.5–5.8× Opus 5.5's hard cost), **Opus 4.8** (routine 0.98, hard **0.59** — a coin flip) and **Opus 4.7** (routine 1.00, hard **0.40**) are each beaten outright by a cheaper stack at equal or better reliability. They remain in the generated tables below because those are the measured record, but **none of them is the right answer to any question this page asks.**
+**Retired — dominated on every axis, and this document removes rather than demotes.** **Sonnet 5** (1.00/0.93 at \$1.10/\$7.64 against Haiku 5.5's 0.99/0.97 at \$0.05/\$0.33) and **GPT-5.6 Luna** (0.67/0.33; Haiku 5.5 clears every cell Luna clears, for less) were retired on 2026-10-18 by Haiku 5.5. **Opus 5** (1.00/1.00 but 3.5–5.8× Opus 5.5's hard cost), **Opus 4.8** (routine 0.98, hard **0.59** — a coin flip) and **Opus 4.7** (routine 1.00, hard **0.40**) are each beaten outright by a cheaper stack at equal or better reliability. They remain in the generated tables below because those are the measured record, but **none of them is the right answer to any question this page asks.**
 
 > **The 80B's stall was a fixable config artifact, not a capability wall — and raising the compaction threshold is a graded lever, not a switch.** The intermittent hang was lcm compaction firing too early: at the default `context_threshold: 0.35` it compacts live context at ~92K, truncating the agent's working history mid-build so it loses the thread and thrashes to the wall. Raising it walks the results up:
 >
@@ -146,21 +147,21 @@ Reliability, cost and time are all reported **per task size** — routine and ha
 **Start from the per-language success rate, not a single headline number.** This is the matrix that matters — routine pass-proportion for each language × stack, `pass (n)`, generated from `master.db`. A blank cell means we have no qualified runs there. Read *down* a column to see where a model is weak (Opus 4.8 dips on Java; the 35B is weak on Rust and TypeScript; the 80B is 1.00 on Python/Go/TypeScript and 0.33 on Rust), and *across* a row to pick the cheapest stack that actually passes *that* language:
 
 <!-- GEN:per-language-matrix START -->
-| Language | Opus 5.5 | Opus 5 | Fable 5 | Terra | Luna | Sonnet 5 | Opus 4.8 | Opus 4.7 | Qwen 35B local | Qwen 80B local |
-|---|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|
-| **c** | 1.00 (6) | 1.00 (1) | 1.00 (1) | 1.00 (1) | — | — | 1.00 (1) | — | — | — |
-| **clojure** | 1.00 (6) | 1.00 (1) | 1.00 (3) | 1.00 (1) | — | — | 1.00 (6) | 1.00 (6) | 0.00 (3) | 0.00 (3) |
-| **cpp** | 1.00 (6) | 1.00 (1) | 1.00 (1) | 1.00 (1) | — | — | 1.00 (1) | — | — | — |
-| **csharp** | 1.00 (6) | 1.00 (1) | 1.00 (1) | 1.00 (1) | — | 1.00 (3) | 1.00 (1) | — | 0.00 (3) | 0.00 (3) |
-| **elixir** | 1.00 (6) | 1.00 (1) | 1.00 (1) | 1.00 (1) | — | — | 1.00 (3) | 1.00 (3) | 0.00 (3) | 0.00 (3) |
-| **erlang** | 1.00 (6) | 1.00 (1) | 1.00 (1) | 1.00 (1) | — | — | 1.00 (3) | 1.00 (3) | 0.00 (3) | 0.00 (3) |
-| **go** | 1.00 (30) | 1.00 (10) | 1.00 (3) | 1.00 (10) | 1.00 (3) | 1.00 (3) | 1.00 (7) | 1.00 (6) | 0.75 (36) | 1.00 (3) |
-| **java** | 1.00 (6) | 1.00 (1) | 1.00 (1) | 1.00 (1) | — | — | 0.83 (6) | 1.00 (6) | 0.00 (3) | 0.00 (3) |
-| **objc** | 1.00 (6) | 1.00 (1) | 1.00 (1) | 1.00 (1) | — | — | 1.00 (1) | — | — | — |
-| **python** | 1.00 (30) | 1.00 (26) | 1.00 (18) | 1.00 (10) | 1.00 (3) | 1.00 (3) | 1.00 (22) | 1.00 (21) | 0.72 (54) | 1.00 (3) |
-| **rust** | 1.00 (6) | 1.00 (1) | 1.00 (3) | 1.00 (1) | — | 1.00 (3) | 1.00 (6) | 1.00 (6) | 0.18 (17) | 0.33 (3) |
-| **swift** | 1.00 (6) | 1.00 (1) | 1.00 (1) | 1.00 (1) | — | — | 1.00 (1) | — | — | — |
-| **typescript** | 1.00 (6) | 1.00 (1) | 1.00 (1) | 1.00 (1) | 0.00 (3) | 1.00 (3) | 1.00 (7) | 1.00 (6) | 0.28 (18) | 1.00 (3) |
+| Language | Opus 5.5 | Haiku 5.5 | Opus 5 | Fable 5 | Terra | Luna | Sonnet 5 | Opus 4.8 | Opus 4.7 | Qwen 35B local | Qwen 80B local |
+|---|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|
+| **c** | 1.00 (6) | 1.00 (3) | 1.00 (1) | 1.00 (1) | 1.00 (1) | — | — | 1.00 (1) | — | — | — |
+| **clojure** | 1.00 (6) | 1.00 (3) | 1.00 (1) | 1.00 (3) | 1.00 (1) | — | — | 1.00 (6) | 1.00 (6) | 0.00 (3) | 0.00 (3) |
+| **cpp** | 1.00 (6) | 1.00 (3) | 1.00 (1) | 1.00 (1) | 1.00 (1) | — | — | 1.00 (1) | — | — | — |
+| **csharp** | 1.00 (6) | 0.67 (3) | 1.00 (1) | 1.00 (1) | 1.00 (1) | — | 1.00 (3) | 1.00 (1) | — | 0.00 (3) | 0.00 (3) |
+| **elixir** | 1.00 (6) | 1.00 (3) | 1.00 (1) | 1.00 (1) | 1.00 (1) | — | — | 1.00 (3) | 1.00 (3) | 0.00 (3) | 0.00 (3) |
+| **erlang** | 1.00 (6) | 1.00 (3) | 1.00 (1) | 1.00 (1) | 1.00 (1) | — | — | 1.00 (3) | 1.00 (3) | 0.00 (3) | 0.00 (3) |
+| **go** | 1.00 (30) | 1.00 (21) | 1.00 (10) | 1.00 (3) | 1.00 (10) | 1.00 (3) | 1.00 (3) | 1.00 (7) | 1.00 (6) | 0.75 (36) | 1.00 (3) |
+| **java** | 1.00 (6) | 1.00 (3) | 1.00 (1) | 1.00 (1) | 1.00 (1) | — | — | 0.83 (6) | 1.00 (6) | 0.00 (3) | 0.00 (3) |
+| **objc** | 1.00 (6) | 1.00 (3) | 1.00 (1) | 1.00 (1) | 1.00 (1) | — | — | 1.00 (1) | — | — | — |
+| **python** | 1.00 (30) | 1.00 (21) | 1.00 (26) | 1.00 (18) | 1.00 (10) | 1.00 (3) | 1.00 (3) | 1.00 (22) | 1.00 (21) | 0.72 (54) | 1.00 (3) |
+| **rust** | 1.00 (6) | 1.00 (3) | 1.00 (1) | 1.00 (3) | 1.00 (1) | — | 1.00 (3) | 1.00 (6) | 1.00 (6) | 0.18 (17) | 0.33 (3) |
+| **swift** | 1.00 (6) | 1.00 (3) | 1.00 (1) | 1.00 (1) | 1.00 (1) | — | — | 1.00 (1) | — | — | — |
+| **typescript** | 1.00 (6) | 1.00 (3) | 1.00 (1) | 1.00 (1) | 1.00 (1) | 0.00 (3) | 1.00 (3) | 1.00 (7) | 1.00 (6) | 0.28 (18) | 1.00 (3) |
 <!-- GEN:per-language-matrix END -->
 
 **The language split: Python, Go and TypeScript run locally for free (on the 80B at full context); every other language means Claude.** The 80B (`Qwen3-Coder-Next`, at `context_threshold: 0.9`) is reliable on all three — **Python 1.00, Go 1.00, TypeScript 1.00** (exp-38, n=3 each) — the last only after raising compaction to full context (it was 0.33 below that). The 35B is the faster alternative but only on **Python 0.72 and Go 0.75**; it manages just **0.28** on TypeScript and **0.18** on Rust even at its tuned config, so its blended figure sits below both of its good languages — exactly why this document leads with the matrix, not an average. **Rust and the five niche languages (clojure/csharp/elixir/java/erlang) still go to cloud** — the 80B either near-misses (Rust 0.33, java/erlang) or can't produce working code at all (clojure/csharp/elixir score a genuine 0.00). So local has two stacks for Python/Go and one (the 80B at 0.9) that adds TypeScript.
@@ -180,10 +181,10 @@ The takeaway: for *reliability*, reach for a disciplined methodology only when y
 **The decision procedure:**
 
 1. **Hard task, must be right unattended?** → **Opus 5.5 at `effort: low`** (1.00 across all thirteen languages, \$1.33–\$2.73 a cell). Want the deeper evidence behind the 1.00 instead of the 5× saving? → **Fable 5** (1.00, n=21, ~\$10.47).
-2. **Hard task, cost dominates and a ~1-in-5 miss is tolerable?** → **GPT-5.6 Terra** (0.79, ~\$1.18) with a review-and-retry loop. At ~1-in-14, **Sonnet 5** (0.93).
+2. **Hard task, cost matters?** → **Haiku 5.5 at `low`** (38/39 across thirteen languages, ~\$0.33 a cell — 6–9× below Opus 5.5). Its one miss was c; route c to Terra.
 3. **Routine, and you have the hardware?** → **Qwen 80B local at `context_threshold: 0.9`, \$0** for **Python, Go and TypeScript** (1.00 each). The **35B** is faster but only Python/Go, at 0.72/0.75. Everything else → cloud.
-4. **Routine, cloud?** → the **cheapest qualifying cell in the routing table** — Luna at ~\$0.06–0.08 where it qualifies, Terra at ~\$0.14–0.42 otherwise. They all reach ~1.00, so paying more buys nothing. Use the **neutral** prompt.
-5. **Whatever you picked, pass `effort: low` unless its `low` fails your cell.** Four independent sweeps agree the top of the dial buys nothing measurable; on Opus 5.5 it costs 27× and takes 58× as long for an identical result.
+4. **Routine, cloud?** → **Haiku 5.5 at `low`**, ~\$0.01–0.09 a cell in twelve languages; **Terra** for csharp. Everything reaches ~1.00, so paying more buys nothing. Use the **neutral** prompt.
+5. **Whatever you picked, pass `effort: low` unless its `low` fails your cell.** Six independent sweeps agree the top of the dial buys nothing measurable; on Opus 5.5 it costs 27× and takes 58× as long for an identical result.
 
 ---
 
@@ -197,7 +198,7 @@ Reliability is a property of the *stack*, not the model. A leading model on a ba
 |---|---|
 | **Model** | `unsloth/Qwen3.6-35B-A3B-UD-MLX-4bit` (4-bit MLX, ~20 GB) |
 | **Serving** | oMLX 0.5.0 · served from `~/models/<name>` |
-| **Agent** | Hermes v0.18 with the `hermes-lcm` plugin (`context.engine: lcm`). **v0.20.5 measured equivalent** — exp-61 re-ran the featured Python cells on 0.20.5 and found the same requirement coverage (1.00) and maintainability, with duration ranges that overlap the 0.18.2 baseline almost exactly (m80: 137–300 s vs 137–284 s). The figures below stand on either version. **On ≥ 0.20 you must set `TERMINAL_CWD`** to the working directory — the oneshot agent otherwise runs in `$HOME` and writes nothing to the workspace. |
+| **Agent** | Hermes v0.18 with the `hermes-lcm` plugin (`context.engine: lcm`). **v0.20.5 measured equivalent** — exp-61 re-ran the featured Python cells on 0.20.5 and found the same requirement coverage (1.00) and maintainability, with duration ranges that overlap the 0.18.2 baseline almost exactly (m80: 137–300 s vs 137–284 s). The figures below stand on either version. **On ≥ 0.20 you must set `TERMINAL_CWD`** to the working directory — the oneshot agent otherwise runs in `$HOME` and writes nothing to the workspace. **v0.22.2 on Python < 3.14 needs `snowballstemmer` installed by hand** — it is declared only for ≥ 3.14 but imported unconditionally, so every tool call fails and the run scores a false zero (caught by a smoke run, 2026-10-18). |
 | **Context** | `context_length: 262144` — set it explicitly; the default fallback is far lower |
 | **Compaction** | `lcm.context_threshold: 0.9` **for the 80B** ("full context" — default 0.35 compacts at ~92K and causes intermittent stalls; 0.7 kills the stalls and 0.9 additionally unlocks TypeScript — see exp-34/38; env override: `LCM_CONTEXT_THRESHOLD=0.9`). The 35B is fine at 0.35. |
 | **Hardware** | Apple Silicon, 64 GB. Raise the GPU wired limit: `sudo sysctl iogpu.wired_limit_mb=57344` |
@@ -240,15 +241,16 @@ stall_minutes:   25             # kill unproductive loops, not slow-but-producti
 
 Not a featured stack (0.80 on routine python/go, below the 1.00 bar), but the build choice is decided and the wrong one is forbidden above. Use **`mlx-community/Qwen3-Coder-30B-A3B-Instruct-4bit-DWQ`** — 16 GB, zero stalls in 20 runs across four languages, and a pass rate statistically indistinguishable from the 30 GB 8-bit build (8/10 vs 7/10, p = 1.00). Not the 6-bit (0.40, 23 GB) and not the plain 4-bit. Same serving and agent settings as the 35B above; sampling `temperature: 0.6, top_p: 0.95, top_k: 20, repetition_penalty: 1.0`. See exp-64–69.
 
-### Cloud: Opus 5.5, Fable 5, Sonnet 5, GPT-5.6 Terra / Luna
+### Cloud: Haiku 5.5, Opus 5.5, Fable 5, GPT-5.6 Terra
 
-There is no single cloud winner — the pick is set by task size and budget (see the tables above): **Opus 5.5 at `low`** for hard work that must be right, **Fable 5** when you want the better-replicated 1.00, **Sonnet 5** or **Terra** for hard work on a budget, and **Luna / Terra** for routine work, where everything passes and only price differs.
+There is no single cloud winner — the pick is set by task size and budget (see the tables above): **Haiku 5.5 at `low`** for routine work and for hard work on a budget, **Opus 5.5 at `low`** for hard work that must be right every time, **Fable 5** when you want the better-replicated 1.00, and **Terra** for the csharp routine cell.
 
 | | |
 |---|---|
 | **Effort** | **`low`**, on every cloud stack, unless its `low` fails your cell. `claude --effort low`; `codex exec -c model_reasoning_effort=low`. This is the single largest cost lever on this page — 27× on Opus 5.5. |
 | **Sampling** | Run the model as shipped. No tuning is required or recommended; unlike local, the provider's defaults are tuned for agentic use. |
-| **Agent context** | Run the coding agent **clean** — without your personal MCP servers, plugins, hooks and instruction files. exp-78 measured the inherited setup at +39% cost, +36% wall-clock and +43% tokens on Sonnet 5.5 for identical results. Add back only what the task needs, on purpose. |
+| **Agent context** | Run the coding agent **clean** — without your personal MCP servers, plugins, hooks and instruction files. exp-78 measured the inherited setup at +39% cost, +36% wall-clock and +43% tokens on Sonnet 5.5 for identical results. Claude: `--strict-mcp-config --mcp-config '{"mcpServers":{}}' --setting-sources project,local` (not `--bare`, which drops OAuth). Codex: point `CODEX_HOME` at a fresh directory holding only `auth.json` — `--ignore-user-config` still loads `AGENTS.md`, and without isolation Codex agents called ruvnet-brain/ruflo tools ~240 times across exp-57–60. Add back only what the task needs, on purpose. |
+| **CLI version** | Run the current CLI and record it — but check a new model id prices at `costBasis: list` on a smoke run first. Claude Code 2.1.282 mispriced Sonnet 5.5 ~1.9× and 2.1.287 mispriced Haiku 5.5 ~40×; codex-cli 0.156.1 rejected `gpt-6.1-sol` on a ChatGPT account. |
 | **Prompt** | Plain *neutral*. On cloud models the prompt methodology is a flat line for reliability — don't pay for ceremony. Exception: if you want Dave Farley's four-layer acceptance tests, run his `msec:atdd-build` skill at `high` effort (exp-83: same reliability, conformance 0.96, +36–53% cost). |
 
 The stack that matters on cloud is the agent around the model, not the model's knobs.
@@ -278,18 +280,18 @@ These tables are regenerated from `master.db` by `retort report optimal` — run
 <!-- GEN:per-language START -->
 | Language | Routine → cheapest qualifying stack | Reliability | n |
 |---|---|---:|---:|
-| **c** | GPT-5.6 Terra (codex) ($0.26) | 1.00 | 1 |
-| **clojure** | GPT-5.6 Terra (codex) ($0.33) | 1.00 | 1 |
-| **cpp** | GPT-5.6 Terra (codex) ($0.26) | 1.00 | 1 |
+| **c** | Claude Haiku 5.5 ($0.09) | 1.00 | 3 |
+| **clojure** | Claude Haiku 5.5 ($0.01) | 1.00 | 3 |
+| **cpp** | Claude Haiku 5.5 ($0.03) | 1.00 | 3 |
 | **csharp** | GPT-5.6 Terra (codex) ($0.26) | 1.00 | 1 |
-| **elixir** | Claude Opus 5.5 ($0.39) | 1.00 | 6 |
-| **erlang** | GPT-5.6 Terra (codex) ($0.34) | 1.00 | 1 |
+| **elixir** | Claude Haiku 5.5 ($0.01) | 1.00 | 3 |
+| **erlang** | Claude Haiku 5.5 ($0.04) | 1.00 | 3 |
 | **go** | Qwen3-Coder-Next 80B (local, $0, ctx 0.9) ($0) | 1.00 | 3 |
-| **java** | GPT-5.6 Terra (codex) ($0.38) | 1.00 | 1 |
-| **objc** | GPT-5.6 Terra (codex) ($0.24) | 1.00 | 1 |
+| **java** | Claude Haiku 5.5 ($0.02) | 1.00 | 3 |
+| **objc** | Claude Haiku 5.5 ($0.04) | 1.00 | 3 |
 | **python** | Qwen3-Coder-Next 80B (local, $0, ctx 0.9) ($0) | 1.00 | 3 |
-| **rust** | GPT-5.6 Terra (codex) ($0.14) | 1.00 | 1 |
-| **swift** | GPT-5.6 Terra (codex) ($0.22) | 1.00 | 1 |
+| **rust** | Claude Haiku 5.5 ($0.01) | 1.00 | 3 |
+| **swift** | Claude Haiku 5.5 ($0.02) | 1.00 | 3 |
 | **typescript** | Qwen3-Coder-Next 80B (local, $0, ctx 0.9) ($0) | 1.00 | 3 |
 <!-- GEN:per-language END -->
 
