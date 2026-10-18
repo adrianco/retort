@@ -2425,3 +2425,19 @@ not persisted anywhere — stalls here had to be inferred from durations. Queued
 **Hermes v0.22.2 smoke** first caught a missing `snowballstemmer` on Python 3.11 (every tool call failed);
 fixed before the screen ran.
 
+## exp-87 — Qwen3.8-27B (dense, 4-bit MLX) routine screen  — STOPPED AFTER ONE CELL, 2026-10-18
+
+`mlx-community/Qwen3.8-27B-4bit` (16 GB, `qwen3_5`, native 262,144 context, thinking ON by default in
+its chat template) on oMLX + Hermes v0.22.2, exp-71's presets, n=1 screen planned for python/go/ts.
+**Python hit the 60-min hard wall** (3602 s, recorded crashed). It wrote a complete app + tests by ~20
+min in — scored as killed: test coverage 0.98, defect 0.95, maintainability 1.00, idiomatic 0.88 —
+and then **never declared itself done**. The model can do the work; it does not stop, consistent with
+Qwen3.8's long reasoning traces (the Junie note: "with reasoning on, tasks run ~4× slower"). Stopped by
+hand rather than spend ~3 more hours confirming it on go/typescript (screen rule). Follow-up: exp-88,
+**ThinkingCap-Qwen3.8-27B** (same model, fine-tuned for ~37% shorter traces, first-party DWQ build).
+
+**Disk trap hit mid-run:** oMLX's paged-SSD cache was uncapped (`ssd_cache_max_size: "auto"`), had
+reached **93 GB** and pushed free disk to 33 GB (retort warns under 40). Cleared between cells (→ 95 GB
+free) and capped with `--paged-ssd-cache-max-size 10GB` in the stack presets — the setting
+optimal-blog already recommends but this host had never applied.
+

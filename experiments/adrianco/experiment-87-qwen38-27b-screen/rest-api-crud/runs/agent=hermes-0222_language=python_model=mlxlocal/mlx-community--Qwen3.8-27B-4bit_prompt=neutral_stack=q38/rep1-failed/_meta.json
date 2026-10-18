@@ -1,0 +1,12 @@
+{
+  "replicate": 1,
+  "run_config": {
+    "agent": "hermes-0222",
+    "language": "python",
+    "model": "mlxlocal/mlx-community--Qwen3.8-27B-4bit",
+    "prompt": "neutral",
+    "stack": "q38"
+  },
+  "succeeded": false,
+  "visibility": "public"
+}

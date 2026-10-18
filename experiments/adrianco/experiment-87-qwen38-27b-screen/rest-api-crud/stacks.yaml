@@ -10,6 +10,8 @@ serving:
   - --hf-cache
   - --memory-guard-gb
   - '54'
+  - --paged-ssd-cache-max-size
+  - 10GB   # 2026-10-18: uncapped ('auto') it reached 93 GB and pushed free disk under 40 GB mid-run
   log: /Users/adriancockcroft/.retort/omlx-exp87.log
   warm_timeout_s: 600
 presets:
