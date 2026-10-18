@@ -2194,7 +2194,7 @@ effect on pass or coverage.** Every isolated run's init event lists 0 MCP tools;
 was not even stable (446 tools in 32 of exp-77's runs, 438 in two). This is what motivated
 `agent_context` as a derived factor (`c09d7f95`) and the exp-79..82 re-runs.
 
-## exp-79..82 — isolated re-runs of the experiments that inherited the host config  — PARTIAL, 2026-09-30
+## exp-79..82 — isolated re-runs of the experiments that inherited the host config  — COMPLETE, 2026-10-18 (exp-81 rescoped)
 
 **Design:** new directories, originals untouched; each copies its original's workspace and changes
 only the isolation (Claude: as exp-78; Codex: a fresh per-run `CODEX_HOME` holding only `auth.json`).
