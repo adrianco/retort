@@ -2402,3 +2402,26 @@ Copied cell for cell from exp-79 (Opus 5.5's isolated grid), model swapped; n=3 
   in csharp and c.
 * Makes Haiku 5.5 the leading candidate for the **cheapest featured stack** on both tasks.
 
+## exp-71 — does 4bit-DWQ's stall-elimination survive the HARD task?  — SCREEN COMPLETE, 2026-10-18
+
+Qwen3-Coder-30B-A3B, plain `4bit` vs `4bit-DWQ` × {python, go} on brazil-soccer-mcp, oMLX + **Hermes
+v0.22.2** (upgraded from 0.20.5 that day), exp-69's presets. Planned at n=5; **cut to an n=1 screen**
+mid-run (user: never high reps on a slow run of a new stack) after a cell took ~40–60 min. 4 runs, each
+with its self-repair second chance. **Pass 0/4, as pre-registered** — the response was the stall rate.
+
+| cell | agent time (both attempts) | outcome |
+|---|---:|---|
+| 4bit · python | 12 s | exited at once: emitted its tool call as **text** (`<function=read_file>`), which Hermes takes as a final answer — the same mode seen on 0.20.5 in exp-69 |
+| 4bit · go | 3847 s | tests never ran; one attempt ≥ 32 min — **probably a stall-guard kill** |
+| DWQ · python | 600 s | **req-coverage 0.83**, tests ran (coverage 0.49) — no stall possible (< 25 min) |
+| DWQ · go | 1474 s | tests never ran — **no stall possible** (both attempts < 25 min combined) |
+
+**Reading, as a screen:** DWQ stalled **0 of 2** on the hard task, consistent with exp-68/69's 0/20 on
+routine; plain 4-bit failed by two pathologies (instant text-tool-call exit, and a likely stall). n=1
+cannot confirm the effect transfers; deepen only if the hard-task stall rate becomes decision-relevant.
+**Harness gap found:** the stall guard's kill reason lives only in the in-memory `RunArtifacts.stderr` and
+is overwritten when the self-repair second chance runs, so the first attempt's stall/timeout cause is
+not persisted anywhere — stalls here had to be inferred from durations. Queued as a harness to-do.
+**Hermes v0.22.2 smoke** first caught a missing `snowballstemmer` on Python 3.11 (every tool call failed);
+fixed before the screen ran.
+

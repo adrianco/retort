@@ -187,21 +187,6 @@ whether 5.1 holds that); time and cost come free.
 **What it answers:** whether 5.1 belongs in the featured table, at what price, and — because 5.0 has
 the same grid — the cost question §2 below asks, on 26 cells instead of one.
 
-## 1. exp-71 — does DWQ's stall-elimination survive the HARD task?  — RUNNING as an n=1 SCREEN, 2026-10-18, $0
-
-**Cut from n=5 to a 1-run screen per cell (user, 2026-10-18: never high reps on a slow run of a new stack)** — ~40 min a cell on the just-upgraded Hermes v0.22.2, so n=5 was ~13 h. 4 cells × 1 = 4 runs; deepen only a cell whose result is interesting. Plain 4-bit python already failed twice in seconds by emitting a tool call as text (`<function=read_file>`) that Hermes treats as a final answer — a known 4-bit failure mode, also seen on 0.20.5 in exp-69, not a regression.
-
-Set up at `experiments/adrianco/experiment-71-dwq-hard-task/brazil/` from exp-69's workspace + stacks.yaml (unchanged but the task, languages, 90-min timeout and oMLX log path). Verification: exp-69's presets were smoke-verified then; the first live run's provenance.json is checked for effective context/sampling/Hermes version before the rest proceed.
-
-exp-68/69 showed `4bit-DWQ` eliminates the 30B's agentic stall pathology on the routine task across
-four languages (0/20 stalls vs 17/20 plain, p = 2.6e-8). Untested on `brazil-soccer-mcp`, where even
-the 80B floors at 0.17. **Stalls are the pre-registered response, not passes** — a 30B will floor on
-passes there in both arms, which is exactly the situation exp-69 designed around.
-
-**Design:** `quant{4bit, 4bit-DWQ} × language{python, go} × brazil-soccer-mcp × n=5` = 20 local runs.
-Timeout 90 min (brazil is long); stall guard 25 min. If DWQ stalls 0/10 again on a task it cannot
-pass, the effect is task-independent and the "measure the stall rate" rule generalises.
-
 ## 2. Fable 5.0 vs 5.1 — is the point release MORE expensive?  — OPEN, folded into exp-70
 
 
@@ -223,6 +208,10 @@ numbers are ambiguous. Cheap, and it is the difference between "the new release 
 gossip and as a measurement. Note this contradicts the earlier judgement that Claude versions are not
 significant — that judgement was made about the effort experiment, where it was correct.
 
+
+## 3a. Harness to-do from exp-71 (2026-10-18)
+
+- **Persist the guard's kill reason per attempt.** `kill_reason` (stall / hard wall) is only in the in-memory `RunArtifacts`, and the self-repair second chance replaces it, so a first attempt's stall is not recorded anywhere — exp-71 had to infer stalls from durations. Write it to `_meta.json` and as a `_killed_by` run_result for each attempt, so stall rate is a queryable response.
 
 ## 3. Harness to-dos surfaced by exp-63–69
 

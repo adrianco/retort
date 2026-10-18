@@ -1,0 +1,19 @@
+{
+  "task": "brazilian-soccer-mcp-server",
+  "source": "github://brazil-bench/benchmark-template/brazilian-soccer-mcp-guide.md",
+  "note": "Pinned, fixed requirement checklist for ALL runs of this task. Authored once from the spec's 'Required Capabilities' section so requirement_coverage uses a constant denominator and is comparable across runs. Do not regenerate per-run.",
+  "requirements": [
+    {"id": "R1", "requirement": "Implements an MCP server (MCP protocol) exposing tools/handlers for the queries below", "how_to_verify": "An MCP server entrypoint + registered tools/resources exist (server SDK usage, tool definitions)."},
+    {"id": "R2", "requirement": "Loads and uses the provided datasets in data/kaggle/ as the data source", "how_to_verify": "Code reads the supplied CSVs (matches, FIFA players) rather than hardcoding or calling external APIs only."},
+    {"id": "R3", "requirement": "Match query: find matches by team (home, away, or either)", "how_to_verify": "A tool/function filters matches by team name."},
+    {"id": "R4", "requirement": "Match query: filter by date range and/or season", "how_to_verify": "Matches can be filtered by season/year or date range."},
+    {"id": "R5", "requirement": "Match query: filter by competition (Brasileirao, Copa do Brasil, Libertadores)", "how_to_verify": "Competition is a selectable filter spanning the provided competition datasets."},
+    {"id": "R6", "requirement": "Team query: match history with win/loss/draw record and goals for/against", "how_to_verify": "A tool returns aggregated W/L/D and goals for a team."},
+    {"id": "R7", "requirement": "Player query: search players by name", "how_to_verify": "A tool searches the FIFA player data by name."},
+    {"id": "R8", "requirement": "Player query: filter players by nationality and/or club, with ratings/attributes", "how_to_verify": "Players filterable by nationality or club, returning ratings."},
+    {"id": "R9", "requirement": "Competition query: season standings calculated from match results", "how_to_verify": "Standings (points/positions) are computed from matches, not hardcoded."},
+    {"id": "R10", "requirement": "Statistical analysis: aggregate stats (e.g. avg goals/match, home vs away, biggest wins)", "how_to_verify": "At least one aggregate statistic computed over the dataset."},
+    {"id": "R11", "requirement": "Head-to-head records between two teams", "how_to_verify": "A tool returns head-to-head W/L/D between two named teams."},
+    {"id": "R12", "requirement": "Automated tests covering the query capabilities", "how_to_verify": "A test suite exercises the query functions; tests execute (test_coverage > 0)."}
+  ]
+}

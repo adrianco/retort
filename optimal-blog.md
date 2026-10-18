@@ -239,7 +239,7 @@ stall_minutes:   25             # kill unproductive loops, not slow-but-producti
 
 ### Local: Qwen3-Coder-30B-A3B-Instruct — which build
 
-Not a featured stack (0.80 on routine python/go, below the 1.00 bar), but the build choice is decided and the wrong one is forbidden above. Use **`mlx-community/Qwen3-Coder-30B-A3B-Instruct-4bit-DWQ`** — 16 GB, zero stalls in 20 runs across four languages, and a pass rate statistically indistinguishable from the 30 GB 8-bit build (8/10 vs 7/10, p = 1.00). Not the 6-bit (0.40, 23 GB) and not the plain 4-bit. Same serving and agent settings as the 35B above; sampling `temperature: 0.6, top_p: 0.95, top_k: 20, repetition_penalty: 1.0`. See exp-64–69.
+Not a featured stack (0.80 on routine python/go, below the 1.00 bar), but the build choice is decided and the wrong one is forbidden above. Use **`mlx-community/Qwen3-Coder-30B-A3B-Instruct-4bit-DWQ`** — 16 GB, zero stalls in 20 runs across four languages, and a pass rate statistically indistinguishable from the 30 GB 8-bit build (8/10 vs 7/10, p = 1.00). Not the 6-bit (0.40, 23 GB) and not the plain 4-bit. Same serving and agent settings as the 35B above; sampling `temperature: 0.6, top_p: 0.95, top_k: 20, repetition_penalty: 1.0`. See exp-64–69. A hard-task screen (exp-71, n=1) found DWQ stalling **0 of 2** there too, while plain 4-bit failed by an instant text-format tool call and a likely stall; neither passes the hard task.
 
 ### Cloud: Haiku 5.5, Opus 5.5, Fable 5, GPT-5.6 Terra
 
