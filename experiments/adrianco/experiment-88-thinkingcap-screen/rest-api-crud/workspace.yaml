@@ -11,7 +11,7 @@ experiment:
   name: experiment-88-thinkingcap-screen-rest-api-crud
   visibility: public
 factors:
-  language: { levels: [python, go] }
+  language: { levels: [python, go, typescript] }
   # Registry needs >=2 levels per factor; design.csv pins what actually runs.
   agent: { levels: [hermes-0222, hermes-local] }
   prompt: { levels: [neutral, none] }
