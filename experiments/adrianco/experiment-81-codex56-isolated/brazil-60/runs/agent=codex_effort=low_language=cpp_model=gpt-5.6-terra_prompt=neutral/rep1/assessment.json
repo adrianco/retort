@@ -1,0 +1,10 @@
+{
+  "severity_counts": {"critical": 0, "high": 1, "medium": 0, "low": 0, "info": 0},
+  "penalty_score": 0.9,
+  "top_findings": [
+    {"id": "R1", "kind": "requirement_partial", "severity": "high", "title": "MCP tools expose an empty inputSchema (no properties), so clients/LLMs cannot discover arguments", "evidence": "main.cpp:74 toolList() builds every tool with inputSchema={\"type\":\"object\"} and no properties/required; args named only in the description string. _factual.json: the probe could not narrow the standings query, yielding an all-seasons 36-row/690-pt table.", "suggestion": "Add a JSON-Schema properties block per tool enumerating each argument so an MCP client/LLM can form narrow calls."}
+  ],
+  "requirement_coverage": 0.9167,
+  "model": "gpt-5.6-terra",
+  "evaluated_at": "2026-10-18T00:00:00Z"
+}

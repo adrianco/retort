@@ -1,0 +1,23 @@
+{
+  "severity_counts": {
+    "critical": 0,
+    "high": 1,
+    "medium": 0,
+    "low": 0,
+    "info": 0
+  },
+  "penalty_score": 0.9,
+  "top_findings": [
+    {
+      "id": "sec-sqli-charlist",
+      "kind": "security_concern",
+      "severity": "high",
+      "title": "SQL injection via a JSON array for year/isbn (charlist bypasses quote-escaping)",
+      "evidence": "lib/book_api/store.ex:80 `defp q(value), do: to_string(value)` \u2014 only binaries are escaped (store.ex:79); nullable/1 (store.ex:83) routes year/isbn through q/1. Router validate/1 (router.ex:51-55) checks only title/author, so {\"year\": [49,41,59,32,68,82,79,80,...]} decodes to an integer list, to_string/1 turns it into the raw text `1); DROP TABLE books; --` (verified: `elixir -e` prints it unescaped) and it is spliced into the INSERT at store.ex:31, which the sqlite3 CLI runs as multiple statements.",
+      "suggestion": "Validate year is an integer and isbn a string in the router; make q/1 reject non-scalars; better, use parameterized queries (Exqlite) instead of shelling SQL text to sqlite3."
+    }
+  ],
+  "requirement_coverage": 1.0,
+  "model": "gpt-6-luna",
+  "evaluated_at": "2026-10-18T05:31:55Z"
+}

@@ -1,0 +1,11 @@
+{
+  "severity_counts": {"critical": 0, "high": 1, "medium": 0, "low": 0, "info": 0},
+  "penalty_score": 0.9,
+  "top_findings": [
+    {"id": "R4", "kind": "requirement_partial", "severity": "high", "title": "GET /books/{id} always returns 404, even for existing books", "evidence": "book_service.c:34 — books_json() consumes all rows leaving the statement at SQLITE_DONE, after which sqlite3_data_count() returns 0 (verified: row stepped=1, data_count=0), so `found` is always 0 and the handler returns 404 for every id.", "suggestion": "Detect whether a row was emitted before the statement runs to completion, and branch on that instead of calling sqlite3_data_count() after SQLITE_DONE."}
+  ],
+  "requirement_coverage": 0.9167,
+  "model": "gpt-6-luna",
+  "second_opinion": {"disputed_requirement": "R4", "first_evaluator_verdict": "not met", "recheck_verdict": "CONFIRMED not met", "requirement_coverage_unchanged": true},
+  "evaluated_at": "2026-10-18T00:00:00Z"
+}

@@ -1,0 +1,2 @@
+/usr/bin/ar qc libbookapi.a CMakeFiles/bookapi.dir/src/json.cpp.o CMakeFiles/bookapi.dir/src/book_repository.cpp.o CMakeFiles/bookapi.dir/src/book_api.cpp.o CMakeFiles/bookapi.dir/src/http_server.cpp.o
+/usr/bin/ranlib libbookapi.a

@@ -1,0 +1,3 @@
+{:paths ["src" "test"]
+ :aliases {:run {:main-opts ["-m" "brazilian-soccer-mcp.core"]}
+           :test {:main-opts ["-m" "brazilian-soccer-mcp.test-runner"]}}}

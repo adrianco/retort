@@ -1,0 +1,23 @@
+{
+  "severity_counts": {
+    "critical": 0,
+    "high": 1,
+    "medium": 0,
+    "low": 0,
+    "info": 0
+  },
+  "penalty_score": 0.9,
+  "top_findings": [
+    {
+      "id": "R9",
+      "kind": "requirement_partial",
+      "severity": "high",
+      "title": "standings() computes from matches but merges overlapping datasets and groups by raw team name",
+      "evidence": "main.cpp:59 defaults competition=\"Brasileirao\" and filters via contains() (main.cpp:52 = normalize().find()), so both \"Brasileirao\" (main.cpp:43) and \"Brasileirao Historical\" (main.cpp:47) are summed; map keyed on raw x[m.home]/x[m.away] (not normalize()), so _factual.json lists Palmeiras 902 AND Palmeiras-SP 622 as separate rows; factual_accuracy=0.0. R9 criterion 'computed from matches, not hardcoded' is met, so R9 is partial, not missing.",
+      "suggestion": "Use exact competition equality and normalize team names before using them as grouping keys."
+    }
+  ],
+  "requirement_coverage": 0.9167,
+  "model": "gpt-5.6-terra",
+  "evaluated_at": "2026-10-18T04:44:05Z"
+}

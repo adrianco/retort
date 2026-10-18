@@ -1,0 +1,10 @@
+{
+  "severity_counts": {"critical": 0, "high": 1, "medium": 0, "low": 0, "info": 0},
+  "penalty_score": 0.9,
+  "top_findings": [
+    {"id": "R9", "kind": "requirement_partial", "severity": "high", "title": "competition_standings double-counts Brasileirao seasons present in both league CSVs", "evidence": "src/service.ts:9 filters with normalize(m.competition).includes(normalize(competition)); Brasileirao_Matches.csv ('Brasileirao', src/data.ts:40) and novo_campeonato_brasileiro.csv ('Brasileirao historical', src/data.ts:44) both match a 'Brasileirao' query, and both hold 380 matches for 2019, so points/goals double (~180 vs real ~90). Mechanism is implemented (computed from matches), so partial not missing. _factual.json score 0.0; test only checks length>10 and ordering.", "suggestion": "Require an exact competition match in standings() or dedupe the two Brasileirao sources per season."}
+  ],
+  "requirement_coverage": 0.9167,
+  "model": "gpt-5.6-terra",
+  "evaluated_at": "2026-10-18T00:00:00Z"
+}

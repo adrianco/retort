@@ -1,0 +1,6 @@
+/Users/adriancockcroft/.retort/work/retort-local-430rn8r7/retort-ac3d86b63284/build-warn/CMakeFiles/bookapi.dir
+/Users/adriancockcroft/.retort/work/retort-local-430rn8r7/retort-ac3d86b63284/build-warn/CMakeFiles/book_server.dir
+/Users/adriancockcroft/.retort/work/retort-local-430rn8r7/retort-ac3d86b63284/build-warn/CMakeFiles/book_tests.dir
+/Users/adriancockcroft/.retort/work/retort-local-430rn8r7/retort-ac3d86b63284/build-warn/CMakeFiles/test.dir
+/Users/adriancockcroft/.retort/work/retort-local-430rn8r7/retort-ac3d86b63284/build-warn/CMakeFiles/edit_cache.dir
+/Users/adriancockcroft/.retort/work/retort-local-430rn8r7/retort-ac3d86b63284/build-warn/CMakeFiles/rebuild_cache.dir

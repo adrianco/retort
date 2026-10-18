@@ -1,0 +1,10 @@
+{
+  "severity_counts": {"critical": 0, "high": 1, "medium": 0, "low": 0, "info": 0},
+  "penalty_score": 0.9,
+  "top_findings": [
+    {"id": "R3", "kind": "requirement_partial", "severity": "high", "title": "?author= filter never works over real HTTP (wrap-params middleware missing)", "evidence": "src/book_api/core.clj:16,22 reads (get query-params \"author\") but core.clj:46-47 applies only wrap-json-body + wrap-json-response; ring.middleware.params/wrap-params is never required/applied, so over real HTTP query-params=nil and db/list-books returns ALL books. db.clj:12-15 filter is correct but unreachable; test core_test.clj:24 injects :query-params directly, masking the gap.", "suggestion": "Require and apply ring.middleware.params/wrap-params (or wrap-query-params) in app; add a test driving the filter through :query-string."}
+  ],
+  "requirement_coverage": 0.9167,
+  "model": "gpt-6-luna",
+  "evaluated_at": "2026-10-18T00:00:00Z"
+}

@@ -1,0 +1,23 @@
+{
+  "severity_counts": {
+    "critical": 0,
+    "high": 1,
+    "medium": 0,
+    "low": 0,
+    "info": 0
+  },
+  "penalty_score": 0.9,
+  "top_findings": [
+    {
+      "id": "R9",
+      "kind": "requirement_partial",
+      "severity": "high",
+      "title": "standings computes factually wrong tables: clubs collapse by name, no season default",
+      "evidence": "core.clj:30 normalize-name strips -XX suffix so Atletico-MG/PR/GO all become 'atletico'; standings (core.clj:118-121) credits each Atletico row with all three clubs' games. _factual.json: three Atletico rows byte-identical (played=926). No season default (core.clj:118) -> nil season returns all-time totals. factual_accuracy=0.0.",
+      "suggestion": "Key standings on the full suffixed club name and give standings a default/required season."
+    }
+  ],
+  "requirement_coverage": 0.9167,
+  "model": "gpt-5.6-terra",
+  "evaluated_at": "2026-10-18T02:49:57Z"
+}

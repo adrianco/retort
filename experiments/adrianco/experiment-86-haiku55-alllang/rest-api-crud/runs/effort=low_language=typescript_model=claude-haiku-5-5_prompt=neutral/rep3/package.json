@@ -1,0 +1,20 @@
+{
+  "name": "book-api",
+  "version": "1.0.0",
+  "description": "REST API for managing a book collection, backed by embedded SQLite",
+  "type": "module",
+  "main": "dist/src/server.js",
+  "engines": {
+    "node": ">=22.13"
+  },
+  "scripts": {
+    "build": "tsc -p tsconfig.json",
+    "start": "node dist/src/server.js",
+    "test": "npm run build && node --test \"dist/test/**/*.test.js\"",
+    "dev": "npm run build && npm start"
+  },
+  "devDependencies": {
+    "@types/node": "^22.0.0",
+    "typescript": "^5.6.0"
+  }
+}

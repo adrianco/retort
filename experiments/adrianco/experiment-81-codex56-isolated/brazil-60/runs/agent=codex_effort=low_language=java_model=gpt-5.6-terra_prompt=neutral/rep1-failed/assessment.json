@@ -1,0 +1,11 @@
+{
+  "severity_counts": {"critical": 1, "high": 1, "medium": 0, "low": 0, "info": 0},
+  "penalty_score": 0.65,
+  "top_findings": [
+    {"id": "R1", "kind": "requirement_partial", "severity": "critical", "title": "MCP server crashes on the notifications/initialized notification — handshake never completes", "evidence": "BrazilianSoccerMcpServer.java:7 — the main read-loop catch block builds Map.of(\"jsonrpc\",\"2.0\",\"error\",...,\"id\",null); java.util.Map.of rejects null values. notifications/initialized hits the switch default in response() (line 8) and throws IllegalArgumentException, which reaches that catch and NPEs. Reproduced by stdio probe: initialize answered, then NullPointerException at java.util.Map.of(Map.java:1410) <- main(BrazilianSoccerMcpServer.java:7), process exits 1, tools/list left unanswered. Independently corroborated by _factual.json score=0.0 'did not complete the MCP handshake'.", "suggestion": "Reply to JSON-RPC notifications (requests with no id) with nothing, and build error/response objects with a null-tolerant map (HashMap) so a null id does not throw."},
+    {"id": "R1b", "kind": "requirement_partial", "severity": "high", "title": "Server process dies on any error input (unknown method/tool, missing required arg) instead of returning a JSON-RPC error", "evidence": "response() default (line 8) and call() default (line 9) throw IllegalArgumentException; required() (line 12) throws on missing args. Every throw reaches the same main catch at line 7 whose Map.of(...,\"id\",null) NPEs. Reproduced in three separate processes — bogus/method, tools/call name=no_such_tool, and team_statistics with empty arguments — each exits 1 at Map.of(Map.java:1410); a valid team_statistics{team:Flamengo} call by contrast returns correctly, confirming only the error path crashes.", "suggestion": "Construct the JSON-RPC error with a null-tolerant map, echo the request id, and keep the read loop alive after catching a per-request error."}
+  ],
+  "requirement_coverage": 0.9167,
+  "model": "gpt-5.6-terra",
+  "evaluated_at": "2026-10-18T00:00:00Z"
+}

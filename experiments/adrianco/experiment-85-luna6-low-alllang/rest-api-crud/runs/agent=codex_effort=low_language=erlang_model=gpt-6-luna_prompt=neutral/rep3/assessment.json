@@ -1,0 +1,23 @@
+{
+  "severity_counts": {
+    "critical": 0,
+    "high": 1,
+    "medium": 0,
+    "low": 0,
+    "info": 0
+  },
+  "penalty_score": 0.9,
+  "top_findings": [
+    {
+      "id": "R1-utf8",
+      "kind": "requirement_partial",
+      "severity": "high",
+      "title": "Non-ASCII title/author is corrupted on create and returned mangled on read",
+      "evidence": "src/books_json.erl:5 decodes via binary_to_list (UTF-8 bytes treated as Latin-1 codepoints), :24 unicode:characters_to_binary re-encodes them; src/books_store.erl:134 sql_string(binary_to_list) is encoded again by open_port args (:97). Second-opinion probe on a temp copy: POST author \"Garc\u00eda\" -> sqlite hex 47617263C383C283C382C2AD61 (expected 47617263C3AD61); response author = 37 bytes <<71,97,114,99,195,131,194,131,...>> vs expected <<71,97,114,99,195,173,97>>",
+      "suggestion": "Decode JSON over UTF-8 (unicode:characters_to_list(Data)) and pass SQL as unicode chars, or use a real JSON lib (jsx/thoas, OTP 27 json) and an SQLite NIF (esqlite) with bound parameters"
+    }
+  ],
+  "requirement_coverage": 0.9167,
+  "model": "gpt-6-luna",
+  "evaluated_at": "2026-10-18T05:37:56Z"
+}

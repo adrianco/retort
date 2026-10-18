@@ -1,0 +1,30 @@
+{
+  "severity_counts": {
+    "critical": 0,
+    "high": 1,
+    "medium": 0,
+    "low": 0,
+    "info": 0
+  },
+  "penalty_score": 0.9,
+  "top_findings": [
+    {
+      "id": "app-not-started",
+      "kind": "requirement_partial",
+      "severity": "high",
+      "title": "OTP application callback never registered, so `mix run --no-halt` starts no server",
+      "evidence": "mix.exs:4-7 has no application/0; `application: [extra_applications: [:logger], mod: {BookApi.Application, []}]` sits inside project/0, which Mix ignores for .app generation. Re-verified in a temp copy (Elixir 1.20.3): generated book_api.app has no {mod,...}; `mix run -e` printed Application.spec(:book_api, :mod)=[], Process.whereis(BookApi.Server)=nil, :gen_tcp.connect to PORT={:error,:econnrefused}",
+      "suggestion": "Add `def application, do: [extra_applications: [:logger], mod: {BookApi.Application, []}]` and remove the key from project/0"
+    }
+  ],
+  "requirement_coverage": 0.9167,
+  "model": "gpt-6-luna",
+  "evaluated_at": "2026-10-18T05:35:07Z",
+  "second_opinion": {
+    "prior_requirement_coverage": 0.9167,
+    "claims_confirmed": [
+      "app-not-started"
+    ],
+    "claims_refuted": []
+  }
+}

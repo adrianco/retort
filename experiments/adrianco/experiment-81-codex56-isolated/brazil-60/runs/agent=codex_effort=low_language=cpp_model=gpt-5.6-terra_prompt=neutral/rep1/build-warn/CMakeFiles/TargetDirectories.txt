@@ -1,0 +1,4 @@
+/Users/adriancockcroft/code/retort/experiments/adrianco/experiment-81-codex56-isolated/brazil-60/runs/agent=codex_effort=low_language=cpp_model=gpt-5.6-terra_prompt=neutral/rep1/build-warn/CMakeFiles/brazilian_soccer_mcp.dir
+/Users/adriancockcroft/code/retort/experiments/adrianco/experiment-81-codex56-isolated/brazil-60/runs/agent=codex_effort=low_language=cpp_model=gpt-5.6-terra_prompt=neutral/rep1/build-warn/CMakeFiles/test.dir
+/Users/adriancockcroft/code/retort/experiments/adrianco/experiment-81-codex56-isolated/brazil-60/runs/agent=codex_effort=low_language=cpp_model=gpt-5.6-terra_prompt=neutral/rep1/build-warn/CMakeFiles/edit_cache.dir
+/Users/adriancockcroft/code/retort/experiments/adrianco/experiment-81-codex56-isolated/brazil-60/runs/agent=codex_effort=low_language=cpp_model=gpt-5.6-terra_prompt=neutral/rep1/build-warn/CMakeFiles/rebuild_cache.dir

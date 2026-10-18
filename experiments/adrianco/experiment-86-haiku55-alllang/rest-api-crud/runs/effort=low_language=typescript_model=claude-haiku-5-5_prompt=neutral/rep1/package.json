@@ -1,0 +1,21 @@
+{
+  "name": "book-collection-api",
+  "version": "1.0.0",
+  "description": "REST API for managing a book collection, backed by SQLite",
+  "private": true,
+  "type": "commonjs",
+  "main": "dist/src/server.js",
+  "engines": {
+    "node": ">=22.13"
+  },
+  "scripts": {
+    "build": "tsc -p tsconfig.json",
+    "start": "node dist/src/server.js",
+    "dev": "npm run build && npm start",
+    "test": "npm run build && node --test dist/tests/books.test.js"
+  },
+  "devDependencies": {
+    "@types/node": "^22.0.0",
+    "typescript": "^5.6.0"
+  }
+}

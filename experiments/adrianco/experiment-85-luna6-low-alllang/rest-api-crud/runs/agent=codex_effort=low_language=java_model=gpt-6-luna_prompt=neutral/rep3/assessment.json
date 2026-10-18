@@ -1,0 +1,23 @@
+{
+  "severity_counts": {
+    "critical": 0,
+    "high": 1,
+    "medium": 0,
+    "low": 0,
+    "info": 0
+  },
+  "penalty_score": 0.9,
+  "top_findings": [
+    {
+      "id": "test-fail-1",
+      "kind": "test_failure",
+      "severity": "high",
+      "title": "One of four tests fails: hardcoded /books/1 breaks because DELETE does not reset AUTOINCREMENT",
+      "evidence": "test_coverage=0.75 in scores.json (scorer = Surefire pass rate = 3/4). src/test/java/com/example/books/BookApiTest.java:22 clearDatabase() runs `DELETE FROM books` in @BeforeEach, which does NOT reset the SQLite AUTOINCREMENT id sequence in the shared in-memory DB (@SpringBootTest, cache=shared). The two id-dependent tests assume id==1: createsListsFiltersAndReadsBook (line 29, get /books/1) and updatesAndDeletesBook (lines 33-36, insert then put/delete /books/1). Whichever runs second sees id>=2, so its /books/1 calls 404 and the test fails.",
+      "suggestion": "Do not hardcode id 1. Either reset the sequence per-test (DELETE FROM sqlite_sequence WHERE name='books', or DROP/recreate the table in @BeforeEach), or capture the id returned by POST/INSERT and use it in subsequent requests."
+    }
+  ],
+  "requirement_coverage": 1.0,
+  "model": "gpt-6-luna",
+  "evaluated_at": "2026-10-18T00:52:06Z"
+}

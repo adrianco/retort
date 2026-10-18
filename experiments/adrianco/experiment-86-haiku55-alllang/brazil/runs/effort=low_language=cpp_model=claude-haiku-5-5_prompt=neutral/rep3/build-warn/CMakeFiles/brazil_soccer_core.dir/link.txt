@@ -1,0 +1,2 @@
+/usr/bin/ar qc libbrazil_soccer_core.a CMakeFiles/brazil_soccer_core.dir/src/json.cpp.o CMakeFiles/brazil_soccer_core.dir/src/csv.cpp.o CMakeFiles/brazil_soccer_core.dir/src/text.cpp.o CMakeFiles/brazil_soccer_core.dir/src/dataset.cpp.o CMakeFiles/brazil_soccer_core.dir/src/loader.cpp.o CMakeFiles/brazil_soccer_core.dir/src/queries.cpp.o CMakeFiles/brazil_soccer_core.dir/src/tools.cpp.o CMakeFiles/brazil_soccer_core.dir/src/mcp_server.cpp.o
+/usr/bin/ranlib libbrazil_soccer_core.a

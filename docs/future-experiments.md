@@ -78,25 +78,23 @@ Sonnet's wall-clock. `default` (= medium) costs ~2× low for nothing. Max is tam
 $0.29–0.47 and 7–10 min a run (Sonnet 5.5: $5–18, 26–63 min). No request crossed the 100K prompt tier
 at low. CLI 2.1.302, isolated.
 
-## 0. exp-86 — Haiku 5.5 at LOW across the 13×2 grid  — QUEUED 2026-10-17
+## 0. exp-86 — Haiku 5.5 at LOW across the 13×2 grid  — COMPLETE 2026-10-18 (recover + write-up pending)
 
-The featurable grid for the cheapest Claude: 13 languages × {rest-api-crud, brazil} at low, **n=3 on
-both halves** (Opus 5.5 used n=1 on brazil as a cost screen; Haiku is ~30× cheaper) = 78 runs, ~$8.
-Copied from exp-79 (Opus 5.5's isolated grid) with the model swapped — cell for cell. **Hypothesis:**
-routine 1.00 in the mainstream languages; the hard task and niche languages are where a small model
-misses. Check brazil per-request prompt size against the 100K tier (5×) before quoting its cost.
+**76/78 pass** — routine 38/39 (csharp 2/3), brazil 38/39 (c 2/3), i.e. within one run per half of
+Opus 5.5's isolated grid (exp-79). Routine $0.011–0.085 a run (8–30× below Opus 5.5); brazil ~$0.30 a
+run — peak context reached 153K, **crossing Haiku's 100K tier (5×)**, as predicted. Total ≈ $12.
+Hypothesis that a small model would miss niche languages: WRONG — it cleared all 13.
 
-## 0. exp-85 — GPT-6 Luna at LOW across all 13 languages (Codex, isolated)  — QUEUED 2026-10-17
+## 0. exp-85 — GPT-6 Luna at LOW across all 13 languages (Codex, isolated)  — COMPLETE 2026-10-18 (write-up pending)
 
-**Replaces the GPT-6.1 Sol ladder** (dropped before any measured run). **User rule, 2026-10-17: Codex
-only at `low` effort, and only Luna/Terra** — Codex bills the ChatGPT subscription and one hard-task
-run used a whole ~5 h allowance window. `gpt-6-luna` × low × 13 languages on `rest-api-crud`, n=3 =
-39 runs. Luna 6 is the cheapest cloud model measured (~$0.01 a routine run, exp-76 at default);
-Haiku 5.5 (exp-84) has the same base list price, so this answers "cheapest cloud stack per language".
-**Hypothesis:** python/go/typescript pass; the niche languages are where a small model at low misses.
-codex-cli **0.163.0** (upgraded per the user's run-latest-versions rule).
+**33/39 after recovery** (`retort diagnose`: all 7 original failures GENUINE; one passed on rescore).
+Misses: csharp 1, elixir 1, erlang 1, **objc 2, swift 2** — the .NET/BEAM/Apple tail. Every pass at
+coverage 1.00; ~$0.006–0.009 and ~1 min a run. Several Apple-language agents wrote their own test
+scripts that pass when run directly but not via the language's standard test command (counted as
+genuine). Codex's `workspace-write` sandbox also blocked binding a local port for HTTP tests.
+Did NOT hit the subscription limit. codex-cli 0.163.0.
 
-## 0. exp-81 + exp-82 brazil-73 — finish the isolated Codex re-runs  — PAUSED (Codex usage limit), 2026-09-30
+## 0. exp-81 + exp-82 brazil-73 — finish the isolated Codex re-runs  — exp-81 brazil-60 RUN 2026-10-18: 3/11 after recovery (8 fail the factual gate — answers wrong, code complete), as in the original exp-60  — PAUSED (Codex usage limit), 2026-09-30
 
 **Rescoped 2026-10-17 (Codex: low effort, Luna/Terra only):** exp-81 keeps only **brazil-60 = Terra at
 `low`, 11 languages, n=1** — no longer like-for-like with exp-60 (which ran at the owner's configured

@@ -1,0 +1,10 @@
+{
+  "severity_counts": {"critical": 0, "high": 0, "medium": 0, "low": 0, "info": 0},
+  "penalty_score": 1.0,
+  "top_findings": [],
+  "requirement_coverage": 1.0,
+  "model": "gpt-6-luna",
+  "evaluated_at": "2026-10-18T01:25:12Z",
+  "min_severity": "high",
+  "note": "3 findings exist (2 low, 1 info) but all are below min_severity=high, so they are excluded from counts. file-run-issues v2.0 aggregates only; tracker=beads requested but the skill does not create beads/external issues."
+}

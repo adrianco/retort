@@ -1,0 +1,11 @@
+{
+  "severity_counts": {"critical": 0, "high": 1, "medium": 0, "low": 0, "info": 0},
+  "penalty_score": 0.9,
+  "top_findings": [
+    {"id": "R11", "kind": "requirement_partial", "severity": "high", "title": "head_to_head double-counts fixtures duplicated across source CSVs", "evidence": "src/brazilian_soccer_mcp/core.clj:170 filters (:matches (data)) directly and never calls dedupe-matches, unlike find-matches (core.clj:151). Flamengo-Palmeiras 2019 appears twice in each of Brasileirao_Matches.csv, novo_campeonato_brasileiro.csv (both map to :competition brasileirao) and BR-Football-Dataset.csv, so a two-team H2H sums each fixture 2-3x. The H2H test only uses a 2-match in-memory fixture.", "suggestion": "Pipe games through dedupe-matches before reducing, or build head-to-head on top of find-matches."}
+  ],
+  "requirement_coverage": 0.9167,
+  "model": "gpt-5.6-terra",
+  "evaluated_at": "2026-10-18T00:00:00Z",
+  "note": "SECOND OPINION re-check. Prior scoring was 0.8333 (R9 and R11 both marked not-met). R9 is a checker false-negative (standings correct, 20 teams, passing real-data test core_test.clj:31-36) -> R9 implemented. R11 confirmed partial (head-to-head skips dedupe, double-counts). Re-scored 11/12 implemented, 1 partial = 0.9167."
+}

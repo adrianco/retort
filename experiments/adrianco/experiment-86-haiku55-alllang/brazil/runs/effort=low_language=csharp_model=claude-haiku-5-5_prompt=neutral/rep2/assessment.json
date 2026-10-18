@@ -1,0 +1,10 @@
+{
+  "severity_counts": {"critical": 0, "high": 0, "medium": 0, "low": 0, "info": 0},
+  "penalty_score": 1.0,
+  "top_findings": [],
+  "requirement_coverage": 1.0,
+  "model": "claude-haiku-5-5",
+  "evaluated_at": "2026-10-18T12:47:25Z",
+  "min_severity": "high",
+  "note": "12/12 requirements implemented; 47 tests pass (test_coverage=1.0); only finding is info-level (filtered at min_severity=high)."
+}

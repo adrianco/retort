@@ -1,0 +1,2 @@
+{"id": "E1", "kind": "enhancement", "severity": "info", "title": "Strict JSON decoding beyond spec", "evidence": "main.go:212 decodeBook uses DisallowUnknownFields, rejects trailing JSON, and caps body at 1 MiB", "suggestion": "No action; hardening beyond the task requirements"}
+{"id": "E2", "kind": "enhancement", "severity": "info", "title": "Configurable listen address and DB path", "evidence": "main.go:241,254 read BOOKS_DB and ADDR env vars", "suggestion": "No action; convenience beyond spec"}

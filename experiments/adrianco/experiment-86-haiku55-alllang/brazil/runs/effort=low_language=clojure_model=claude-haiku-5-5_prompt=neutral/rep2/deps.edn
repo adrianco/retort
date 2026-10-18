@@ -1,0 +1,7 @@
+;; Zero external dependencies: only the Clojure runtime bundled with the CLI.
+{:paths ["src"]
+ :deps {}
+ :aliases
+ {:test {:extra-paths ["test"]
+         :main-opts ["-m" "brazilian-soccer.test-runner"]}
+  :server {:main-opts ["-m" "brazilian-soccer.server"]}}}

@@ -1,0 +1,8 @@
+cmake_minimum_required(VERSION 3.16)
+project(brazilian_soccer_mcp LANGUAGES CXX)
+set(CMAKE_CXX_STANDARD 17)
+set(CMAKE_CXX_STANDARD_REQUIRED ON)
+add_executable(brazilian_soccer_mcp main.cpp)
+target_compile_options(brazilian_soccer_mcp PRIVATE -Wall -Wextra -Wpedantic)
+enable_testing()
+add_test(NAME smoke COMMAND brazilian_soccer_mcp --self-test)

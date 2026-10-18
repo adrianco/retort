@@ -1,0 +1,11 @@
+{
+  "severity_counts": {"critical": 0, "high": 1, "medium": 0, "low": 0, "info": 0},
+  "penalty_score": 0.9,
+  "top_findings": [
+    {"id": "R9", "kind": "requirement_partial", "severity": "high", "title": "Standings double-counts and splits teams, producing an incorrect Brasileirao table", "evidence": "soccer_data.erl:7,11 loads BOTH Brasileirao_Matches.csv (label \"Brasileirao\") and novo_campeonato_brasileiro.csv (label \"Brasileirao Historical\"); seasons 2012-2019 overlap and contain the SAME physical matches (27/04/2019 Flamengo 3-1 Cruzeiro in both; each file has exactly 380 rows for 2019). The default standings competition \"Brasileirao\" (soccer_mcp.erl:13) is matched by a case-insensitive SUBSTRING filter (soccer_query.erl:15), so it matches BOTH labels and feeds 760 matches into the 2019 table. soccer_query.erl:45 add_table keys the table by the RAW team name, and the two files spell clubs differently (\"Flamengo-RJ\" vs \"Flamengo\"), so each team splits into two rows. _factual.json score 0.0.", "suggestion": "Key standings by normalized team name and dedupe overlapping matches across the two Brasileirao files (or make the competition filter an exact-label match)."}
+  ],
+  "requirement_coverage": 0.9167,
+  "model": "gpt-5.6-terra",
+  "evaluated_at": "2026-10-18T00:00:00Z",
+  "second_opinion": {"prior_requirement_coverage": 0.9167, "prior_r9_claim": "not met (double-count + split)", "verdict": "CONFIRMED — first evaluator was correct; R9 re-classified missing->partial, coverage unchanged at 0.9167"}
+}

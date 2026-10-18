@@ -1,0 +1,11 @@
+{
+  "severity_counts": {"critical": 0, "high": 2, "medium": 0, "low": 0, "info": 0},
+  "penalty_score": 0.8,
+  "top_findings": [
+    {"id": "R9", "kind": "requirement_partial", "severity": "high", "title": "Standings double-count Athletico Paranaense under two name-spelling variants", "evidence": "SoccerService.java:22/25 keys the standings table on the raw team name (computeIfAbsent(team,...)), never Names.normalize(); _factual.json shows 'Athletico Paranaense' (played 27) and 'Atletico Paranaense' (played 11) as two rows for one club (27+11=38), factual_accuracy=0.0. Standings ARE computed from matches (not hardcoded) so capability exists -> partial, not missing.", "suggestion": "Canonicalize club names via an alias map (fold Athletico<->Atletico Paranaense) before keying the table; plain normalize() keeps the 'h' and will not merge them."},
+    {"id": "R9-factual", "kind": "test_failure", "severity": "high", "title": "factual_accuracy gate = 0.0 for the standings tool", "evidence": "_factual.json: '2019 Serie A: all 20 clubs present ... 3 Atletico/Athletico row(s), expected 2'; Flamengo correct at 38 played/90 pts so fixture dedup works, only the club-name split fails.", "suggestion": "Fix club-name canonicalization to clear the factual gate."}
+  ],
+  "requirement_coverage": 0.9167,
+  "model": "gpt-5.6-terra",
+  "evaluated_at": "2026-10-18T00:00:00Z"
+}

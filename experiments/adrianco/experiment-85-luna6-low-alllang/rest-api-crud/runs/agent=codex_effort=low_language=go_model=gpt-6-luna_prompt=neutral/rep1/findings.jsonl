@@ -1,0 +1,1 @@
+{"id": "L1", "kind": "lint_warning", "severity": "low", "title": "Unused API.ping readiness helper is dead code", "evidence": "main.go:255 defines (a *API) ping(ctx) but no caller exists (grep for '.ping(' returns nothing); /health does not use it", "suggestion": "Either wire ping into the /health handler for a real DB readiness check, or remove the unused method"}

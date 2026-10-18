@@ -1,0 +1,21 @@
+import { openDatabase } from './db.js';
+import { createApp } from './app.js';
+
+const port = Number(process.env.PORT ?? 3000);
+const dbPath = process.env.DB_PATH ?? 'books.db';
+
+const db = openDatabase(dbPath);
+const server = createApp(db);
+
+server.listen(port, () => {
+  console.log(`Book API listening on http://localhost:${port} (db: ${dbPath})`);
+});
+
+function shutdown(): void {
+  server.close(() => {
+    db.close();
+    process.exit(0);
+  });
+}
+process.on('SIGINT', shutdown);
+process.on('SIGTERM', shutdown);

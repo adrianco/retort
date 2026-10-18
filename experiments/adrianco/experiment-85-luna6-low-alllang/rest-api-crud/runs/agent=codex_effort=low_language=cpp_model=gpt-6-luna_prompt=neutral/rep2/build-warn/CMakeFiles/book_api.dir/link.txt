@@ -1,0 +1,2 @@
+/usr/bin/ar qc libbook_api.a CMakeFiles/book_api.dir/book_api.cpp.o
+/usr/bin/ranlib libbook_api.a

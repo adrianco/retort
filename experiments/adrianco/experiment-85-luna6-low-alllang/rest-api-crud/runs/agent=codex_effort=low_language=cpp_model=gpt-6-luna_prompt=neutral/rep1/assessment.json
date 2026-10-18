@@ -1,0 +1,10 @@
+{
+  "severity_counts": {"critical": 0, "high": 0, "medium": 0, "low": 0, "info": 0},
+  "penalty_score": 1.0,
+  "top_findings": [],
+  "requirement_coverage": 1.0,
+  "model": "gpt-6-luna",
+  "evaluated_at": "2026-10-18T00:00:00Z",
+  "min_severity": "high",
+  "note": "2 findings exist in findings.jsonl (1 low, 1 info); both are below min_severity=high and excluded from these counts. All 12 pinned requirements implemented. tracker=beads requested but this skill (v2.0) does not create tracker issues."
+}

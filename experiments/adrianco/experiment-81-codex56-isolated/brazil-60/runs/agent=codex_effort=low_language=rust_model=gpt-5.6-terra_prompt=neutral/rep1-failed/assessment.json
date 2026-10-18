@@ -1,0 +1,11 @@
+{
+  "severity_counts": {"critical": 0, "high": 2, "medium": 0, "low": 0, "info": 0},
+  "penalty_score": 0.8,
+  "top_findings": [
+    {"id": "R9", "kind": "requirement_partial", "severity": "high", "title": "standings() computes from matches but omits team-name normalization, splitting one club across rows", "evidence": "src/lib.rs:302 keys the table on `all.entry(team.clone())` (raw m.home/m.away) and never calls normalize_team — unlike search_matches (lib.rs:221), team_record (lib.rs:250) and head_to_head_records (lib.rs:358-359) which all normalize. _factual.json shows the 2019 Serie A table with both 'Athletico Paranaense' (27 matches, 48 pts) and 'Atletico Paranaense' (11 matches, 16 pts) as separate rows for the same club; factual gate scored 0.0.", "suggestion": "Normalize the key: `all.entry(normalize_team(team)).or_default()`, matching the other query functions, so accent/suffix variants collapse to one club."},
+    {"id": "factual", "kind": "test_failure", "severity": "high", "title": "Factual gate failed: factual_accuracy=0.0", "evidence": "_factual.json: '2019 Serie A: all 20 clubs present ... got 20 of 20 (3 Atletico/Athletico row(s), expected 2)'. The sole cause is the un-normalized standings key (see R9); Flamengo's headline record (38 played, 90 pts, 28W-6D-4L) is otherwise correct.", "suggestion": "Fixing the R9 normalization collapses the duplicate Atletico/Athletico Paranaense rows and should clear the factual assertion."}
+  ],
+  "requirement_coverage": 0.9167,
+  "model": "gpt-5.6-terra",
+  "evaluated_at": "2026-10-18T00:00:00Z"
+}

@@ -1,0 +1,13 @@
+{
+  "severity_counts": {"critical": 0, "high": 4, "medium": 0, "low": 0, "info": 0},
+  "penalty_score": 0.6,
+  "top_findings": [
+    {"id": "R4", "kind": "requirement_partial", "severity": "high", "title": "GET /books/{id} is unreachable under axum 0.7 route syntax", "evidence": "Handler get_book exists at src/main.rs:91 and is registered at src/main.rs:118 via `.route(\"/books/{id}\", ...)`, but Cargo.lock pins axum 0.7.9 / matchit 0.7.3 where path params are `:id` and `{id}` is a LITERAL segment. A request to /books/1 returns 404. Empirically: test `creates_and_reads_book` (src/main.rs:159) asserts OK and fails; scorer test_coverage=0.333 (1/3).", "suggestion": "Change the route to `/books/:id` (axum 0.7) or bump axum to 0.8 in Cargo.toml so `{id}` is a capture."},
+    {"id": "R5", "kind": "requirement_partial", "severity": "high", "title": "PUT /books/{id} is unreachable under axum 0.7 route syntax", "evidence": "Handler update_book exists at src/main.rs:97, registered at src/main.rs:118. Under matchit 0.7.3 `{id}` is literal, so /books/1 never matches update_book. Test `updates_deletes_and_reports_missing_books` (src/main.rs:185) asserts 200 OK and fails with 404.", "suggestion": "Same fix as R4: use `/books/:id` or upgrade axum to 0.8."},
+    {"id": "R6", "kind": "requirement_partial", "severity": "high", "title": "DELETE /books/{id} is unreachable under axum 0.7 route syntax", "evidence": "Handler delete_book exists at src/main.rs:106, registered at src/main.rs:118. Under matchit 0.7.3 `{id}` is literal, so delete_book is unreachable for /books/1. Covered by the failing test at src/main.rs:186 (expects 204 NO_CONTENT).", "suggestion": "Same fix as R4: use `/books/:id` or upgrade axum to 0.8."},
+    {"id": "test-fail", "kind": "test_failure", "severity": "high", "title": "2 of 3 tests fail: axum 0.7 pin vs 0.8 route syntax", "evidence": "scores.json test_coverage=0.333 (scorer built with deps and ran tests; 1/3 pass). Only `validates_required_fields_and_filters_by_author` (no id-route) passes. defect_rate=1.0 shows the code compiles cleanly; the failure is runtime routing, a GENUINE bug. The agent shipped unverified: `cargo test` failed offline (`Couldn't resolve host: index.crates.io`, _agent_stdout.log).", "suggestion": "Fix the route syntax (R4/R5/R6) — a one-line change makes all 3 tests pass."}
+  ],
+  "requirement_coverage": 0.75,
+  "model": "gpt-6-luna",
+  "evaluated_at": "2026-10-18T00:00:00Z"
+}

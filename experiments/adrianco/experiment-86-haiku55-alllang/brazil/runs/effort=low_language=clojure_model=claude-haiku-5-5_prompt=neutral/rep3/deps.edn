@@ -1,0 +1,10 @@
+{:paths ["src" "resources"]
+
+ :deps {org.clojure/clojure {:mvn/version "1.12.0"}
+        org.clojure/data.csv {:mvn/version "1.1.0"}
+        cheshire/cheshire {:mvn/version "5.13.0"}}
+
+ :aliases
+ {:run {:main-opts ["-m" "brazil-soccer.core"]}
+  :test {:extra-paths ["test"]
+         :main-opts ["-m" "brazil-soccer.test-runner"]}}}

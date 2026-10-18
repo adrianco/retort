@@ -1,0 +1,11 @@
+{
+  "severity_counts": {"critical": 0, "high": 1, "medium": 0, "low": 0, "info": 0},
+  "penalty_score": 0.9,
+  "top_findings": [
+    {"id": "R3", "kind": "requirement_partial", "severity": "high", "title": "?author= filter is non-functional on a live server (no wrap-params)", "evidence": "src/book_api/core.clj:26 reads (get-in req [:params :author]); core.clj:44 handler stack has no ring.middleware.params/wrap-params, so query-string author stays in :query-string and :params :author is always nil; db/all-books (db.clj:34-43) is reachable only with nil, returning ALL books.", "suggestion": "Add wrap-params (or read :query-params after wrap-params) and verify against a live server."}
+  ],
+  "requirement_coverage": 0.9167,
+  "model": "gpt-6-luna",
+  "min_severity": "high",
+  "evaluated_at": "2026-10-18T00:00:00Z"
+}

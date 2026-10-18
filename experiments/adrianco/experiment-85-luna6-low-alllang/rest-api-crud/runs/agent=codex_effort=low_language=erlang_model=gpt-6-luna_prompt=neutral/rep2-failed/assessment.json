@@ -1,0 +1,12 @@
+{
+  "severity_counts": {"critical": 1, "high": 2, "medium": 0, "low": 0, "info": 0},
+  "penalty_score": 0.55,
+  "top_findings": [
+    {"id": "bug-init-contract", "kind": "requirement_partial", "severity": "critical", "title": "Handler init/2 returns a bare Req, violating the cowboy_handler contract — every route crashes its request process", "evidence": "src/books_http_handler.erl:5,12 — init/2 clauses tail-call reply/3 (line 23) and book_route/3, all returning cowboy_req:reply/4's bare Req map; cowboy 2.12.0 cowboy_handler:execute/2 matches only {ok,Req,State}|{Mod,Req,State}|{Mod,Req,State,Opts}, so a bare map raises try_clause and the request process is terminated. Affects R1,R4,R5,R6,R8,R10.", "suggestion": "Return {ok, Req2, State} from init/2."},
+    {"id": "bug-qs-val", "kind": "requirement_missing", "severity": "high", "title": "GET /books calls cowboy_req:qs_val/2, which does not exist in Cowboy 2.x — R2/R3 never serve", "evidence": "src/books_http_handler.erl:10; rebar.config:2 and rebar.lock pin cowboy 2.12.0, where qs_val/2 was removed in Cowboy 2.0 (replaced by parse_qs/1 or match_qs/2). Any GET /books raises undefined function before any reply.", "suggestion": "Replace with cowboy_req:parse_qs/1 or match_qs/2."},
+    {"id": "test-http-gap", "kind": "test_failure", "severity": "high", "title": "No test exercises the HTTP layer, so two fatal runtime bugs pass unflagged", "evidence": "test/books_api_tests.erl:4-17 — the 3 tests call decode_book/1, nonempty/1 and books_db CRUD directly; none start Cowboy, so the init/2 contract bug and qs_val undef are never caught. test_coverage=1.0 reflects only this subset.", "suggestion": "Add an integration test that starts the listener and issues HTTP requests."}
+  ],
+  "requirement_coverage": 0.3333,
+  "model": "gpt-6-luna",
+  "evaluated_at": "2026-10-18T00:00:00Z"
+}

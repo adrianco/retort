@@ -1,0 +1,33 @@
+{
+  "severity_counts": {
+    "critical": 1,
+    "high": 1,
+    "medium": 0,
+    "low": 0,
+    "info": 0
+  },
+  "penalty_score": 0.65,
+  "top_findings": [
+    {
+      "id": "http-routing",
+      "kind": "requirement_missing",
+      "severity": "critical",
+      "title": "Every HTTP request returns 404: handler dispatches on cowboy_req:path_info, which is undefined for these routes",
+      "evidence": "src/books_api_app.erl:6 compiles exact routes \"/health\", \"/books\", \"/books/:id\" (no [...] segment); cowboy 2.12 cowboy_router.erl:386 list_match([],[],B) -> {true,B,undefined}. Re-verified by calling cowboy_router:match/3 on this exact dispatch: /health, /books, /books/1 all -> {ok,h,[],_,undefined,undefined} (PathInfo=undefined). src/books_api_handler.erl:7 reads path_info and every route/3 clause (lines 13-34) matches a token list, so all requests hit the catch-all at src/books_api_handler.erl:35 -> 404. Affects R1-R6, R8, R9, R10.",
+      "suggestion": "Use cowboy_req:path(Req) split on '/' (or cowboy_req:binding(id, Req) plus per-route State), or declare routes with [...] so path_info is populated."
+    },
+    {
+      "id": "no-http-tests",
+      "kind": "enhancement",
+      "severity": "high",
+      "title": "No test exercises the HTTP layer, so a 100%-404 server passes test_coverage=1.0",
+      "evidence": "test/books_api_tests.erl:4-34 \u2014 the 3 tests call only books_api_handler:validate/1 and books_api_store directly; no test starts cowboy or calls init/2/route/3",
+      "suggestion": "Add at least one integration test that starts the app and issues GET /health and a POST/GET /books round-trip."
+    }
+  ],
+  "requirement_coverage": 0.25,
+  "requirements_total": 12,
+  "requirements_implemented": 3,
+  "model": "gpt-6-luna",
+  "evaluated_at": "2026-10-18T05:35:41Z"
+}

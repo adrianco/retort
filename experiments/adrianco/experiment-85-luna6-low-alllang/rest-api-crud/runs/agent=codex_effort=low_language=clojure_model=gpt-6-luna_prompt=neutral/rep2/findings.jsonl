@@ -1,0 +1,1 @@
+{"id": "R3", "kind": "enhancement", "severity": "info", "title": "Prior ?author= HTTP failure is fixed", "evidence": "src/book_api/core.clj:50 threads wrap-params into the handler; test/book_api/core_test.clj:28 exercises :query-string \"author=frank%20herbert\" and asserts 1 result", "suggestion": "No action — the repair target from FEEDBACK.md is satisfied"}

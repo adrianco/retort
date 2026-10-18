@@ -1,0 +1,7 @@
+{
+  "name": "brazilian-soccer-mcp",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "scripts": { "build": "bun build src/server.ts --outdir dist/src --target node", "test": "npm run build && bun test test", "start": "npm run build && node dist/src/server.js" }
+}
