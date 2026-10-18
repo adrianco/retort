@@ -26,7 +26,7 @@ tasks:
 playpen:
   runner: local
   # 5 per cell -- see the n=5 note above. 4 design rows x 5 = 20 runs.
-  replicates: 1   # SCREEN (user rule: never high reps on a slow run of a new model)
+  replicates: 3   # DEEPENED 2026-10-18: the n=1 screen passed all three languages (1.00), so the cells earned n=3 (the local featured bar)
   # 60 for local (CLAUDE.md: local models are slow; ~60 local vs ~30 cloud). The 30B
   # is smaller and faster than the 35B/80B, so 60 is generous rather than tight, and
   # generous is correct here: a truncated cell would be scored as a capability failure.

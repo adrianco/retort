@@ -7,7 +7,7 @@
       "context_length_top_level": 262144,
       "context_length_unset_per_model": false,
       "max_turns": 400,
-      "model": "mlx-community--Qwen3.8-27B-4bit",
+      "model": "bottlecapai--ThinkingCap-Qwen3.8-27B-MLX-4bit-DWQ",
       "plugins": [
         "hermes-lcm"
       ],
@@ -59,8 +59,8 @@
   },
   "retort": {
     "branch": "main",
-    "commit": "ea0a9cf4ced699847b4f496a3fcba383eb58b9ba",
-    "dirty": true
+    "commit": "6644056aaea937756f2cb4f6ced48823ca15f180",
+    "dirty": false
   },
   "serving": {
     "omlx": {
