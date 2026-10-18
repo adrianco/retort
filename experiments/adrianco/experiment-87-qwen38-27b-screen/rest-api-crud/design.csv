@@ -1,0 +1,4 @@
+run,language,agent,prompt,stack,model
+0,python,hermes-0222,neutral,q38,mlxlocal/mlx-community--Qwen3.8-27B-4bit
+1,go,hermes-0222,neutral,q38,mlxlocal/mlx-community--Qwen3.8-27B-4bit
+2,typescript,hermes-0222,neutral,q38,mlxlocal/mlx-community--Qwen3.8-27B-4bit

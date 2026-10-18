@@ -1,0 +1,57 @@
+# Experiment 87 — Qwen3.8-27B (dense, 4-bit MLX), a 1-run SCREEN on the routine task.
+#
+# WHY. Qwen3.8-27B is the direct successor in the Qwen line our free local stacks come from, pitched at
+# coding, and it has never been run here. The free recommendation today is the Qwen3-Coder-Next 80B
+# (1.00 on python/go/typescript at context_threshold 0.9). This asks whether a DENSE 27B at 16 GB can
+# match that on the 80B's three languages — a much smaller footprint for the same free stack.
+#
+# SCREEN: n=1 per language (user rule, 2026-10-18). Deepen only a language that passes.
+# Same serving (oMLX), agent (Hermes v0.22.2 with the snowballstemmer fix), context, sampling and
+# harness as exp-71; only the model differs. Build: mlx-community/Qwen3.8-27B-4bit (arch qwen3_5,
+# the same conversion pipeline as the 30B builds). Plain 4-bit carries the stall risk exp-64..69 found
+# on the 30B — that is per-model, so watch the stall rate; DWQ would be the follow-up if it stalls.
+#
+# EXPECTATION, recorded before the run: below the 80B — a dense 27B is a smaller model; python most
+# likely to pass, typescript least. Hermes thinking mode / chat-template behaviour for qwen3_5 is
+# checked on the first run's transcript before the rest are trusted.
+experiment:
+  name: experiment-87-qwen38-27b-screen-rest-api-crud
+  visibility: public
+factors:
+  language: { levels: [python, go, typescript] }
+  # Registry needs >=2 levels per factor; design.csv pins what actually runs.
+  agent: { levels: [hermes-0222, hermes-local] }
+  prompt: { levels: [neutral, none] }
+  stack: { levels: [q38, q4] }
+  model:
+    levels:
+      - mlxlocal/mlx-community--Qwen3.8-27B-4bit
+      - mlxlocal/mlx-community--Qwen3-Coder-30B-A3B-Instruct-4bit
+responses: [code_quality, token_efficiency, test_coverage, defect_rate, maintainability, idiomatic]
+tasks:
+  - source: bundled://rest-api-crud
+playpen:
+  runner: local
+  # 5 per cell -- see the n=5 note above. 4 design rows x 5 = 20 runs.
+  replicates: 1   # SCREEN (user rule: never high reps on a slow run of a new model)
+  # 60 for local (CLAUDE.md: local models are slow; ~60 local vs ~30 cloud). The 30B
+  # is smaller and faster than the 35B/80B, so 60 is generous rather than tight, and
+  # generous is correct here: a truncated cell would be scored as a capability failure.
+  timeout_minutes: 60
+  stall_minutes: 25
+  # 400 to match exp-62. python on this class of stack averages ~17 turns, so this is
+  # far out of reach for both arms -- which is the point. A cap that binds on one arm
+  # and not the other would report the ceiling as the capability.
+  max_turns: 400
+  stack_presets: stacks.yaml
+  prompts_dir: prompts
+  local_agents:
+    # Pin the SAME hermes binary for both arms: the variable is the model's bit-width,
+    # not the agent version. Without the pin every hermes level falls back to
+    # serving.hermes_bin and a version difference could ride along invisibly.
+    hermes-0222:
+      harness: hermes
+      bin: /Users/adriancockcroft/code/hermes-agent/.venv/bin/hermes
+design: { screening_resolution: 3, significance_threshold: 0.10 }
+promotion: { screening_to_trial: { p_value: 0.10 }, trial_to_production: { posterior_confidence: 0.80 } }
+evaluation: { enabled: true, model: opus-4.8 }
