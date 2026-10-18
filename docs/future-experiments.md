@@ -55,6 +55,15 @@ bigger goes back to the user first.
 file tools write inside the playpen (the 0.20 `$HOME` regression), provenance shows the EFFECTIVE
 context 262144 / threshold 0.9 / sampling, the new version string, coverage, and a stall-free run.
 Rollback: `git checkout 261a4efb90` + the same install. exp-71's agent label is now `hermes-0222`.
+**Upgraded 2026-10-18 06:28 → `Hermes Agent v0.22.2 (2026.9.24) · stable`. The smoke CAUGHT A HERMES BUG:**
+the run crashed in 32 s — every tool call failed with `No module named 'snowballstemmer'`. v0.22.2
+declares `snowballstemmer==3.1.1; python_version >= '3.14'`, but `tools/tool_search.py` imports it
+unconditionally, and this venv is Python 3.11, so the install skipped it. Fixed by installing that one
+pure-Python package into the venv (`tool_search` now imports). Without the smoke, exp-71 would have
+recorded 20 false zeros indistinguishable from a model that cannot do the task. Smoke re-run queued
+after exp-86; exp-71 waits for it. The provenance otherwise checked out: ctx 262144 / lcm, sampling as
+preset; oMLX's global `max_context_window: 32768` is the same as exp-68/69 and does not bind (49 of 61
+earlier hermes runs peaked above it, max 147,628).
 
 **Blocked:** Gemini 4 Argon — no Gemini CLI installed, no API key in env, no pricing entry. Local
 candidates (Nemotron 3.5 Bolt, LFM2.5-24B, Holo4-35B, …) — each needs a download + oMLX load check; one
