@@ -570,7 +570,7 @@ invest in the solver dependency, master.db merge, and first-class docs.
 <!-- SCAN-HEARTBEAT: the daily scan rewrites the next line on EVERY run, including
      days it finds nothing. Do not hand-edit it. If the date is more than ~2 days
      stale, the scan is not running — see "when the heartbeat goes stale" below. -->
-**Daily scan last completed: 2026-10-17** (scanning for new coding models: 64GB-fittable open weights, and frontier cloud models/versions)
+**Daily scan last completed: 2026-10-18** (scanning for new coding models: 64GB-fittable open weights, and frontier cloud models/versions)
 
 - 2026-09-08 — **GPT-6 Astra (OpenAI) — `gpt-6-astra`** — *the "new codex model"; added by hand
   because the daily scan's scope was open-weights-only until today (widened the same day, see the
@@ -784,6 +784,24 @@ invest in the solver dependency, master.db merge, and first-class docs.
   whether tok/s alone moves wall-clock and pass-proportion. Sources:
   [Releasebot (OpenAI)](https://releasebot.io/updates/openai),
   [LLM Gateway timeline](https://llmgateway.io/timeline).
+- 2026-10-18 — **Muse Wonder (Meta) — `muse-wonder-1.0` — BLOCKED on reachability, re-check.** *Released
+  **2026-10-12**; Meta's first frontier-tier API model and the first Meta entry in Track B.* Facts from
+  secondary trackers (Meta's own developer docs could not be fetched; the API labels it **preview**):
+  **$4 in / $20 out per 1M** — exactly Opus 5.5's list price — cached input reported at $0.20, **1,048,576-token
+  context**, text/image/video/audio in, text out. Reasoning effort sources disagree: Cursor's docs list
+  **minimal / low / medium / high (default) / xhigh / max** (`none` reportedly returns 400); the Muse Code
+  CLI's `/effort` lists `ultra` too — find the real ladder on a smoke cell and record it. **Muse Wonder Full**
+  (the stronger sibling, AA index 56 vs Wonder's 52; Opus 5.5 is 58 per Meta's own table) is **not on the API**
+  — only inside Meta's **Muse Code** terminal agent on its Power/Maximum Usage plans. **Not runnable today:**
+  it is not reachable via `claude --model` or `codex exec --model`; retort would need a Muse Code runner (or
+  a Cursor/other CLI it already drives), and `src/retort/pricing.py` has **no Meta entry**, so a run costed by
+  retort would report **$0**. **Framing:** same list price as Opus 5.5, so the natural cell is cost/clock vs
+  Opus 5.5 at matched effort; routine and brazil are saturated for frontier models, so it again argues for the
+  harder-than-brazil task (exp-73). A Muse Code runner would also be the only way to reach Wonder Full.
+  Sources: [Meta model card](https://dev.meta.ai/models/muse-wonder/),
+  [MarkTechPost](https://www.marktechpost.com/2026/10/13/meta-muse-wonder-muse-wonder-full-release/),
+  [Cursor docs](https://cursor.com/docs/models/muse-wonder),
+  [LLM Reference](https://www.llmreference.com/provider/meta-model-api/muse-wonder).
 
 New open-weight coding models found by the daily scan that plausibly fit 64GB at 4-bit; promote to a
 numbered experiment when prioritised.
@@ -1815,6 +1833,14 @@ survives the toggle, restart the Claude desktop app, which clears the in-memory 
   — announcement: https://blogs.nvidia.com/blog/nemotron-3-5-super-vl/
   — weights: https://huggingface.co/nvidia/NVIDIA-Nemotron-3.5-Bolt-74B-A9B-24GB
   — Lightning GGUF (arch-gate probe): https://huggingface.co/unsloth/NVIDIA-Nemotron-3.5-Lightning-30B-A3B-GGUF
+
+*Excluded 2026-10-18, recorded so they are not re-investigated:* **Jais 3** (IFM / Inception42,
+2026-10-15, open weights, six models 0.9B–375B) — an Arabic/English general family, not coding-targeted.
+**Beam** (Reflection, weights now published 2026-10-16, Apache 2.0, 501B-A23B) — the 2026-10-07 oversized
+verdict stands (~250 GB at 4-bit). **Nemotron 3.5 Bolt E4B** is still due 2026-10-23, not yet out. Track B:
+**Muse Wonder** added above; no new Anthropic/OpenAI/Google model or version (codex-cli 0.163.0, 2026-10-16,
+is a CLI release). Sources: https://www.nocode.mba/ai-release-tracker/2026/10 ·
+https://thenewstack.io/category/ai/
 
 *Excluded 2026-10-16, oversized — recorded because it **closes the standing Muse Spark re-check note**
 (2026-08-17 / 2026-09-03 entries below):* **Muse Spark Open** (Meta, weights **2026-10-15** on Hugging
