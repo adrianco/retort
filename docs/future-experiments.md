@@ -69,6 +69,18 @@ earlier hermes runs peaked above it, max 147,628).
 candidates (Nemotron 3.5 Bolt, LFM2.5-24B, Holo4-35B, …) — each needs a download + oMLX load check; one
 is picked after #4 frees the machine.
 
+
+## 0. exp-87 — Qwen3.8-27B (dense 4-bit MLX) screen on the routine task  — QUEUED 2026-10-18, $0
+
+`mlx-community/Qwen3.8-27B-4bit` (16 GB, arch `qwen3_5`) × {python, go, typescript} × **n=1** on
+`rest-api-crud`, oMLX + Hermes v0.22.2, exp-71's presets with the model swapped. **Why:** Qwen3.8-27B is
+the successor in the Qwen line behind both free stacks and has never been run; the free recommendation
+today is the 80B (1.00 on these three languages). **Hypothesis:** below the 80B; python most likely to
+pass. Only the base model was downloaded — 67 GB free, and both builds (37 GB) would breach the 40 GB
+warning; ThinkingCap's DWQ build is the follow-up if this one stalls. **Before the screen:** confirm the
+model's real context length from `config.json`, that oMLX loads it, and that the first run's
+transcript shows real tool calls (thinking-mode behaviour on this arch is unverified).
+
 ## 0. RESOLVED — Opus 5.5 completes the 13×2 grid and is now FEATURED  — 2026-09-23
 
 **46/46, coverage 1.00 in every cell.** Routine n=3 on the 11 remaining languages, hard n=1 on all
