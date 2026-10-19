@@ -2469,3 +2469,21 @@ the 80B and routing ties go to the 80B. Not measured on the hard task or the nic
 **Reporting gap surfaced:** `report optimal`'s pass rule counts a second-chance pass as a full pass,
 while `aggregate` documents it as half credit — queued as a harness decision.
 
+## exp-89 — ThinkingCap's reach: rust, java and the hard task  — COMPLETE, 2026-10-19
+
+Same stack as exp-88 (ThinkingCap-Qwen3.8-27B DWQ, 21 GB, oMLX + Hermes v0.22.2). Screened at n=1, the two
+passing routine cells deepened to n=3.
+
+| cell | result | 80B on the same cell |
+|---|---|---|
+| routine **java** | **3/3**, ~38 min a run | near-miss — **first local stack to clear java** |
+| routine **rust** | **2/3**, ~33 min; the miss was a genuine runaway generation (one request generating 24 min, aborted) | 0.33 |
+| hard **python** | **too slow** — first attempt a FALSE STALL (killed at exactly 25 min while making a tool-calling turn every 2–4 min); re-run on the fixed guard reached the **90-min wall still building** (1,654 lines across data/normalize/engine/mcp_server, no tests yet) | 0.00 |
+
+**Two harness fixes / findings.** (1) **Stall guard false positive, fixed** (`6348a1c9`): it watched only agent
+stdout and workspace files, both silent for a slow Hermes agent; it now also watches Hermes's per-turn
+`state.db-wal`. Checked against exp-71: that experiment's plain-4-bit "stall" was three runaway generations
+to the 32K-token cap, so earlier stall counts stand. (2) **A crashed resume does not refresh the archive:**
+the re-run's 1,654 lines exist only in its playpen, because `rep1-failed` from the earlier attempt is kept
+and its all-zero scores still stand — queued as a harness to-do.
+

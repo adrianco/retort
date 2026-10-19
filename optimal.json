@@ -1,7 +1,7 @@
 {
   "source": "retort report optimal (master.db)",
-  "generated_at": "2026-10-19T01:08:01Z",
-  "master_db_runs": 1684,
+  "generated_at": "2026-10-19T07:11:14Z",
+  "master_db_runs": 1691,
   "objective": "cheapest featured stack per language/task that clears its pass-bar",
   "notes": {
     "generated_at": "UTC timestamp of this file's last regeneration, and the master.db run count behind it. Regenerate with `retort report optimal --routing-json optimal.json`. If this is old, the routes are too: nothing recomputes them automatically.",
@@ -186,7 +186,11 @@
         "n": 6,
         "cost": 0.0
       },
-      "hard": null
+      "hard": {
+        "pass": 0.0,
+        "n": 1,
+        "cost": 0.0
+      }
     }
   ],
   "routes": {
@@ -300,7 +304,16 @@
           "pass": 1.0,
           "n": 3
         },
-        "local": null
+        "local": {
+          "stack": "ThinkingCap-Qwen3.8-27B DWQ (local, $0, 21 GB)",
+          "models": [
+            "mlxlocal/bottlecapai--ThinkingCap-Qwen3.8-27B-MLX-4bit-DWQ"
+          ],
+          "effort": "default",
+          "cost": 0.0,
+          "pass": 1.0,
+          "n": 3
+        }
       },
       "objc": {
         "cloud": {

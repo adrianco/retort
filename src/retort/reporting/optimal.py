@@ -270,6 +270,9 @@ FEATURED_STACKS = [
         # good code and never terminated. 4-bit DWQ, 21 GB, oMLX + Hermes v0.22.2 at
         # context_threshold 0.9. Routine n=3: python 3/3, go 3/3, typescript 3/3 -- one typescript
         # pass only on the self-repair second chance (half credit by aggregate's rule; this
+        # report counts it as a pass). exp-89 added JAVA 3/3 (the 80B misses it -- first free
+        # local stack to clear java) and rust 2/3 (one genuine runaway generation); the hard task
+        # is out of reach at ~11 tok/s (still building at the 90-min wall).
         # report counts it as a pass). Listed AFTER the 80B so a $0 tie routes to the 80B,
         # the faster stack where it fits; this is the pick when the 80B (~45 GB) does not. 1.5-3.6x slower than the 80B, but the
         # 80B needs ~45 GB; against the 35B (same ~20 GB class) it is 1.00 vs 0.72/0.75.

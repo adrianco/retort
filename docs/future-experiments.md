@@ -71,22 +71,6 @@ is picked after #4 frees the machine.
 
 
 
-## 0. exp-89 — ThinkingCap's reach: routine rust/java + the hard task, n=1 screen  — QUEUED 2026-10-19, $0
-
-exp-88 featured ThinkingCap-Qwen3.8-27B DWQ (21 GB) on routine python/go/typescript. This probes where the
-local stacks fail: **routine rust and java** (80B: rust 0.33, java near-miss) and the **hard task in
-python** (80B 0.00, 35B 0.25). n=1 each, 3 runs, ~3 h, local. **Hypothesis:** routine rust/java pass more
-often than the 80B (its routine reliability already matches the 80B); the hard task floors like every
-local stack so far. Deepen only a cell that passes.
-
-**Screen so far (2026-10-19):** routine **rust PASS** (37 min) and **java PASS** (43 min) at n=1 — the two
-routine languages the 80B misses — now being deepened to n=3. **Hard-task python: a FALSE STALL** — killed
-at exactly 25 min while oMLX shows a tool-calling turn every 2–4 min (Hermes oneshot prints nothing and a
-read-only turn writes no file, so the guard saw no progress). Guard fixed (`activity_paths` watches
-Hermes's per-turn `state.db-wal`); **re-run the hard-task cell after the rust/java deepening.** Checked
-2026-10-19: exp-71's plain-4-bit go "stall" was genuine — three runaway generations to the 32K-token cap
-(18–19 min each) in oMLX's log, not slow real turns — so it and the exp-64–69 stall counts stand.
-
 ## 0. RESOLVED — Opus 5.5 completes the 13×2 grid and is now FEATURED  — 2026-09-23
 
 **46/46, coverage 1.00 in every cell.** Routine n=3 on the 11 remaining languages, hard n=1 on all
@@ -228,6 +212,8 @@ significant — that judgement was made about the effort experiment, where it wa
 
 
 ## 3a. Harness to-do from exp-71 (2026-10-18)
+
+- **A crashed `--resume` re-run does not refresh `rep<N>-failed` (exp-89).** The archive keeps the earlier attempt and its scores, so a later attempt's work (1,654 lines on brazil) is lost from the record. Archive a re-run's playpen over the previous failed one (or alongside it as `-attempt2`).
 
 - **Second-chance passes are counted inconsistently (exp-88).** `aggregate` documents a `second_try` pass as HALF credit toward pass-proportion, but `report optimal`'s `PASS_SQL` counts it as a full pass, so every board and routing cell that contains a second-try pass overstates reliability. Decide the rule once, apply it in `PASS_SQL`, and regenerate — it moves historical cells, so it needs its own commit and a blog note.
 

@@ -1,0 +1,12 @@
+{
+  "replicate": 2,
+  "run_config": {
+    "agent": "hermes-0222",
+    "language": "java",
+    "model": "mlxlocal/bottlecapai--ThinkingCap-Qwen3.8-27B-MLX-4bit-DWQ",
+    "prompt": "neutral",
+    "stack": "tcap"
+  },
+  "succeeded": true,
+  "visibility": "public"
+}

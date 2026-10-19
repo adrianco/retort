@@ -16,7 +16,7 @@ Those are the variables that decide a real project. So I built **[retort](https:
 - **GPT-6 Luna across all thirteen languages: 33 of 39, at under a cent a run.** It passes everything mainstream and misses in C#, Elixir, Erlang, Objective-C and Swift. Several of those misses were tests that the agent could run by hand but that didn't run through the language's normal test command.
 - **New releases keep breaking the tooling before they break the model.** The Claude Code CLI I had installed didn't recognise Haiku 5.5 and billed it at about 40× its list price. The Codex CLI refused GPT-6.1 Sol outright. An upgrade of the local Hermes agent shipped with a dependency missing on Python 3.11, so every tool call failed. Each one would have scored as a model failure, or as a wildly wrong cost, if a one-run smoke test hadn't caught it first.
 
-- **A new free option for smaller machines.** ThinkingCap, a shorter-reasoning fine-tune of Qwen3.8-27B, passed all nine routine runs in Python, Go and TypeScript on a 21 GB build. One of those passes came on a second attempt. It runs 1.5–3.6× slower than the 80B, but fits a 32 GB Mac, which the 80B does not. Its base model is the cautionary half: it wrote equally good code, then never declared itself finished and ran into the hour limit every time.
+- **A new free option for smaller machines.** ThinkingCap, a shorter-reasoning fine-tune of Qwen3.8-27B, passed all nine routine runs in Python, Go and TypeScript on a 21 GB build. One of those passes came on a second attempt. It runs 1.5–3.6× slower than the 80B, but fits a 32 GB Mac, which the 80B does not. A follow-up added **Java at 3 of 3**, the first time any local stack here has cleared it, and Rust at 2 of 3. Its base model is the cautionary half: it wrote equally good code, then never declared itself finished and ran into the hour limit every time.
 
 ### Earlier (2026-10-04)
 
@@ -88,7 +88,7 @@ Here is the full board, every model measured on the two tasks — **pass-proport
 | Claude Opus 4.7 | cloud | **1.00 (57)** | $0.92 | 0.40 (42) | $2.95 |
 | **Qwen3.6-35B-A3B (local, $0)** | **local · $0** | 0.73 (90) | $0 | 0.25 (12) | $0 |
 | **Qwen3-Coder-Next 80B (local, $0, ctx 0.9)** | **local · $0** | **1.00 (9)** | $0 | 0.00 (6) | $0 |
-| **ThinkingCap-Qwen3.8-27B DWQ (local, $0, 21 GB)** | **local · $0** | **1.00 (6)** | $0 | *not run* | — |
+| **ThinkingCap-Qwen3.8-27B DWQ (local, $0, 21 GB)** | **local · $0** | **1.00 (6)** | $0 | 0.00 (1) | $0 |
 <!-- GEN:model-board END -->
 
 *Table generated from `master.db` by `retort report optimal --write model-blog.md` — do not hand-edit between the markers. The same numbers are published machine-readably in [`optimal.json`](optimal.json) under `models`, so the table and the JSON cannot drift apart. Retired/legacy stacks that no longer lead on any axis (Opus 4.6, Qwen3-Coder-30B, Devstral-24B) are covered in the footnotes rather than the board.*
