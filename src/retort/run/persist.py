@@ -625,6 +625,16 @@ def _store_run_result(
             ))
         except (TypeError, ValueError):
             pass
+    # #56: the stall / hard-wall guard's verdict, for this attempt and for a first
+    # attempt the self-repair second chance superseded — so stall rate is queryable.
+    md = artifacts.metadata or {}
+    for reason in (md.get("kill_reason"), md.get("first_attempt_kill_reason")):
+        if reason in ("stall", "hard_wall"):
+            session.add(RunResult(
+                run_id=run.id,
+                metric_name="_killed_by_stall" if reason == "stall" else "_killed_by_wall",
+                value=1.0,
+            ))
     # #57: a cost the CLI did not price at list is flagged, not silently pooled.
     basis = (artifacts.metadata or {}).get("cost_basis")
     if basis and basis != "list":

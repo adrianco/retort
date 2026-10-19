@@ -249,3 +249,22 @@ def test_an_intended_shrink_is_still_possible(tmp_path):
     empty = tmp_path / "nothing-here"
     empty.mkdir()
     assert build_master_db(empty, master, allow_shrink=True) == 0
+
+
+def test_guard_kills_are_backfilled_from_error_message(tmp_path: Path):
+    """#56: stall / hard-wall kills become queryable columns, including for old runs."""
+    import sqlite3
+    d = tmp_path / "experiment-9"; d.mkdir()
+    (d / "workspace.yaml").write_text("tasks:\n  - source: bundled://rest-api-crud\n")
+    con = sqlite3.connect(d / "retort.db")
+    con.execute("CREATE TABLE experiment_runs (id INTEGER PRIMARY KEY, replicate INTEGER, status TEXT, "
+                "started_at TEXT, finished_at TEXT, run_config_json TEXT, error_message TEXT)")
+    con.execute("CREATE TABLE run_results (id INTEGER PRIMARY KEY, run_id INTEGER, metric_name TEXT, value REAL)")
+    con.execute("INSERT INTO experiment_runs VALUES (1,1,'crashed',NULL,NULL,'{\"language\":\"go\"}',"
+                "'Killed after 1516s — stalled (no progress for 25m, unproductive loop)')")
+    con.execute("INSERT INTO experiment_runs VALUES (2,1,'crashed',NULL,NULL,'{\"language\":\"py\"}',"
+                "'Timeout after 3602s (hard wall)')")
+    con.commit(); con.close()
+    rows = {r["language"]: r for r in collect_runs(tmp_path)}
+    assert rows["go"]["killed_by_stall"] == 1.0 and rows["go"]["killed_by_wall"] is None
+    assert rows["py"]["killed_by_wall"] == 1.0

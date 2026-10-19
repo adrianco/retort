@@ -56,6 +56,11 @@ TELEMETRY = {
     # 1.0 when the agent CLI priced the run at a costBasis other than "list" (#57):
     # its cost_usd is a fallback rate, not the model's price — exclude it from cost.
     "_cost_unverified": "cost_unverified",
+    # #56: 1.0 when the stall guard / hard wall killed an attempt of this run. Also
+    # BACKFILLED for older runs from their error_message ("Killed after Ns —
+    # stalled", "Timeout after Ns (hard wall)"), which every guard kill has written.
+    "_killed_by_stall": "killed_by_stall",
+    "_killed_by_wall": "killed_by_wall",
 }
 # Design factors promoted to their own column in the master table.
 #
@@ -311,7 +316,11 @@ def collect_runs(experiments_dir: Path) -> list[dict]:
         try:
             runs = con.execute(
                 "SELECT id, replicate, status, started_at, finished_at, "
-                "run_config_json FROM experiment_runs"
+                "run_config_json"
+                + (", error_message" if "error_message" in {
+                    c[1] for c in con.execute("PRAGMA table_info(experiment_runs)")}
+                   else ", NULL AS error_message")
+                + " FROM experiment_runs"
             ).fetchall()
         except sqlite3.OperationalError:
             con.close()
@@ -344,6 +353,11 @@ def collect_runs(experiments_dir: Path) -> list[dict]:
                     row[name] = mr["value"]
                 elif name in TELEMETRY:
                     row[TELEMETRY[name]] = mr["value"]
+            err = (r["error_message"] or "")
+            if row.get("killed_by_stall") is None and "stalled (no progress" in err:
+                row["killed_by_stall"] = 1.0
+            if row.get("killed_by_wall") is None and "(hard wall)" in err:
+                row["killed_by_wall"] = 1.0
             rows.append(row)
         con.close()
     return rows

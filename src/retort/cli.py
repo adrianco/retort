@@ -1044,7 +1044,13 @@ def run_experiments(
                                         sf2 = v2 is False
                                     except Exception as exc:
                                         click.echo(f"  (2nd-chance gate crashed: {exc})", err=True)
-                                # adopt the second attempt as the recorded result
+                                # adopt the second attempt as the recorded result —
+                                # but keep attempt 1's guard kill (stall/wall) on
+                                # record, or it is lost with its artifacts (#56).
+                                first_kill = (artifacts.metadata or {}).get("kill_reason")
+                                if first_kill:
+                                    a2.metadata = dict(a2.metadata or {})
+                                    a2.metadata["first_attempt_kill_reason"] = first_kill
                                 artifacts, scores = a2, s2
                                 tests_failed, spec_failed, req_cov, archived = tf2, sf2, rc2, arch2
                                 # Reassign factual_failed too — it is stored, and
