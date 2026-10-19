@@ -53,6 +53,9 @@ TELEMETRY = {
     # Claude's 10-30 turns). Separate columns on purpose — they are not the same
     # quantity, and a shared column would hide that.
     "_agent_steps": "agent_steps",
+    # 1.0 when the agent CLI priced the run at a costBasis other than "list" (#57):
+    # its cost_usd is a fallback rate, not the model's price — exclude it from cost.
+    "_cost_unverified": "cost_unverified",
 }
 # Design factors promoted to their own column in the master table.
 #

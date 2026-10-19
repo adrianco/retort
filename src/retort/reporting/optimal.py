@@ -453,12 +453,20 @@ def metrics(conn, where, task, language=None, languages=None):
         clause += f" AND language IN ({placeholders})"
         params.extend(languages)
     _CREDIT = pass_credit_sql(conn)
+    # #57: a run the agent CLI priced at a non-list costBasis carries a fallback-rate
+    # cost; leave it out of the cost average rather than let a wrong price in.
+    try:
+        _cols = {r[1] for r in conn.execute("PRAGMA table_info(runs)")}
+    except Exception:                                    # noqa: BLE001
+        _cols = set()
+    _COST = ("CASE WHEN coalesce(cost_unverified, 0) = 0 THEN cost_usd END"
+             if "cost_unverified" in _cols else "cost_usd")
     row = q(
         conn,
         f"""
         SELECT COUNT(*) AS n,
                AVG({_CREDIT}) AS pass,
-               AVG(cost_usd) AS cost,
+               AVG({_COST}) AS cost,
                AVG(duration_seconds) AS sec
         FROM runs WHERE {clause}
         """,

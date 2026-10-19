@@ -1878,3 +1878,16 @@ def test_hermes_activity_paths_point_at_its_session_store(tmp_path):
     paths = _agent_activity_paths("hermes", {"HERMES_HOME": str(tmp_path)})
     assert tmp_path / "state.db-wal" in paths
     assert _agent_activity_paths("claude-code", {}) == ()
+
+
+def test_claude_cost_basis_is_recorded_and_flagged():
+    """#57: a CLI that does not know a model id prices it at costBasis 'unknown'."""
+    import json as _json
+    from retort.playpen.local_runner import _parse_claude_usage
+    def result(basis):
+        return _json.dumps({"type": "result", "total_cost_usd": 0.07, "num_turns": 1,
+                            "usage": {"input_tokens": 2, "output_tokens": 4},
+                            "modelUsage": {"claude-haiku-5-5": {"costBasis": basis}}})
+    assert _parse_claude_usage(result("list"))[1]["cost_basis"] == "list"
+    assert _parse_claude_usage(result("unknown"))[1]["cost_basis"] == "unknown"
+    assert "cost_basis" not in _parse_claude_usage(_json.dumps({"type": "result", "usage": {}}))[1]

@@ -613,6 +613,7 @@ def _store_run_result(
                     "upstream_provider",
                     "omp_cost_sum_all_turns",
                     "omp_assistant_turns",
+                    "cost_basis",
                 )
                 if artifacts.metadata and k in artifacts.metadata
             }
@@ -624,6 +625,10 @@ def _store_run_result(
             ))
         except (TypeError, ValueError):
             pass
+    # #57: a cost the CLI did not price at list is flagged, not silently pooled.
+    basis = (artifacts.metadata or {}).get("cost_basis")
+    if basis and basis != "list":
+        session.add(RunResult(run_id=run.id, metric_name="_cost_unverified", value=1.0))
     turns_str = artifacts.metadata.get("num_turns") if artifacts.metadata else None
     if turns_str:
         try:

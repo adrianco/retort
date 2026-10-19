@@ -1628,6 +1628,17 @@ def _parse_claude_usage(stdout_text: str) -> tuple[int, dict[str, str]]:
             "duration_api_ms": str(data.get("duration_api_ms", 0)),
             "stop_reason": data.get("stop_reason", ""),
         }
+        # costBasis: "list" when the CLI knows the model's price; "unknown" when it
+        # does not and bills a fallback rate (#57: 2.1.282 billed Sonnet 5.5 ~1.9x,
+        # 2.1.287 billed Haiku 5.5 ~40x). Recorded so a wrong cost cannot pass silently.
+        bases = sorted({str(v.get("costBasis")) for v in (data.get("modelUsage") or {}).values()
+                        if isinstance(v, dict) and v.get("costBasis")})
+        if bases:
+            metadata["cost_basis"] = ",".join(bases)
+            if bases != ["list"]:
+                logger.warning(
+                    "claude CLI priced this run at costBasis=%s, not list -- total_cost_usd "
+                    "is NOT the model's list price (CLI too old for the model id?)", bases)
         if peak:
             metadata["max_context_tokens"] = str(peak)
         return token_count, metadata
