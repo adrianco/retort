@@ -399,6 +399,26 @@ def pass_sql(conn) -> str:
     return PASS_SQL if "factual_accuracy" in cols else PASS_SQL_NO_FACTUAL
 
 
+def pass_credit_sql(conn) -> str:
+    """Per-run pass CREDIT for averaging into a pass-proportion: 1.0, 0.5 or 0.0.
+
+    A pass that only arrived on the self-repair SECOND attempt counts HALF — the
+    rule `aggregate` has always documented for `second_try`. Until 2026-10-19 this
+    report averaged a plain 1/0 pass flag, so every board and routing cell holding
+    a second-try pass overstated reliability (issue #53; found in exp-88, where
+    ThinkingCap's typescript cell read 1.00 against the documented 0.83). The
+    metric is "the probability a single UNATTENDED run is completely correct", and
+    a run that needed the evaluator's critique to get there was not unattended.
+    """
+    try:
+        cols = {r[1] for r in conn.execute("PRAGMA table_info(runs)")}
+    except Exception:                                    # noqa: BLE001
+        cols = set()
+    half = ("CASE WHEN coalesce(second_try, 0) >= 1 THEN 0.5 ELSE 1.0 END"
+            if "second_try" in cols else "1.0")
+    return f"CASE WHEN {pass_sql(conn)} THEN {half} ELSE 0.0 END"
+
+
 def q(conn, sql, params=()):
     return conn.execute(sql, params).fetchall()
 
@@ -432,12 +452,12 @@ def metrics(conn, where, task, language=None, languages=None):
         placeholders = ",".join("?" for _ in languages)
         clause += f" AND language IN ({placeholders})"
         params.extend(languages)
-    _PASS = pass_sql(conn)
+    _CREDIT = pass_credit_sql(conn)
     row = q(
         conn,
         f"""
         SELECT COUNT(*) AS n,
-               AVG(CASE WHEN {_PASS} THEN 1.0 ELSE 0.0 END) AS pass,
+               AVG({_CREDIT}) AS pass,
                AVG(cost_usd) AS cost,
                AVG(duration_seconds) AS sec
         FROM runs WHERE {clause}
@@ -838,7 +858,7 @@ def prompt_method_table(conn):
             for p, n, pa in q(
                 conn,
                 f"SELECT prompt, COUNT(*), "
-                f"AVG(CASE WHEN {pass_sql(conn)} THEN 1.0 ELSE 0.0 END) "
+                f"AVG({pass_credit_sql(conn)}) "
                 f"FROM runs WHERE {where} GROUP BY prompt",
             )
         }

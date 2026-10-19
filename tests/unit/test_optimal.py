@@ -263,3 +263,19 @@ def test_swept_cell_still_picks_the_cheapest_level():
     cell = opt.per_language_routing(conn, task="rest-api-crud")["rust"]["cloud"]
     assert cell["effort"] == "low"
     assert cell["cost"] < 1.0
+
+
+def test_second_try_pass_counts_half_credit():
+    """A pass that needed the self-repair second chance is half credit (#53)."""
+    import sqlite3
+    from retort.reporting.optimal import metrics
+    con = sqlite3.connect(":memory:")
+    con.execute("CREATE TABLE runs (model TEXT, task TEXT, language TEXT, prompt TEXT, "
+                "requirement_coverage REAL, factual_accuracy REAL, second_try REAL, "
+                "cost_usd REAL, duration_seconds REAL)")
+    rows = [("m", "t", "ts", "neutral", 1.0, None, None, 0, 1),
+            ("m", "t", "ts", "neutral", 1.0, None, 1.0, 0, 1),   # passed only on 2nd try
+            ("m", "t", "ts", "neutral", 1.0, None, None, 0, 1)]
+    con.executemany("INSERT INTO runs VALUES (?,?,?,?,?,?,?,?,?)", rows)
+    m = metrics(con, "model = 'm'", "t")
+    assert m["n"] == 3 and abs(m["pass"] - (2.5 / 3)) < 1e-9
