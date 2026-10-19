@@ -71,6 +71,18 @@ is picked after #4 frees the machine.
 
 
 
+
+## 0. exp-90 — Nemotron 3.5 Bolt 74B-A9B (24 GB GGUF) on llama.cpp, n=1 routine screen  — RUNNING 2026-10-19, $0
+
+A 74B MoE with 9B active, packed by NVIDIA to ~22 GB with quantization-aware training — the faster
+counterpart to ThinkingCap's dense 27B at a similar footprint. GGUF only, so it is also **the first use of
+retort's llama.cpp backend** (llama.cpp upgraded to 0.7.0). Python/go/typescript, n=1. **Deliberate
+departures, recorded:** context **98,304** (NVIDIA's quick-start; 262,144 is their 128 GB recipe) so lcm
+compacts at ~88K; **temperature 0.6, not NVIDIA's 1.0** (forbidden for agent loops); no vision projector,
+no speculative draft. **Hypothesis:** clears python/go like the other local stacks, several times faster
+than ThinkingCap. **Smoke = the first cell:** llama-server loads the arch, Hermes gets structured tool
+calls through `--jinja`.
+
 ## 0. RESOLVED — Opus 5.5 completes the 13×2 grid and is now FEATURED  — 2026-09-23
 
 **46/46, coverage 1.00 in every cell.** Routine n=3 on the 11 remaining languages, hard n=1 on all

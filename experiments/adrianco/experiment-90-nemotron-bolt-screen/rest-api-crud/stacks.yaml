@@ -1,0 +1,41 @@
+# exp-90: Nemotron 3.5 Bolt 74B-A9B (NVIDIA's natively-2-bit 24GB GGUF) on llama.cpp — the
+# FIRST experiment to use retort's llama.cpp serving backend. Agent/context/sampling/harness are
+# exp-88's (Hermes v0.22.2, ctx 262144, threshold 0.9, temp 0.6/top_p 0.95/top_k 20/rep 1.0);
+# only the serving layer and the model differ.
+serving:
+  backend: llamacpp
+  llama_bin: /opt/homebrew/bin/llama-server     # 0.7.0 (build 11669), upgraded 2026-10-19
+  ngl: 999
+  hermes_bin: /Users/adriancockcroft/code/hermes-agent/.venv/bin/hermes
+  host: 127.0.0.1
+  port: 8080
+  hermes_config: /Users/adriancockcroft/.hermes/config.yaml
+  log: /Users/adriancockcroft/.retort/llama-exp90.log
+  warm_timeout_s: 900
+  serve_flags:            # from NVIDIA's README quick-start (minus mmproj + speculative draft)
+  - --cache-type-k
+  - q8_0
+  - --cache-type-v
+  - q8_0
+  - --flash-attn
+  - 'on'
+  - --parallel
+  - '1'
+  - --batch-size
+  - '2048'
+  - --ubatch-size
+  - '512'
+presets:
+  bolt:
+    model: Nemotron-3.5-Bolt-74B-A9B
+    gguf: /Users/adriancockcroft/.cache/huggingface/hub/models--nvidia--NVIDIA-Nemotron-3.5-Bolt-74B-A9B-24GB-GGUF/snapshots/e0fecb69cb3e5e4c5e8a056fa2aec98c78e91246/NVIDIA-Nemotron-3.5-Bolt-74B-A9B-24GB.gguf
+    # 98304 = NVIDIA's quick-start value (their 64 GB recipe is 65536; 262144 is the 128 GB one).
+    # NOT the 262144 the oMLX stacks use, so lcm compacts at ~88K here instead of ~236K.
+    context_length: 98304
+    context_threshold: 0.9
+    # NVIDIA recommends temperature 1.0; retort forbids 1.0 for agent loops (optimal-blog), so 0.6.
+    sampling:
+      temperature: 0.6
+      top_p: 0.95
+      top_k: 20
+      repetition_penalty: 1.0

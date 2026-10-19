@@ -1,0 +1,52 @@
+# Experiment 90 — Nemotron 3.5 Bolt 74B-A9B (24 GB, natively 2-bit) on llama.cpp, n=1 routine SCREEN.
+#
+# WHY. ThinkingCap (exp-88/89) made a 21 GB free stack work, but it is dense and slow (~11 tok/s, 20-40 min
+# a routine run, too slow for the hard task). Bolt is a 74B MoE with only 9B active, packed by NVIDIA to
+# ~24 GB with quantization-aware training — so it should be far faster at a similar footprint, and its
+# tool calls use the qwen3_coder parser family. It ships as GGUF only (MLX ports are community
+# conversions of a Mamba-hybrid arch), so this is also the FIRST run of retort's llama.cpp backend.
+#
+# SCREEN: python, go, typescript, n=1 (the routine languages ThinkingCap and the 80B clear). Smoke =
+# the first cell: confirm llama-server loads the arch, Hermes gets structured tool calls through
+# --jinja, and the effective context/sampling are what this file says.
+experiment:
+  name: experiment-90-nemotron-bolt-screen-rest-api-crud
+  visibility: public
+factors:
+  language: { levels: [python, go, typescript] }
+  # Registry needs >=2 levels per factor; design.csv pins what actually runs.
+  agent: { levels: [hermes-0222, hermes-local] }
+  prompt: { levels: [neutral, none] }
+  stack: { levels: [bolt, q4] }
+  model:
+    levels:
+      - llamacpp/Nemotron-3.5-Bolt-74B-A9B
+      - mlxlocal/mlx-community--Qwen3-Coder-30B-A3B-Instruct-4bit
+responses: [code_quality, token_efficiency, test_coverage, defect_rate, maintainability, idiomatic]
+tasks:
+  - source: bundled://rest-api-crud
+playpen:
+  runner: local
+  # 5 per cell -- see the n=5 note above. 4 design rows x 5 = 20 runs.
+  replicates: 1   # SCREEN (new model + first use of the llama.cpp backend)
+  # 60 for local (CLAUDE.md: local models are slow; ~60 local vs ~30 cloud). The 30B
+  # is smaller and faster than the 35B/80B, so 60 is generous rather than tight, and
+  # generous is correct here: a truncated cell would be scored as a capability failure.
+  timeout_minutes: 60
+  stall_minutes: 25
+  # 400 to match exp-62. python on this class of stack averages ~17 turns, so this is
+  # far out of reach for both arms -- which is the point. A cap that binds on one arm
+  # and not the other would report the ceiling as the capability.
+  max_turns: 400
+  stack_presets: stacks.yaml
+  prompts_dir: prompts
+  local_agents:
+    # Pin the SAME hermes binary for both arms: the variable is the model's bit-width,
+    # not the agent version. Without the pin every hermes level falls back to
+    # serving.hermes_bin and a version difference could ride along invisibly.
+    hermes-0222:
+      harness: hermes
+      bin: /Users/adriancockcroft/code/hermes-agent/.venv/bin/hermes
+design: { screening_resolution: 3, significance_threshold: 0.10 }
+promotion: { screening_to_trial: { p_value: 0.10 }, trial_to_production: { posterior_confidence: 0.80 } }
+evaluation: { enabled: true, model: opus-4.8 }

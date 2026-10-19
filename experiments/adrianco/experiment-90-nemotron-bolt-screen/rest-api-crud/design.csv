@@ -1,0 +1,4 @@
+run,language,agent,prompt,stack,model
+0,python,hermes-0222,neutral,bolt,llamacpp/Nemotron-3.5-Bolt-74B-A9B
+1,go,hermes-0222,neutral,bolt,llamacpp/Nemotron-3.5-Bolt-74B-A9B
+2,typescript,hermes-0222,neutral,bolt,llamacpp/Nemotron-3.5-Bolt-74B-A9B
