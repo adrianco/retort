@@ -79,6 +79,14 @@ python** (80B 0.00, 35B 0.25). n=1 each, 3 runs, ~3 h, local. **Hypothesis:** ro
 often than the 80B (its routine reliability already matches the 80B); the hard task floors like every
 local stack so far. Deepen only a cell that passes.
 
+**Screen so far (2026-10-19):** routine **rust PASS** (37 min) and **java PASS** (43 min) at n=1 — the two
+routine languages the 80B misses — now being deepened to n=3. **Hard-task python: a FALSE STALL** — killed
+at exactly 25 min while oMLX shows a tool-calling turn every 2–4 min (Hermes oneshot prints nothing and a
+read-only turn writes no file, so the guard saw no progress). Guard fixed (`activity_paths` watches
+Hermes's per-turn `state.db-wal`); **re-run the hard-task cell after the rust/java deepening.** Open
+question this raises: exp-71's "likely stall" on plain 4-bit go, and possibly some exp-64–69 stall
+counts, came from the same blind guard — check those runs' oMLX logs for turns continuing up to the kill.
+
 ## 0. RESOLVED — Opus 5.5 completes the 13×2 grid and is now FEATURED  — 2026-09-23
 
 **46/46, coverage 1.00 in every cell.** Routine n=3 on the 11 remaining languages, hard n=1 on all
