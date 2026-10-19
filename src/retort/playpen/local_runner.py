@@ -235,6 +235,19 @@ def _pid_alive(pid: int) -> bool:
     return True
 
 
+def _agent_activity_paths(harness: str, env: dict[str, str]) -> tuple[Path, ...]:
+    """Files an agent writes once per turn, used by the stall guard as progress.
+
+    Only Hermes needs it today (oneshot mode prints nothing until the end). Safe
+    because only one experiment runs at a time on this machine (CLAUDE.md), so the
+    session store's activity is this run's.
+    """
+    if harness == "hermes":
+        home = Path(env.get("HERMES_HOME") or Path.home() / ".hermes")
+        return (home / "state.db-wal", home / "lcm.db-wal")
+    return ()
+
+
 def _run_with_progress_guard(
     cmd: list[str],
     *,
@@ -243,6 +256,7 @@ def _run_with_progress_guard(
     hard_wall_secs: int,
     stall_secs: int,
     poll_secs: int = 15,
+    activity_paths: tuple[Path, ...] = (),
 ) -> tuple[int, str, str, float, str | None]:
     """Run ``cmd`` under two independent limits, returning
     ``(returncode, stdout, stderr, elapsed, kill_reason)``.
@@ -257,6 +271,15 @@ def _run_with_progress_guard(
 
     A run that streams output or keeps writing files resets the stall clock every
     poll, so long single-turn generation is never mistaken for a stall.
+
+    ``activity_paths`` are extra files whose modification counts as progress. They
+    exist because some agents show NEITHER signal while working: Hermes in oneshot
+    mode prints nothing until it finishes, and a turn that only reads files changes
+    no workspace file. On 2026-10-19 ThinkingCap-Qwen3.8-27B (~12 tok/s, 2-4 min of
+    thinking a turn) completed a tool-calling turn every 2-4 minutes on the hard task
+    — visible in oMLX's log, prompt growing 22K -> 33K — and was killed at exactly 25
+    minutes as "stalled". Hermes writes its session store (``state.db-wal``) once per
+    turn, so watching it tells a slow-but-working agent from a hung one.
     """
     out_path = cwd / "_agent_stdout.log"
     err_path = cwd / "_agent_stderr.log"
@@ -268,7 +291,7 @@ def _run_with_progress_guard(
         )
         start = time.monotonic()
         last_progress = start
-        last_signal: tuple[int, int, int, int] = (0, 0, 0, 0)
+        last_signal: tuple[int, ...] = ()
         while True:
             try:
                 proc.wait(timeout=poll_secs)
@@ -281,7 +304,13 @@ def _run_with_progress_guard(
             except OSError:
                 out_sz = 0
             fp = _progress_fingerprint(cwd)
-            cur = (out_sz, *fp)
+            act = 0
+            for ap in activity_paths:
+                try:
+                    act = max(act, ap.stat().st_mtime_ns)
+                except OSError:
+                    pass
+            cur = (out_sz, *fp, act)
             if cur != last_signal:
                 last_progress = now
                 last_signal = cur
@@ -772,6 +801,7 @@ class LocalRunner:
                     cmd,
                     cwd=info.workspace,
                     env=env,
+                    activity_paths=_agent_activity_paths(self._resolve_harness(stack), env),
                     hard_wall_secs=hard_wall_secs,
                     stall_secs=stall_secs,
                 )

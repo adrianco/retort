@@ -23,7 +23,7 @@ def _fake_guard(stdout="", stderr="", returncode=0, elapsed=60.0, kill_reason=No
     ``(returncode, stdout, stderr, elapsed, kill_reason)`` tuple. ``elapsed``
     defaults to 60s so the local-inference cost math is exercised.
     """
-    def _run(cmd, cwd, env, hard_wall_secs, stall_secs, poll_secs=15):
+    def _run(cmd, cwd, env, hard_wall_secs, stall_secs, poll_secs=15, **_ignored):
         Path(cwd).joinpath("_agent_stdout.log").write_text(stdout)
         Path(cwd).joinpath("_agent_stderr.log").write_text(stderr)
         return (returncode, stdout, stderr, elapsed, kill_reason)
@@ -1845,3 +1845,36 @@ def test_codex_runs_get_a_fresh_codex_home_with_only_auth(tmp_path, monkeypatch)
     runner = LocalRunner(work_dir=tmp_path / "work")
     assert runner._codex_home_for("r1") == home  # beside the playpen, not in it
     assert home.parent == runner.work_dir and home.name != "r1"
+
+
+def test_stall_guard_counts_agent_activity_files_as_progress(tmp_path):
+    """A slow agent that prints nothing and writes no workspace file, but updates its
+    session store each turn (Hermes oneshot), must not be killed as stalled.
+
+    exp-89 (2026-10-19): ThinkingCap made a tool call every 2-4 min and was killed at
+    exactly the 25-min stall limit because neither stdout nor the workspace moved.
+    """
+    import sys as _sys
+    from retort.playpen.local_runner import _run_with_progress_guard
+    ws = tmp_path / "ws"; ws.mkdir()
+    store = tmp_path / "state.db-wal"
+    # Silent child that touches the "session store" every 0.3 s for ~2.5 s.
+    code = ("import time,pathlib; p=pathlib.Path(%r)\n"
+            "for _ in range(8):\n    p.write_text(str(time.time())); time.sleep(0.3)" % str(store))
+    rc, _, _, elapsed, reason = _run_with_progress_guard(
+        [_sys.executable, "-c", code], cwd=ws, env={}, hard_wall_secs=30,
+        stall_secs=1, poll_secs=0.5, activity_paths=(store,))
+    assert reason is None and rc == 0
+
+    # The same silent child WITHOUT the activity path is (correctly) killed as stalled.
+    rc, _, _, _, reason = _run_with_progress_guard(
+        [_sys.executable, "-c", code.replace("p.write_text(str(time.time()))", "pass")],
+        cwd=ws, env={}, hard_wall_secs=30, stall_secs=1, poll_secs=0.5)
+    assert reason == "stall"
+
+
+def test_hermes_activity_paths_point_at_its_session_store(tmp_path):
+    from retort.playpen.local_runner import _agent_activity_paths
+    paths = _agent_activity_paths("hermes", {"HERMES_HOME": str(tmp_path)})
+    assert tmp_path / "state.db-wal" in paths
+    assert _agent_activity_paths("claude-code", {}) == ()
