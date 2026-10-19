@@ -635,6 +635,13 @@ def _store_run_result(
                 metric_name="_killed_by_stall" if reason == "stall" else "_killed_by_wall",
                 value=1.0,
             ))
+    # #47: a brokered model id (OpenRouter fans one id out across upstreams at
+    # different quantizations) is an uncontrolled serving factor unless the harness
+    # reported which upstream served the run. omp reports it; when nothing did, say
+    # so explicitly rather than leave the row silently ambiguous.
+    model_id = str(run_config.get("model") or "")
+    if model_id.startswith("openrouter/") and not md.get("upstream_provider"):
+        session.add(RunResult(run_id=run.id, metric_name="_upstream_unrecorded", value=1.0))
     # #57: a cost the CLI did not price at list is flagged, not silently pooled.
     basis = (artifacts.metadata or {}).get("cost_basis")
     if basis and basis != "list":

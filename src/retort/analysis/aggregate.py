@@ -61,6 +61,9 @@ TELEMETRY = {
     # stalled", "Timeout after Ns (hard wall)"), which every guard kill has written.
     "_killed_by_stall": "killed_by_stall",
     "_killed_by_wall": "killed_by_wall",
+    # #47: 1.0 for a brokered (openrouter/...) model id whose serving upstream —
+    # and so quantization — no harness reported: the run mixes an uncontrolled factor.
+    "_upstream_unrecorded": "upstream_unrecorded",
 }
 # Design factors promoted to their own column in the master table.
 #
@@ -353,6 +356,16 @@ def collect_runs(experiments_dir: Path) -> list[dict]:
                     row[name] = mr["value"]
                 elif name in TELEMETRY:
                     row[TELEMETRY[name]] = mr["value"]
+            if (str(row.get("model") or "").startswith("openrouter/")
+                    and row.get("upstream_unrecorded") is None):
+                # #47 backfill: omp recorded the upstream inside the cost row's
+                # metadata_json; a brokered run without it served from an unknown one.
+                meta = con.execute(
+                    "SELECT metadata_json FROM run_results WHERE run_id=? AND metric_name='_cost_usd'",
+                    (r["id"],)).fetchone() if "metadata_json" in {
+                        c[1] for c in con.execute("PRAGMA table_info(run_results)")} else None
+                if not (meta and meta[0] and "upstream_provider" in meta[0]):
+                    row["upstream_unrecorded"] = 1.0
             err = (r["error_message"] or "")
             if row.get("killed_by_stall") is None and "stalled (no progress" in err:
                 row["killed_by_stall"] = 1.0
