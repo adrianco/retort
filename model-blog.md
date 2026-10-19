@@ -1,6 +1,6 @@
 # How Reliable Is Your AI Coding Stack? I Measured It
 
-*Published 2026-06-11 · updated 2026-10-18 — Adrian Cockcroft*
+*Published 2026-06-11 · updated 2026-10-19 — Adrian Cockcroft*
 
 ---
 
@@ -8,7 +8,7 @@ Every few weeks a new frontier model tops the leaderboards, and the implicit adv
 
 Those are the variables that decide a real project. So I built **[retort](https://github.com/adrianco/retort)** to measure them properly — with statistical Design of Experiments, the same technique you'd use to tune a manufacturing process. Vary the factors you care about (here: programming **language** × **model version** × **tooling** — and, newly, the **coding agent**, the **prompt methodology**, and **local self-hosted models**), run a factorial grid on a real task, score every cell, and let the analysis tell you which factors actually matter. And because retort accumulates results across a shared database, each new model just gets *added* to what's already known — the point of the project is to measure how each new release behaves without re-running everything. It now spans two tasks, **thirteen** languages, the Claude Sonnet/Opus lines (plus a fast-mode variant, the tier-above Fable 5, and the newest Opus 5), **OpenAI's Codex line (GPT-5.6)**, and **local models running for free on a laptop**.
 
-## What's new (2026-10-18)
+## What's new (2026-10-19)
 
 - **Haiku 5.5 is now the stack to start with, and it took two days to earn it.** Anthropic's cheapest model scored 1.00 in all 36 runs of the effort ladder, and then **76 of 78 across all thirteen languages on both tasks**. It missed one C# routine run and one C hard run. Opus 5.5 managed all 52 of its runs. On routine work Haiku costs **$0.01–0.09 a run, 8–30× less than Opus 5.5**; on the hard task about **$0.33, 6–9× less**. It is now the cheapest qualifying stack in 12 of 13 routine cells and 10 of 13 hard ones, and it retires Sonnet 5 and GPT-5.6 Luna from the recommendations.
 - **It is cheap, not fast.** On the hard task Haiku takes about eight minutes a cell, no quicker than Opus 5.5. Its long sessions also run past 100,000 tokens of context, where Haiku's price per token rises fivefold, so its hard-task bill is not its routine price scaled up.
