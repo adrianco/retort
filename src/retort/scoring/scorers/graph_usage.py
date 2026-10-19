@@ -11,8 +11,10 @@ half — the graph was built, but did the agent open it?
 
 NON-APPLICABLE vs UNVERIFIABLE vs IGNORED. Three states, deliberately distinct:
 
-  * `tooling != graphify` → 1.0. Not applicable; never penalise a run that was
-    not asked to use the graph. (Same convention as bead_usage.)
+  * `tooling != graphify` → None. Not applicable. It used to be 1.0 (bead_usage's
+    convention), which made "not applicable" indistinguishable from "consulted" and
+    let every non-graphify run inflate any aggregate of this score (#58). NULL
+    leaves those rows out, which is what "not applicable" means.
   * no transcript to search → None. `agent_consulted` returns None when no
     transcript exists, and a missing log must NOT be read as "the agent ignored
     it". Non-results are NULL here, as everywhere else in this harness.
@@ -34,7 +36,7 @@ CONSULT_PATTERNS = ("GRAPH_REPORT.md", "graph.json", "graphify-out", "graphify "
 
 
 class GraphUsageScorer:
-    """1.0 consulted · 0.0 ignored · None unverifiable · 1.0 not applicable."""
+    """1.0 consulted · 0.0 ignored · None unverifiable or not applicable."""
 
     @property
     def name(self) -> str:
@@ -42,7 +44,7 @@ class GraphUsageScorer:
 
     def score(self, artifacts: RunArtifacts, stack: StackConfig) -> float | None:
         if stack.extra.get("tooling", "none") != "graphify":
-            return 1.0
+            return None
         if artifacts.output_dir is None or not artifacts.output_dir.exists():
             return None
 

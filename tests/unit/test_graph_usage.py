@@ -25,7 +25,9 @@ def _artifacts(d: Path) -> RunArtifacts:
 
 def test_not_applicable_when_tooling_is_not_graphify(tmp_path):
     """Never penalise a run that was not asked to use the graph."""
-    assert GraphUsageScorer().score(_artifacts(tmp_path), _stack("none")) == 1.0
+    # #58: NOT 1.0 — that made 'not applicable' look like 'consulted' and inflated
+    # every aggregate of the score. None leaves the row out.
+    assert GraphUsageScorer().score(_artifacts(tmp_path), _stack("none")) is None
     assert GraphUsageScorer().score(_artifacts(tmp_path), _stack("beads")) == 1.0
 
 
