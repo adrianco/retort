@@ -773,16 +773,20 @@ def run_experiments(
     try:
         from retort.reporting import provenance as _prov
         _presets = None
+        _backend = None
         if workspace_config.playpen.stack_presets:
             import yaml as _yaml
-            _presets = (_yaml.safe_load(
+            _registry = _yaml.safe_load(
                 (config_dir / workspace_config.playpen.stack_presets).read_text()
-            ) or {}).get("presets")
+            ) or {}
+            _presets = _registry.get("presets")
+            _backend = ((_registry.get("serving") or {}).get("backend") or "omlx")
         _manifest = _prov.capture(
             repo=Path(__file__).resolve().parents[2],
             config_dir=config_dir,
             playpen_config=workspace_config.playpen,
             stack_presets=_presets,
+            serving_backend=_backend,
             model_ids=[
                 str(rc.get("model")) for rc in design.run_configs() if rc.get("model")
             ],

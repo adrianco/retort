@@ -88,3 +88,19 @@ def test_unknown_agents_falls_back_to_recording_everything():
     """Callers that cannot say which agents run must not lose information."""
     m = _capture({"qwen-local": _Agent("hermes", "moe")}, None)
     assert "hermes" in m["agent_config"]
+
+
+def test_summary_reports_per_preset_context_and_the_real_backend():
+    """#54: with stack presets, the effective ctx is each preset's (the pre-reload
+    Hermes snapshot is stale), and a llama.cpp run must not be labelled oMLX."""
+    from retort.reporting.provenance import summarize
+    manifest = {
+        "retort": {}, "host": {}, "agents": {"hermes-0222": "hermes"},
+        "tools": {"hermes": "v0.22.2", "llama_server": "0.7.0"},
+        "agent_config": {"hermes": {"context_length": 262144, "pre_reload_snapshot": True,
+                                     "context_length_by_preset": {"bolt": 98304}}},
+        "serving": {"backend": "llamacpp", "sampling_by_preset": {"bolt": {"temperature": 0.6}}},
+    }
+    text = "\n".join(summarize(manifest))
+    assert "ctx={'bolt': 98304}" in text and "262144" not in text
+    assert "serving  : llamacpp 0.7.0" in text and "oMLX" not in text

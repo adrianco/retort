@@ -257,6 +257,7 @@ def capture(
     config_dir: Path,
     playpen_config: Any = None,
     stack_presets: dict[str, Any] | None = None,
+    serving_backend: str | None = None,
     model_ids: list[str] | None = None,
     agents: list[str] | None = None,
     prompt_levels: list[str] | None = None,
@@ -314,7 +315,24 @@ def capture(
     serving: dict[str, Any] = {}
     if {"hermes", "omp", "lcm"} & kinds:
         agent_config["hermes"] = _hermes_config()
-        serving["omlx"] = _omlx_sampling()
+        backend = serving_backend or "omlx"
+        serving["backend"] = backend
+        if backend == "omlx":
+            serving["omlx"] = _omlx_sampling()
+        if stack_presets and agent_config["hermes"] is not None:
+            # #54: this snapshot is taken BEFORE any cell's stack reload writes its
+            # preset into Hermes's config, so it shows whatever the previous
+            # experiment left there (exp-90 recorded ctx=262144; the preset — and the
+            # run — used 98304). The reload applies each preset's own values, so THOSE
+            # are the effective ones; per-run truth is in each run's
+            # _effective_stack.json.
+            agent_config["hermes"]["pre_reload_snapshot"] = True
+            agent_config["hermes"]["context_length_by_preset"] = {
+                k: (v or {}).get("context_length") for k, v in stack_presets.items()}
+            agent_config["hermes"]["context_threshold_by_preset"] = {
+                k: (v or {}).get("context_threshold") for k, v in stack_presets.items()}
+            serving["sampling_by_preset"] = {
+                k: (v or {}).get("sampling") for k, v in stack_presets.items()}
     if "codex" in kinds:
         agent_config["codex"] = _codex_config()
     if "claude-code" in kinds:
@@ -364,10 +382,14 @@ def summarize(manifest: dict[str, Any]) -> list[str]:
     # block for a hosted run stated sampling values that were never applied.
     hc = ac.get("hermes")
     if hc:
-        lines.append(f"  agent    : hermes {t.get('hermes')}  ctx={hc.get('context_length')} "
+        sv = manifest.get("serving", {}) or {}
+        ctx = hc.get("context_length_by_preset") or hc.get("context_length")
+        lines.append(f"  agent    : hermes {t.get('hermes')}  ctx={ctx} "
                      f"max_turns={hc.get('max_turns')} engine={hc.get('context_engine')}")
-        lines.append(f"  serving  : oMLX {t.get('omlx')}")
-        lines.append(f"  sampling : {(manifest.get('serving', {}).get('omlx') or {}).get('sampling')}")
+        backend = sv.get("backend", "omlx")
+        version = t.get("omlx") if backend == "omlx" else t.get("llama_server") if backend == "llamacpp" else None
+        lines.append(f"  serving  : {backend} {version}")
+        lines.append(f"  sampling : {sv.get('sampling_by_preset') or (sv.get('omlx') or {}).get('sampling')}")
     for key, label in (("codex", "codex"), ("claude_code", "claude")):
         cfg = ac.get(key)
         if cfg:
