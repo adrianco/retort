@@ -538,7 +538,7 @@ invest in the solver dependency, master.db merge, and first-class docs.
 <!-- SCAN-HEARTBEAT: the daily scan rewrites the next line on EVERY run, including
      days it finds nothing. Do not hand-edit it. If the date is more than ~2 days
      stale, the scan is not running — see "when the heartbeat goes stale" below. -->
-**Daily scan last completed: 2026-10-18** (scanning for new coding models: 64GB-fittable open weights, and frontier cloud models/versions)
+**Daily scan last completed: 2026-10-19** (scanning for new coding models: 64GB-fittable open weights, and frontier cloud models/versions)
 
 - 2026-09-08 — **GPT-6 Astra (OpenAI) — `gpt-6-astra`** — *the "new codex model"; added by hand
   because the daily scan's scope was open-weights-only until today (widened the same day, see the
@@ -1801,6 +1801,12 @@ survives the toggle, restart the Claude desktop app, which clears the in-memory 
   — announcement: https://blogs.nvidia.com/blog/nemotron-3-5-super-vl/
   — weights: https://huggingface.co/nvidia/NVIDIA-Nemotron-3.5-Bolt-74B-A9B-24GB
   — Lightning GGUF (arch-gate probe): https://huggingface.co/unsloth/NVIDIA-Nemotron-3.5-Lightning-30B-A3B-GGUF
+
+*Excluded 2026-10-19, recorded so it is not re-investigated:* **DeepSeek V4.1 Flash 1017**
+(`deepseek-v4.1-flash-1017`, listed 2026-10-17) — a dated checkpoint refresh of the 552B MoE already
+excluded 2026-09-23 (~276 GB at 4-bit); unchanged verdict. No new Track B model or version (The New
+Stack AI headlines through 2026-10-17 carry no model launch); Nemotron 3.5 Bolt E4B still due 2026-10-23.
+Sources: https://llmgateway.io/timeline · https://thenewstack.io/category/ai/
 
 *Excluded 2026-10-18, recorded so they are not re-investigated:* **Jais 3** (IFM / Inception42,
 2026-10-15, open weights, six models 0.9B–375B) — an Arabic/English general family, not coding-targeted.
