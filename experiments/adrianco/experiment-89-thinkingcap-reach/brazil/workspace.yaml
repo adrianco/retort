@@ -1,0 +1,45 @@
+# Experiment 89 (brazil) — ThinkingCap-Qwen3.8-27B DWQ: how far does the 32 GB free stack reach?
+#
+# exp-88 featured it on routine python/go/typescript (9/9). This n=1 screen probes the hard task, where every local stack floors (80B 0.00, 35B 0.25)
+# Stack identical to exp-88 (oMLX cache capped at 10 GB); deepen only a cell that passes.
+experiment:
+  name: experiment-89-thinkingcap-reach-brazil
+  visibility: public
+factors:
+  language: { levels: [python, go] }
+  # Registry needs >=2 levels per factor; design.csv pins what actually runs.
+  agent: { levels: [hermes-0222, hermes-local] }
+  prompt: { levels: [neutral, none] }
+  stack: { levels: [tcap, q4] }
+  model:
+    levels:
+      - mlxlocal/bottlecapai--ThinkingCap-Qwen3.8-27B-MLX-4bit-DWQ
+      - mlxlocal/mlx-community--Qwen3-Coder-30B-A3B-Instruct-4bit
+responses: [code_quality, token_efficiency, test_coverage, defect_rate, maintainability, idiomatic]
+tasks:
+  - source: github://brazil-bench/benchmark-template/brazilian-soccer-mcp-guide.md
+playpen:
+  runner: local
+  # 5 per cell -- see the n=5 note above. 4 design rows x 5 = 20 runs.
+  replicates: 1   # SCREEN (never high reps on a slow run)
+  # 60 for local (CLAUDE.md: local models are slow; ~60 local vs ~30 cloud). The 30B
+  # is smaller and faster than the 35B/80B, so 60 is generous rather than tight, and
+  # generous is correct here: a truncated cell would be scored as a capability failure.
+  timeout_minutes: 90
+  stall_minutes: 25
+  # 400 to match exp-62. python on this class of stack averages ~17 turns, so this is
+  # far out of reach for both arms -- which is the point. A cap that binds on one arm
+  # and not the other would report the ceiling as the capability.
+  max_turns: 400
+  stack_presets: stacks.yaml
+  prompts_dir: prompts
+  local_agents:
+    # Pin the SAME hermes binary for both arms: the variable is the model's bit-width,
+    # not the agent version. Without the pin every hermes level falls back to
+    # serving.hermes_bin and a version difference could ride along invisibly.
+    hermes-0222:
+      harness: hermes
+      bin: /Users/adriancockcroft/code/hermes-agent/.venv/bin/hermes
+design: { screening_resolution: 3, significance_threshold: 0.10 }
+promotion: { screening_to_trial: { p_value: 0.10 }, trial_to_production: { posterior_confidence: 0.80 } }
+evaluation: { enabled: true, model: opus-4.8 }

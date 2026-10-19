@@ -1,0 +1,3 @@
+run,language,agent,prompt,stack,model
+0,rust,hermes-0222,neutral,tcap,mlxlocal/bottlecapai--ThinkingCap-Qwen3.8-27B-MLX-4bit-DWQ
+1,java,hermes-0222,neutral,tcap,mlxlocal/bottlecapai--ThinkingCap-Qwen3.8-27B-MLX-4bit-DWQ

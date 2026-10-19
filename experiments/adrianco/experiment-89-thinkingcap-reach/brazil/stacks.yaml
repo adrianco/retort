@@ -1,0 +1,26 @@
+serving:
+  omlx_bin: /Applications/oMLX.app/Contents/MacOS/omlx-cli
+  hermes_bin: /Users/adriancockcroft/code/hermes-agent/.venv/bin/hermes
+  model_dir: /Users/adriancockcroft/models
+  host: 127.0.0.1
+  port: 8080
+  settings_path: /Users/adriancockcroft/.omlx/settings.json
+  hermes_config: /Users/adriancockcroft/.hermes/config.yaml
+  serve_flags:
+  - --hf-cache
+  - --memory-guard-gb
+  - '54'
+  - --paged-ssd-cache-max-size
+  - 10GB   # 2026-10-18: uncapped ('auto') it reached 93 GB and pushed free disk under 40 GB mid-run
+  log: /Users/adriancockcroft/.retort/omlx-exp89-brazil.log
+  warm_timeout_s: 600
+presets:
+  tcap:
+    model: bottlecapai--ThinkingCap-Qwen3.8-27B-MLX-4bit-DWQ
+    context_length: 262144
+    context_threshold: 0.9
+    sampling:
+      temperature: 0.6
+      top_p: 0.95
+      top_k: 20
+      repetition_penalty: 1.0

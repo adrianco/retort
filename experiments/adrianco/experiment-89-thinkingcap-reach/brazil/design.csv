@@ -1,0 +1,2 @@
+run,language,agent,prompt,stack,model
+0,python,hermes-0222,neutral,tcap,mlxlocal/bottlecapai--ThinkingCap-Qwen3.8-27B-MLX-4bit-DWQ
