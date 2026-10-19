@@ -350,6 +350,11 @@ KNOWN_NONFEATURED = {
     "mlxlocal/mlx-community--Qwen3.8-27B-4bit": "Qwen3.8-27B dense 4-bit (exp-87): screened, not "
         "featured -- wrote complete, well-tested code then never declared itself done (60-min wall on "
         "python). Its shorter-trace fine-tune ThinkingCap (exp-88) is the build that terminates.",
+    "llamacpp/Holo4-35B-A3B": "Holo4-35B-A3B (exp-91, H Company's agentic post-train of our 35B's base, "
+        "official Q4_K_M GGUF on llama.cpp): fastest local stack measured (python 106-141 s, 1/3 "
+        "the 80B's time) and python 3/3, but go 1/3 and typescript 2/3 -- one run lost to the "
+        "server exiting mid-session (#59), one flipped by re-judging (#60). Not featured until those "
+        "cells are re-measured on a stable server.",
     "mlxlocal/devstral": "Devstral (exp-23): evaluated, not featured",
     "gpt-5.6-sol": "GPT-5.6 Sol (exp-58/59): evaluated, not featured",
     "opus": "legacy bare 'opus' (exp-1/2)",

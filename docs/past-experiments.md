@@ -2487,3 +2487,20 @@ to the 32K-token cap, so earlier stall counts stand. (2) **A crashed resume does
 the re-run's 1,654 lines exist only in its playpen, because `rep1-failed` from the earlier attempt is kept
 and its all-zero scores still stand — queued as a harness to-do.
 
+## exp-91 — Holo4-35B-A3B (official Q4_K_M GGUF, llama.cpp): fastest local stack, unsettled  — COMPLETE, 2026-10-19
+
+H Company's agentic post-train of exactly our 35B's base, the first real run of retort's llama.cpp backend
+(exp-90's Nemotron never got past the kernel gap). Probe: 1,334 tok/s prefill, 80.6 tok/s generation,
+structured `tool_calls` via `--jinja`. Screened n=1 (3/3 first-try passes), deepened to n=3.
+
+| language | pass | mean s | notes |
+|---|---|---:|---|
+| python | **3/3** | 141 | ~⅓ of the 80B's 333 s — fastest local result measured |
+| go | 1/3 | 423 | rep1 passed (1.00) then was **re-judged 0.92** by `recover` (#60); rep3 crashed when **llama-server exited mid-session** (log: `cleaning up before exit…` at 36,954 tokens) and was recorded with an empty error (#59) |
+| typescript | 2/3 (one on the 2nd attempt) | 383 | rep3 genuine: tests did not run |
+
+**Not featured.** Python alone is clean; the Go/TypeScript cells mix a serving death and a re-judgement flip,
+so they need re-measuring on a stable server before Holo4 can be compared fairly with the 35B (0.72/0.75)
+or the 80B. Its speed alone makes that worth doing. A session restart also killed the server once (go rep1's
+first attempt), which `--resume` re-ran.
+

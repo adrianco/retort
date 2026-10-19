@@ -1,12 +1,12 @@
 # The Stack Under the Model: oMLX, llama.cpp, Hermes, and Why There Are So Many
 
-*Published 2026-07-22 · updated 2026-10-18 — Adrian Cockcroft*
+*Published 2026-07-22 · updated 2026-10-19 — Adrian Cockcroft*
 
 Most benchmarks answer "which *model* is best?" Retort insists that's the wrong unit. A coding result is produced by a whole **stack** — and the model is only one layer of it:
 
 > **language × model × weights-format × serving engine × agent/harness × context engine × sampling × prompt**
 
-Change any layer and the numbers move. TypeScript went from failing to 1.00 on the local 80B by raising *one context-engine knob* — same model, same weights. So before the results make sense, you need a map of the layers. This post is that map: what each piece is, where it came from, what competes with what, how they stack, and why the zoo is so crowded. Then it explains the **metaharness** — the part of Retort that turns the harness *itself* into a variable you can measure.
+Change any layer and the numbers move. TypeScript went from failing to passing every run on the local 80B (0.83 at half credit — one pass needed a second attempt) by raising *one context-engine knob* — same model, same weights. So before the results make sense, you need a map of the layers. This post is that map: what each piece is, where it came from, what competes with what, how they stack, and why the zoo is so crowded. Then it explains the **metaharness** — the part of Retort that turns the harness *itself* into a variable you can measure.
 
 If you've seen `oMLX`, `llama.cpp`, `Hermes`, `GGUF`, `omp`, `lcm`, `OpenRouter` or `MetaHarness` fly past in the other blogs and nodded along without quite knowing what they are, start here.
 
@@ -96,7 +96,7 @@ The same experiment turned up a scoring blind spot. Its acceptance tests build t
 
 Two smaller layers sit between the agent and the model, and they've caused more wrong conclusions in this project than any model choice.
 
-- **The context engine (`lcm`)** decides *what the model actually sees*. An agentic coding session quickly grows past the model's context window, so the engine **compacts** older turns to make room. Hermes's engine is `lcm`, and its key knob is `context_threshold` — the fraction of the window at which it compacts. At the default `0.35` it compacts at ~92K tokens and the 80B intermittently *stalls*; raised to `0.9` ("full context") the same model runs Python, Go, **and TypeScript at 1.00**. Same weights, same engine — a different threshold. This is the single clearest example of a non-model layer deciding the result.
+- **The context engine (`lcm`)** decides *what the model actually sees*. An agentic coding session quickly grows past the model's context window, so the engine **compacts** older turns to make room. Hermes's engine is `lcm`, and its key knob is `context_threshold` — the fraction of the window at which it compacts. At the default `0.35` it compacts at ~92K tokens and the 80B intermittently *stalls*; raised to `0.9` ("full context") the same model runs Python and Go at **1.00** and TypeScript at **0.83** (every run passed; one needed a second attempt). Same weights, same engine — a different threshold. This is the single clearest example of a non-model layer deciding the result.
 - **Sampling** — `temperature`, `top_p`, `top_k`, `repetition_penalty`: how randomly the next token is picked. Retort learned the hard way that the oMLX *default* `temperature = 1.0` roughly halved local reliability, and that a `repetition_penalty ≠ 1.0` (even a value a model's own card recommends) can derail the multi-turn tool loop into stalls. These are recorded per run and held fixed on purpose.
 
 - **Thinking level** — how much reasoning the model does *before* it acts. Claude Code exposes it as `--effort low|medium|high|xhigh|max` (`xhigh` went unmeasured until exp-55 because retort's own level list stopped at `max`), and Retort carries it as an `effort` factor. Raising Opus 4.8 from `default` to `max` on a fixed task costs about **1.4× the agentic turns and 2× the tokens** — a real lever, though a first single-run measurement suggested a far larger one (2× turns, 5× tokens) and **failed to replicate**: two runs of that identical cell came out 33 turns and 14. Treat single runs of an agentic cell as noisy. Notably, reliability did **not** move at all — every effort level scored 1.00 on the routine task, so on easy work the knob buys cost, not correctness. **Four later sweeps (exp-49, 55, 65, 74) all reproduced that**, and Opus 5.5's full ladder puts a number on the waste: 36 runs, all 1.00, spanning **27× in cost and 58× in wall-clock** from `low` to `max`.
@@ -163,7 +163,7 @@ The zoo isn't accidental. Several independent forces each spawn alternatives:
 
 None of these layers *dominates*, so none of the others disappear. That's the whole reason Retort measures the stack instead of the model: the interesting question is usually "which *combination* is best for **my** language, task, and budget?" — and the answer moves as new engines, formats, and harnesses land.
 
-**Where Retort's featured stacks sit today:** the free local path is **Qwen3-Coder-Next 80B, MLX 4-bit, served by oMLX, driven by Hermes with `lcm` at `context_threshold 0.9`** on a 64 GB Mac — Python/Go/TypeScript at 1.00 for \$0. The cloud path is **Claude Opus 4.8 via claude-code** for the languages and hard tasks the local stack can't yet clear. Same protocol, different columns.
+**Where Retort's featured stacks sit today:** the free local path is **Qwen3-Coder-Next 80B, MLX 4-bit, served by oMLX, driven by Hermes with `lcm` at `context_threshold 0.9`** on a 64 GB Mac — Python/Go at 1.00 (TypeScript 0.83) for \$0. The cloud path is **Claude Opus 4.8 via claude-code** for the languages and hard tasks the local stack can't yet clear. Same protocol, different columns.
 
 ---
 

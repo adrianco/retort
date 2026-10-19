@@ -1,0 +1,101 @@
+{
+  "agent_config": {
+    "hermes": {
+      "_config_version": 50,
+      "context_engine": "lcm",
+      "context_length": 262144,
+      "context_length_by_preset": {
+        "holo4": 262144
+      },
+      "context_length_top_level": 262144,
+      "context_length_unset_per_model": false,
+      "context_threshold_by_preset": {
+        "holo4": 0.9
+      },
+      "max_turns": 400,
+      "model": "Holo4-35B-A3B",
+      "plugins": [
+        "hermes-lcm"
+      ],
+      "pre_reload_snapshot": true,
+      "provider_api": "http://127.0.0.1:8080/v1"
+    }
+  },
+  "agents": {
+    "hermes-0222": "hermes"
+  },
+  "harness": {
+    "local_agents": {
+      "hermes-0222": {
+        "harness": "hermes",
+        "model": null
+      }
+    },
+    "max_turns": 400,
+    "no_write_abort_after": 3,
+    "playpen_root": "/Users/adriancockcroft/.retort/work",
+    "replicates": 3,
+    "runner": "local",
+    "stack_presets": "stacks.yaml",
+    "stall_minutes": 25,
+    "timeout_minutes": 60
+  },
+  "host": {
+    "cpu": "Apple M5 Pro",
+    "iogpu_wired_limit_mb": "57344",
+    "machine": "Mac17,9",
+    "platform": "macOS-26.5.1-arm64-arm-64bit-Mach-O",
+    "python": "3.13.14",
+    "ram_bytes": "68719476736"
+  },
+  "models": {
+    "Holo4-35B-A3B": {
+      "repo": "Hcompany/Holo4-35B-A3B-GGUF",
+      "revision": "93400a4734519493de4f49910de1f6e0e24be46b",
+      "served_as": "Holo4-35B-A3B",
+      "size": "20G",
+      "snapshot_path": "/Users/adriancockcroft/.cache/huggingface/hub/models--Hcompany--Holo4-35B-A3B-GGUF/snapshots/93400a4734519493de4f49910de1f6e0e24be46b"
+    }
+  },
+  "retort": {
+    "branch": "main",
+    "commit": "9b42cca9707a8b1d8d9ca840a7239c0aa5e49881",
+    "dirty": true
+  },
+  "serving": {
+    "backend": "llamacpp",
+    "sampling_by_preset": {
+      "holo4": {
+        "repetition_penalty": 1.0,
+        "temperature": 0.6,
+        "top_k": 20,
+        "top_p": 0.95
+      }
+    }
+  },
+  "stack_presets": {
+    "holo4": {
+      "context_length": 262144,
+      "context_threshold": 0.9,
+      "gguf": "/Users/adriancockcroft/.cache/huggingface/hub/models--Hcompany--Holo4-35B-A3B-GGUF/snapshots/93400a4734519493de4f49910de1f6e0e24be46b/q4_k_m.gguf",
+      "model": "Holo4-35B-A3B",
+      "sampling": {
+        "repetition_penalty": 1.0,
+        "temperature": 0.6,
+        "top_k": 20,
+        "top_p": 0.95
+      }
+    }
+  },
+  "tools": {
+    "cargo": "cargo 1.97.1 (c980f4866 2026-06-30) (Homebrew)",
+    "claude": "2.1.303 (Claude Code)",
+    "go": "go version go1.26.6 darwin/arm64",
+    "hermes": "Hermes Agent v0.22.2 (2026.9.24) \u00b7 stable \u00b7 local d923a5eb487a",
+    "hermes_bin": "/Users/adriancockcroft/code/hermes-agent/.venv/bin/hermes",
+    "llama_server": "version: 0.7.0 (build 11669, commit 620d2225c)",
+    "node": "v26.7.0",
+    "omlx": "0.5.0rc1",
+    "omp": "omp/17.3.8"
+  }
+}

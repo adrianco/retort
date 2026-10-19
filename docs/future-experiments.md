@@ -86,14 +86,6 @@ supports the `nemotron_h_puzzle` arch the community MLX ports use. **Harness to-
 the preset's context (98304) into Hermes's config — the effective value was right, the record was not.
 
 
-## 0. exp-91 — Holo4-35B-A3B (official Q4_K_M GGUF, llama.cpp), n=1 routine screen  — RUNNING 2026-10-19, $0
-
-H Company's agentic post-train of exactly our 35B's base (Qwen3.6-35B-A3B; 35B scores 0.72 py / 0.75 go).
-Python/go/typescript, n=1; same agent, context 262144, sampling and harness as the 35B — serving differs
-(llama.cpp GGUF vs oMLX MLX), recorded as a confound. **Pre-run probe passed:** 1334 tok/s prefill, 80.6
-tok/s generation, structured `tool_calls` through `--jinja` (8 active experts, which Metal supports).
-**Hypothesis:** above the 35B's 0.72/0.75 if the agentic post-train helps; much faster than ThinkingCap.
-
 ## 0. RESOLVED — Opus 5.5 completes the 13×2 grid and is now FEATURED  — 2026-09-23
 
 **46/46, coverage 1.00 in every cell.** Routine n=3 on the 11 remaining languages, hard n=1 on all

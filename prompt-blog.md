@@ -1,6 +1,6 @@
 # Does *How* You Ask Change How Reliable It Is? Testing the Prompt
 
-*Published 2026-06-11 · updated 2026-10-04 — Adrian Cockcroft*
+*Published 2026-06-11 · updated 2026-10-19 — Adrian Cockcroft*
 
 In the [model blog](model-blog.md) I varied the language, the model, and the tooling, and held one big lever deliberately constant: **the prompt**. Every run got the same terse *"implement TASK.md, make the tests pass."* But how you ask plausibly moves reliability as much as which model you pick — and unlike a model upgrade, it's nearly free. This is the experiment that varies it.
 
@@ -40,14 +40,14 @@ On a *weak* local model — **Qwen3.6-35B-A3B** — the prompt is a real lever. 
 
 Two things land. First, **neutral and BDD tie for best, but neutral gets there at ~2.5× fewer tokens** — the plain prompt is the cheap winner. Second, and more strongly: **ATDD is dead last — 0/3** — and it isn't a one-off. Across *four* local experiments (exp-16/18/19/20) ATDD has come in worst every time: 0.17 vs neutral's 0.33, 0.25 vs 0.50, and 0/3 here. A weak model can't carry ATDD's front-loaded discipline (turn every acceptance criterion into an executable test through the public interface *before* implementing); it flails and burns tokens.
 
-But step *up* to the stronger **Qwen3-Coder-Next 80B** and the lever vanishes. Re-running the identical Python sweep (experiment-32, n=3) — every methodology passes **1.00**, ATDD included:
+But step *up* to the stronger **Qwen3-Coder-Next 80B** and the lever vanishes. Re-running the identical Python sweep (experiment-32, n=3) — every run passes under every methodology, ATDD included (one BDD and one ATDD pass needed the self-repair second attempt, so those two read 0.83 under the half-credit rule restated on 2026-10-19 — the flat line holds):
 
 | prompt | 80B pass |
 |---|:--:|
 | **neutral** | **3/3** |
-| **BDD** | **3/3** |
+| **BDD** | **3/3** (one on 2nd attempt) |
 | **TDD** | **3/3** |
-| **ATDD** | **3/3** |
+| **ATDD** | **3/3** (one on 2nd attempt) |
 
 Same task, same four prompts, opposite result. The 80B has enough headroom that the methodology is ritual: ATDD's front-loaded discipline, which tanked the 35B, is a no-op on a model that clears the task comfortably — the same flat line the strong cloud models show below.
 

@@ -1,0 +1,23 @@
+{
+  "severity_counts": {
+    "critical": 0,
+    "high": 1,
+    "medium": 0,
+    "low": 0,
+    "info": 0
+  },
+  "penalty_score": 0.9,
+  "top_findings": [
+    {
+      "id": "R7",
+      "kind": "requirement_partial",
+      "severity": "high",
+      "title": "SQLite opened as \":memory:\" \u2014 nothing persists, and each pooled connection gets its own empty DB without the books table",
+      "evidence": "main.go:41 sql.Open(\"sqlite\", \":memory:\"); schema created once at main.go:55 on one pooled connection; no SetMaxOpenConns/cache=shared anywhere (grep). Second-opinion probe (temp copy, 50 concurrent GET /books via booksHandler, 3 runs): map[200:1 500:49], map[200:4 500:46], map[200:2 500:48]. All data lost on restart.",
+      "suggestion": "Open a file DB (e.g. sql.Open(\"sqlite\", \"books.db\")), or at minimum db.SetMaxOpenConns(1) / file::memory:?cache=shared"
+    }
+  ],
+  "requirement_coverage": 0.9167,
+  "model": "llamacpp/Holo4-35B-A3B",
+  "evaluated_at": "2026-10-19T09:00:16Z"
+}

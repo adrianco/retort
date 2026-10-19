@@ -1,6 +1,6 @@
 # The Tasks: What Gets Built, and How Differently a Run Can Pass
 
-*Published 2026-07-30 · updated 2026-10-18 — Adrian Cockcroft*
+*Published 2026-07-30 · updated 2026-10-19 — Adrian Cockcroft*
 
 What retort actually asks an agent to build, and — for each task — the fastest and the slowest run that fully passed. Both mean shortest/longest `duration_seconds` among runs scoring `requirement_coverage == 1.0`, restricted to runs whose **agent log was archived**, since a record with no log can't be shown.
 
@@ -236,11 +236,11 @@ Every row below scores `requirement_coverage = 1.00`. This is the cheapest stack
 
 | language | bookshop — stack | $ | min | brazil — stack | $ | min |
 |---|---|---:|---:|---|---:|---:|
-| typescript | Haiku 5.5 `low` | **0.01** | 0.9 | Haiku 5.5 `low` | 0.16 | 6.0 |
-| rust | Haiku 5.5 `low` | 0.01 | 1.0 | Haiku 5.5 `low` | **0.14** | 5.1 |
+| typescript | Haiku 5.5 `low` | 0.01 | 0.9 | Haiku 5.5 `low` | 0.16 | 6.0 |
+| rust | Haiku 5.5 `low` | 0.01 | 1.0 | Haiku 5.5 `low` | 0.14 | 5.1 |
 | python | Haiku 5.5 `low` | 0.01 | 1.0 | Haiku 5.5 `low` | 0.17 | 5.8 |
 | go | Haiku 5.5 `low` | 0.01 | 1.2 | Terra `low` | 0.39 | 3.5 |
-| c | Haiku 5.5 `low` | 0.09 | 5.1 | Terra `default` | 0.57 | 5.5 |
+| c | Haiku 5.5 `low` | 0.09 | 5.1 | Opus 5.5 `low` | 3.00 | 11.3 |
 | cpp | Haiku 5.5 `low` | 0.03 | 2.2 | Haiku 5.5 `low` | 0.38 | 8.4 |
 | csharp | Terra `default` | 0.26 | 4.3 | Haiku 5.5 `low` | 0.24 | 6.4 |
 | java | Haiku 5.5 `low` | 0.02 | 1.5 | Haiku 5.5 `low` | 0.34 | 7.4 |
@@ -250,7 +250,7 @@ Every row below scores `requirement_coverage = 1.00`. This is the cheapest stack
 | swift | Haiku 5.5 `low` | 0.02 | 2.2 | Haiku 5.5 `low` | 0.25 | 7.1 |
 | objc | Haiku 5.5 `low` | 0.04 | 3.1 | Haiku 5.5 `low` | 0.28 | 7.4 |
 
-Two things stand out. **Haiku 5.5 at `low` is cheapest in 12 of 13 languages on the routine task and 11 of 13 on the hard one** (exp-84/86); Terra keeps C# routine, where Haiku passed 2 of 3, and Go and C on the hard task. **Cheapest is not fastest:** on brazil Haiku takes 5–13 minutes a cell, where the cloud record is under 3, and its long sessions cross a 100K-token prompt tier that bills at 5×.
+Two things stand out. **Haiku 5.5 at `low` is cheapest in 12 of 13 languages on the routine task and 11 of 13 on the hard one** (exp-84/86); Terra keeps C# routine, where Haiku passed 2 of 3, and Go on the hard task; hard-task C now goes to Opus 5.5 (Terra's two C runs no longer clear the bar once a second-attempt pass counts half — restated 2026-10-19). **Cheapest is not fastest:** on brazil Haiku takes 5–13 minutes a cell, where the cloud record is under 3, and its long sessions cross a 100K-token prompt tier that bills at 5×.
 
 The Apple pair stopped being an outlier. Objective-C on brazil used to cost \$13.30 because only Fable 5 had been run on it; Haiku 5.5 clears it for \$0.28. That gap was a which-model-got-measured artifact, not a difficulty one.
 

@@ -1,7 +1,7 @@
 {
   "source": "retort report optimal (master.db)",
-  "generated_at": "2026-10-19T07:11:14Z",
-  "master_db_runs": 1691,
+  "generated_at": "2026-10-19T09:02:03Z",
+  "master_db_runs": 1700,
   "objective": "cheapest featured stack per language/task that clears its pass-bar",
   "notes": {
     "generated_at": "UTC timestamp of this file's last regeneration, and the master.db run count behind it. Regenerate with `retort report optimal --routing-json optimal.json`. If this is old, the routes are too: nothing recomputes them automatically.",
@@ -47,12 +47,12 @@
       "short": "Opus 5",
       "kind": "cloud",
       "routine": {
-        "pass": 1.0,
+        "pass": 0.99,
         "n": 47,
         "cost": 3.23
       },
       "hard": {
-        "pass": 1.0,
+        "pass": 0.96,
         "n": 23,
         "cost": 26.48
       }
@@ -77,12 +77,12 @@
       "short": "Terra",
       "kind": "cloud",
       "routine": {
-        "pass": 1.0,
+        "pass": 0.98,
         "n": 31,
         "cost": 0.24
       },
       "hard": {
-        "pass": 0.65,
+        "pass": 0.55,
         "n": 49,
         "cost": 1.0
       }
@@ -97,7 +97,7 @@
         "cost": 0.09
       },
       "hard": {
-        "pass": 0.33,
+        "pass": 0.17,
         "n": 6,
         "cost": 0.17
       }
@@ -167,7 +167,7 @@
       "short": "Qwen 80B local",
       "kind": "local",
       "routine": {
-        "pass": 1.0,
+        "pass": 0.94,
         "n": 9,
         "cost": 0.0
       },
@@ -385,25 +385,18 @@
           "pass": 1.0,
           "n": 3
         },
-        "local": {
-          "stack": "Qwen3-Coder-Next 80B (local, $0, ctx 0.9)",
-          "models": [],
-          "effort": "default",
-          "cost": 0.0,
-          "pass": 1.0,
-          "n": 3
-        }
+        "local": null
       }
     },
     "brazil-soccer-mcp": {
       "c": {
         "cloud": {
-          "stack": "GPT-5.6 Terra (codex)",
+          "stack": "Claude Opus 5.5",
           "models": [
-            "gpt-5.6-terra"
+            "claude-opus-5-5"
           ],
-          "effort": "default",
-          "cost": 0.5745312499999999,
+          "effort": "low",
+          "cost": 3.0040997999999997,
           "pass": 1.0,
           "n": 2
         },

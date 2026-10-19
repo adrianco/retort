@@ -10,6 +10,9 @@ Those are the variables that decide a real project. So I built **[retort](https:
 
 ## What's new (2026-10-19)
 
+- **Restated: a pass that needed a second attempt now counts half.** That has always been the documented rule; the generator behind these tables counted it as a full pass. Regenerated under the right rule, **the free 80B's TypeScript falls from 1.00 to 0.83**, so no local stack clears TypeScript unattended. Older Opus, Terra and Luna figures dip slightly too.
+- **Holo4-35B-A3B is the fastest local stack yet** — Python in under two and a half minutes, a third of the 80B's time — but a server that exited mid-session and a re-judgement that flipped a pass leave its Go and TypeScript cells unsettled, so it is not on the board yet.
+
 - **Haiku 5.5 is now the stack to start with, and it took two days to earn it.** Anthropic's cheapest model scored 1.00 in all 36 runs of the effort ladder, and then **76 of 78 across all thirteen languages on both tasks**. It missed one C# routine run and one C hard run. Opus 5.5 managed all 52 of its runs. On routine work Haiku costs **$0.01–0.09 a run, 8–30× less than Opus 5.5**; on the hard task about **$0.33, 6–9× less**. It is now the cheapest qualifying stack in 12 of 13 routine cells and 10 of 13 hard ones, and it retires Sonnet 5 and GPT-5.6 Luna from the recommendations.
 - **It is cheap, not fast.** On the hard task Haiku takes about eight minutes a cell, no quicker than Opus 5.5. Its long sessions also run past 100,000 tokens of context, where Haiku's price per token rises fivefold, so its hard-task bill is not its routine price scaled up.
 - **Low effort is the right setting for Haiku too.** That makes six models whose effort dial I've now swept, and every sweep found the top of the dial buying nothing the tests can see. On Haiku, `max` cost 25–36× as much as `low` for the same 1.00.
@@ -61,7 +64,7 @@ Those are the variables that decide a real project. So I built **[retort](https:
 - **A second vendor.** OpenAI's **Codex** (GPT-5.6 Terra and Luna, via `codex exec`) is now measured alongside Claude — the first non-Claude cloud lineage here. On the routine task **Terra scores 1.00 across all five thinking levels for \$0.15–0.35 a run**, against Opus 5's \$0.81–14.21 for the same result.
 - **Thinking level is now a factor**, and it matters more than the model choice: a matched-effort comparison spans **40×** in cost at identical reliability. The unit of choice is *(model × effort)*, not model.
 - **The dial is not the same instrument at both vendors.** Turning it up adds agentic steps on Opus 5 (16 → 92 turns) but leaves Terra's step count flat (10–19) — so cost compounds on one and barely moves on the other.
-- Earlier: the local stack (Qwen3-Coder-Next 80B at full context) runs Python, Go *and* TypeScript at **1.00 for \$0** — the first time a free laptop stack matched the cloud frontier on those three.
+- Earlier: the local stack (Qwen3-Coder-Next 80B at full context) runs Python and Go at **1.00 for \$0**, and TypeScript at 0.83 — the first time a free laptop stack matched the cloud frontier on those three.
 
 
 ## The metric that matters: how often is it *completely* right?
@@ -79,15 +82,15 @@ Here is the full board, every model measured on the two tasks — **pass-proport
 |---|---|---:|---:|---:|---:|
 | Claude Opus 5.5 | cloud | **1.00 (126)** | $1.00 | **1.00 (38)** | $2.57 |
 | Claude Haiku 5.5 | cloud | 0.99 (75) | $0.05 | 0.97 (39) | $0.33 |
-| Claude Opus 5 | cloud | **1.00 (47)** | $3.23 | **1.00 (23)** | $26.48 |
+| Claude Opus 5 | cloud | 0.99 (47) | $3.23 | 0.96 (23) | $26.48 |
 | Claude Fable 5 | cloud | **1.00 (36)** | $1.58 | **1.00 (21)** | $10.47 |
-| GPT-5.6 Terra (codex) | cloud | **1.00 (31)** | $0.24 | 0.65 (49) | $1.00 |
-| GPT-5.6 Luna (codex) | cloud | 0.67 (9) | $0.09 | 0.33 (6) | $0.17 |
+| GPT-5.6 Terra (codex) | cloud | 0.98 (31) | $0.24 | 0.55 (49) | $1.00 |
+| GPT-5.6 Luna (codex) | cloud | 0.67 (9) | $0.09 | 0.17 (6) | $0.17 |
 | Claude Sonnet 5 | cloud | **1.00 (15)** | $1.10 | 0.93 (15) | $7.64 |
 | Claude Opus 4.8 | cloud | 0.98 (65) | $0.93 | 0.59 (44) | $3.27 |
 | Claude Opus 4.7 | cloud | **1.00 (57)** | $0.92 | 0.40 (42) | $2.95 |
 | **Qwen3.6-35B-A3B (local, $0)** | **local · $0** | 0.73 (90) | $0 | 0.25 (12) | $0 |
-| **Qwen3-Coder-Next 80B (local, $0, ctx 0.9)** | **local · $0** | **1.00 (9)** | $0 | 0.00 (6) | $0 |
+| **Qwen3-Coder-Next 80B (local, $0, ctx 0.9)** | **local · $0** | 0.94 (9) | $0 | 0.00 (6) | $0 |
 | **ThinkingCap-Qwen3.8-27B DWQ (local, $0, 21 GB)** | **local · $0** | **1.00 (6)** | $0 | 0.00 (1) | $0 |
 <!-- GEN:model-board END -->
 
@@ -110,7 +113,7 @@ The hard-task run is in progress. If Terra holds 1.00 there at anything like the
 ⁴ **Sonnet 5** — experiment 15, a 15-cell language × prompt grid, spec-gated by an independent Opus-4.8 judge; 0.93 hard = 14 of 15 (the miss: Rust + TDD). See [Sonnet 5 in depth](#sonnet-5-in-depth-the-token-bill-the-tdd-lever-and-one-rust-miss).
 ⁵ **Qwen3.6-35B-A3B**, served with MLX/oMLX and driven by the Hermes agent on an **M5 / 64 GB laptop**. At correct sampling (temp 0.6, not the old 1.0) and a true 256K context it does **Python and Go at 0.85 each** — the *faster* local pick for those two — but scores **0.00 on TypeScript and Rust** even fully tuned, so its niche is Python/Go only. On the hard task (brazil) it manages **0.25** — it occasionally nails all 12 capabilities, not reliably. Full story in the local-model sections below.
 ⁶ **Qwen3-Coder-30B-A3B** via llama.cpp — **0.08** at a 32 K context, **0.33** at 128 K: context is the first-order lever for a local model.
-⁷ **Qwen3-Coder-Next-80B-A3B** — now the **featured local stack**, once its compaction threshold was raised to full context (`lcm context_threshold: 0.9`). At that setting it runs **Python 1.00, Go 1.00, and TypeScript 1.00** (n=3 each) — TypeScript was only 0.33 at lower thresholds, so *full context, not a new model,* is what unlocked it. **Rust is 0.33** (genuine near-misses, → cloud) and the five niche languages (Clojure/C#/Elixir/Java/Erlang) stay ~0.00. It's slower than the 35B (~600 s routine). The earlier "bigger ≠ better" reading was a config artifact of over-early compaction, now fixed.
+⁷ **Qwen3-Coder-Next-80B-A3B** — now the **featured local stack**, once its compaction threshold was raised to full context (`lcm context_threshold: 0.9`). At that setting it runs **Python 1.00, Go 1.00, and TypeScript 0.83** (n=3 each; one TypeScript pass came on the second attempt) — TypeScript was only 0.33 at lower thresholds, so *full context, not a new model,* is what unlocked it. **Rust is 0.33** (genuine near-misses, → cloud) and the five niche languages (Clojure/C#/Elixir/Java/Erlang) stay ~0.00. It's slower than the 35B (~600 s routine). The earlier "bigger ≠ better" reading was a config artifact of over-early compaction, now fixed.
 ¹¹ **gpt-oss-20b** (exp-47) — the first **non-Qwen** local lineage that works end to end: oMLX parses its Harmony tool calls into proper OpenAI `tool_calls`, so unlike Laguna (architecture wall) and Devstral (unparseable Mistral format) it is both servable and drivable by Hermes. From a quarter the 80B's memory it is **3–7× quicker** — but at n=5 it is **reliable at nothing**: Go 0.80, TypeScript 0.60, Python 0.40. It is also this project's best argument for replicates: Go was **1.00 through three replicates** and was about to be published as "matches the 80B at 3.6× the speed" when replicates 4–5 took it to 0.80. All three of its zero-scoring runs were reproduced by hand and are genuine model errors — two `tsc` failures (one where the model appended a *second copy* of the app into `index.ts`) and a Python run where it wrote an `httpx` shim that imports itself.
 
 ¹⁰ **Claude Opus 5** (exp-46) — run across **all thirteen languages on both tasks**, 26/26. It was briefly the only model known to clear the hard task everywhere; **exp-48 removed that distinction.** Fable 5 had never been *run* on 9 of the 13 languages, and when it was, it cleared all 9 — reaching the same **13/13** at **$10.47 / 18.2 min** against Opus 5's **$21.67 / 43.8 min**. On the identical nine-language subset: **2.1× cheaper, 2.7× faster, same 1.00**. Languages only Opus 5 clears: **none**. It also takes ~2.3× the agentic turns of Fable 5 for an identical routine result (see [versions-blog.md](versions-blog.md)). On current evidence Opus 5 is the most expensive route to a result Fable 5 also reaches.
@@ -123,7 +126,7 @@ The one-line reading, newest first: **a good local model on a laptop now matches
 Two things worth pulling out of the board before the deep dives:
 
 - **On the cloud frontier, newer is more reliable — and the older/cheaper models are coin-flips on hard work.** Opus 4.6 and Sonnet 4.6 got the hard task fully right only ~half the time; each generation buys reliability and charges time and money for it. But at the very top, extra spend buys nothing: Sonnet 5, fast mode, and Fable 5 all match Opus 4.8's 1.00/1.00 at higher prices, because where 4.8 is already perfect there's no reliability left to buy.
-- **On a laptop, the whole stack around the model matters more than the model.** The climb from 0.08 to a reliable Python/Go/TypeScript 1.00 came from context size, an MLX serving layer that parses the model's tool calls, a model one size up, an agent that doesn't throw away its own context, and — the final unlock — raising that agent's compaction threshold to full context. None of it a new capability; all of it configuration. What it still doesn't move is the last hard limit: Rust, the niche languages, and the hard task.
+- **On a laptop, the whole stack around the model matters more than the model.** The climb from 0.08 to a reliable Python/Go 1.00 (TypeScript 0.83) came from context size, an MLX serving layer that parses the model's tool calls, a model one size up, an agent that doesn't throw away its own context, and — the final unlock — raising that agent's compaction threshold to full context. None of it a new capability; all of it configuration. What it still doesn't move is the last hard limit: Rust, the niche languages, and the hard task.
 
 ## Newest: the model is the wrong unit — it's (model × thinking level), and that spans 40×
 
@@ -180,7 +183,7 @@ On routine work Opus 5 is **three times the price of Opus 4.8 for an identical 1
 
 ## A free laptop stack matches the cloud on Python, Go *and* TypeScript
 
-The most recent work re-baselined the local stack on the newest local model — **Qwen3-Coder-Next 80B**, an 80B mixture-of-experts — and turned up the result that reorders the whole local story. Run across the easy-task languages at **full context** (the agent's `lcm` compaction threshold raised to 0.9, so it keeps its entire working history instead of compacting partway through a build), it posts **Python 1.00, Go 1.00, TypeScript 1.00** — three of three replicates each. That is the first time a free, on-device stack matches the cloud frontier's reliability on those three languages.
+The most recent work re-baselined the local stack on the newest local model — **Qwen3-Coder-Next 80B**, an 80B mixture-of-experts — and turned up the result that reorders the whole local story. Run across the easy-task languages at **full context** (the agent's `lcm` compaction threshold raised to 0.9, so it keeps its entire working history instead of compacting partway through a build), it posts **Python 1.00, Go 1.00, TypeScript 0.83** — three passes of three replicates each, one TypeScript pass on the second attempt. That is the first time a free, on-device stack matches the cloud frontier's reliability on those three languages.
 
 The unlock is a config lever, not a bigger brain. TypeScript scored only **0.33** at the default compaction threshold: the agent kept getting compacted midway through the longer TypeScript build and losing the thread. Raising the threshold to full context — the same one-line change, no new weights — walked it to 3/3. It's the local mirror of the whole project's thesis: the stack around the model moves the result as much as the model does.
 
@@ -397,7 +400,7 @@ Re-baselined on the fixed stack (correct sampling, true 256K context, and the 80
 
 *(Pass-proportion, neutral prompt, on the M5 laptop, n=3 each. Read the picks as directional, but the tiers are robust.)*
 
-- **Python, Go and TypeScript now run locally for free — reliably.** The 80B at full context clears all three at 1.00; the 35B is the *faster* alternative for Python and Go (0.85 each) but scores 0.00 on TypeScript, so it's the 80B when you want TypeScript on-device. If your project is one of these three, a local model is a genuinely viable, free option.
+- **Python, Go and TypeScript now run locally for free — reliably.** The 80B at full context clears Python and Go at 1.00 and TypeScript at 0.83; the 35B is the *faster* alternative for Python and Go (0.85 each) but scores 0.00 on TypeScript, so it's the 80B when you want TypeScript on-device. If your project is one of these three, a local model is a genuinely viable, free option.
 - **The compaction threshold is the lever, not the weights.** The same 80B scored only 0.33 on TypeScript until its agent was told to keep full context instead of compacting mid-build — a config change unlocked a whole language. Optimize the *stack*, not just the model.
 - **Rust is marginal (~0.33) — reachable but not reliable,** so it goes to the cloud; its local failures are near-misses (compiles, tests pass, misses a requirement) rather than the old thrash-to-the-wall.
 - **The five less-common languages are a flat zero for every local model** — the capability wall the stack can't move. If your project is Clojure, Java, C#, Elixir or Erlang, use the cloud.
