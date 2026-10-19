@@ -1920,3 +1920,18 @@ def test_conformance_seams_must_be_patched_on_evaluate_not_cli(monkeypatch, tmp_
     passed, cov = cli._spec_conformance_passes(tmp_path, object(), "public")
     assert passed is True and cov == 1.0
     assert seen["cli"] == 0, "the gate must not read the cli re-export"
+
+
+def test_failed_rerun_replaces_the_failed_archive_and_keeps_the_earlier_one(tmp_path):
+    """#55: a cell that fails again on --resume archives the NEW attempt at rep<N>-failed
+    (the one whose scores the DB records) and keeps the earlier failure as .prev1."""
+    from retort.cli import _archive_run_workspace
+    from retort.playpen.runner import RunArtifacts
+    runs = tmp_path / "runs"; cfg = {"language": "python"}
+    def attempt(name, marker):
+        d = tmp_path / name; d.mkdir(); (d / "out.txt").write_text(marker)
+        return RunArtifacts(output_dir=d, stdout="", stderr="", exit_code=1, duration_seconds=1.0)
+    first = _archive_run_workspace(runs, cfg, 1, attempt("a1", "first"), visibility="private")
+    second = _archive_run_workspace(runs, cfg, 1, attempt("a2", "second"), visibility="private")
+    assert second == first and (second / "out.txt").read_text() == "second"
+    assert (second.parent / "rep1-failed.prev1" / "out.txt").read_text() == "first"

@@ -201,6 +201,20 @@ def _archive_run_workspace(
                 dest.rename(failed_dest)
             except OSError:
                 shutil.rmtree(dest, ignore_errors=True)
+        elif suffix == "-failed":
+            # A cell that failed before and failed AGAIN on a --resume re-run.
+            # Returning early kept the EARLIER attempt's archive (and scores.json)
+            # while the DB recorded the new attempt — exp-89's brazil re-run wrote
+            # 1,654 lines that existed only in its playpen (#55). Keep the earlier
+            # one as evidence, alongside, and archive the attempt whose scores are
+            # persisted at rep<N>-failed, where diagnose / agent_context look.
+            k = 1
+            while (archive_root / cell_name / f"rep{replicate}-failed.prev{k}").exists():
+                k += 1
+            try:
+                dest.rename(archive_root / cell_name / f"rep{replicate}-failed.prev{k}")
+            except OSError:
+                return dest
         else:
             # Already archived (idempotent on resume of an in-progress run).
             return dest
