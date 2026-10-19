@@ -1,0 +1,107 @@
+{
+  "agent_config": {
+    "hermes": {
+      "_config_version": 50,
+      "context_engine": "lcm",
+      "context_length": 262144,
+      "context_length_top_level": 262144,
+      "context_length_unset_per_model": false,
+      "max_turns": 400,
+      "model": "bottlecapai--ThinkingCap-Qwen3.8-27B-MLX-4bit-DWQ",
+      "plugins": [
+        "hermes-lcm"
+      ],
+      "provider_api": "http://127.0.0.1:8080/v1"
+    }
+  },
+  "agents": {
+    "hermes-0222": "hermes"
+  },
+  "harness": {
+    "local_agents": {
+      "hermes-0222": {
+        "harness": "hermes",
+        "model": null
+      }
+    },
+    "max_turns": 400,
+    "no_write_abort_after": 3,
+    "playpen_root": "/Users/adriancockcroft/.retort/work",
+    "replicates": 1,
+    "runner": "local",
+    "stack_presets": "stacks.yaml",
+    "stall_minutes": 25,
+    "timeout_minutes": 60
+  },
+  "host": {
+    "cpu": "Apple M5 Pro",
+    "iogpu_wired_limit_mb": "57344",
+    "machine": "Mac17,9",
+    "platform": "macOS-26.5.1-arm64-arm-64bit-Mach-O",
+    "python": "3.13.14",
+    "ram_bytes": "68719476736"
+  },
+  "models": {
+    "Nemotron-3.5-Bolt-74B-A9B": {
+      "repo": "nvidia/NVIDIA-Nemotron-3.5-Bolt-74B-A9B-24GB-GGUF",
+      "revision": "e0fecb69cb3e5e4c5e8a056fa2aec98c78e91246",
+      "served_as": "Nemotron-3.5-Bolt-74B-A9B",
+      "size": "21G",
+      "snapshot_path": "/Users/adriancockcroft/.cache/huggingface/hub/models--nvidia--NVIDIA-Nemotron-3.5-Bolt-74B-A9B-24GB-GGUF/snapshots/e0fecb69cb3e5e4c5e8a056fa2aec98c78e91246"
+    }
+  },
+  "retort": {
+    "branch": "main",
+    "commit": "4fe480785f77fd3d89a243c366c016bf327ccfcd",
+    "dirty": true
+  },
+  "serving": {
+    "omlx": {
+      "cache": {
+        "enabled": true,
+        "hot_cache_max_size": "0",
+        "hot_cache_only": false,
+        "initial_cache_blocks": 256,
+        "ssd_cache_dir": null,
+        "ssd_cache_max_size": "auto"
+      },
+      "model_dirs": [
+        "/Users/adriancockcroft/models"
+      ],
+      "sampling": {
+        "max_context_window": 32768,
+        "max_context_window_policy": null,
+        "max_tokens": 32768,
+        "repetition_penalty": 1.0,
+        "temperature": 0.6,
+        "top_k": 20,
+        "top_p": 0.95
+      }
+    }
+  },
+  "stack_presets": {
+    "bolt": {
+      "context_length": 98304,
+      "context_threshold": 0.9,
+      "gguf": "/Users/adriancockcroft/.cache/huggingface/hub/models--nvidia--NVIDIA-Nemotron-3.5-Bolt-74B-A9B-24GB-GGUF/snapshots/e0fecb69cb3e5e4c5e8a056fa2aec98c78e91246/NVIDIA-Nemotron-3.5-Bolt-74B-A9B-24GB.gguf",
+      "model": "Nemotron-3.5-Bolt-74B-A9B",
+      "sampling": {
+        "repetition_penalty": 1.0,
+        "temperature": 0.6,
+        "top_k": 20,
+        "top_p": 0.95
+      }
+    }
+  },
+  "tools": {
+    "cargo": "cargo 1.97.1 (c980f4866 2026-06-30) (Homebrew)",
+    "claude": "2.1.302 (Claude Code)",
+    "go": "go version go1.26.6 darwin/arm64",
+    "hermes": "Hermes Agent v0.22.2 (2026.9.24) \u00b7 stable \u00b7 local d923a5eb487a",
+    "hermes_bin": "/Users/adriancockcroft/code/hermes-agent/.venv/bin/hermes",
+    "llama_server": "version: 0.7.0 (build 11669, commit 620d2225c)",
+    "node": "v26.7.0",
+    "omlx": "0.5.0rc1",
+    "omp": "omp/17.3.8"
+  }
+}

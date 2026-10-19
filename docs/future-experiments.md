@@ -72,16 +72,18 @@ is picked after #4 frees the machine.
 
 
 
-## 0. exp-90 — Nemotron 3.5 Bolt 74B-A9B (24 GB GGUF) on llama.cpp, n=1 routine screen  — RUNNING 2026-10-19, $0
+## 0. exp-90 — Nemotron 3.5 Bolt 74B-A9B on llama.cpp  — BLOCKED 2026-10-19 (llama.cpp Metal kernel gap)
 
-A 74B MoE with 9B active, packed by NVIDIA to ~22 GB with quantization-aware training — the faster
-counterpart to ThinkingCap's dense 27B at a similar footprint. GGUF only, so it is also **the first use of
-retort's llama.cpp backend** (llama.cpp upgraded to 0.7.0). Python/go/typescript, n=1. **Deliberate
-departures, recorded:** context **98,304** (NVIDIA's quick-start; 262,144 is their 128 GB recipe) so lcm
-compacts at ~88K; **temperature 0.6, not NVIDIA's 1.0** (forbidden for agent loops); no vision projector,
-no speculative draft. **Hypothesis:** clears python/go like the other local stacks, several times faster
-than ThinkingCap. **Smoke = the first cell:** llama-server loads the arch, Hermes gets structured tool
-calls through `--jinja`.
+**Not runnable at a useful speed on this Mac yet.** llama.cpp 0.7.0 (build 11669) loads the 22 GB GGUF and
+answers an 18-token warm-up, then **crashes on the first real prompt**: `ggml_metal_library_compile_pipeline:
+kernel not found … kernel_mul_mm_id_map0_ne20_9` — the Metal MoE matmul kernel has no instantiation for
+**9 active experts** (Bolt's top-K is 9, cut from 22 in its parent). Forcing the mat-vec path with
+`--ubatch-size 8` avoids the crash but runs at **18.5 tok/s prefill and 8.6 tok/s generation** — a 15K-token
+agent prompt would take ~13 min, slower than ThinkingCap. 0 runs recorded, so no data was polluted.
+**Unblocks when** llama.cpp ships the ne20=9 kernel (re-check on each brew upgrade), or when oMLX's mlx-lm
+supports the `nemotron_h_puzzle` arch the community MLX ports use. **Harness to-do also found:** the run's
+`provenance.json` recorded Hermes `ctx=262144` because provenance is captured BEFORE the stack reload writes
+the preset's context (98304) into Hermes's config — the effective value was right, the record was not.
 
 ## 0. RESOLVED — Opus 5.5 completes the 13×2 grid and is now FEATURED  — 2026-09-23
 
@@ -224,6 +226,8 @@ significant — that judgement was made about the effort experiment, where it wa
 
 
 ## 3a. Harness to-do from exp-71 (2026-10-18)
+
+- **Provenance records the agent's context before the stack reload applies the preset (exp-90).** It said Hermes `ctx=262144` while the preset had set 98304 in Hermes's config. Capture the agent context after the reload, or re-read it per run, so provenance reports the effective value (CLAUDE.md's rule).
 
 - **A crashed `--resume` re-run does not refresh `rep<N>-failed` (exp-89).** The archive keeps the earlier attempt and its scores, so a later attempt's work (1,654 lines on brazil) is lost from the record. Archive a re-run's playpen over the previous failed one (or alongside it as `-attempt2`).
 
