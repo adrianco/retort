@@ -28,7 +28,7 @@ def test_not_applicable_when_tooling_is_not_graphify(tmp_path):
     # #58: NOT 1.0 — that made 'not applicable' look like 'consulted' and inflated
     # every aggregate of the score. None leaves the row out.
     assert GraphUsageScorer().score(_artifacts(tmp_path), _stack("none")) is None
-    assert GraphUsageScorer().score(_artifacts(tmp_path), _stack("beads")) == 1.0
+    assert GraphUsageScorer().score(_artifacts(tmp_path), _stack("beads")) is None
 
 
 def test_consulting_the_graph_scores_one(tmp_path):
