@@ -2441,3 +2441,24 @@ reached **93 GB** and pushed free disk to 33 GB (retort warns under 40). Cleared
 free) and capped with `--paged-ssd-cache-max-size 10GB` in the stack presets — the setting
 optimal-blog already recommends but this host had never applied.
 
+## exp-88 — ThinkingCap-Qwen3.8-27B (DWQ): the shorter-trace fine-tune terminates  — COMPLETE, 2026-10-19
+
+`bottlecapai/ThinkingCap-Qwen3.8-27B-MLX-4bit-DWQ` (21 GB, first-party) on oMLX + Hermes v0.22.2, exp-87's
+stack with the model swapped, `rest-api-crud`. Ran as an n=1 python screen (it terminated and passed in
+20 min, 22 turns, where its base model exp-87 hit the 60-min wall), widened to go/typescript at n=1
+(both passed), then **deepened to n=3**. **9/9 completed at requirement coverage 1.00**, after one
+typescript run was restored by `retort recover` (diagnose: TOOLING — a scoring artefact on code whose
+tests pass); that run passed only on the self-repair second chance.
+
+| language | n | pass | mean / range s | 80B (exp-38, ctx 0.9) mean s |
+|---|---:|---:|---:|---:|
+| python | 3 | 3/3 | 1361 (1191–1482) | 333 |
+| go | 3 | 3/3 | 2185 (1648–2859) | 619 |
+| typescript | 3 | 3/3 (1 on 2nd try) | 1518 (796–2313) | 973 |
+
+**Featured** as the free local stack for a 32 GB machine: 21 GB vs the 80B's ~45 GB, and 1.00 vs the
+35B's 0.72/0.75 at the same ~20 GB footprint — but **1.5–3.6× slower than the 80B**, so it is listed after
+the 80B and routing ties go to the 80B. Not measured on the hard task or the niche languages.
+**Reporting gap surfaced:** `report optimal`'s pass rule counts a second-chance pass as a full pass,
+while `aggregate` documents it as half credit — queued as a harness decision.
+

@@ -264,6 +264,23 @@ FEATURED_STACKS = [
         # 0.00s in full.
         "routine_scope": ["python", "go", "typescript"],
     },
+    {
+        # exp-88, featured 2026-10-19: the free stack for a 32 GB machine. ThinkingCap is
+        # Qwen3.8-27B fine-tuned for ~37% shorter reasoning; the base model (exp-87) wrote
+        # good code and never terminated. 4-bit DWQ, 21 GB, oMLX + Hermes v0.22.2 at
+        # context_threshold 0.9. Routine n=3: python 3/3, go 3/3, typescript 3/3 -- one typescript
+        # pass only on the self-repair second chance (half credit by aggregate's rule; this
+        # report counts it as a pass). Listed AFTER the 80B so a $0 tie routes to the 80B,
+        # the faster stack where it fits; this is the pick when the 80B (~45 GB) does not. 1.5-3.6x slower than the 80B, but the
+        # 80B needs ~45 GB; against the 35B (same ~20 GB class) it is 1.00 vs 0.72/0.75.
+        "name": "ThinkingCap-Qwen3.8-27B DWQ (local, $0, 21 GB)",
+        "short": "ThinkingCap 27B local",
+        "models": ["mlxlocal/bottlecapai--ThinkingCap-Qwen3.8-27B-MLX-4bit-DWQ"],
+        "kind": "local",
+        "pass_bar": 1.00,
+        "cost_override": 0.0,
+        "routine_scope": ["python", "go"],
+    },
 ]
 
 # Raw model strings we knowingly do NOT feature, so --health can tell "expected legacy"
@@ -330,9 +347,6 @@ KNOWN_NONFEATURED = {
     "mlxlocal/mlx-community--Qwen3.8-27B-4bit": "Qwen3.8-27B dense 4-bit (exp-87): screened, not "
         "featured -- wrote complete, well-tested code then never declared itself done (60-min wall on "
         "python). Its shorter-trace fine-tune ThinkingCap (exp-88) is the build that terminates.",
-    "mlxlocal/bottlecapai--ThinkingCap-Qwen3.8-27B-MLX-4bit-DWQ": "ThinkingCap-Qwen3.8-27B 4-bit DWQ "
-        "(exp-88): 1.00 on python/go/typescript at n=1, 1.5-3.6x slower than the Qwen 80B at half the "
-        "memory (21 GB). Being deepened to n=3 -- feature only if it holds 1.00 there.",
     "mlxlocal/devstral": "Devstral (exp-23): evaluated, not featured",
     "gpt-5.6-sol": "GPT-5.6 Sol (exp-58/59): evaluated, not featured",
     "opus": "legacy bare 'opus' (exp-1/2)",

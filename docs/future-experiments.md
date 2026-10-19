@@ -70,13 +70,6 @@ candidates (Nemotron 3.5 Bolt, LFM2.5-24B, Holo4-35B, …) — each needs a down
 is picked after #4 frees the machine.
 
 
-## 0. exp-88 — ThinkingCap-Qwen3.8-27B (DWQ) — does a shorter-trace fine-tune finish what exp-87 could not?  — QUEUED 2026-10-18, $0
-
-exp-87's Qwen3.8-27B wrote good code and never stopped (60-min wall). ThinkingCap is the same model
-fine-tuned for ~37% fewer thinking tokens, shipped first-party as `MLX-4bit-DWQ` (21 GB). **n=1, python
-only, routine task** — the cheapest signal. **Hypothesis:** it terminates inside the wall; if it does,
-widen to go/typescript at n=1. Same stack as exp-87 (oMLX cache capped at 10 GB).
-
 ## 0. RESOLVED — Opus 5.5 completes the 13×2 grid and is now FEATURED  — 2026-09-23
 
 **46/46, coverage 1.00 in every cell.** Routine n=3 on the 11 remaining languages, hard n=1 on all
@@ -218,6 +211,8 @@ significant — that judgement was made about the effort experiment, where it wa
 
 
 ## 3a. Harness to-do from exp-71 (2026-10-18)
+
+- **Second-chance passes are counted inconsistently (exp-88).** `aggregate` documents a `second_try` pass as HALF credit toward pass-proportion, but `report optimal`'s `PASS_SQL` counts it as a full pass, so every board and routing cell that contains a second-try pass overstates reliability. Decide the rule once, apply it in `PASS_SQL`, and regenerate — it moves historical cells, so it needs its own commit and a blog note.
 
 - **Persist the guard's kill reason per attempt.** `kill_reason` (stall / hard wall) is only in the in-memory `RunArtifacts`, and the self-repair second chance replaces it, so a first attempt's stall is not recorded anywhere — exp-71 had to infer stalls from durations. Write it to `_meta.json` and as a `_killed_by` run_result for each attempt, so stall rate is a queryable response.
 

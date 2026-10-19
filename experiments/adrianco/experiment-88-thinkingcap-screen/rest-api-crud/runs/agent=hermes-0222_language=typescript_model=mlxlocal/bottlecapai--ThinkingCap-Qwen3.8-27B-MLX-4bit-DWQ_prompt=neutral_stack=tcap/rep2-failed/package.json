@@ -1,0 +1,26 @@
+{
+  "name": "book-api",
+  "version": "1.0.0",
+  "description": "REST API for managing a book collection (Express + SQLite)",
+  "main": "dist/src/server.js",
+  "scripts": {
+    "build": "tsc",
+    "start": "node dist/src/server.js",
+    "test": "npm run build && node --test dist/tests/*.test.js"
+  },
+  "engines": {
+    "node": ">=20"
+  },
+  "dependencies": {
+    "better-sqlite3": "^12.2.0",
+    "express": "^4.21.2"
+  },
+  "devDependencies": {
+    "@types/better-sqlite3": "^7.6.13",
+    "@types/express": "^4.17.23",
+    "@types/node": "^22.15.0",
+    "@types/supertest": "^6.0.3",
+    "supertest": "^7.1.1",
+    "typescript": "^5.8.3"
+  }
+}
