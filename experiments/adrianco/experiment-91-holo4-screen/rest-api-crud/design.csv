@@ -1,0 +1,4 @@
+run,language,agent,prompt,stack,model
+0,python,hermes-0222,neutral,holo4,llamacpp/Holo4-35B-A3B
+1,go,hermes-0222,neutral,holo4,llamacpp/Holo4-35B-A3B
+2,typescript,hermes-0222,neutral,holo4,llamacpp/Holo4-35B-A3B

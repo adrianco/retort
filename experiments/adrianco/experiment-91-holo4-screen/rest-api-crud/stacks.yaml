@@ -1,0 +1,38 @@
+# exp-91: Holo4-35B-A3B (H Company's agentic post-train of Qwen3.6-35B-A3B — our 35B's exact base),
+# official Q4_K_M GGUF on llama.cpp 0.7.0. Agent/context/sampling/harness = the 35B local stack's.
+# CONFOUND, recorded: the 35B baseline ran on oMLX (MLX 4-bit); this runs on llama.cpp (GGUF Q4_K_M), so a
+# difference mixes the post-train with the serving layer and quant format.
+serving:
+  backend: llamacpp
+  llama_bin: /opt/homebrew/bin/llama-server     # 0.7.0 (build 11669), upgraded 2026-10-19
+  ngl: 999
+  hermes_bin: /Users/adriancockcroft/code/hermes-agent/.venv/bin/hermes
+  host: 127.0.0.1
+  port: 8080
+  hermes_config: /Users/adriancockcroft/.hermes/config.yaml
+  log: /Users/adriancockcroft/.retort/llama-exp91.log
+  warm_timeout_s: 900
+  serve_flags:            # from NVIDIA's README quick-start (minus mmproj + speculative draft)
+  - --cache-type-k
+  - q8_0
+  - --cache-type-v
+  - q8_0
+  - --flash-attn
+  - 'on'
+  - --parallel
+  - '1'
+  - --batch-size
+  - '2048'
+  - --ubatch-size
+  - '512'
+presets:
+  holo4:
+    model: Holo4-35B-A3B
+    gguf: /Users/adriancockcroft/.cache/huggingface/hub/models--Hcompany--Holo4-35B-A3B-GGUF/snapshots/93400a4734519493de4f49910de1f6e0e24be46b/q4_k_m.gguf
+    context_length: 262144     # same as the oMLX 35B baseline (Qwen3.6 base, native 256K)
+    context_threshold: 0.9
+    sampling:
+      temperature: 0.6
+      top_p: 0.95
+      top_k: 20
+      repetition_penalty: 1.0
