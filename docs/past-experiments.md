@@ -2424,6 +2424,13 @@ is overwritten when the self-repair second chance runs, so the first attempt's s
 not persisted anywhere — stalls here had to be inferred from durations. Queued as a harness to-do.
 **Hermes v0.22.2 smoke** first caught a missing `snowballstemmer` on Python 3.11 (every tool call failed);
 fixed before the screen ran.
+**Addendum 2026-10-19 — what the plain-4-bit go "stall" actually was.** oMLX's log for that run shows three
+gaps of 18–19 min, and each is ONE completion that ran to the **32,768-token cap** (`32768 tokens in
+1110 s`), then the agent continued: **runaway degenerate generation**, the plain-4-bit pathology. That is
+genuinely unproductive, unlike exp-89's ThinkingCap (a real tool-calling turn every 2–4 min, killed as a
+false stall). So this cell's failure stands, and the exp-64–69 stall counts very likely do too — a runaway
+generation writes neither output nor a per-turn session record, so even the fixed guard (exp-89) still
+correctly sees no progress.
 
 ## exp-87 — Qwen3.8-27B (dense, 4-bit MLX) routine screen  — STOPPED AFTER ONE CELL, 2026-10-18
 

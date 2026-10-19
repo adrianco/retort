@@ -83,9 +83,9 @@ local stack so far. Deepen only a cell that passes.
 routine languages the 80B misses — now being deepened to n=3. **Hard-task python: a FALSE STALL** — killed
 at exactly 25 min while oMLX shows a tool-calling turn every 2–4 min (Hermes oneshot prints nothing and a
 read-only turn writes no file, so the guard saw no progress). Guard fixed (`activity_paths` watches
-Hermes's per-turn `state.db-wal`); **re-run the hard-task cell after the rust/java deepening.** Open
-question this raises: exp-71's "likely stall" on plain 4-bit go, and possibly some exp-64–69 stall
-counts, came from the same blind guard — check those runs' oMLX logs for turns continuing up to the kill.
+Hermes's per-turn `state.db-wal`); **re-run the hard-task cell after the rust/java deepening.** Checked
+2026-10-19: exp-71's plain-4-bit go "stall" was genuine — three runaway generations to the 32K-token cap
+(18–19 min each) in oMLX's log, not slow real turns — so it and the exp-64–69 stall counts stand.
 
 ## 0. RESOLVED — Opus 5.5 completes the 13×2 grid and is now FEATURED  — 2026-09-23
 
