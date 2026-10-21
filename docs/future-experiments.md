@@ -541,7 +541,7 @@ invest in the solver dependency, master.db merge, and first-class docs.
 <!-- SCAN-HEARTBEAT: the daily scan rewrites the next line on EVERY run, including
      days it finds nothing. Do not hand-edit it. If the date is more than ~2 days
      stale, the scan is not running — see "when the heartbeat goes stale" below. -->
-**Daily scan last completed: 2026-10-20** (scanning for new coding models: 64GB-fittable open weights, and frontier cloud models/versions)
+**Daily scan last completed: 2026-10-21** (scanning for new coding models: 64GB-fittable open weights, and frontier cloud models/versions)
 
 - 2026-09-08 — **GPT-6 Astra (OpenAI) — `gpt-6-astra`** — *the "new codex model"; added by hand
   because the daily scan's scope was open-weights-only until today (widened the same day, see the
@@ -1804,6 +1804,14 @@ survives the toggle, restart the Claude desktop app, which clears the in-memory 
   — announcement: https://blogs.nvidia.com/blog/nemotron-3-5-super-vl/
   — weights: https://huggingface.co/nvidia/NVIDIA-Nemotron-3.5-Bolt-74B-A9B-24GB
   — Lightning GGUF (arch-gate probe): https://huggingface.co/unsloth/NVIDIA-Nemotron-3.5-Lightning-30B-A3B-GGUF
+
+*Excluded 2026-10-21, recorded so it is not re-investigated:* **Mercury 3** (Inception Labs, listed
+2026-10-16/19) — a diffusion LLM served only through Inception's own API (trackers: ~$0.10 in / $0.35 out
+per 1M, 1M context; no official card verified), **no open weights** and not reachable via `claude` or
+`codex`, so it fits neither track. No new Track B model or version (The New Stack AI headlines through
+2026-10-20 carry no model launch; DeepSeek's open-sourced inference engine is serving software, not a
+model); Nemotron 3.5 Bolt E4B still due 2026-10-23. Sources: https://www.nocode.mba/ai-release-tracker/2026/10 ·
+https://lmmarketcap.com/model/inception-mercury-3 · https://thenewstack.io/category/ai/
 
 *Excluded 2026-10-20, recorded so it is not re-investigated:* **MiniMax M3.1 Flash**
 (`minimax-m3.1-flash`, listed 2026-10-19) — the GA of the M3.1-Flash-Preview already excluded 2026-10-01;
