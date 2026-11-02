@@ -29,6 +29,7 @@ def db(tmp_path):
     add("solid", "brazil", 1.0, 2.0, 300, n=6)          # always passes, pricey
     add("cheap", "brazil", 1.0, 0.1, 100, n=3)          # cheap and fast
     add("cheap", "brazil", 0.5, 0.1, 100, n=3)          # ...but half the time
+    add("worse", "brazil", 0.5, 3.0, 400, n=6)          # dearer, slower, less reliable
     add("solid", "bookshop", 1.0, 1.0, 100, n=4)
     con.commit(); con.close()
     return path
@@ -53,7 +54,12 @@ def test_a_cheap_stack_stays_on_the_frontier(db):
     objective — that is the difference between a frontier and a ranking, and it
     is why promotion should not be decided on pass-proportion alone.
     """
-    assert compute_evidence(db, "cheap", task="brazil")["dominated_confidence"] > 0.5
+    assert compute_evidence(db, "cheap", task="brazil")["dominated_confidence"] < 0.5
+
+
+def test_a_stack_beaten_on_every_objective_reads_as_dominated(db):
+    """`production_to_retired` retires on this key, so high must mean dominated."""
+    assert compute_evidence(db, "worse", task="brazil")["dominated_confidence"] > 0.5
 
 
 def test_task_filter_changes_the_answer(db):

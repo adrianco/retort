@@ -15,10 +15,10 @@ The two Bayesian keys are computed here from `master.db`:
   normal regime, the observed mean is a point estimate that a single lucky run
   can carry.
 
-* ``dominated_confidence`` — P(this stack is Pareto-non-dominated) across
-  quality, cost and speed, from `prob_pareto_non_dominated`. The name in
-  `gates.py` matches that function's return value exactly; it was written as
-  this gate's evidence source and never connected.
+* ``dominated_confidence`` — P(this stack is Pareto-dominated) across quality,
+  cost and speed: one minus `prob_pareto_non_dominated`, as that function's
+  docstring says. `production_to_retired` retires a stack when this is high, so
+  it must not be the probability of staying on the frontier.
 
 `p_value` is deliberately NOT computed here. It belongs to the ANOVA in
 `retort analyze`, which needs the full design matrix rather than one stack's
@@ -115,7 +115,7 @@ def compute_evidence(db: Path, stack_id: str, *,
         # way and cannot distinguish a good stack from a lucky one.
         evidence["posterior_confidence"] = float(posterior.prob_greater_than(0.5))
 
-    # dominated_confidence — P(non-dominated) across the objectives
+    # dominated_confidence — P(dominated) across the objectives
     usable = {
         label: {m: NormalInverseGamma().update(vals)
                 for m, vals in metrics.items() if len(vals) >= 2}
@@ -126,6 +126,6 @@ def compute_evidence(db: Path, stack_id: str, *,
     usable = {k: v for k, v in usable.items() if v and all(m in v for m in common)}
     if stack_id in usable and len(usable) >= 2 and common:
         probs = prob_pareto_non_dominated(usable, common, n_samples=4000)
-        evidence["dominated_confidence"] = float(probs.get(stack_id, 0.0))
+        evidence["dominated_confidence"] = 1.0 - float(probs[stack_id])
 
     return evidence
