@@ -541,7 +541,7 @@ invest in the solver dependency, master.db merge, and first-class docs.
 <!-- SCAN-HEARTBEAT: the daily scan rewrites the next line on EVERY run, including
      days it finds nothing. Do not hand-edit it. If the date is more than ~2 days
      stale, the scan is not running — see "when the heartbeat goes stale" below. -->
-**Daily scan last completed: 2026-10-21** (scanning for new coding models: 64GB-fittable open weights, and frontier cloud models/versions)
+**Daily scan last completed: 2026-11-06** (scanning for new coding models: 64GB-fittable open weights, and frontier cloud models/versions)
 
 - 2026-09-08 — **GPT-6 Astra (OpenAI) — `gpt-6-astra`** — *the "new codex model"; added by hand
   because the daily scan's scope was open-weights-only until today (widened the same day, see the
@@ -773,6 +773,25 @@ invest in the solver dependency, master.db merge, and first-class docs.
   [MarkTechPost](https://www.marktechpost.com/2026/10/13/meta-muse-wonder-muse-wonder-full-release/),
   [Cursor docs](https://cursor.com/docs/models/muse-wonder),
   [LLM Reference](https://www.llmreference.com/provider/meta-model-api/muse-wonder).
+- 2026-11-06 — **GPT-6.1 Terra (OpenAI) — `gpt-6.1-terra`** — *released **2026-10-26**; the successor to
+  the `gpt-5.6-terra` already in `master.db` and the cheapest Terra yet.* Facts from OpenAI's own model
+  page, not a news story: **$1 in / $5 out per 1M**, cached input **$0.05**, cache writes $1.25 (30-min
+  retention) / $2.50 (12-hour) — i.e. 1.25× input, so `retort.pricing`'s `gpt-6` cache-write rule carries
+  over (`"gpt-6.1-terra"` starts with `gpt-6`). **1,050,000-token context**, 922K max input, 128K max
+  output, knowledge cutoff 2026-06-01. Reasoning effort **none / low / medium (default) / high / xhigh /
+  max** (unlike 6.1 Sol, `none` IS supported). Long-context tier: prompts >272K input bill 2× input/cache
+  and 1.5× output, which `pricing.py` does not model. Reachable as `codex exec -m gpt-6.1-terra` on
+  **codex-cli ≥ 0.159.0** (per third-party guides citing the Codex models page; Plus/Pro/Business/
+  Enterprise/Edu) — prove it resolves on a smoke cell, given the 0.156.1 `gpt-6.1-sol` rejection recorded
+  in the 2026-10-17 plan. **⚠ `gpt-6.1-terra` is NOT in `src/retort/pricing.py`** (checked 2026-11-06;
+  `normalize_model` does not fall back to `gpt-5.6-terra`, so it returns `None`) — a run today reports
+  **$0** and corrupts the cost columns. Add `TokenPrice(1.00, 0.05, 5.00)` before any cell. **Framing:**
+  half 6.1 Sol's price, 10× Luna 6's. Terra 5.6 saturates routine and brazil, so a grid measures **cost
+  and clock** — the natural cell is 6.1 Terra vs 6.1 Sol and vs Sonnet 5.5 / Haiku 5.5 at matched low
+  effort; OpenAI pitches it at form-filling / computer-use agents rather than coding, so check coding
+  holds. Sources: [OpenAI model page](https://developers.openai.com/api/docs/models/gpt-6.1-terra),
+  [YourStory](https://yourstory.com/ai-story/gpt-6-1-terra-lower-api-pricing-developers),
+  [Codex access guide](https://horadecodar.com.br/gpt-6-1-terra-onde-acessar/).
 
 New open-weight coding models found by the daily scan that plausibly fit 64GB at 4-bit; promote to a
 numbered experiment when prioritised.
@@ -1804,6 +1823,55 @@ survives the toggle, restart the Claude desktop app, which clears the in-memory 
   — announcement: https://blogs.nvidia.com/blog/nemotron-3-5-super-vl/
   — weights: https://huggingface.co/nvidia/NVIDIA-Nemotron-3.5-Bolt-74B-A9B-24GB
   — Lightning GGUF (arch-gate probe): https://huggingface.co/unsloth/NVIDIA-Nemotron-3.5-Lightning-30B-A3B-GGUF
+
+- 2026-11-06 — **Flint (Recursive) — `RecursiveSI/flint`** — *published **~2026-10-19/21**; coder-specialised,
+  and the first candidate built by an "autoresearch" system (Recursive's Eureka Machine).* **Apache 2.0**,
+  **39.8B total / ~2.5B active MoE** (49 layers, 256 routed experts, 6 active + 1 shared), **262,144
+  context** — same window as our 35B/80B runs. Pitched at investigating codebases, fixing bugs,
+  implementing features and writing tests. Vendor-reported **SWE-bench Verified 74.2, Terminal-Bench 2.1
+  54.9** (SWE-bench Pro v2 89.7 — a different benchmark version, not comparable to the Pro numbers above).
+  BF16 ~80 GB → **~22–26 GB at 4-bit, fits 64GB with plenty of headroom**. OpenAI-compatible tool calls;
+  reasoning returned in `reasoning_content`. **Serving is the gate:** upstream documents SGLang only;
+  community MLX 4-bit builds exist (`mlx-community/flint-OptiQ-4bit` 25.6 GB — but **stock mlx-lm has no
+  `flint` class** and needs the `mlx-optiq` package; `nativ-community/flint-4bit` via mlx-vlm ≥ 0.7.10) and
+  only an IQ3_M community GGUF — so confirm oMLX loads it before scheduling, and treat a VLM-converted quant
+  with the Muse Glimmer suspicion (smoke-test a real `<tool_call>` through Hermes). **Caveats per CLAUDE.md:**
+  sampling is **temperature 1.0 / top_p 0.95 / top_k 20** — the temp-1.0 trap; Recursive warns of "inappropriate
+  tool calls" and community quanters report it is quant-sensitive, so **measure the stall rate first**.
+  Free on OpenRouter (`recursive/flint-v1.0:free`), and OpenHands is a launch partner. Judge priority:
+  alongside Xing4.0 among the new-lineage coders, below the zero-friction Ornith-1.5 / Qwen3.8-27B.
+  Source: https://huggingface.co/RecursiveSI/flint
+  — via: https://www.nocode.mba/ai-release-tracker/releases/recursive-flint
+  — OpenHands: https://www.openhands.dev/blog/recursive-flint-on-openhands
+  — MLX 4-bit: https://huggingface.co/mlx-community/flint-OptiQ-4bit
+
+- 2026-11-06 — **Clover-35B-A3B-Preview (DiffuSpace) — BLOCKED on serving, re-check** — *published
+  **~2026-10-29/30**; the first **diffusion** LLM on this list, and a matched-base probe on our incumbent.*
+  **Apache 2.0**, **35B total / ~3B active MoE built on the `Qwen3.6-35B-A3B` backbone** (40 layers, full
+  attention + Gated DeltaNet) with **block diffusion** decoding instead of autoregression, thinking mode,
+  **128K context** (half our 35B's 262K). Vendor claims it beats autoregressive Qwen3.6-35B-A3B on agentic
+  coding and tool use; independent hands-on testing (MindStudio) found gaps in coding. ~69 GB BF16 → would be
+  ~20 GB at 4-bit, but **no low-bit quant exists, and neither oMLX nor mainline llama.cpp serves a diffusion
+  decoder** — not runnable here today. **Why list it:** same base, same size as the 35B in `master.db`, with
+  **the decoding paradigm** as the variable — a direct test of whether parallel diffusion decoding helps a
+  generation-bound agent loop (exp-24). Re-check when an MLX/llama.cpp path or 4-bit build appears.
+  Sources: https://huggingface.co/Diffuspace/Clover-35B-A3B-Preview
+  — https://af.net/realtime/diffuspace-releases-clover-35b-a3b-open-source-diffusion-language-model-built-on-qwen-backbone/
+  — https://www.mindstudio.ai/blog/tag/diffusion-language-model
+
+*Excluded 2026-11-06, recorded so they are not re-investigated:* **Kimi K3.1 Pro / Highspeed** (Moonshot,
+2026-10-23, open weights, "3T-class") and **Inkling 2 Small** (Thinking Machines, 2026-11-05, 594B MoE,
+weights pending) — far oversized. **Hy4** (Tencent, 2026-11-04, weights "in the coming days"; its preview was
+770B-A49B) — re-check size when weights land. **Nemotron 3.5 Bolt E4B** (NVIDIA, 2026-10-23, 4 GB) — aimed at
+conversational agents, not coding. **LFM3** (Liquid, 2026-10-27, 2B-class) — not coding. **Ling-3.1-flash**
+weights (2026-10-29) — already excluded 2026-10-03 at ~280 GB. **DeepSeek V4.1 Flash Cyber** (2026-10-29) —
+a variant of the excluded 552B MoE. Track B, not candidates: **Gemini 4 Carbon** (Google, 2026-10-28) —
+Fairwind-only, no public API id (only `gemini-4-argon` is listed); **GPT-6 Cyber** and **GPT-6 Rosalind
+Research** (OpenAI) — limited-access security / life-science models; **Claude Duet** (Anthropic, 2026-10-21)
+— a proactive-agent product running on Opus 5.5, not a new model. Note: The New Stack's AI category returned
+HTTP 403 to this scan, so it was covered via trackers instead. Sources:
+https://www.nocode.mba/ai-release-tracker/2026/10 · https://www.nocode.mba/ai-release-tracker/2026/11 ·
+https://llmgateway.io/timeline/2026 · https://smartscope.blog/en/blog/gemini-4-carbon-availability-release-date-differences-argon-2026/
 
 *Excluded 2026-10-21, recorded so it is not re-investigated:* **Mercury 3** (Inception Labs, listed
 2026-10-16/19) — a diffusion LLM served only through Inception's own API (trackers: ~$0.10 in / $0.35 out
