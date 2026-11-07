@@ -557,7 +557,7 @@ invest in the solver dependency, master.db merge, and first-class docs.
 <!-- SCAN-HEARTBEAT: the daily scan rewrites the next line on EVERY run, including
      days it finds nothing. Do not hand-edit it. If the date is more than ~2 days
      stale, the scan is not running — see "when the heartbeat goes stale" below. -->
-**Daily scan last completed: 2026-11-06** (scanning for new coding models: 64GB-fittable open weights, and frontier cloud models/versions)
+**Daily scan last completed: 2026-11-07** (scanning for new coding models: 64GB-fittable open weights, and frontier cloud models/versions)
 
 - 2026-09-08 — **GPT-6 Astra (OpenAI) — `gpt-6-astra`** — *the "new codex model"; added by hand
   because the daily scan's scope was open-weights-only until today (widened the same day, see the
@@ -1874,6 +1874,14 @@ survives the toggle, restart the Claude desktop app, which clears the in-memory 
   Sources: https://huggingface.co/Diffuspace/Clover-35B-A3B-Preview
   — https://af.net/realtime/diffuspace-releases-clover-35b-a3b-open-source-diffusion-language-model-built-on-qwen-backbone/
   — https://www.mindstudio.ai/blog/tag/diffusion-language-model
+
+*Excluded 2026-11-07, recorded so they are not re-investigated:* **Ling-3.2-flash** (Ant Group, 2026-11-05)
+— no card or size published yet; its 3.1 predecessor is 560B-A25B (~280 GB at 4-bit), so expect the same
+oversized verdict, re-check only if a sub-40 GB variant appears. **Gemini Omni 1.2 Flash** (Google, 2026-11-05)
+— video generation, not coding. **Claude Mythos 5.5** — only a website string (2026-11-01) and rumoured Fable 5.5
+A/B checkpoints; no release, id or price, re-check. No other new Track A or Track B model (The New Stack AI
+category still returns HTTP 403; covered via trackers). Sources: https://www.nocode.mba/ai-release-tracker/2026/11 ·
+https://llmgateway.io/timeline/2026 · https://www.testingcatalog.com/anthropic-prepares-to-release-claude-mythos-5-5-model/
 
 *Excluded 2026-11-06, recorded so they are not re-investigated:* **Kimi K3.1 Pro / Highspeed** (Moonshot,
 2026-10-23, open weights, "3T-class") and **Inkling 2 Small** (Thinking Machines, 2026-11-05, 594B MoE,
