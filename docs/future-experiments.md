@@ -21,6 +21,22 @@ DWQ in 0%, at the same 16 GB. See [optimal-blog.md](../optimal-blog.md).
 
 ---
 
+## exp-92 — GPT-6.1 Terra at LOW, 13 languages, routine task, n=1  — RUNNING 2026-11-06
+
+**Intent.** Measure the newly released `gpt-6.1-terra` (daily scan, 2026-11-06) under the user's Codex
+rule (low effort, Luna/Terra only). Does it keep 5.6 Terra's routine reliability (5.6 Terra is still the
+featured csharp pick) at a lower cost, and where does it sit against Luna 6 (exp-85) and Haiku 5.5 (exp-86)?
+**Design.** The exp-85 grid with the model swapped: 13 languages × codex × neutral × low, **n=1** (new
+model, so a screen first; deepen only interesting cells). Isolated (fresh CODEX_HOME). codex-cli 0.167.0.
+**Verified before launch:** the model id resolves on 0.167 (smoke `codex exec -m gpt-6.1-terra`
+returned OK with usage reported). `pricing.py` now carries `TokenPrice(1.00, 0.05, 5.00)`, so cost is
+not $0.
+**Hypothesis.** Passes python/go/typescript/rust/java/csharp. Any misses fall in clojure, erlang,
+elixir, objc or swift. Beats Luna 6 on the niche languages.
+**Then.** Queue a Holo4 re-measure on llama.cpp 0.9.0 (go/ts, new folder).
+
+---
+
 ## PLAN 2026-10-17 — run order for the next batch (autonomous; one experiment at a time)
 
 Chosen for **information per dollar**. Every claude/codex run is isolated (`agent_context=mcp-cleared`);

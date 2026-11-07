@@ -1,0 +1,37 @@
+# Experiment 92 — GPT-6.1 Terra at LOW effort across all 13 languages (routine task), Codex, ISOLATED.
+#
+# WHY. GPT-6.1 Terra appeared in the 2026-11-06 daily scan. It is a mid-price model ($1 in / $0.05 cached /
+# $5 out) and has not been measured. GPT-5.6 Terra is still featured for csharp, so the question is whether
+# 6.1 Terra replaces it at the same or lower cost. Within the user's Codex rule: low effort, Luna/Terra only.
+#
+# DESIGN. n=1 screen (new model: never high reps first), 13 languages, same task/prompt as exp-85.
+# Deepen only the cells that are interesting.
+#
+# EXPECTATION, recorded before the run: clears python/go/typescript/rust/java/csharp at low; the misses, if
+# any, are in clojure/erlang/elixir/objc/swift. Beats Luna 6 (exp-85) on the niche languages.
+#
+# codex-cli 0.167.0 (upgraded 2026-11-06).
+experiment:
+  name: experiment-92-terra61-low-alllang-rest-api-crud
+  visibility: public
+factors:
+  language: { levels: [python, go, typescript, rust, java, clojure, erlang, elixir, csharp, c, cpp, swift, objc] }
+  agent: { levels: [codex, claude-code] }
+  prompt: { levels: [neutral, none] }
+  model: { levels: [gpt-6.1-terra, gpt-5.6-terra] }
+  effort: { levels: [low, default] }
+responses: [code_quality, token_efficiency, test_coverage, defect_rate, maintainability, idiomatic]
+tasks:
+  - source: bundled://rest-api-crud
+playpen:
+  runner: local
+  replicates: 1
+  timeout_minutes: 60
+  stall_minutes: 25
+  max_turns: 200
+  prompts_dir: prompts
+  local_agents:
+    codex: { harness: codex, model: gpt-6.1-terra }
+design: { screening_resolution: 3, significance_threshold: 0.10 }
+promotion: { screening_to_trial: { p_value: 0.10 }, trial_to_production: { posterior_confidence: 0.80 } }
+evaluation: { enabled: true, model: opus-4.8 }

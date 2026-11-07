@@ -71,6 +71,11 @@ OPENAI_PRICES: dict[str, TokenPrice] = {
     # row. Effort low/medium(default)/high/xhigh/max; `none` is NOT supported.
     # NOT MODELLED: prompts >272K input tokens bill 2x input/cache, 1.5x output.
     "gpt-6.1-sol": TokenPrice(2.00, 0.10, 10.00),
+    # developers.openai.com/api/docs/models/gpt-6.1-terra (checked 2026-11-06): $1 / cached
+    # $0.05 / cache write $1.25 (30-min) / $5. The write is 1.25x input, so the gpt-6
+    # cache-write rule covers it. >272K-input prompts bill 2x input/1.5x output -- not
+    # modelled; a routine run never gets near it.
+    "gpt-6.1-terra": TokenPrice(1.00, 0.05, 5.00),
     # GPT-5.6
     "gpt-5.6-sol": TokenPrice(5.00, 0.50, 30.00),
     "gpt-5.6-terra": TokenPrice(2.50, 0.25, 15.00),

@@ -134,3 +134,13 @@ def test_gpt61_sol_is_priced_with_its_own_halved_cache_rate():
         output_tokens=10_000)
     # 100K uncached @ $2 + 900K cached @ $0.10 + 10K out @ $10
     assert cost == pytest.approx(0.20 + 0.09 + 0.10)
+
+
+def test_gpt61_terra_is_priced_and_charges_cache_writes():
+    from retort.pricing import charges_for_cache_writes, estimate_openai_cost_usd
+    assert charges_for_cache_writes("gpt-6.1-terra")
+    cost = estimate_openai_cost_usd(
+        "gpt-6.1-terra", input_tokens=1_000_000, cached_input_tokens=900_000,
+        output_tokens=10_000)
+    # 100K uncached @ $1 + 900K cached @ $0.05 + 10K out @ $5
+    assert cost == pytest.approx(0.10 + 0.045 + 0.05)
