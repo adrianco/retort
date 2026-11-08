@@ -269,7 +269,13 @@ def ensure_python_env(output_dir: Path) -> tuple[dict[str, str] | None, Path | N
     """
     venv = find_venv(output_dir)
     if venv is not None:
+        # An agent-left venv is not proof the project's deps are in it (#64: exp-92's
+        # python agent saw a venv "lacking Flask", and the live gate scored a passing
+        # suite 0). Populate it the same way as a throwaway one; pip no-ops on deps
+        # already installed.
+        install_project_deps(venv, output_dir)
         ensure_test_deps(venv)
+        resolve_missing_imports(venv, output_dir)
         return make_venv_env(venv), None
     tmp = Path(tempfile.mkdtemp(prefix="retort-venv-"))
     venv = tmp / "venv"

@@ -29,6 +29,9 @@ import click
 
 _REP_DIR_RE = re.compile(r"rep\d+$")
 
+#: cost_basis values that mean "priced at list" (#57).
+VERIFIED_COST_BASES = frozenset({"list", "list-price-per-token"})
+
 
 def _factor_match_sql(run_config: dict, col: str = "run_config_json") -> tuple[str, list]:
     """Build a WHERE fragment matching EVERY factor in a run_config.
@@ -643,8 +646,11 @@ def _store_run_result(
     if model_id.startswith("openrouter/") and not md.get("upstream_provider"):
         session.add(RunResult(run_id=run.id, metric_name="_upstream_unrecorded", value=1.0))
     # #57: a cost the CLI did not price at list is flagged, not silently pooled.
+    # "list" is the Claude CLI's own basis; "list-price-per-token" is retort pricing a
+    # codex run from pricing.py's list table. Both are list price. (exp-92 flagged
+    # every codex row before this was spelled out.)
     basis = (artifacts.metadata or {}).get("cost_basis")
-    if basis and basis != "list":
+    if basis and basis not in VERIFIED_COST_BASES:
         session.add(RunResult(run_id=run.id, metric_name="_cost_unverified", value=1.0))
     turns_str = artifacts.metadata.get("num_turns") if artifacts.metadata else None
     if turns_str:

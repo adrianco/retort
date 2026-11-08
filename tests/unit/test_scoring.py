@@ -1388,3 +1388,18 @@ class TestPipInstallRetry:
         ok = _venv._pip_install(tmp_path / "pip", ["-r", "requirements.txt"],
                                 tmp_path, what="requirements.txt")
         assert ok is False and calls["n"] == 2     # stopped at two, did not loop forever
+
+
+def test_reused_agent_venv_gets_project_deps(tmp_path, monkeypatch):
+    """#64: a venv the agent left behind was given pytest only, never the project's
+    requirements, so a passing Flask suite scored test_coverage=0 live."""
+    from retort.scoring.scorers import _venv
+    (tmp_path / ".venv" / "bin").mkdir(parents=True)
+    (tmp_path / ".venv" / "bin" / "python").write_text("")
+    calls = []
+    monkeypatch.setattr(_venv, "install_project_deps", lambda v, o: calls.append("deps"))
+    monkeypatch.setattr(_venv, "ensure_test_deps", lambda v: calls.append("test"))
+    monkeypatch.setattr(_venv, "resolve_missing_imports", lambda v, o: calls.append("resolve"))
+    env, cleanup = _venv.ensure_python_env(tmp_path)
+    assert cleanup is None
+    assert calls == ["deps", "test", "resolve"]

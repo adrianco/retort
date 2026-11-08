@@ -1,0 +1,1 @@
+{"id": "info-concurrency", "kind": "enhancement", "severity": "info", "title": "Server handles one connection at a time (synchronous accept loop)", "evidence": "server.c:87 accept/handle/close loop with no threading or fork; not required by TASK.md", "suggestion": "Acceptable for the spec; note only — a thread/poll loop would be needed for concurrency."}

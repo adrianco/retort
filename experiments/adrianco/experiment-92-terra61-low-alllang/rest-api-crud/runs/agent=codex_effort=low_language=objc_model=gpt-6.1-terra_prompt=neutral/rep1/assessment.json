@@ -1,0 +1,10 @@
+{
+  "severity_counts": {"critical": 0, "high": 0, "medium": 0, "low": 0, "info": 0},
+  "penalty_score": 1.0,
+  "top_findings": [],
+  "requirement_coverage": 1.0,
+  "model": "gpt-6.1-terra",
+  "evaluated_at": "2026-11-08T00:00:00Z",
+  "min_severity": "high",
+  "note": "2 info findings in findings.jsonl are below min_severity=high and excluded from counts; 12/12 requirements implemented, 4/4 tests pass"
+}

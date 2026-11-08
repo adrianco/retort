@@ -1891,3 +1891,11 @@ def test_claude_cost_basis_is_recorded_and_flagged():
     assert _parse_claude_usage(result("list"))[1]["cost_basis"] == "list"
     assert _parse_claude_usage(result("unknown"))[1]["cost_basis"] == "unknown"
     assert "cost_basis" not in _parse_claude_usage(_json.dumps({"type": "result", "usage": {}}))[1]
+
+
+def test_every_cost_basis_a_runner_writes_for_list_pricing_counts_as_verified():
+    # exp-92: the codex path writes "list-price-per-token", and #57's check accepted only
+    # "list", so every codex row was flagged cost_unverified and dropped from the board.
+    from retort.run.persist import VERIFIED_COST_BASES
+    assert {"list", "list-price-per-token"} <= VERIFIED_COST_BASES
+    assert "unknown" not in VERIFIED_COST_BASES
