@@ -21,6 +21,27 @@ DWQ in 0%, at the same 16 GB. See [optimal-blog.md](../optimal-blog.md).
 
 ---
 
+## Toolchain update 2026-11-06 (macOS 27.2) — what every later run is on
+
+**macOS 27.2 broke git silently.** After the OS upgrade, every `git` call failed with "You have not
+agreed to the Xcode license agreements" until `sudo xcodebuild -license accept` was run (done 2026-11-06).
+The daily scan commits its candidates with git, so it **stopped from 2026-10-21 to 2026-11-06 with no
+alert**. A failed commit looked like a quiet day. **After any macOS or Xcode update, run `git status` in
+this repo before trusting the scan or launching a run.** The Claude CLI login also expired in this window.
+It now comes from `CLAUDE_CODE_OAUTH_TOKEN` (a `claude setup-token` token in `~/.zshrc`), so unattended
+judge calls do not time out. Launch runs from a shell that has read `~/.zshrc`.
+
+Upgraded the same day (user rule: run the latest versions and record them):
+
+| tool | was | now | verified by |
+|---|---|---|---|
+| Claude Code CLI | 2.1.302 | **2.1.319** | `claude -p` judge preflight (exp-92/93) |
+| codex-cli | 0.163.0 | **0.167.0** | `gpt-6.1-terra` smoke, then exp-92 (13 runs) |
+| llama.cpp (brew) | 0.7.0 (b11669) | **0.9.0 (b12110)** | Nemotron Bolt probe: no longer crashes (see exp-90) |
+| Hermes agent | v0.22.2 | **v0.23.0** | imports and tool registry load. **Not yet smoke-run on a model:** do one cell before the Holo4 re-measure |
+
+---
+
 ## exp-93 — GPT-6.1 Terra deepen: csharp + the four niche languages to n=3  — RUNNING 2026-11-08
 
 **Intent.** exp-92 screened 6.1 Terra at n=1 and it passed all 13 languages. Before it moves the board,
@@ -39,7 +60,7 @@ for slow or new runs and is already satisfied).
 ## PLAN 2026-10-17 — run order for the next batch (autonomous; one experiment at a time)
 
 Chosen for **information per dollar**. Every claude/codex run is isolated (`agent_context=mcp-cleared`);
-CLI **2.1.302** (2.1.287 priced `claude-haiku-5-5` at `costBasis: unknown`, ~40× list — the Sonnet 5.5
+CLI **2.1.302** at the time; 2.1.319 since 2026-11-06 (2.1.287 priced `claude-haiku-5-5` at `costBasis: unknown`, ~40× list — the Sonnet 5.5
 trap again; 2.1.302 matches list to 5 decimals). Soft budget for the batch: **~$200**; anything
 bigger goes back to the user first.
 
@@ -88,6 +109,11 @@ is picked after #4 frees the machine.
 
 
 ## 0. exp-90 — Nemotron 3.5 Bolt 74B-A9B on llama.cpp  — BLOCKED 2026-10-19 (llama.cpp Metal kernel gap)
+
+**Update 2026-11-06, llama.cpp 0.9.0 (b12110):** the ne20=9 kernel crash is **gone**. The full prompt runs
+and returns structured `tool_calls`. It is still too slow: **164 tok/s prefill and 9.2 tok/s generation**,
+roughly a 90 s prefill for a 15K-token agent prompt plus minutes per reply. Unblocked but low priority;
+the text below is the 0.7.0 state.
 
 **Not runnable at a useful speed on this Mac yet.** llama.cpp 0.7.0 (build 11669) loads the 22 GB GGUF and
 answers an 18-token warm-up, then **crashes on the first real prompt**: `ggml_metal_library_compile_pipeline:
