@@ -2532,3 +2532,22 @@ csharp and the four Luna-failure languages to n=3.
    venv that got pytest but not `requirements.txt`. That path now gets the project deps; the root cause is
    unconfirmed.
 
+
+## exp-93 — GPT-6.1 Terra deepen: csharp + four niche languages to n=3  — COMPLETE, 2026-11-08
+
+Same stack as exp-92, 2 more runs each in csharp, erlang, elixir, objc and swift. **Erlang, elixir, objc and
+swift: 3/3 each** at \$0.04–0.06 and ~2 min, where Luna 6 at low scores 0.00–0.33. **csharp: 3/3 pass, credit
+2.0/3.** Both exp-93 csharp first attempts were zeroed live as "tests did not run" and passed on the second
+chance. The cause was a scorer bug, not the model: with the app's `Books.csproj` at the root and the suite in
+`tests/Books.Tests.csproj`, the C# scorer ran `dotnet test` on the app project, which has no tests (#65,
+fixed). An archive scan found the same layout in **exp-86 Haiku 5.5 csharp rep1**, which was rescored and
+judged a pass (Haiku routine csharp 0.67 → 0.83), and in exp-60 brazil csharp rep1, which still fails on
+rescore (genuine).
+
+**Hypothesis:** held on all five (3/3). The csharp token spike did not repeat cleanly: 1.84M, 1.43M and
+0.79M tokens.
+
+**Board change (featured 2026-11-08):** GPT-6.1 Terra (codex, low) is the cheapest qualifying stack for routine
+**c** (n=1, \$0.04 vs Haiku's \$0.09) and **objc** (n=3, ties Haiku at \$0.04). GPT-5.6 Terra keeps routine
+csharp (1.00 at n=1, \$0.26). 6.1 Terra's csharp (0.67) and python (0.50) credit is understated by the
+half-credit rule applied to scorer-caused retries.

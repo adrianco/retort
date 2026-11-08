@@ -42,21 +42,6 @@ Upgraded the same day (user rule: run the latest versions and record them):
 
 ---
 
-## exp-93 — GPT-6.1 Terra deepen: csharp + the four niche languages to n=3  — RUNNING 2026-11-08
-
-**Intent.** exp-92 screened 6.1 Terra at n=1 and it passed all 13 languages. Before it moves the board,
-deepen the cells that matter. **csharp** is the one language the featured list still routes to Terra
-(5.6), and 6.1's csharp run was the outlier at 1.84M tokens and $0.16. **erlang, elixir, objc and swift**
-are where Luna 6 at low misses (0.00–0.33), so they separate a cheap model from a capable one.
-**Design.** Same stack as exp-92 (codex-cli 0.167.0, low, isolated). 5 languages × **2 more runs**, so each
-cell pools to n=3 with exp-92. Codex runs take about 2 min each, so this is not a slow run (the n=1 rule is
-for slow or new runs and is already satisfied).
-**Hypothesis.** 3/3 on all five. csharp's token spike repeats, because it's a .NET build loop and not chance.
-**Then.** If it holds, 6.1 Terra replaces 5.6 Terra as the featured csharp pick (same pass rate at about
-⅕ of the cost). Then the Holo4 re-measure on llama.cpp 0.9.0.
-
----
-
 ## PLAN 2026-10-17 — run order for the next batch (autonomous; one experiment at a time)
 
 Chosen for **information per dollar**. Every claude/codex run is isolated (`agent_context=mcp-cleared`);

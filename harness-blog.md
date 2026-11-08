@@ -1,6 +1,6 @@
 # The Stack Under the Model: oMLX, llama.cpp, Hermes, and Why There Are So Many
 
-*Published 2026-07-22 · updated 2026-10-19 — Adrian Cockcroft*
+*Published 2026-07-22 · updated 2026-11-08 — Adrian Cockcroft*
 
 Most benchmarks answer "which *model* is best?" Retort insists that's the wrong unit. A coding result is produced by a whole **stack** — and the model is only one layer of it:
 
@@ -89,6 +89,8 @@ The harnesses Retort supports:
 **Two more ways the harness, not the model, can decide a result — both caught on 2026-09-29 to 2026-10-18.** First, **processes the agent leaves behind**: an agent that starts a server in the background leaves it running when it exits, and ten such orphans were found, the oldest 68 days old, one burning CPU through every timing measurement in between. Retort now kills anything still running inside a finished playpen. Second, **tool releases that break before models do**: a new CLI that does not know a new model id may bill it at many times list price (Claude Code 2.1.287 billed Haiku 5.5 at ~40×), and a new agent release can ship broken (Hermes v0.22.2 imports a package it only installs on Python ≥ 3.14, so every tool call failed). Both look exactly like model results. A one-run smoke test before every grid is what catches them.
 
 The same experiment turned up a scoring blind spot. Its acceptance tests build the real server and drive it as a separate process, which is the method's protocol-driver layer, and both Go's and Python's normal coverage only count code inside the test process. A passing Go suite therefore scored 0% and was failed as "tests did not run", and the Python suites read about a third low: the harness was biased against the very method under test. Go and Python coverage now also count the server process the tests start, and the method's conformance is graded by the course's own review skill rather than by a rubric of ours.
+
+**And the scorer can misread where the tests live (2026-11-08).** GPT-6.1 Terra wrote C# with the app's `Books.csproj` at the root and the tests in `tests/Books.Tests.csproj`. The scorer treated one root project as the obvious entry point and ran `dotnet test` on the app, which has no tests, so a fully passing suite scored "tests did not run". `retort diagnose` named it at once ("tests pass (100%) but the coverage tool measured 0"). The fix runs the nested test project whenever the root project is not itself a test project. Scanning the archive for the same layout recovered one of Haiku 5.5's C# runs as well (#65). A Python run failed the same way live and recovered on rescore. The likely cause, an agent-left venv given pytest but not the project's requirements, is fixed but not confirmed (#64). Every one of these failures is a passing suite that scores as a model failure, which is why a surprising zero gets diagnosed before it is believed.
 
 ---
 

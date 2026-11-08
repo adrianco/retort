@@ -1,6 +1,6 @@
 # The Unit of Choice Is Model × Thinking Level, Not Model
 
-*Published 2026-07-25 · updated 2026-10-18 — Adrian Cockcroft*
+*Published 2026-07-25 · updated 2026-11-08 — Adrian Cockcroft*
 
 For a year the question has been "which model should I use?" That question is underspecified. Every frontier model now has a **thinking-level** dial, and on the evidence below the dial moves cost more than the model choice does — while moving the result not at all.
 
@@ -28,6 +28,8 @@ This page's original sweep spanned **16×** across four Claude versions. Five la
 **`default` moved between releases.** On Opus 5 it behaved like `high` (270 s); on 5.5 it lands on `medium` (83 s). Anyone who never passes `--effort` is on a different rung than they were, without having changed anything — which is the sharpest possible statement of this page's thesis: **the dial is part of the stack, and a version bump can move it under you.**
 
 **The caveat, stated rather than buried:** the Claude Code CLI moved 2.1.197 → 2.1.280 between the Opus 5 baseline and the 5.5 run, and the CLI *is* the agent here — so cross-model comparisons on this page are *stack* results, not pure model results. Evidence against a plain harness explanation: the per-level saving runs −82 s, −75 s, −248 s, −41 s, **+509 s**. It changes sign, which a constant overhead cannot.
+
+**A point release can be the cheaper one (2026-11-08).** GPT-6.1 Terra at `low` passed all thirteen routine languages at a median \$0.045 a run (exp-92/93), about a fifth of GPT-5.6 Terra on the same task. It costs \$1/\$5 per million tokens against 5.6 Terra's \$2.50/\$15, so newer does not always mean dearer. The operating-system layer broke instead: after macOS 27.2, `git` refused to run until the Xcode license was re-accepted, and the daily model scan, which commits with git, stopped silently for 16 days. After any OS or Xcode update, check that git works before trusting a scheduled job.
 
 **Version changes now arrive faster than models, and they break pricing before they break code (2026-10-18).** Three tool releases in three weeks would have corrupted a result if a one-run smoke test had not caught them first: Claude Code 2.1.282 billed Sonnet 5.5 at ~1.9× its list price and 2.1.287 billed Haiku 5.5 at ~40× (both reported `costBasis: unknown`); codex-cli 0.156.1 refused GPT-6.1 Sol on a ChatGPT account; and Hermes v0.22.2 shipped without a dependency on Python 3.11, so every tool call failed. The policy here is now to run the latest version of everything and record it, and to treat a new release as unverified until a smoke run prices at list and completes.
 

@@ -1,6 +1,6 @@
 # How Reliable Is Your AI Coding Stack? I Measured It
 
-*Published 2026-06-11 · updated 2026-10-19 — Adrian Cockcroft*
+*Published 2026-06-11 · updated 2026-11-08 — Adrian Cockcroft*
 
 ---
 
@@ -10,6 +10,7 @@ Those are the variables that decide a real project. So I built **[retort](https:
 
 ## What's new (2026-10-19)
 
+- **GPT-6.1 Terra at low effort passed all thirteen languages, at about four cents a run (2026-11-08).** Run through Codex, it cleared every routine language (exp-92 screened each once; exp-93 took C#, Erlang, Elixir, Objective-C and Swift to three runs). That is about a fifth of GPT-5.6 Terra's price, and it passed Swift, where 5.6 Terra did not. It is now the cheapest stack for C and Objective-C. Its C# and Python cells show below 1.00 only because three passes came on a second attempt after scorer bugs zeroed the first (#64, #65, both fixed). The C# fix also recovered one of Haiku 5.5's runs: its routine C# cell is 0.83, not 0.67. Not yet run on the hard task.
 - **Restated: a pass that needed a second attempt now counts half.** That has always been the documented rule; the generator behind these tables counted it as a full pass. Regenerated under the right rule, **the free 80B's TypeScript falls from 1.00 to 0.83**, so no local stack clears TypeScript unattended. Older Opus, Terra and Luna figures dip slightly too.
 - **Holo4-35B-A3B is the fastest local stack yet** — Python in under two and a half minutes, a third of the 80B's time — but a server that exited mid-session and a re-judgement that flipped a pass leave its Go and TypeScript cells unsettled, so it is not on the board yet.
 
@@ -85,6 +86,7 @@ Here is the full board, every model measured on the two tasks — **pass-proport
 | Claude Opus 5 | cloud | 0.99 (47) | $3.23 | 0.96 (23) | $26.48 |
 | Claude Fable 5 | cloud | **1.00 (36)** | $1.58 | **1.00 (21)** | $10.47 |
 | GPT-5.6 Terra (codex) | cloud | 0.98 (31) | $0.24 | 0.55 (49) | $1.00 |
+| GPT-6.1 Terra (codex, low) | cloud | 0.93 (23) | $0.06 | *not run* | — |
 | GPT-5.6 Luna (codex) | cloud | 0.67 (9) | $0.09 | 0.17 (6) | $0.17 |
 | Claude Sonnet 5 | cloud | **1.00 (15)** | $1.10 | 0.93 (15) | $7.64 |
 | Claude Opus 4.8 | cloud | 0.98 (65) | $0.93 | 0.59 (44) | $3.27 |

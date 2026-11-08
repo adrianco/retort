@@ -1,7 +1,7 @@
 {
   "source": "retort report optimal (master.db)",
-  "generated_at": "2026-10-19T09:02:03Z",
-  "master_db_runs": 1700,
+  "generated_at": "2026-11-08T21:27:26Z",
+  "master_db_runs": 1723,
   "objective": "cheapest featured stack per language/task that clears its pass-bar",
   "notes": {
     "generated_at": "UTC timestamp of this file's last regeneration, and the master.db run count behind it. Regenerate with `retort report optimal --routing-json optimal.json`. If this is old, the routes are too: nothing recomputes them automatically.",
@@ -86,6 +86,17 @@
         "n": 49,
         "cost": 1.0
       }
+    },
+    {
+      "stack": "GPT-6.1 Terra (codex, low)",
+      "short": "Terra 6.1",
+      "kind": "cloud",
+      "routine": {
+        "pass": 0.93,
+        "n": 23,
+        "cost": 0.06
+      },
+      "hard": null
     },
     {
       "stack": "GPT-5.6 Luna (codex)",
@@ -197,14 +208,14 @@
     "rest-api-crud": {
       "c": {
         "cloud": {
-          "stack": "Claude Haiku 5.5",
+          "stack": "GPT-6.1 Terra (codex, low)",
           "models": [
-            "claude-haiku-5-5"
+            "gpt-6.1-terra"
           ],
           "effort": "low",
-          "cost": 0.08514988666666666,
+          "cost": 0.0439278,
           "pass": 1.0,
-          "n": 3
+          "n": 1
         },
         "local": null
       },
@@ -317,12 +328,12 @@
       },
       "objc": {
         "cloud": {
-          "stack": "Claude Haiku 5.5",
+          "stack": "GPT-6.1 Terra (codex, low)",
           "models": [
-            "claude-haiku-5-5"
+            "gpt-6.1-terra"
           ],
           "effort": "low",
-          "cost": 0.04130518333333333,
+          "cost": 0.0404612,
           "pass": 1.0,
           "n": 3
         },

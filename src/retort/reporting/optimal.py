@@ -124,6 +124,18 @@ FEATURED_STACKS = [
         "pass_bar": 1.00,
     },
     {
+        # exp-92/93 (2026-11-08): at LOW effort it passed all 13 routine languages
+        # (n=1, deepened to n=3 on csharp/erlang/elixir/objc/swift) at ~$0.04-0.06 a
+        # run, about 1/5 of 5.6 Terra. Two of its csharp passes and its python pass
+        # came on the 2nd attempt because the first was zeroed by scorer bugs (#64,
+        # #65), so they carry half credit under #53.
+        "name": "GPT-6.1 Terra (codex, low)",
+        "short": "Terra 6.1",
+        "models": ["gpt-6.1-terra"],
+        "kind": "cloud",
+        "pass_bar": 1.00,
+    },
+    {
         "name": "GPT-5.6 Luna (codex)",
         "short": "Luna",
         "models": ["gpt-5.6-luna"],
