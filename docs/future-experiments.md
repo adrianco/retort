@@ -557,7 +557,7 @@ invest in the solver dependency, master.db merge, and first-class docs.
 <!-- SCAN-HEARTBEAT: the daily scan rewrites the next line on EVERY run, including
      days it finds nothing. Do not hand-edit it. If the date is more than ~2 days
      stale, the scan is not running — see "when the heartbeat goes stale" below. -->
-**Daily scan last completed: 2026-11-07** (scanning for new coding models: 64GB-fittable open weights, and frontier cloud models/versions)
+**Daily scan last completed: 2026-11-08** (scanning for new coding models: 64GB-fittable open weights, and frontier cloud models/versions)
 
 - 2026-09-08 — **GPT-6 Astra (OpenAI) — `gpt-6-astra`** — *the "new codex model"; added by hand
   because the daily scan's scope was open-weights-only until today (widened the same day, see the
@@ -1874,6 +1874,16 @@ survives the toggle, restart the Claude desktop app, which clears the in-memory 
   Sources: https://huggingface.co/Diffuspace/Clover-35B-A3B-Preview
   — https://af.net/realtime/diffuspace-releases-clover-35b-a3b-open-source-diffusion-language-model-built-on-qwen-backbone/
   — https://www.mindstudio.ai/blog/tag/diffusion-language-model
+
+*Excluded 2026-11-08, recorded so they are not re-investigated:* **Arete-27B** (Nous Research, ~2026-11-06,
+Apache 2.0) — an SFT of the already-listed Qwen3.8-27B aimed at removing state-propaganda framing, not at coding
+(Hermes Bench unchanged vs base); nothing a Qwen3.8-27B cell would not already measure. **TwIL-8B** (webAI,
+2026-11-04, Granite 4.2 8B base, ~5 GB Q4) — a contest math/code *reasoning* model, no agentic tool-calling
+claims, and a **non-commercial** licence. **SWE-2 Flash** (Cognition, 2026-11-04) — coding-targeted but closed
+weights and not reachable via `claude` or `codex`. No new Track B model or version (The New Stack AI category
+still returns HTTP 403; covered via trackers). Sources: https://www.marktechpost.com/2026/11/07/nous-research-arete-27b-qwen3-8-27b-propaganda-fine-tune/ ·
+https://www.marktechpost.com/2026/11/04/webai-twil-8b-reasoning-model/ · https://www.nocode.mba/ai-release-tracker/2026/11 ·
+https://www.llm-releases.com/
 
 *Excluded 2026-11-07, recorded so they are not re-investigated:* **Ling-3.2-flash** (Ant Group, 2026-11-05)
 — no card or size published yet; its 3.1 predecessor is 560B-A25B (~280 GB at 4-bit), so expect the same
