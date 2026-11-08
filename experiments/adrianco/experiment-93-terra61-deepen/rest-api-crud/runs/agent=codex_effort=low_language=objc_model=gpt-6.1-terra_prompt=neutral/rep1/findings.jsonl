@@ -1,0 +1,2 @@
+{"id": "enh-1", "kind": "enhancement", "severity": "info", "title": "Robust HTTP framing beyond spec", "evidence": "main.m:62-65 enforces Content-Length bounds, rejects Transfer-Encoding, and caps request size (413)", "suggestion": "None — exceeds the task's requirements"}
+{"id": "enh-2", "kind": "enhancement", "severity": "info", "title": "405 handling and strict id parsing beyond spec", "evidence": "main.m:38,58 reject non-numeric ids (404) and unsupported methods (405)", "suggestion": "None — exceeds the task's requirements"}

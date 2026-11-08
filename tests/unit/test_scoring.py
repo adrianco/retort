@@ -1403,3 +1403,30 @@ def test_reused_agent_venv_gets_project_deps(tmp_path, monkeypatch):
     env, cleanup = _venv.ensure_python_env(tmp_path)
     assert cleanup is None
     assert calls == ["deps", "test", "resolve"]
+
+
+def test_csharp_single_root_APP_project_with_nested_tests_targets_the_tests(tmp_path, monkeypatch):
+    """exp-93: Books.csproj (the app) at the root, the suite in tests/Books.Tests.csproj.
+    A bare `dotnet test` ran the app project, found no tests, and scored a fully
+    passing suite 0. One root project is only a safe entry point when it IS the tests."""
+    from retort.scoring.scorers import test_coverage as tc
+
+    (tmp_path / "Books.csproj").write_text('<Project Sdk="Microsoft.NET.Sdk.Web"/>')
+    (tmp_path / "tests").mkdir()
+    (tmp_path / "tests" / "Books.Tests.csproj").write_text(
+        '<Project><PackageReference Include="Microsoft.NET.Test.Sdk"/></Project>')
+    (tmp_path / "obj").mkdir()
+    (tmp_path / "obj" / "Stale.Tests.csproj").write_text("<Project/>")
+    seen: list[list[str]] = []
+
+    def fake_run(cmd, **kw):
+        seen.append(cmd)
+        class R:
+            stdout, stderr, returncode = "Passed!  - Failed: 0, Passed: 5, Skipped: 0, Total: 5", "", 0
+        return R()
+
+    monkeypatch.setattr(tc, "_run_reaped", fake_run)
+    pct = tc.TestCoverageScorer()._csharp_coverage(tmp_path)
+    assert [next(a for a in c if a.endswith(".csproj")) for c in seen] == [
+        str(tmp_path.resolve() / "tests" / "Books.Tests.csproj")]
+    assert pct == 100.0

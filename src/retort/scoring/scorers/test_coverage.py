@@ -774,25 +774,36 @@ class TestCoverageScorer:
             next(out.glob(pat), None) is not None for pat in ("*.sln", "*.slnx")
         )
         root_projects = list(out.glob("*.csproj"))
-        unambiguous_root = has_solution or len(root_projects) == 1
+
+        def _is_test_project(p: Path) -> bool:
+            return ("test" in p.stem.lower()
+                    or "Microsoft.NET.Test.Sdk" in p.read_text(errors="replace"))
+
+        # A single root project is only a safe entry point when it IS the test
+        # project. exp-93: the app's Books.csproj at the root and the suite in
+        # tests/Books.Tests.csproj -> `dotnet test` ran the app project, found no
+        # tests, and a fully passing suite scored 0 (#64's csharp face).
+        unambiguous_root = has_solution or (
+            len(root_projects) == 1 and _is_test_project(root_projects[0]))
         if not unambiguous_root:
             test_projects = sorted(
                 p for p in out.rglob("*.csproj")
                 if ".retort-coverage" not in p.parts
-                and ("test" in p.stem.lower()
-                     or "Microsoft.NET.Test.Sdk" in p.read_text(errors="replace"))
+                and not {"bin", "obj"} & set(p.relative_to(out).parts)
+                and _is_test_project(p)
             )
             if test_projects:
                 cmds = [base[:2] + [str(p)] + base[2:] for p in test_projects]
-        res = None
+        outputs: list[str] = []
         for cmd in cmds:
             try:
-                res = _run_reaped(
+                r = _run_reaped(
                     cmd, cwd=out, timeout=300,
                 )
             except (subprocess.TimeoutExpired, FileNotFoundError):
                 return None
-        if res is None:
+            outputs.append((r.stdout or "") + "\n" + (r.stderr or ""))
+        if not outputs:
             return None
         try:
             xmls = sorted(
@@ -806,7 +817,7 @@ class TestCoverageScorer:
         finally:
             shutil.rmtree(results, ignore_errors=True)
         # Fallback: pass rate from the dotnet test summary.
-        combined = _strip_ansi((res.stdout or "") + "\n" + (res.stderr or ""))
+        combined = _strip_ansi("\n".join(outputs))
         rate = _parse_test_pass_rate(combined, "csharp")
         return rate * 100.0 if rate is not None else None
 
