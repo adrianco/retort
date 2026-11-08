@@ -2504,3 +2504,31 @@ so they need re-measuring on a stable server before Holo4 can be compared fairly
 or the 80B. Its speed alone makes that worth doing. A session restart also killed the server once (go rep1's
 first attempt), which `--resume` re-ran.
 
+## exp-92 — GPT-6.1 Terra at low effort: 13/13 languages at n=1  — SCREEN COMPLETE, 2026-11-08
+
+The scan found this model on 2026-11-06. Run via Codex (codex-cli 0.167.0) at **low** effort, isolated
+(fresh CODEX_HOME), on the routine task across all 13 languages at n=1. It is priced in `pricing.py` at
+$1 / $0.05 cached / $5 out, from OpenAI's model page, before any cell ran.
+
+**Result: 13/13 pass.** Median **$0.045** and about **2 min** a run. The range is $0.034 (python) to
+**$0.161 (csharp, 1.84M tokens, 7 min)**, the one outlier. Against the same task:
+
+| | pass (cells at 1.0 of 13) | typical cost/run |
+|---|---|---|
+| **GPT-6.1 Terra, low** (exp-92, n=1) | **13/13** | $0.04–0.06 |
+| GPT-5.6 Terra, default | 12/13 (swift 0) | $0.14–0.42 |
+| GPT-6 Luna, low (exp-85, n=3) | 8/13 (erlang 0.00; elixir, objc, swift 0.33; csharp 0.67) | ~$0.01 |
+| Haiku 5.5, low (exp-86, n=3) | 12/13 (csharp 0.67) | $0.01–0.09 |
+
+That is about 5× cheaper than 5.6 Terra for at least the same reliability. The hypothesis held, except
+that the predicted niche-language misses did not happen. **Not yet on the board** at n=1: exp-93 deepens
+csharp and the four Luna-failure languages to n=3.
+
+**Two harness bugs found and fixed.**
+1. **#63:** #57's cost check flagged every Codex run `cost_unverified`. It accepted only the Claude CLI's
+   `list` basis, and Codex records `list-price-per-token`. The 13 wrong flags were removed.
+2. **#64:** the python cell scored test_coverage 0 live on both attempts. The archive rescored at 0.98 and
+   was recovered by `retort recover`, which makes it a TOOLING failure. The likely cause is a reused agent
+   venv that got pytest but not `requirements.txt`. That path now gets the project deps; the root cause is
+   unconfirmed.
+

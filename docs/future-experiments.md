@@ -21,19 +21,18 @@ DWQ in 0%, at the same 16 GB. See [optimal-blog.md](../optimal-blog.md).
 
 ---
 
-## exp-92 — GPT-6.1 Terra at LOW, 13 languages, routine task, n=1  — RUNNING 2026-11-06
+## exp-93 — GPT-6.1 Terra deepen: csharp + the four niche languages to n=3  — RUNNING 2026-11-08
 
-**Intent.** Measure the newly released `gpt-6.1-terra` (daily scan, 2026-11-06) under the user's Codex
-rule (low effort, Luna/Terra only). Does it keep 5.6 Terra's routine reliability (5.6 Terra is still the
-featured csharp pick) at a lower cost, and where does it sit against Luna 6 (exp-85) and Haiku 5.5 (exp-86)?
-**Design.** The exp-85 grid with the model swapped: 13 languages × codex × neutral × low, **n=1** (new
-model, so a screen first; deepen only interesting cells). Isolated (fresh CODEX_HOME). codex-cli 0.167.0.
-**Verified before launch:** the model id resolves on 0.167 (smoke `codex exec -m gpt-6.1-terra`
-returned OK with usage reported). `pricing.py` now carries `TokenPrice(1.00, 0.05, 5.00)`, so cost is
-not $0.
-**Hypothesis.** Passes python/go/typescript/rust/java/csharp. Any misses fall in clojure, erlang,
-elixir, objc or swift. Beats Luna 6 on the niche languages.
-**Then.** Queue a Holo4 re-measure on llama.cpp 0.9.0 (go/ts, new folder).
+**Intent.** exp-92 screened 6.1 Terra at n=1 and it passed all 13 languages. Before it moves the board,
+deepen the cells that matter. **csharp** is the one language the featured list still routes to Terra
+(5.6), and 6.1's csharp run was the outlier at 1.84M tokens and $0.16. **erlang, elixir, objc and swift**
+are where Luna 6 at low misses (0.00–0.33), so they separate a cheap model from a capable one.
+**Design.** Same stack as exp-92 (codex-cli 0.167.0, low, isolated). 5 languages × **2 more runs**, so each
+cell pools to n=3 with exp-92. Codex runs take about 2 min each, so this is not a slow run (the n=1 rule is
+for slow or new runs and is already satisfied).
+**Hypothesis.** 3/3 on all five. csharp's token spike repeats, because it's a .NET build loop and not chance.
+**Then.** If it holds, 6.1 Terra replaces 5.6 Terra as the featured csharp pick (same pass rate at about
+⅕ of the cost). Then the Holo4 re-measure on llama.cpp 0.9.0.
 
 ---
 
