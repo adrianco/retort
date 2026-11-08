@@ -1,0 +1,27 @@
+# Experiment 93 — GPT-6.1 Terra deepen: csharp, erlang, elixir, objc, swift (+2 reps each, pooling to n=3 with exp-92).
+# csharp is the language the featured list routes to Terra 5.6; the other four are where Luna 6 at low misses.
+# Same stack as exp-92: codex-cli 0.167.0, low effort, isolated. Plan in docs/future-experiments.md.
+experiment:
+  name: experiment-93-terra61-deepen-rest-api-crud
+  visibility: public
+factors:
+  language: { levels: [python, go, typescript, rust, java, clojure, erlang, elixir, csharp, c, cpp, swift, objc] }
+  agent: { levels: [codex, claude-code] }
+  prompt: { levels: [neutral, none] }
+  model: { levels: [gpt-6.1-terra, gpt-5.6-terra] }
+  effort: { levels: [low, default] }
+responses: [code_quality, token_efficiency, test_coverage, defect_rate, maintainability, idiomatic]
+tasks:
+  - source: bundled://rest-api-crud
+playpen:
+  runner: local
+  replicates: 2
+  timeout_minutes: 60
+  stall_minutes: 25
+  max_turns: 200
+  prompts_dir: prompts
+  local_agents:
+    codex: { harness: codex, model: gpt-6.1-terra }
+design: { screening_resolution: 3, significance_threshold: 0.10 }
+promotion: { screening_to_trial: { p_value: 0.10 }, trial_to_production: { posterior_confidence: 0.80 } }
+evaluation: { enabled: true, model: opus-4.8 }

@@ -1,0 +1,6 @@
+run,language,agent,prompt,model,effort
+0,erlang,codex,neutral,gpt-6.1-terra,low
+1,elixir,codex,neutral,gpt-6.1-terra,low
+2,csharp,codex,neutral,gpt-6.1-terra,low
+3,swift,codex,neutral,gpt-6.1-terra,low
+4,objc,codex,neutral,gpt-6.1-terra,low
