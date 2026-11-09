@@ -567,7 +567,7 @@ invest in the solver dependency, master.db merge, and first-class docs.
 <!-- SCAN-HEARTBEAT: the daily scan rewrites the next line on EVERY run, including
      days it finds nothing. Do not hand-edit it. If the date is more than ~2 days
      stale, the scan is not running — see "when the heartbeat goes stale" below. -->
-**Daily scan last completed: 2026-11-08** (scanning for new coding models: 64GB-fittable open weights, and frontier cloud models/versions)
+**Daily scan last completed: 2026-11-09** (scanning for new coding models: 64GB-fittable open weights, and frontier cloud models/versions)
 
 - 2026-09-08 — **GPT-6 Astra (OpenAI) — `gpt-6-astra`** — *the "new codex model"; added by hand
   because the daily scan's scope was open-weights-only until today (widened the same day, see the
@@ -1884,6 +1884,33 @@ survives the toggle, restart the Claude desktop app, which clears the in-memory 
   Sources: https://huggingface.co/Diffuspace/Clover-35B-A3B-Preview
   — https://af.net/realtime/diffuspace-releases-clover-35b-a3b-open-source-diffusion-language-model-built-on-qwen-backbone/
   — https://www.mindstudio.ai/blog/tag/diffusion-language-model
+
+- 2026-11-09 — **Ripple-65B Preview (Ricursive Intelligence) — `ricursiveAI/Ripple-65B-Preview` — a
+  BORDERLINE admit on size** — *published **2026-11-04**; first Ricursive-lineage candidate and the
+  largest *dense* model this list has admitted.* **Apache 2.0**, **65B dense Transformer** (80 layers,
+  d_model 5120; Gemma-3N-like design with SWA + global NoPE layers and gated attention), pretrained from
+  scratch on 12T tokens, **up to 1M context** (SFT/RL at 128K). Vendor-reported **Terminal-Bench 2.1 80.5
+  (OpenCode harness; lower under Terminus 2), SWE-bench Verified 76.5, SWE-bench Pro v1.0 61.42, MCP
+  Atlas 71.67, DeepSWE 1.1 44.3** — the highest Terminal-Bench number on this list, though DeepSWE is far
+  below Opus 5.5's 74.2. **Size is the question:** BF16 is ~130 GB, so a 4-bit build is **~36–38 GB
+  resident** — under the ~48 GB bar, but it is *dense*, so every token reads all 65B weights: expect
+  single-digit tok/s generation on this M5 Pro (HN commenters say the same of unified-memory machines),
+  and exp-24 showed our runs are generation-bound — budget the timeout accordingly, and check KV headroom
+  against exp-62's 54 GB ceiling before raising context. **Serving is unverified:** upstream documents
+  NVIDIA only (BF16, an experimental **NVFP4** 57 GB checkpoint — CUDA format, not usable here); HF lists
+  43 community quants including a Q4 GGUF but no confirmed `mlx-community` build, and the novel arch must
+  be gate-probed on mainline llama.cpp / oMLX. **Tool-call format and parser are not documented** — smoke-test
+  a real `<tool_call>` through Hermes; sampling is undocumented, so set, verify and record it. A **DFlash2
+  speculative-decoding draft model** ships alongside — a matched draft for §3's speed lever, which is
+  exactly what a slow dense model needs. **Why list it:** a from-scratch, non-Qwen dense coder with
+  frontier-class Terminal-Bench claims, and the far dense end of the §3 MoE-vs-dense question. Judge
+  priority below the zero-friction MoEs (Ornith-1.5, Qwen3.8-27B) because of its speed and serving risk.
+  *(Also this cycle: no new Track B model or version — `gpt-6.2-astra` and Fable/Mythos 5.5 remain leaks/rumours
+  with no announcement, id or price; The New Stack AI category still returns HTTP 403.)*
+  Source: https://huggingface.co/ricursiveAI/Ripple-65B-Preview
+  — blog: https://www.ricursive.com/ripple
+  — via: https://thursdai.news/releases/2026-11 ·
+  https://www.developersdigest.tech/blog/ripple-65b-open-weight-agentic-coding-dense-local-2026
 
 *Excluded 2026-11-08, recorded so they are not re-investigated:* **Arete-27B** (Nous Research, ~2026-11-06,
 Apache 2.0) — an SFT of the already-listed Qwen3.8-27B aimed at removing state-propaganda framing, not at coding
