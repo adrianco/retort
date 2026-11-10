@@ -567,7 +567,7 @@ invest in the solver dependency, master.db merge, and first-class docs.
 <!-- SCAN-HEARTBEAT: the daily scan rewrites the next line on EVERY run, including
      days it finds nothing. Do not hand-edit it. If the date is more than ~2 days
      stale, the scan is not running — see "when the heartbeat goes stale" below. -->
-**Daily scan last completed: 2026-11-09** (scanning for new coding models: 64GB-fittable open weights, and frontier cloud models/versions)
+**Daily scan last completed: 2026-11-10** (scanning for new coding models: 64GB-fittable open weights, and frontier cloud models/versions)
 
 - 2026-09-08 — **GPT-6 Astra (OpenAI) — `gpt-6-astra`** — *the "new codex model"; added by hand
   because the daily scan's scope was open-weights-only until today (widened the same day, see the
@@ -1911,6 +1911,50 @@ survives the toggle, restart the Claude desktop app, which clears the in-memory 
   — blog: https://www.ricursive.com/ripple
   — via: https://thursdai.news/releases/2026-11 ·
   https://www.developersdigest.tech/blog/ripple-65b-open-weight-agentic-coding-dense-local-2026
+
+- 2026-11-10 — **Claude Fable 5.2 (Anthropic) — `claude-fable-5-2`** — *released **2026-11-09**; the point
+  release after the Fable 5.1 that exp-65/exp-70 measure, and CHEAPER than it.* Facts from Anthropic's own
+  model page, not a news story: **$8 in / $40 out per 1M** (down 20% from 5.1's $10/$50), **cache read $0.20**
+  (2.5% of input), cache writes $10 (5m) / $16 (1h); batch 50% off. **1M context**, 128K max output,
+  knowledge cutoff Jun 2026. **Adaptive thinking, always on; effort low / medium / high / xhigh / max —
+  API default `high`, but the announcement says Claude Code defaults to `medium`** — a default that
+  differs by surface, so set it explicitly and record it per CLAUDE.md (exp-65 settled `low` for 5.1).
+  Forced tool use returns 400; non-default `temperature`/`top_p`/`top_k` return 400. **Fast mode**
+  (up to 2.5× faster generation) at **$16 / $80** — a cloud §3 speed lever; available in Claude Code.
+  Reachable as `claude --model claude-fable-5-2` (Bedrock `anthropic.claude-fable-5-2`); check the
+  installed CLI (2.1.319) knows the id and prices it at list on a smoke cell — the CLI reports its own
+  `total_cost_usd`, so `src/retort/pricing.py` (OpenAI-only) needs no entry, but the Sonnet/Haiku 5.5
+  `costBasis: unknown` trap means verify the cost matches list. Vendor-reported: FrontierSWE v2 **69.9**
+  (5.1: 56.3, Opus 5.5: 62.3, Astra: 65.5), FrontierCode 2.0 49.1 at xhigh. **Framing:** exp-70 (Fable 5.1
+  13×2 grid, ~$65–110) is still unrun — **consider running it on 5.2 instead**, since 5.2 supersedes 5.1
+  at a lower price; routine and brazil are saturated for frontier models, so it measures cost and clock,
+  and 5.1 → 5.2 on matched cells answers the §2 "is the point release more expensive" question again.
+  Sources: [Anthropic model page](https://platform.claude.com/docs/en/models/fable-5-2/overview),
+  [Anthropic announcement](https://www.anthropic.com/claude-fable-and-mythos-5-2),
+  [CNBC](https://www.cnbc.com/2026/11/09/anthropic-claude-fable-5-2-mythos-5-2.html).
+  *(**Claude Mythos 5.2**, same day, same price/specs — restricted to Anthropic's verification programs; not a
+  candidate.)*
+- 2026-11-10 — **Muse Ember (Meta) — `muse-ember-1.0` — BLOCKED on reachability, same as Muse Wonder.**
+  *Released **2026-11-09**; Meta's smallest API model, pitched at high-volume agent work (tool calls, coding
+  subtasks, "run tests and make targeted code fixes") under a Muse Wonder planner.* From Meta's own docs:
+  **1,048,576 context, 524,288 max output**, reasoning effort **minimal … max, default `max`** (record it —
+  a max default is a cost trap), long-context rate above 200K input; API-hosted, **no open weights**.
+  Price per secondary coverage **$0.10 in / $0.50 out per 1M** — exactly Haiku 5.5 / GPT-6 Luna list price,
+  and Meta claims it ties Haiku 5.5 on the AA index (36) and ~3× it on AutomationBench (37.8 vs 13.9).
+  **Not runnable today:** only the Meta Model API and Meta's Muse Code CLI — not `claude` or `codex` — and
+  `src/retort/pricing.py` has no Meta entry. Would join the cheap-tier Haiku 5.5 vs Luna 6 comparison if a
+  Muse Code runner is ever built (the Muse Wonder entry needs the same runner).
+  Sources: [Meta docs](https://dev.meta.ai/docs/muse-ember),
+  [Meta blog](https://research.meta.ai/blog/muse-ember),
+  [MarkTechPost](https://www.marktechpost.com/2026/11/09/meta-muse-ember-small-agent-model/).
+
+*Excluded 2026-11-10, recorded so they are not re-investigated:* **Hy4 preview weights** (Tencent, now on
+Hugging Face as `tencent/Hy4-preview`, Apache 2.0) — 770B-A49B, ~1.4 TiB BF16, far oversized (the 2026-11-06
+re-check is closed). **ERNIE-5.5-Flash-Base** (Baidu, 2026-11-05, 280B-A14B pretraining checkpoint) — ~140 GB
+at 4-bit and a base model, not a coder. **DeepSeek V4.1 Flash uncensored** (2026-11-09) — a variant of the
+excluded 552B MoE. The New Stack AI category still returns HTTP 403; covered via trackers. Sources:
+https://www.nocode.mba/ai-release-tracker/2026/11 · https://llmgateway.io/timeline/2026 ·
+https://www.eesel.ai/blog/tencent-hy4
 
 *Excluded 2026-11-08, recorded so they are not re-investigated:* **Arete-27B** (Nous Research, ~2026-11-06,
 Apache 2.0) — an SFT of the already-listed Qwen3.8-27B aimed at removing state-propaganda framing, not at coding
