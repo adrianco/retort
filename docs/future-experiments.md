@@ -567,7 +567,7 @@ invest in the solver dependency, master.db merge, and first-class docs.
 <!-- SCAN-HEARTBEAT: the daily scan rewrites the next line on EVERY run, including
      days it finds nothing. Do not hand-edit it. If the date is more than ~2 days
      stale, the scan is not running — see "when the heartbeat goes stale" below. -->
-**Daily scan last completed: 2026-11-10** (scanning for new coding models: 64GB-fittable open weights, and frontier cloud models/versions)
+**Daily scan last completed: 2026-11-11** (scanning for new coding models: 64GB-fittable open weights, and frontier cloud models/versions)
 
 - 2026-09-08 — **GPT-6 Astra (OpenAI) — `gpt-6-astra`** — *the "new codex model"; added by hand
   because the daily scan's scope was open-weights-only until today (widened the same day, see the
@@ -1947,6 +1947,26 @@ survives the toggle, restart the Claude desktop app, which clears the in-memory 
   Sources: [Meta docs](https://dev.meta.ai/docs/muse-ember),
   [Meta blog](https://research.meta.ai/blog/muse-ember),
   [MarkTechPost](https://www.marktechpost.com/2026/11/09/meta-muse-ember-small-agent-model/).
+- 2026-11-11 — **Gemini 4 Carbon (Google DeepMind) — `gemini-4-carbon` — now on Google's public API pages;
+  REVERSES the 2026-11-06 exclusion ("Fairwind-only, no public API id").** Trackers date the API listing
+  **2026-11-10**. Facts from Google's own docs, not a news story: the models page lists **`gemini-4-carbon`**
+  beside `gemini-4-argon` as Google's "most capable reasoning model" (complex software engineering, knowledge
+  work, cyber defense), **1M context**, max output 65K / 1M (the page lists both), no Stable/Preview badge.
+  Pricing page, standard tier per 1M: **$2 in / $10 out (thinking billed as output), cached input $0.10 through
+  2026-11-30; $4 / $20 / $0.20 from 2026-12-01**, which is Argon's price. Implicit caching only; **not on the Free
+  tier**; Batch/Flex/Priority tiers listed. Effort/thinking levels are **not documented**: find and record them on
+  a smoke cell. **Same reachability gate as Argon:** retort drives `claude` and `codex`, no Gemini runner is
+  installed, and **`src/retort/pricing.py` has no Gemini entry** (a run would report $0). Any entry also needs the
+  intro/standard date split. **Framing:** the frontier tier above Argon at the same intro price, so it is the
+  Gemini cell to run if a Gemini runner is ever built. Routine and brazil are saturated for frontier models, so it
+  measures cost and clock and argues for the harder-than-brazil task (exp-73). Running before 11-30 gets the intro
+  rate. *(Also this cycle: `gpt-6.2-astra` is still unannounced, seen only in Codex usage screenshots and absent
+  from OpenAI's model catalog. No new 64GB-fittable open-weight coder. The New Stack AI category still returns
+  HTTP 403.)*
+  Sources: [Gemini models page](https://aistudio.google.com/docs/models),
+  [Gemini pricing](https://aistudio.google.com/docs/pricing),
+  [LLM Gateway timeline](https://llmgateway.io/timeline/2026),
+  [TestingCatalog (6.2 Astra sighting)](https://testingcatalog.com/gpt-6-2-astra-appears-codex-usage).
 
 *Excluded 2026-11-10, recorded so they are not re-investigated:* **Hy4 preview weights** (Tencent, now on
 Hugging Face as `tencent/Hy4-preview`, Apache 2.0) — 770B-A49B, ~1.4 TiB BF16, far oversized (the 2026-11-06
