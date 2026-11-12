@@ -1,0 +1,10 @@
+{
+  "severity_counts": {"critical": 0, "high": 1, "medium": 0, "low": 0, "info": 0},
+  "penalty_score": 0.9,
+  "top_findings": [
+    {"id": "R1", "kind": "requirement_partial", "severity": "high", "title": "POST /books is unreachable in the delivered server (routing bug)", "evidence": "main.go:11 registers listBooksHandler on exact \"/books\"; POST /books -> 405 (handlers.go:50). createBookHandler (handlers.go:15) exists and persists (db.go:91) but the /books/ subtree branch guarding it (main.go:13) is dead code. Reproduced with go1.26.6: POST /books -> 405, pattern \"/books\".", "suggestion": "Dispatch on method inside the exact \"/books\" handler (POST->createBookHandler), as TestFullServer's mux already does."}
+  ],
+  "requirement_coverage": 0.9167,
+  "model": "llamacpp/Holo4-35B-A3B",
+  "evaluated_at": "2026-11-12T19:19:23Z"
+}

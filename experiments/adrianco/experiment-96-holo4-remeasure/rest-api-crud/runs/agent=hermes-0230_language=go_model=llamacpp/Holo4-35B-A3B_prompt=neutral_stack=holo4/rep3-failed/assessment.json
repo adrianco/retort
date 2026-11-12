@@ -1,0 +1,28 @@
+{
+  "severity_counts": {
+    "critical": 0,
+    "high": 1,
+    "medium": 0,
+    "low": 0,
+    "info": 0
+  },
+  "penalty_score": 0.9,
+  "top_findings": [
+    {
+      "id": "R11",
+      "kind": "requirement_missing",
+      "severity": "high",
+      "title": "No README.md with setup and run instructions in the workspace",
+      "evidence": "run_dir has no README.md (find . -iname '*readme*' -> only TASK.md). The agent DID emit a write_file for a README, but to a corrupted path '/Users/adriancockcroft/.retort/work/retot-local-s0z95uwv/retort-4a92dd9bb8a7/README.md' (note 'retot-local', missing the 'r' in 'retort-local-s0z95uwv' \u2014 the real playpen). The 1360-byte README landed in a stray sibling directory and was never archived.",
+      "suggestion": "Agent path-typo bug, not a harness block (all 8 other write_file calls used the correct playpen path and succeeded). R11 genuinely unmet for this run."
+    }
+  ],
+  "requirement_coverage": 0.9167,
+  "model": "llamacpp/Holo4-35B-A3B",
+  "evaluated_at": "2026-11-12T20:26:13Z",
+  "second_opinion": {
+    "reviewed_claim": "R11 README.md missing",
+    "verdict": "CONFIRMED",
+    "root_cause": "agent wrote README.md to a corrupted path (retot-local-... instead of retort-local-...), outside the archived playpen; genuine agent error, not a harness block"
+  }
+}

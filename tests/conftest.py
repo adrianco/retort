@@ -153,3 +153,14 @@ def shared_pytest_venv(tmp_path_factory) -> Path:
                     "pytest", "pytest-cov"],
                    capture_output=True, timeout=300, check=True)
     return venv
+
+
+@pytest.fixture(autouse=True)
+def _skip_host_interpreter_probe(request, monkeypatch):
+    """LocalRunner.execute probes every python3 on PATH (exp-96's hung
+    interpreter). Unit tests must not depend on the host's interpreters, so
+    the probe is stubbed out; tests of the probe itself opt out by name."""
+    if "hung_interpreter" in request.node.name:
+        return
+    from retort.playpen import local_runner
+    monkeypatch.setattr(local_runner, "_hung_interpreters", lambda env, timeout=20.0: [])

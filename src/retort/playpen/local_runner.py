@@ -781,6 +781,19 @@ class LocalRunner:
             self._write_opencode_config(info.workspace, stack)
             env["OPENCODE_DB"] = str(self._opencode_db_path(info.workspace))
 
+        hung = _hung_interpreters(env)
+        if hung:
+            # A HARNESS fault, not the model's: fail in seconds, loudly, instead
+            # of letting the agent burn the whole wall waiting on it.
+            return RunArtifacts(
+                output_dir=info.workspace,
+                stderr=("HARNESS: python3 on the agent's PATH hangs at startup: "
+                        + ", ".join(hung) + ". Every tool that shells out to it "
+                        "(node-gyp, pip, pytest) will hang. Fix the host first."),
+                exit_code=125,
+                metadata={"kill_reason": "hung_interpreter"},
+            )
+
         hard_wall_secs = self.timeout_minutes * 60
         stall_secs = self.stall_minutes * 60  # 0 ⇒ stall guard disabled
 
@@ -818,12 +831,21 @@ class LocalRunner:
                     )
                 else:
                     msg = f"Timeout after {elapsed:.0f}s (hard wall)"
+                kill_meta = {"kill_reason": kill_reason}
+                if self._resolve_harness(stack) == "hermes":
+                    # Killing the oneshot CLIENT does not stop the agent: from
+                    # Hermes v0.23.0 the turn runs inside the gateway daemon and
+                    # keeps going. exp-96's timed-out typescript run carried on
+                    # for 66 more minutes, through the next run, holding the
+                    # single llama-server slot. Stop it here too.
+                    kill_meta["hermes_gateway_stopped"] = str(
+                        _stop_hermes_gateway(self._hermes_bin_for(stack)))
                 return RunArtifacts(
                     output_dir=info.workspace,
                     stderr=(stderr_text[-5000:] + "\n" + msg) if stderr_text else msg,
                     exit_code=124,
                     duration_seconds=elapsed,
-                    metadata={"kill_reason": kill_reason},
+                    metadata=kill_meta,
                 )
 
             # stdout/stderr already streamed to _agent_stdout.log/_agent_stderr.log
@@ -851,13 +873,7 @@ class LocalRunner:
             # Hermes logs no tool calls to stdout — export its session transcript
             # so tool-consultation IS verifiable for local runs (see agent_consulted).
             if self._resolve_harness(stack) == "hermes":
-                _hb = (self.stack_manager.serving.get("hermes_bin", "hermes")
-                       if self.stack_manager is not None else "hermes")
-                # Same precedence as the spawn site: a profile `bin` wins, so the
-                # transcript is exported by the SAME binary that produced it.
-                _hp = self.local_agents.get(stack.agent)
-                if _hp is not None and getattr(_hp, "bin", None):
-                    _hb = _hp.bin
+                _hb = self._hermes_bin_for(stack)
                 _export_hermes_session(info.workspace, _hb)
                 metadata["hermes_gateway_stopped"] = str(_stop_hermes_gateway(_hb))
 
@@ -924,6 +940,17 @@ class LocalRunner:
                 stderr=f"Agent CLI not found: {exc}",
                 exit_code=127,
             )
+
+    def _hermes_bin_for(self, stack: StackConfig) -> str:
+        """The Hermes binary for this stack, with the spawn site's precedence:
+        a profile `bin` wins over the stack manager's `hermes_bin`, so session
+        export and gateway stop use the SAME binary that ran the agent."""
+        hb = (self.stack_manager.serving.get("hermes_bin", "hermes")
+              if self.stack_manager is not None else "hermes")
+        hp = self.local_agents.get(stack.agent)
+        if hp is not None and getattr(hp, "bin", None):
+            hb = hp.bin
+        return hb
 
     def teardown(self, env_id: str) -> None:
         """Reap anything the run left running; keep the workspace for scoring.
@@ -1419,6 +1446,37 @@ def _build_agent_prompt(stack: StackConfig, prompt_injection: str = "") -> str:
     return prompt
 
 
+def _hung_interpreters(env: dict, timeout: float = 20.0) -> list[str]:
+    """Every ``python3`` on the agent's PATH that does not start within ``timeout``.
+
+    exp-96 (2026-11-12): /usr/local/bin/python3 (python.org 3.11) hung at
+    startup because a ``.pth`` file put a ~/Documents directory on sys.path
+    and macOS had blocked access to ~/Documents. node-gyp runs ``python3``
+    to build native npm modules, so every ``npm install`` with better-sqlite3
+    hung, and TypeScript runs took 35-60 min instead of 3-9 -- a harness fault
+    that looked like a slow model. ALL candidates are checked, not just the
+    first, because tools the agent runs may resolve a different one.
+    """
+    hung: list[str] = []
+    seen: set[str] = set()
+    for d in (env.get("PATH") or os.environ.get("PATH", "")).split(os.pathsep):
+        cand = os.path.join(d, "python3") if d else ""
+        if not cand or not os.access(cand, os.X_OK):
+            continue
+        real = os.path.realpath(cand)
+        if real in seen:
+            continue
+        seen.add(real)
+        try:
+            subprocess.run([cand, "-c", "pass"], env=env, capture_output=True,
+                           timeout=timeout, stdin=subprocess.DEVNULL)
+        except subprocess.TimeoutExpired:
+            hung.append(cand)
+        except OSError:
+            continue
+    return hung
+
+
 def _stop_hermes_gateway(hermes_bin: str) -> bool:
     """Stop the gateway daemon a Hermes >= v0.23.0 run started.
 
@@ -1434,7 +1492,11 @@ def _stop_hermes_gateway(hermes_bin: str) -> bool:
     cleanly.
     """
     try:
-        r = subprocess.run([hermes_bin, "gateway", "stop"],
+        # --yes: the gateway still lists the just-finished (or just-killed)
+        # turn as a live session, and without --yes `stop` refuses (exit 1,
+        # "would be interrupted") when there is no terminal to ask y/N on --
+        # which silently failed 5 of 6 stops in exp-96.
+        r = subprocess.run([hermes_bin, "gateway", "stop", "--yes"],
                            capture_output=True, text=True, timeout=60)
     except (OSError, subprocess.SubprocessError) as exc:
         logger.warning("hermes gateway stop failed: %s", exc)

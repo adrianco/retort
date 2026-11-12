@@ -370,9 +370,10 @@ KNOWN_NONFEATURED = {
         "python). Its shorter-trace fine-tune ThinkingCap (exp-88) is the build that terminates.",
     "llamacpp/Holo4-35B-A3B": "Holo4-35B-A3B (exp-91, H Company's agentic post-train of our 35B's base, "
         "official Q4_K_M GGUF on llama.cpp): fastest local stack measured (python 106-141 s, 1/3 "
-        "the 80B's time) and python 3/3, but go 1/3 and typescript 2/3 -- one run lost to the "
-        "server exiting mid-session (#59), one flipped by re-judging (#60). Not featured until those "
-        "cells are re-measured on a stable server.",
+        "the 80B's time) and python 3/3. exp-96 re-measure (llama.cpp 0.9.0, Hermes v0.23.0): go "
+        "3/3 but two on the 2nd try (credit 0.67) -- first attempts miss one spec requirement "
+        "(coverage 0.92), as exp-91's did, so go is a genuine near-miss. typescript is unmeasured: "
+        "exp-96's ts cells hung in npm install on a host fault (#70) and await a re-run.",
     "mlxlocal/devstral": "Devstral (exp-23): evaluated, not featured",
     "gpt-5.6-sol": "GPT-5.6 Sol (exp-58/59): evaluated, not featured",
     "opus": "legacy bare 'opus' (exp-1/2)",

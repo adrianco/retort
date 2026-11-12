@@ -1,6 +1,6 @@
 # The Stack Under the Model: oMLX, llama.cpp, Hermes, and Why There Are So Many
 
-*Published 2026-07-22 · updated 2026-11-08 — Adrian Cockcroft*
+*Published 2026-07-22 · updated 2026-11-12 — Adrian Cockcroft*
 
 Most benchmarks answer "which *model* is best?" Retort insists that's the wrong unit. A coding result is produced by a whole **stack** — and the model is only one layer of it:
 
@@ -91,6 +91,8 @@ The harnesses Retort supports:
 The same experiment turned up a scoring blind spot. Its acceptance tests build the real server and drive it as a separate process, which is the method's protocol-driver layer, and both Go's and Python's normal coverage only count code inside the test process. A passing Go suite therefore scored 0% and was failed as "tests did not run", and the Python suites read about a third low: the harness was biased against the very method under test. Go and Python coverage now also count the server process the tests start, and the method's conformance is graded by the course's own review skill rather than by a rubric of ours.
 
 **And the scorer can misread where the tests live (2026-11-08).** GPT-6.1 Terra wrote C# with the app's `Books.csproj` at the root and the tests in `tests/Books.Tests.csproj`. The scorer treated one root project as the obvious entry point and ran `dotnet test` on the app, which has no tests, so a fully passing suite scored "tests did not run". `retort diagnose` named it at once ("tests pass (100%) but the coverage tool measured 0"). The fix runs the nested test project whenever the root project is not itself a test project. Scanning the archive for the same layout recovered one of Haiku 5.5's C# runs as well (#65). A Python run failed the same way live and recovered on rescore. The likely cause, an agent-left venv given pytest but not the project's requirements, is fixed but not confirmed (#64). Every one of these failures is a passing suite that scores as a model failure, which is why a surprising zero gets diagnosed before it is believed.
+
+**A slow model that was really a hung interpreter (2026-11-12).** Re-measuring Holo4, the TypeScript runs took 35–60 minutes where exp-91 took 3–9, which looked like a slower model or server. The llama.cpp log disagreed: the server was busy for only about 2,600 seconds of a three-hour grid. The transcripts showed `npm install` timing out again and again, with the agent polling "still installing." The cause was four layers down. npm's native-module builder (node-gyp) runs `python3`. On the agent's PATH that was a python.org install whose site-packages held a stale `.pth` pointing into `~/Documents`, and after a macOS upgrade every read in `~/Documents` blocked. So Python hung before running a line, and so did every install that compiled SQLite bindings. Two of the three runs still passed, slowly, which is what made it dangerous: the result looked plausible. Retort now checks that every `python3` on the agent's PATH starts, before each run, and fails the run in seconds as a harness fault if one doesn't (#70). The same grid exposed a new Hermes behaviour: from v0.23.0 the agent's turn runs in a background gateway, so killing a timed-out run leaves the agent working. One kept going for 66 minutes, through the next run, holding the server's only slot. Retort now stops the gateway after every run, killed or not (#66–#69).
 
 ---
 

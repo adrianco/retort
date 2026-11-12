@@ -214,7 +214,20 @@ Codex rate-limited at 11/12 (typescript n=2). **Follow-up: Astra on the HARD tas
 where routine saturation lifts and frontier reasoning could separate — gated on codex budget ($50/M
 output makes a hard-task grid a large spend).
 
-## 0. exp-96 — Holo4-35B-A3B re-measure on llama.cpp 0.9.0 + Hermes v0.23.0  — RUNNING 2026-11-12
+## 0. exp-96 — Holo4-35B-A3B re-measure on llama.cpp 0.9.0 + Hermes v0.23.0  — GO DONE, TYPESCRIPT BLOCKED on #70 (2026-11-12)
+
+**Status (2026-11-12):** python smoke passed. **go 3/3 pass, credit 2.0/3**: rep1 passed first try
+in 376 s. rep2 and rep3 scored requirement_coverage 0.92 on the first attempt, then passed on the
+second, the same 0.92 gap exp-91's go rep1 showed. That is a genuine, repeatable shortfall, not a
+serving fault. **typescript is a HARNESS failure**: all three runs hung in `npm install`, because the
+host's `/usr/local/bin/python3` hangs at startup (a `.pth` points into `~/Documents`, which macOS is
+blocking), and node-gyp runs it to build better-sqlite3 or sqlite3. Two runs passed anyway after
+35–43 min, and one hit the 60-min wall; exp-91 took 3–9 min. go rep2's wall-clock is also void,
+because the timed-out typescript run kept running in the Hermes gateway (#69). Both bugs are fixed
+in retort: there's a hung-interpreter preflight, and `gateway stop --yes` runs on the kill path too.
+**To finish:** once the owner restores `~/Documents` access, re-run typescript n=3 in a fresh
+`rest-api-crud-ts/` dir; the contaminated runs stay in the archive.
+
 
 **Intent:** exp-91 left Holo4's go (1/3) and typescript (2/3) cells unsettled: one run lost to
 llama-server exiting mid-session (#59), one flipped by re-judging (#60). Re-measure them on the
