@@ -1,0 +1,32 @@
+# Experiment 94 — Fable 5.2 screen on exp-65's matched cells (low effort, n=1)
+#
+# Fable 5.2 released 2026-11-09 at $8/$40 (5.1: $10/$50). Before spending ~$110 on
+# exp-70's 13x2 grid, screen whether 5.2 holds 5.1's 1.00 and whether it is cheaper
+# and faster per RUN, on exactly the four cells exp-65 ran 5.1 at low effort:
+# python/neutral, rust/neutral, go/none, typescript/none. Compare against exp-65.
+#
+# SMOKE TEST 2026-11-12, Claude Code 2.1.322: the id is accepted and reported with
+# costBasis=list (cost matches list exactly). --effort reaches the model: a 6x6
+# three-per-row/column matrix count used 0 thinking tokens at low (4 s) vs 4,998 at
+# max (48 s), same correct answer.
+experiment:
+  name: experiment-94-fable52-screen
+  visibility: public
+factors:
+  language: { levels: [python, go, rust, typescript] }
+  prompt: { levels: [neutral, none] }
+  model: { levels: [claude-fable-5-2, claude-fable-5-1] }   # design pins 5.2
+  effort: { levels: [low, default] }                        # design pins low
+responses: [code_quality, token_efficiency, test_coverage, defect_rate, maintainability, idiomatic]
+tasks:
+  - source: bundled://rest-api-crud
+playpen:
+  runner: local
+  replicates: 1
+  timeout_minutes: 60
+  stall_minutes: 25
+  max_turns: 200
+  prompts_dir: prompts
+design: { screening_resolution: 3, significance_threshold: 0.10 }
+promotion: { screening_to_trial: { p_value: 0.10 }, trial_to_production: { posterior_confidence: 0.80 } }
+evaluation: { enabled: true, model: opus-4.8 }
