@@ -1,0 +1,2 @@
+{"id": "enh-1", "kind": "enhancement", "severity": "info", "title": "Location header set on create", "evidence": "main.go:161 sets Location: /books/{id} on 201 responses", "suggestion": "None — beyond-spec nicety"}
+{"id": "enh-2", "kind": "enhancement", "severity": "info", "title": "Request body size capped at 1MiB", "evidence": "main.go:112 http.MaxBytesReader guards decodeInput", "suggestion": "None — defensive, beyond spec"}

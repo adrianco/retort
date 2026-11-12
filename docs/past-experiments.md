@@ -2551,3 +2551,28 @@ rescore (genuine).
 **c** (n=1, \$0.04 vs Haiku's \$0.09) and **objc** (n=3, ties Haiku at \$0.04). GPT-5.6 Terra keeps routine
 csharp (1.00 at n=1, \$0.26). 6.1 Terra's csharp (0.67) and python (0.50) credit is understated by the
 half-credit rule applied to scorer-caused retries.
+
+
+## exp-94 — Fable 5.2 screen on exp-65's matched cells  — COMPLETE, 2026-11-12
+
+`claude-fable-5-2`, low effort, rest-api-crud, n=1, on the four cells exp-65 ran Fable 5.1 at low (python/neutral,
+rust/neutral, go/none, typescript/none). Claude Code 2.1.322. Smoke test first: the id is accepted with `costBasis:
+list`, the reported cost matches list exactly, and `--effort` reaches the model (0 vs 4,998 thinking tokens, low vs max).
+
+**4/4 pass.** Against 5.1 at low (n=6 per cell):
+
+| cell | cost 5.1 → 5.2 | seconds 5.1 → 5.2 | K tokens 5.1 → 5.2 | test coverage 5.1 → 5.2 |
+|---|---|---|---|---|
+| python | \$0.90 → \$0.62 | 71 → 67 | 187 → 160 | 0.93 → 0.92 |
+| go | \$0.98 → \$0.67 | 82 → 72 | 176 → 125 | 0.76 → 0.73 |
+| rust | \$1.07 → \$0.67 | 96 → 71 | 257 → 125 | 1.00 → 1.00 |
+| typescript | \$1.02 → \$0.52 | 88 → 49 | 284 → 120 | 1.00 → 1.00 |
+
+**Hypothesis:** held, and beat. Per-run cost fell 31–49%, more than the 20% per-token price cut, because 5.2 used
+15–58% fewer tokens. It was also faster on every cell. n=1 per cell, so these are screen numbers, not estimates.
+
+**Contention note:** the daily candidate scan (a scheduled Claude session) started at 16:05:41Z, about 13 s before the
+typescript agent finished. Contention can only slow a run, so typescript's 49 s is an upper bound; its tokens and cost
+are unaffected.
+
+**Next:** exp-95 runs the other nine languages so 5.2 has a full routine row.

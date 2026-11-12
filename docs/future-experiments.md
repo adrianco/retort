@@ -214,25 +214,18 @@ Codex rate-limited at 11/12 (typescript n=2). **Follow-up: Astra on the HARD tas
 where routine saturation lifts and frontier reasoning could separate — gated on codex budget ($50/M
 output makes a hard-task grid a large spend).
 
-## 0. exp-94 — Fable 5.2 screen on exp-65's matched cells  — RUNNING 2026-11-12
+## 0. exp-95 — Fable 5.2 on the other nine languages  — RUNNING 2026-11-12
 
-**Intent:** Fable 5.2 (released 2026-11-09, $8/$40 vs 5.1's $10/$50) supersedes 5.1, so before
-spending ~$110 on exp-70's grid, screen whether 5.2 holds 5.1's 1.00 and whether it is cheaper and
-faster in practice, not just per token.
+**Intent:** exp-94 found Fable 5.2 4/4 and 31–49% cheaper per run than 5.1 on matched cells
+([write-up](past-experiments.md)). Give 5.2 a full routine row before deciding on exp-70's grid.
 
-**Design:** `claude-fable-5-2 × effort=low × rest-api-crud`, on exactly the four cells exp-65 ran
-5.1 at low (python/neutral, rust/neutral, go/none, typescript/none), **n=1** (new model: screen first,
-deepen only if interesting). 4 runs, ~$4. Compared against exp-65's 5.1 low rows (n=6 per cell).
+**Design:** `claude-fable-5-2 × effort=low × rest-api-crud × prompt=neutral`, on java, clojure,
+erlang, elixir, csharp, c, cpp, swift and objc, **n=1**. 9 runs, ~\$6 at exp-94's ~\$0.62 per run.
 
-**Hypothesis:** pass 4/4; per-run cost ~20% below 5.1's ~$1.0 if token use is unchanged.
+**Hypothesis:** 9/9, matching Fable 5.0's 1.00 everywhere. Csharp, objc and swift are the
+likeliest to cost more.
 
-**Smoke test, 2026-11-12, Claude Code 2.1.322:** the CLI accepts `claude-fable-5-2` and reports
-`costBasis: list`; the reported cost matches list exactly ($8 in, $0.20 cache read, $16 1h cache
-write). `--effort` reaches the model: on a 6×6 three-per-row/column matrix count, low used 0
-thinking tokens (4 s, $0.26) and max used 4,998 (48 s, $0.43), same correct answer. (A
-derangement-style prompt gave low ≈ high, ~610 thinking each — too easy to separate the levels.)
-
-**If it holds:** run exp-70's grid on 5.2 at low instead of 5.1.
+**Scheduling:** do not overlap the daily scan (08:06 local, plus or minus 6 min).
 
 ## 0. exp-70 — Fable 5.1 across the full grid, at LOW effort  — TOP PRIORITY, ready to run
 
