@@ -321,3 +321,23 @@ def test_hermes_v052_config_gets_canonical_context_and_turns(tmp_path: Path):
     assert cfg["model"] == {"default": "Holo4", "context_length": 262144}
     assert cfg["agent"]["max_turns"] == 400
     assert "context_length" not in cfg and "max_turns" not in cfg
+
+
+def test_kill_port_asks_lsof_for_the_listener_only(tmp_path: Path, monkeypatch):
+    # exp-96: `lsof -ti tcp:8081` also returned a Hermes gateway CLIENT of the server.
+    import subprocess as sp
+
+    from retort.playpen import stack_reload
+
+    seen = []
+
+    def run(cmd, **kw):
+        seen.append(cmd)
+        return sp.CompletedProcess(cmd, 0, stdout="", stderr="")
+
+    monkeypatch.setattr(stack_reload.subprocess, "run", run)
+    monkeypatch.setattr(stack_reload.time, "sleep", lambda s: None)
+    m = make_stack_manager(_registry(tmp_path,
+        "serving: {backend: llamacpp, port: 8081}\npresets: {s1: {model: m, gguf: /x.gguf}}\n"))
+    m._kill_port()
+    assert seen[0][:3] == ["lsof", "-ti", "tcp:8081"] and "-sTCP:LISTEN" in seen[0]

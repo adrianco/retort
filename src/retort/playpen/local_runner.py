@@ -859,6 +859,7 @@ class LocalRunner:
                 if _hp is not None and getattr(_hp, "bin", None):
                     _hb = _hp.bin
                 _export_hermes_session(info.workspace, _hb)
+                metadata["hermes_gateway_stopped"] = str(_stop_hermes_gateway(_hb))
 
             # Fast mode bills at 2× but the CLI reports the standard-rate cost —
             # scale it up so the recorded cost is what's actually charged.
@@ -1416,6 +1417,32 @@ def _build_agent_prompt(stack: StackConfig, prompt_injection: str = "") -> str:
         prompt += " " + direct
 
     return prompt
+
+
+def _stop_hermes_gateway(hermes_bin: str) -> bool:
+    """Stop the gateway daemon a Hermes >= v0.23.0 run started.
+
+    From v0.23.0 a oneshot client does not run the agent in its own process: it
+    starts (via ``osascript``, reparented to init) a detached ``gateway run
+    --idle-exit`` daemon and the agent loop runs THERE. That daemon outlives the
+    run and the next run attaches to it, so runs would share one agent process,
+    its caches and the language servers it spawned (pyright, seen in exp-96's
+    smoke), and it sits resident through later timing measurements. Its cwd is not
+    the playpen, so the cwd-based orphan reaper never sees it. Stopping it after
+    every run restores one fresh agent process per run. Older Hermes has no
+    daemon; the stop is then a harmless no-op. Returns True if the command ran
+    cleanly.
+    """
+    try:
+        r = subprocess.run([hermes_bin, "gateway", "stop"],
+                           capture_output=True, text=True, timeout=60)
+    except (OSError, subprocess.SubprocessError) as exc:
+        logger.warning("hermes gateway stop failed: %s", exc)
+        return False
+    if r.returncode != 0:
+        logger.warning("hermes gateway stop exited %d: %s", r.returncode,
+                       (r.stderr or r.stdout)[-300:])
+    return r.returncode == 0
 
 
 def _export_hermes_session(workspace: Path, hermes_bin: str) -> None:

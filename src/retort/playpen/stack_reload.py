@@ -327,7 +327,10 @@ class _BaseStackManager:
         """
         port = int(self.serving.get("port", 8080)) if port is None else int(port)
         pids = subprocess.run(
-            ["lsof", "-ti", f"tcp:{port}"], capture_output=True, text=True
+            # LISTEN only: plain `tcp:<port>` also lists every CLIENT connected to
+            # it (exp-96: a Hermes gateway with a closed connection to the server),
+            # and those were being kill -9'd too.
+            ["lsof", "-ti", f"tcp:{port}", "-sTCP:LISTEN"], capture_output=True, text=True
         ).stdout.split()
         foreign = []
         for pid in pids:
