@@ -106,6 +106,15 @@ _LLAMA_SAMPLING_FLAG = {
     "repetition_penalty": "--repeat-penalty",
 }
 
+# Command-line fragments of the servers a stack manager launches. _kill_port only
+# ever kills a process matching one of these.
+_SERVING_SIGNATURES = ("llama-server", "omlx", "swiftlet", "mlx_lm", "mlx-lm")
+
+
+def _is_serving_process(command: str) -> bool:
+    c = command.lower()
+    return any(sig in c for sig in _SERVING_SIGNATURES)
+
 
 def _sig(preset: dict[str, Any]) -> tuple:
     """A hashable signature: reload iff the served stack changes.
@@ -307,12 +316,32 @@ class _BaseStackManager:
         raise NotImplementedError
 
     def _kill_port(self, port: int | None = None) -> None:
+        """Free ``port`` for our server — but only by killing OUR kind of server.
+
+        This used to ``kill -9`` whatever held the port. On 2026-11-12 port 8080
+        belonged to an unrelated user app (WirePod), which the next llama.cpp
+        reload would have killed. A port held by anything that is not a serving
+        process is a configuration error to report, not something to destroy.
+        """
         port = int(self.serving.get("port", 8080)) if port is None else int(port)
         pids = subprocess.run(
             ["lsof", "-ti", f"tcp:{port}"], capture_output=True, text=True
         ).stdout.split()
+        foreign = []
         for pid in pids:
+            command = subprocess.run(
+                ["ps", "-o", "command=", "-p", pid], capture_output=True, text=True
+            ).stdout.strip()
+            if not _is_serving_process(command):
+                foreign.append(f"pid {pid}: {command or '?'}")
+                continue
             subprocess.run(["kill", "-9", pid], capture_output=True)
+        if foreign:
+            raise RuntimeError(
+                f"port {port} is held by a process that is not a model server "
+                f"({'; '.join(foreign)}). Refusing to kill it -- set serving.port "
+                "to a free port instead."
+            )
         time.sleep(3)
 
     def _launch(self, cmd: list[str]) -> None:
@@ -361,6 +390,14 @@ class _BaseStackManager:
             cfg["context_length"] = context_length
             changed = True
         if prov is not None:
+            # Hermes reaches the server through this URL, so it must follow
+            # serving.host/port. It was never written here: a stack moved off 8080
+            # would have left Hermes talking to whatever else held 8080.
+            api = (f"http://{self.serving.get('host', '127.0.0.1')}:"
+                   f"{int(self.serving.get('port', 8080))}/v1")
+            if prov.get("api") != api:
+                prov["api"] = api
+                changed = True
             if prov.get("default_model") != model:
                 prov["default_model"] = model
                 changed = True

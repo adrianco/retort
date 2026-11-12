@@ -211,3 +211,60 @@ def test_hermes_max_turns_left_alone_when_unset(tmp_path):
     mgr = OmlxStackManager(registry)
     mgr._ensure_hermes_model("m", None, None)
     assert _yaml.safe_load(hermes_cfg.read_text())["max_turns"] == 45
+
+
+def _fake_ps(monkeypatch, owners: dict[str, str]):
+    """Stub lsof/ps/kill: ``owners`` maps pid -> command line holding the port."""
+    import subprocess as sp
+
+    from retort.playpen import stack_reload
+
+    killed: list[str] = []
+
+    def run(cmd, **kw):
+        if cmd[0] == "lsof":
+            return sp.CompletedProcess(cmd, 0, stdout="\n".join(owners), stderr="")
+        if cmd[0] == "ps":
+            return sp.CompletedProcess(cmd, 0, stdout=owners[cmd[-1]], stderr="")
+        if cmd[0] == "kill":
+            killed.append(cmd[-1])
+            return sp.CompletedProcess(cmd, 0, stdout="", stderr="")
+        raise AssertionError(cmd)
+
+    monkeypatch.setattr(stack_reload.subprocess, "run", run)
+    monkeypatch.setattr(stack_reload.time, "sleep", lambda s: None)
+    return killed
+
+
+def test_kill_port_refuses_to_kill_a_foreign_process(tmp_path: Path, monkeypatch):
+    # 2026-11-12: port 8080 was held by an unrelated user app (WirePod).
+    m = make_stack_manager(_registry(tmp_path,
+        "serving: {backend: llamacpp, port: 8080}\npresets: {s1: {model: m, gguf: /x.gguf}}\n"))
+    killed = _fake_ps(monkeypatch, {"2354": "/Applications/WirePod.app/Contents/MacOS/chipper"})
+    with pytest.raises(RuntimeError, match="not a model server"):
+        m._kill_port()
+    assert killed == []
+
+
+def test_kill_port_kills_our_own_server(tmp_path: Path, monkeypatch):
+    m = make_stack_manager(_registry(tmp_path,
+        "serving: {backend: llamacpp, port: 8081}\npresets: {s1: {model: m, gguf: /x.gguf}}\n"))
+    killed = _fake_ps(monkeypatch, {"77": "/opt/homebrew/bin/llama-server -m /x.gguf --port 8081"})
+    m._kill_port()
+    assert killed == ["77"]
+
+
+def test_hermes_api_url_follows_serving_port(tmp_path: Path):
+    import yaml
+
+    hermes = tmp_path / "config.yaml"
+    hermes.write_text(yaml.safe_dump({
+        "model": "old",
+        "providers": {"mlxlocal": {"api": "http://127.0.0.1:8080/v1", "models": {}}},
+    }))
+    m = make_stack_manager(_registry(tmp_path,
+        "serving: {backend: llamacpp, host: 127.0.0.1, port: 8081, "
+        f"hermes_config: {hermes}}}\npresets: {{s1: {{model: m, gguf: /x.gguf}}}}\n"))
+    m._ensure_hermes_model("m", 262144)
+    cfg = yaml.safe_load(hermes.read_text())
+    assert cfg["providers"]["mlxlocal"]["api"] == "http://127.0.0.1:8081/v1"
