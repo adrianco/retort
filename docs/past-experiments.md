@@ -2555,24 +2555,49 @@ half-credit rule applied to scorer-caused retries.
 
 ## exp-94 — Fable 5.2 screen on exp-65's matched cells  — COMPLETE, 2026-11-12
 
-`claude-fable-5-2`, low effort, rest-api-crud, n=1, on the four cells exp-65 ran Fable 5.1 at low (python/neutral,
-rust/neutral, go/none, typescript/none). Claude Code 2.1.322. Smoke test first: the id is accepted with `costBasis:
-list`, the reported cost matches list exactly, and `--effort` reaches the model (0 vs 4,998 thinking tokens, low vs max).
+`claude-fable-5-2`, low effort, rest-api-crud, n=1, on the four cells exp-65/exp-80 ran Fable 5.1 at low (python/neutral,
+rust/neutral, go/none, typescript/none). Claude Code 2.1.322, isolated (empty MCP config, project settings only). Smoke test
+first: the id is accepted with `costBasis: list`, the reported cost matches list exactly, and `--effort` reaches the model
+(0 vs 4,998 thinking tokens, low vs max).
 
-**4/4 pass.** Against 5.1 at low (n=6 per cell):
+**4/4 pass.** Against 5.1 at low from **exp-80** (isolated, Claude Code 2.1.284, n=3 per cell):
 
-| cell | cost 5.1 → 5.2 | seconds 5.1 → 5.2 | K tokens 5.1 → 5.2 | test coverage 5.1 → 5.2 |
+| cell | cost 5.1 → 5.2 | seconds 5.1 → 5.2 | K tokens 5.1 → 5.2 | test coverage 5.2 |
 |---|---|---|---|---|
-| python | \$0.90 → \$0.62 | 71 → 67 | 187 → 160 | 0.93 → 0.92 |
-| go | \$0.98 → \$0.67 | 82 → 72 | 176 → 125 | 0.76 → 0.73 |
-| rust | \$1.07 → \$0.67 | 96 → 71 | 257 → 125 | 1.00 → 1.00 |
-| typescript | \$1.02 → \$0.52 | 88 → 49 | 284 → 120 | 1.00 → 1.00 |
+| python | \$0.65 → \$0.62 (−5%) | 56 → 67 | 89 → 160 | 0.92 |
+| go | \$0.69 → \$0.67 (−2%) | 55 → 72 | 74 → 125 | 0.73 |
+| rust | \$0.75 → \$0.67 (−11%) | 71 → 71 | 76 → 125 | 1.00 |
+| typescript | \$0.63 → \$0.52 (−17%) | 53 → 49 | 99 → 120 | 1.00 |
 
-**Hypothesis:** held, and beat. Per-run cost fell 31–49%, more than the 20% per-token price cut, because 5.2 used
-15–58% fewer tokens. It was also faster on every cell. n=1 per cell, so these are screen numbers, not estimates.
+**Hypothesis:** half held. 5.2 passed 4/4, but per-run cost fell only 2–17%, less than the 20% per-token price cut,
+because 5.2 used 1.2–1.8× the tokens. It was no faster (three cells slower or equal). n=1 per cell, so these are screen
+numbers.
+
+**Correction, same day.** The first version of this write-up compared against *all* 5.1 low rows, which pooled exp-65's
+contaminated runs (host MCP servers and plugins leaked into the agent; withdrawn 2026-10-04) with exp-80's isolated
+re-run, and reported 5.2 as 31–49% cheaper and faster on every cell. Against the isolated rows alone that does not hold.
+The pooling was the mistake: `model + effort` is not enough to pick a baseline when an experiment has been superseded.
 
 **Contention note:** the daily candidate scan (a scheduled Claude session) started at 16:05:41Z, about 13 s before the
-typescript agent finished. Contention can only slow a run, so typescript's 49 s is an upper bound; its tokens and cost
-are unaffected.
+typescript agent finished. Contention can only slow a run, so typescript's 49 s is an upper bound; tokens and cost are
+unaffected.
 
-**Next:** exp-95 runs the other nine languages so 5.2 has a full routine row.
+
+## exp-95 — Fable 5.2 on the other nine languages  — COMPLETE, 2026-11-12
+
+Same stack as exp-94, neutral prompt, n=1, on java, clojure, erlang, elixir, csharp, c, cpp, swift and objc. **9/9 pass**,
+first attempt each, test coverage 1.00 on all nine. With exp-94, **Fable 5.2 at low is 13/13 on the routine task, mean
+\$0.94 and 108 s a run.** The mainstream and BEAM languages cost \$0.67–0.85 (erlang \$1.21, 699K tokens); c, cpp,
+swift and objc cost \$1.18–1.57 and 2.4–3.1 min.
+
+**Hypothesis:** held (9/9). The predicted expensive cells were c, cpp, swift and objc, not csharp (\$0.74).
+
+**Board:** not featured, and it changes no recommendation. On the routine task it is never the cheapest qualifier:
+Haiku 5.5 and the GPT Terras clear the same cells at \$0.04–0.26. It has no hard-task data, which is where a frontier
+model could earn a place. Its 5.0 comparison is not clean either: Fable 5.0's routine rows ran at default effort and before
+agent isolation.
+
+**Contention note:** the daily scan session was alive throughout but idle (0.1% CPU, apparently waiting on a prompt).
+
+**Next:** exp-70 (the 13×2 grid on 5.1) is superseded by 5.2. The open question is the hard task: brazil-soccer-mcp on 5.2
+at low, where Opus 5.5 at low costs \$1.33–2.73 a cell and Fable 5 about \$10.47.

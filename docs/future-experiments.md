@@ -214,20 +214,16 @@ Codex rate-limited at 11/12 (typescript n=2). **Follow-up: Astra on the HARD tas
 where routine saturation lifts and frontier reasoning could separate — gated on codex budget ($50/M
 output makes a hard-task grid a large spend).
 
-## 0. exp-95 — Fable 5.2 on the other nine languages  — RUNNING 2026-11-12
+## 0. exp-70 — Fable 5.1 across the full grid, at LOW effort  — SUPERSEDED 2026-11-12 by Fable 5.2
 
-**Intent:** exp-94 found Fable 5.2 4/4 and 31–49% cheaper per run than 5.1 on matched cells
-([write-up](past-experiments.md)). Give 5.2 a full routine row before deciding on exp-70's grid.
+**Superseded:** Fable 5.2 (released 2026-11-09) cleared the routine task 13/13 at low in exp-94/95
+([write-up](past-experiments.md)). Running 5.1's grid now would measure a retired model. The remaining
+gap is the **hard task on 5.2**: brazil-soccer-mcp × 13 languages at low, n=1 screen, roughly
+\$40–70 if it costs 4–8× its routine \$0.94 the way Fable 5 did. Not queued yet: it changes the board
+only if it undercuts Opus 5.5 at low (\$1.33–2.73 a cell), and Fable 5's hard cells cost ~\$10.
 
-**Design:** `claude-fable-5-2 × effort=low × rest-api-crud × prompt=neutral`, on java, clojure,
-erlang, elixir, csharp, c, cpp, swift and objc, **n=1**. 9 runs, ~\$6 at exp-94's ~\$0.62 per run.
+*Original plan, kept for the record:*
 
-**Hypothesis:** 9/9, matching Fable 5.0's 1.00 everywhere. Csharp, objc and swift are the
-likeliest to cost more.
-
-**Scheduling:** do not overlap the daily scan (08:06 local, plus or minus 6 min).
-
-## 0. exp-70 — Fable 5.1 across the full grid, at LOW effort  — TOP PRIORITY, ready to run
 
 **The gap:** Fable 5.1 has been measured on one task and four languages (exp-65), so it cannot be
 featured in `optimal-blog.md` — every featured stack carries the 13-language × 2-task grid. And

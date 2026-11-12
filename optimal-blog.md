@@ -1,10 +1,12 @@
 # The Optimal Stack
 
-*Living document — last updated 2026-11-08 (first published 2026-07-14). This records **what to run today**: the leading stacks, and the exact configuration each one needs. It is not a history. Superseded stacks and rejected configurations are not discussed here; they are retired, and retirement is the point.*
+*Living document — last updated 2026-11-12 (first published 2026-07-14). This records **what to run today**: the leading stacks, and the exact configuration each one needs. It is not a history. Superseded stacks and rejected configurations are not discussed here; they are retired, and retirement is the point.*
 
 ---
 
 > **Restated 2026-10-19 — a second-chance pass now counts half.** The metric is the probability a single *unattended* run is completely correct, and `aggregate` has always defined a pass that needed the self-repair second attempt as **half credit**. This page's generator counted it as a full pass, so every cell holding one overstated reliability (issue #53, fixed). The tables below are regenerated under the documented rule. The headline casualty: **the Qwen 80B's TypeScript cell is 0.83, not 1.00** (3 passes in 3 runs, one only on the second attempt), so no local stack now clears TypeScript unattended. Opus 5, Terra and GPT-5.6 Luna also dip by a point or two, and Terra's hard-task figure drops to 0.55.
+
+> **Updated 2026-11-12 — Fable 5.2 measured, not featured.** Fable 5.2 at `low` passed all thirteen routine languages (exp-94/95, n=1) at \$0.52–1.57 a run. It is never the cheapest routine qualifier and has no hard-task data, so nothing below changes; the featured Fable stays Fable 5 until 5.2 runs the hard task.
 
 > **Updated 2026-11-08 — GPT-6.1 Terra joins at `low`, and a C# scorer bug is fixed.** GPT-6.1 Terra via Codex at `low` passed all thirteen routine languages (exp-92/93) at about \$0.04–0.06 a run. It is now the cheapest qualifying stack for **c** and **objc**. Separately, the C# coverage scorer had been running the *app* project instead of the tests whenever the app's `.csproj` sat at the root (#65). That turned passing suites into "tests did not run". Rescoring recovered Haiku 5.5's one routine csharp miss as a second-attempt pass, so Haiku's csharp cell is **0.83**, up from 0.67.
 
