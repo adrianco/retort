@@ -35,8 +35,8 @@ Upgraded the same day (user rule: run the latest versions and record them):
 
 | tool | was | now | verified by |
 |---|---|---|---|
-| Claude Code CLI | 2.1.302 | **2.1.319** | `claude -p` judge preflight (exp-92/93) |
-| codex-cli | 0.163.0 | **0.167.0** | `gpt-6.1-terra` smoke, then exp-92 (13 runs) |
+| Claude Code CLI | 2.1.302 | **2.1.322** (2026-11-12) | `claude -p` judge preflight (exp-92/93); 2.1.322 Fable 5.2 smoke + exp-94/95 |
+| codex-cli | 0.163.0 | **0.167.2** (2026-11-12; 0.167.0 ran exp-92/93) | `gpt-6.1-terra` smoke, then exp-92 (13 runs) |
 | llama.cpp (brew) | 0.7.0 (b11669) | **0.9.0 (b12110)** | Nemotron Bolt probe: no longer crashes (see exp-90) |
 | Hermes agent | v0.22.2 | **v0.23.0** | imports and tool registry load. **Not yet smoke-run on a model:** do one cell before the Holo4 re-measure |
 
@@ -213,6 +213,24 @@ price does not make Opus-class bills — codex stays terse. Written up in
 Codex rate-limited at 11/12 (typescript n=2). **Follow-up: Astra on the HARD task** (`brazil-soccer-mcp`),
 where routine saturation lifts and frontier reasoning could separate — gated on codex budget ($50/M
 output makes a hard-task grid a large spend).
+
+## 0. exp-96 — Holo4-35B-A3B re-measure on llama.cpp 0.9.0 + Hermes v0.23.0  — RUNNING 2026-11-12
+
+**Intent:** exp-91 left Holo4's go (1/3) and typescript (2/3) cells unsettled: one run lost to
+llama-server exiting mid-session (#59), one flipped by re-judging (#60). Re-measure them on the
+current server (llama.cpp 0.9.0, b12110) to decide whether Holo4 joins the board.
+
+**Design:** exp-91's stack unchanged (official Q4_K_M GGUF, 256K context, lcm threshold 0.9,
+temp 0.6 / top_p 0.95 / top_k 20 / repeat 1.0, the same serve flags), except **port 8081** (8080 is
+held by an unrelated app; see #66) and **Hermes v0.23.0**. First a **one-cell python smoke**, which
+is also Hermes v0.23.0's first model run: confirm real tool calls, the effective sampling from
+`/props`, and the 256K context. Then **go and typescript at n=3**, neutral prompt.
+
+**Confound, recorded:** both llama.cpp (0.7.0 → 0.9.0) and Hermes (v0.22.2 → v0.23.0) changed since
+exp-91. The python smoke against exp-91's python 3/3 is the check that the agent upgrade did not
+regress the stack.
+
+**Hypothesis:** with no server exits, go and typescript reach ≥ 2/3 each; python passes.
 
 ## 0. exp-70 — Fable 5.1 across the full grid, at LOW effort  — SUPERSEDED 2026-11-12 by Fable 5.2
 
