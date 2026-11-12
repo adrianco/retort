@@ -38,7 +38,7 @@ Upgraded the same day (user rule: run the latest versions and record them):
 | Claude Code CLI | 2.1.302 | **2.1.322** (2026-11-12) | `claude -p` judge preflight (exp-92/93); 2.1.322 Fable 5.2 smoke + exp-94/95 |
 | codex-cli | 0.163.0 | **0.167.2** (2026-11-12; 0.167.0 ran exp-92/93) | `gpt-6.1-terra` smoke, then exp-92 (13 runs) |
 | llama.cpp (brew) | 0.7.0 (b11669) | **0.9.0 (b12110)** | Nemotron Bolt probe: no longer crashes (see exp-90) |
-| Hermes agent | v0.22.2 | **v0.23.0** | imports and tool registry load. **Not yet smoke-run on a model:** do one cell before the Holo4 re-measure |
+| Hermes agent | v0.22.2 | **v0.23.0** | exp-96 smoke (2026-11-12): first try crashed in 10 s, because `--provider llamacpp` now means Hermes' own managed server (#67). It also migrates its config to v52 (`model: {default, context_length}`, `agent.max_turns`) and then ignores root keys. Both fixed in retort (c4275b7b). Re-smoke: python pass in 140 s, real tool calls, server `/props` temp 0.6 / top_p 0.95 / top_k 20 / repeat 1.0 / n_ctx 262144, and Hermes' resolver returns 262144 with or without the pin |
 
 ---
 
