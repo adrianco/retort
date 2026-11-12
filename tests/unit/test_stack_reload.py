@@ -268,3 +268,56 @@ def test_hermes_api_url_follows_serving_port(tmp_path: Path):
     m._ensure_hermes_model("m", 262144)
     cfg = yaml.safe_load(hermes.read_text())
     assert cfg["providers"]["mlxlocal"]["api"] == "http://127.0.0.1:8081/v1"
+
+
+def test_llamacpp_stack_writes_a_llamacpp_hermes_provider(tmp_path: Path):
+    # Hermes v0.23.0 resolves `--provider llamacpp` to its own managed server unless
+    # the config has a `providers.llamacpp` entry (#67).
+    import yaml
+
+    hermes = tmp_path / "config.yaml"
+    hermes.write_text(yaml.safe_dump({
+        "model": "old",
+        "providers": {"mlxlocal": {"api": "http://127.0.0.1:8080/v1", "api_mode": "openai",
+                                   "api_key": "local", "name": "MLX Local", "models": {}}},
+    }))
+    m = make_stack_manager(_registry(tmp_path,
+        "serving: {backend: llamacpp, host: 127.0.0.1, port: 8081, "
+        f"hermes_config: {hermes}}}\npresets: {{s1: {{model: m, gguf: /x.gguf}}}}\n"))
+    m._ensure_hermes_model("Holo4", 262144)
+    lc = yaml.safe_load(hermes.read_text())["providers"]["llamacpp"]
+    assert lc["api"] == "http://127.0.0.1:8081/v1"
+    assert lc["api_mode"] == "openai" and lc["default_model"] == "Holo4"
+    assert lc["models"]["Holo4"]["context_length"] == 262144
+
+
+def test_omlx_stack_does_not_add_a_llamacpp_provider(tmp_path: Path):
+    import yaml
+
+    hermes = tmp_path / "config.yaml"
+    hermes.write_text(yaml.safe_dump({"providers": {"mlxlocal": {"api": "x", "models": {}}}}))
+    m = make_stack_manager(_registry(tmp_path,
+        f"serving: {{backend: omlx, hermes_config: {hermes}}}\npresets: {{s1: {{model: m}}}}\n"))
+    m._ensure_hermes_model("m", None)
+    assert "llamacpp" not in yaml.safe_load(hermes.read_text())["providers"]
+
+
+def test_hermes_v052_config_gets_canonical_context_and_turns(tmp_path: Path):
+    # Hermes v0.23.0 migrates root context_length/max_turns ONLY into empty slots,
+    # so writing the root keys of a migrated config is a silent no-op.
+    import yaml
+
+    hermes = tmp_path / "config.yaml"
+    hermes.write_text(yaml.safe_dump({
+        "model": {"default": "old", "context_length": 131072},
+        "agent": {"max_turns": 30},
+        "providers": {"mlxlocal": {"api": "x", "models": {}}},
+        "_config_version": 52,
+    }))
+    m = make_stack_manager(_registry(tmp_path,
+        f"serving: {{backend: omlx, hermes_config: {hermes}}}\npresets: {{s1: {{model: m}}}}\n"))
+    m._ensure_hermes_model("Holo4", 262144, max_turns=400)
+    cfg = yaml.safe_load(hermes.read_text())
+    assert cfg["model"] == {"default": "Holo4", "context_length": 262144}
+    assert cfg["agent"]["max_turns"] == 400
+    assert "context_length" not in cfg and "max_turns" not in cfg

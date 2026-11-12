@@ -227,6 +227,8 @@ class _BaseStackManager:
     ``_apply`` (the backend-specific restart)."""
 
     _prompt_re: re.Pattern = _OMLX_PROMPT_RE
+    #: Hermes provider entries kept pointed at this stack's server.
+    _hermes_providers: tuple[str, ...] = ("mlxlocal",)
 
     def __init__(self, registry_path: str | Path) -> None:
         data = yaml.safe_load(Path(registry_path).read_text()) or {}
@@ -377,22 +379,51 @@ class _BaseStackManager:
             return
         cfg_path = Path(cfg_path)
         cfg = yaml.safe_load(cfg_path.read_text()) or {}
-        prov = (cfg.get("providers") or {}).get("mlxlocal")
-
         changed = False
-        if cfg.get("model") != model:
-            cfg["model"] = model
-            changed = True
-        if max_turns and cfg.get("max_turns") != max_turns:
-            cfg["max_turns"] = max_turns
-            changed = True
-        if context_length and cfg.get("context_length") != context_length:
-            cfg["context_length"] = context_length
-            changed = True
-        if prov is not None:
+        if isinstance(cfg.get("model"), dict):
+            # Hermes >= v0.23.0 (config v52) keeps `model: {default, context_length}`
+            # and migrates the legacy root `context_length` / `max_turns` keys ONLY
+            # when the new location is empty -- so a root write is silently ignored
+            # once the config has been migrated. Write the canonical locations.
+            msec = cfg["model"]
+            if msec.get("default") != model:
+                msec["default"] = model
+                changed = True
+            if context_length and msec.get("context_length") != context_length:
+                msec["context_length"] = context_length
+                changed = True
+        else:
+            if cfg.get("model") != model:
+                cfg["model"] = model
+                changed = True
+            if context_length and cfg.get("context_length") != context_length:
+                cfg["context_length"] = context_length
+                changed = True
+            if max_turns and cfg.get("max_turns") != max_turns:
+                cfg["max_turns"] = max_turns
+                changed = True
+        if max_turns and (isinstance(cfg.get("model"), dict) or isinstance(cfg.get("agent"), dict)):
+            # `agent.max_turns` wins over the root key in every Hermes that has it.
+            agent_sec = cfg.setdefault("agent", {})
+            if agent_sec.get("max_turns") != max_turns:
+                agent_sec["max_turns"] = max_turns
+                changed = True
+        providers = cfg.get("providers") or {}
+        base = providers.get("mlxlocal")
+        for name in self._hermes_providers:
+            prov = providers.get(name)
+            if prov is None:
+                if base is None:
+                    continue
+                # Created from mlxlocal's shape (api_mode, api_key, name) -- see
+                # _hermes_providers on LlamaCppStackManager for why it must exist.
+                prov = {k: v for k, v in base.items() if k not in ("models", "default_model")}
+                providers[name] = prov
+                cfg["providers"] = providers
+                changed = True
             # Hermes reaches the server through this URL, so it must follow
             # serving.host/port. It was never written here: a stack moved off 8080
-            # would have left Hermes talking to whatever else held 8080.
+            # would have left Hermes talking to whatever else held 8080 (#66).
             api = (f"http://{self.serving.get('host', '127.0.0.1')}:"
                    f"{int(self.serving.get('port', 8080))}/v1")
             if prov.get("api") != api:
@@ -519,6 +550,13 @@ class LlamaCppStackManager(_BaseStackManager):
     """
 
     _prompt_re = _LLAMA_PROMPT_RE
+
+    #: retort runs llama.cpp stacks as ``--provider llamacpp``. Hermes v0.23.0 made
+    #: ``llamacpp`` an alias for ITS OWN managed local server, and with no config
+    #: entry of that name it refuses ("The local model server is turned off")
+    #: without contacting ours -- every run a 10 s crash (exp-96 smoke, #67). A
+    #: ``providers.llamacpp`` entry pointing at our server takes precedence.
+    _hermes_providers = ("mlxlocal", "llamacpp")
 
     def _apply(self, preset: dict) -> None:
         # llama-server takes sampling as launch-time defaults, so there is no

@@ -104,3 +104,27 @@ def test_summary_reports_per_preset_context_and_the_real_backend():
     text = "\n".join(summarize(manifest))
     assert "ctx={'bolt': 98304}" in text and "262144" not in text
     assert "serving  : llamacpp 0.7.0" in text and "oMLX" not in text
+
+
+def test_hermes_v052_config_shape_is_read(tmp_path, monkeypatch):
+    """Hermes v0.23.0 writes `model: {default, context_length}` and `agent.max_turns`."""
+    import yaml
+
+    (tmp_path / ".hermes").mkdir()
+    (tmp_path / ".hermes" / "config.yaml").write_text(yaml.safe_dump({
+        "model": {"default": "Holo4", "context_length": 262144},
+        "agent": {"max_turns": 400},
+        "providers": {
+            "mlxlocal": {"api": "http://127.0.0.1:8081/v1",
+                         "models": {"Holo4": {"context_length": 262144}}},
+            "llamacpp": {"api": "http://127.0.0.1:8081/v1",
+                         "models": {"Holo4": {"context_length": 262144}}},
+        },
+    }))
+    monkeypatch.setenv("HOME", str(tmp_path))
+    h = pv._hermes_config()
+    assert h["model"] == "Holo4"
+    assert h["context_length"] == 262144
+    assert h["max_turns"] == 400
+    assert h["provider_api_llamacpp"] == "http://127.0.0.1:8081/v1"
+    assert h["context_length_llamacpp_provider"] == 262144

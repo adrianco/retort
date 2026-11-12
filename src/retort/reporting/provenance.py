@@ -105,8 +105,17 @@ def _hermes_config() -> dict[str, Any] | None:
         cfg = yaml.safe_load(p.read_text()) or {}
     except Exception:  # noqa: BLE001
         return None
-    prov = (cfg.get("providers") or {}).get("mlxlocal") or {}
+    providers = cfg.get("providers") or {}
+    prov = providers.get("mlxlocal") or {}
     model = cfg.get("model")
+    # Hermes >= v0.23.0 (config v52): `model: {default, context_length}`, and the
+    # turn cap lives under `agent.max_turns`. Its own `model.context_length` is the
+    # first thing it honours for the default model; per-provider entries are the
+    # fallback (see LlamaCppStackManager._hermes_providers).
+    model_ctx = None
+    if isinstance(model, dict):
+        model_ctx = model.get("context_length")
+        model = model.get("default")
     # The PER-MODEL context_length is the one Hermes actually honours. A top-level
     # `context_length:` can read 262144 while the model entry is empty, in which case
     # Hermes silently probes down to its 128K fallback tier — and lcm then compacts at
@@ -114,15 +123,20 @@ def _hermes_config() -> dict[str, Any] | None:
     # Report both, and flag the disagreement, so provenance can never lie about it.
     per_model = (prov.get("models") or {}).get(model, {}).get("context_length")
     top_level = cfg.get("context_length")
+    llamacpp = providers.get("llamacpp") or {}
     return {
         "model": model,
-        "context_length": per_model,          # effective
+        "context_length": model_ctx or per_model,          # effective
+        "context_length_model_section": model_ctx,
         "context_length_top_level": top_level,
         "context_length_unset_per_model": per_model is None,
-        "max_turns": cfg.get("max_turns"),
+        "context_length_llamacpp_provider":
+            (llamacpp.get("models") or {}).get(model, {}).get("context_length"),
+        "max_turns": (cfg.get("agent") or {}).get("max_turns") or cfg.get("max_turns"),
         "plugins": (cfg.get("plugins") or {}).get("enabled"),
         "context_engine": (cfg.get("context") or {}).get("engine"),
         "provider_api": prov.get("api"),
+        "provider_api_llamacpp": llamacpp.get("api"),
         "_config_version": cfg.get("_config_version"),
     }
 
