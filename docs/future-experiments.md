@@ -607,7 +607,7 @@ invest in the solver dependency, master.db merge, and first-class docs.
 <!-- SCAN-HEARTBEAT: the daily scan rewrites the next line on EVERY run, including
      days it finds nothing. Do not hand-edit it. If the date is more than ~2 days
      stale, the scan is not running — see "when the heartbeat goes stale" below. -->
-**Daily scan last completed: 2026-11-11** (scanning for new coding models: 64GB-fittable open weights, and frontier cloud models/versions)
+**Daily scan last completed: 2026-11-13** (scanning for new coding models: 64GB-fittable open weights, and frontier cloud models/versions)
 
 - 2026-09-08 — **GPT-6 Astra (OpenAI) — `gpt-6-astra`** — *the "new codex model"; added by hand
   because the daily scan's scope was open-weights-only until today (widened the same day, see the
@@ -2007,6 +2007,33 @@ survives the toggle, restart the Claude desktop app, which clears the in-memory 
   [Gemini pricing](https://aistudio.google.com/docs/pricing),
   [LLM Gateway timeline](https://llmgateway.io/timeline/2026),
   [TestingCatalog (6.2 Astra sighting)](https://testingcatalog.com/gpt-6-2-astra-appears-codex-usage).
+- 2026-11-13 — **Gemini 4 Hydrogen (Google DeepMind) — `gemini-4-hydrogen` — BLOCKED on reachability, same gate
+  as Argon/Carbon.** *Released **2026-11-12**: Google's fast, cheap Gemini 4 tier, pitched at "everyday coding
+  and agentic workflows".* Facts from Google's own launch post and pricing page, not a news story: standard
+  tier per 1M **$1.50 in / $7.50 out (thinking billed as output), cached input $0.075** (implicit caching
+  only), **flat across the whole 1M context** (no long-context tier) and **no intro/standard date split**,
+  unlike Argon/Carbon. Batch/Flex $0.75 / $3.75, Priority $2.70 / $13.50. **First Gemini 4 model with a free
+  API tier** (free-tier prompts may be used for training; do not run retort on it). **1M context, decode up
+  to 1M tokens** (secondary write-ups say synchronous output caps at 64K; check). Thinking levels
+  **low / medium / high (default) / xhigh**: the default is `high`, so set it and record it per CLAUDE.md.
+  Vendor-reported **Terminal-Bench 4.1 57%** (Gemini 3.8 Flash 18.2%), AA Intelligence Index 51 at high /
+  54 at xhigh (Argon 50); no SWE-bench or DeepSWE reported. Available in the Gemini API, AI Studio,
+  Antigravity (Pro/Ultra) and Android Studio; **Gemini CLI is not mentioned**. **Not runnable today:**
+  retort drives `claude` and `codex`, no Gemini runner is installed, and **`src/retort/pricing.py` has no
+  Gemini entry**, so a run would report $0. **Framing:** priced between Luna 6 / Haiku 5.5 ($0.10/$0.50)
+  and 6.1 Terra ($1/$5) / Sol ($2/$10), and it outscores Argon on Google's own index at a lower price. If a
+  Gemini runner is built, **Hydrogen is the cheapest Gemini cell to start with**, and on routine work it
+  joins the cheap-tier comparison where pass-proportion is still a live response. *(Also this cycle:
+  **ERNIE 5.5 Flash Preview** (Baidu, 2026-11-11) is the 280B-A14B model already excluded 2026-11-10 as
+  ERNIE-5.5-Flash-Base, about 140 GB at 4-bit. **Qwen4-Max-Preview** (Alibaba, 2026-11-11) has no
+  confirmed open weights, and Max-tier Qwen is far oversized anyway. **Gemini Decision 1** (2026-11-11) is a
+  "System One" decision model. **Praxis-1** (Runway, 27B) is a world-action model, not a coder. No new
+  64GB-fittable open-weight coder. The New Stack AI category was not reachable this run, so it was covered
+  via trackers.)*
+  Sources: [Google launch post](https://blog.google/innovation-and-ai/models-and-research/gemini-models/introducing-gemini-4-hydrogen/),
+  [Gemini pricing](https://aistudio.google.com/docs/pricing),
+  [Artificial Analysis](https://artificialanalysis.ai/models/releases/gemini-4-hydrogen),
+  [nocode.mba tracker](https://www.nocode.mba/ai-release-tracker/2026/11).
 
 *Excluded 2026-11-10, recorded so they are not re-investigated:* **Hy4 preview weights** (Tencent, now on
 Hugging Face as `tencent/Hy4-preview`, Apache 2.0) — 770B-A49B, ~1.4 TiB BF16, far oversized (the 2026-11-06
