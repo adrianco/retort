@@ -1,0 +1,37 @@
+# Experiment 97 — Fable 5.2 on brazil-soccer-mcp, all thirteen languages, low effort, n=1 screen.
+#
+# The hard half of the 13x2 grid for Fable 5.2 (exp-94/95 cleared the routine task 13/13 at low,
+# $0.94/run mean). Design copied cell-for-cell from experiment-79-opus55-isolated/brazil so the
+# comparator is Opus 5.5 at low, isolated (13/13, $2.25-3.72 a cell, $37 total, 2.6 h agent time).
+#
+# QUESTION: does Fable 5.2 undercut Opus 5.5 on the hard task? Fable 5 cost ~$10.5/brazil run, so
+# the expectation recorded before the run is ~$40-70 total and NO undercut; a pass-proportion
+# below 13/13 would be the surprise.
+#
+# n=1 is a screen, not a pass-proportion — read 0/1 and 1/1 accordingly.
+#
+# SMOKE TEST 2026-11-13, Claude Code 2.1.325 (upgraded from 2.1.322 for this run): the id
+# claude-fable-5-2 is accepted and reported in modelUsage; --effort reaches the model (6x6
+# three-per-row/column count: 4 output tokens at low vs 414 at max, both correct 297200).
+# Agent isolation as exp-79: --strict-mcp-config, empty --mcp-config, setting sources project,local.
+experiment:
+  name: experiment-97-fable52-brazil
+  visibility: public
+factors:
+  language: { levels: [python, go, typescript, rust, java, clojure, erlang, elixir, csharp, c, cpp, swift, objc] }
+  prompt: { levels: [neutral, none] }                     # design pins neutral
+  model: { levels: [claude-fable-5-2, claude-opus-5-5] }  # design pins fable 5.2
+  effort: { levels: [low, default] }                      # design pins low
+responses: [code_quality, token_efficiency, test_coverage, defect_rate, maintainability, idiomatic]
+tasks:
+  - source: github://brazil-bench/benchmark-template/brazilian-soccer-mcp-guide.md
+playpen:
+  runner: local
+  replicates: 1
+  timeout_minutes: 150
+  stall_minutes: 30
+  max_turns: 200
+  prompts_dir: prompts
+design: { screening_resolution: 3, significance_threshold: 0.10 }
+promotion: { screening_to_trial: { p_value: 0.10 }, trial_to_production: { posterior_confidence: 0.80 } }
+evaluation: { enabled: true, model: opus-4.8 }

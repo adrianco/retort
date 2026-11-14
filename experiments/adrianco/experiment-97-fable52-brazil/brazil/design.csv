@@ -1,0 +1,14 @@
+run,language,model,prompt,effort
+0,python,claude-fable-5-2,neutral,low
+1,go,claude-fable-5-2,neutral,low
+2,typescript,claude-fable-5-2,neutral,low
+3,rust,claude-fable-5-2,neutral,low
+4,java,claude-fable-5-2,neutral,low
+5,clojure,claude-fable-5-2,neutral,low
+6,erlang,claude-fable-5-2,neutral,low
+7,elixir,claude-fable-5-2,neutral,low
+8,csharp,claude-fable-5-2,neutral,low
+9,c,claude-fable-5-2,neutral,low
+10,cpp,claude-fable-5-2,neutral,low
+11,swift,claude-fable-5-2,neutral,low
+12,objc,claude-fable-5-2,neutral,low

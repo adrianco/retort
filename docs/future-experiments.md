@@ -35,7 +35,7 @@ Upgraded the same day (user rule: run the latest versions and record them):
 
 | tool | was | now | verified by |
 |---|---|---|---|
-| Claude Code CLI | 2.1.302 | **2.1.322** (2026-11-12) | `claude -p` judge preflight (exp-92/93); 2.1.322 Fable 5.2 smoke + exp-94/95 |
+| Claude Code CLI | 2.1.322 | **2.1.325** (2026-11-13) | 2.1.325 Fable 5.2 id + `--effort` smoke (exp-97); 2.1.322 ran exp-94/95 |
 | codex-cli | 0.163.0 | **0.167.2** (2026-11-12; 0.167.0 ran exp-92/93) | `gpt-6.1-terra` smoke, then exp-92 (13 runs) |
 | llama.cpp (brew) | 0.7.0 (b11669) | **0.9.0 (b12110)** | Nemotron Bolt probe: no longer crashes (see exp-90) |
 | Hermes agent | v0.22.2 | **v0.23.0** | exp-96 smoke (2026-11-12): first try crashed in 10 s, because `--provider llamacpp` now means Hermes' own managed server (#67). It also migrates its config to v52 (`model: {default, context_length}`, `agent.max_turns`) and then ignores root keys. Both fixed in retort (c4275b7b). Re-smoke: python pass in 140 s, real tool calls, server `/props` temp 0.6 / top_p 0.95 / top_k 20 / repeat 1.0 / n_ctx 262144, and Hermes' resolver returns 262144 with or without the pin. **Also:** its gateway needs `stop --yes` (#69), and its terminal uses a login-shell PATH (Node 22, python.org python3), not retort's. retort now pins it via `terminal.shell_init_files` (#71) |
@@ -92,6 +92,17 @@ is picked after #4 frees the machine.
 
 
 
+
+## 0. exp-97 — Fable 5.2 on the hard task, 13 languages at low  — RUNNING 2026-11-13
+
+**Intent:** the hard half of Fable 5.2's 13×2 grid (exp-94/95 cleared rest-api-crud 13/13 at low,
+$0.94/run). Design copied cell-for-cell from exp-79 (Opus 5.5, low, isolated, brazil: 13/13,
+$2.25–3.72 a cell, $37 total) so the only change is the model.
+`claude-fable-5-2 × effort=low × prompt=neutral × language{13} × brazil-soccer-mcp`, n=1 screen.
+
+**Hypothesis, recorded before the run:** 13/13 (or near) at ~$3–5 a cell, ~$40–70 total — i.e.
+Fable 5.2 matches Opus 5.5 on pass-proportion but does **not** undercut it on cost, so the board
+does not change. A cheaper-than-Opus result, or any 0/1 cell, would be the finding.
 
 ## 0. exp-90 — Nemotron 3.5 Bolt 74B-A9B on llama.cpp  — BLOCKED 2026-10-19 (llama.cpp Metal kernel gap)
 
