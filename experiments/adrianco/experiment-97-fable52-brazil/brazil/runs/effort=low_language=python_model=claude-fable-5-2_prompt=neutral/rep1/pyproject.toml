@@ -1,0 +1,18 @@
+[project]
+name = "brazilian-soccer-mcp"
+version = "1.0.0"
+description = "MCP server answering questions about Brazilian soccer from Kaggle datasets"
+requires-python = ">=3.10"
+dependencies = []
+
+[project.optional-dependencies]
+test = ["pytest"]
+
+[project.scripts]
+brazilian-soccer-mcp = "brazilian_soccer_mcp.server:main"
+
+[tool.setuptools]
+packages = ["brazilian_soccer_mcp"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]

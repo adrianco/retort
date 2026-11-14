@@ -93,17 +93,6 @@ is picked after #4 frees the machine.
 
 
 
-## 0. exp-97 — Fable 5.2 on the hard task, 13 languages at low  — RUNNING 2026-11-13
-
-**Intent:** the hard half of Fable 5.2's 13×2 grid (exp-94/95 cleared rest-api-crud 13/13 at low,
-$0.94/run). Design copied cell-for-cell from exp-79 (Opus 5.5, low, isolated, brazil: 13/13,
-$2.25–3.72 a cell, $37 total) so the only change is the model.
-`claude-fable-5-2 × effort=low × prompt=neutral × language{13} × brazil-soccer-mcp`, n=1 screen.
-
-**Hypothesis, recorded before the run:** 13/13 (or near) at ~$3–5 a cell, ~$40–70 total — i.e.
-Fable 5.2 matches Opus 5.5 on pass-proportion but does **not** undercut it on cost, so the board
-does not change. A cheaper-than-Opus result, or any 0/1 cell, would be the finding.
-
 ## 0. exp-90 — Nemotron 3.5 Bolt 74B-A9B on llama.cpp  — BLOCKED 2026-10-19 (llama.cpp Metal kernel gap)
 
 **Update 2026-11-06, llama.cpp 0.9.0 (b12110):** the ne20=9 kernel crash is **gone**. The full prompt runs
@@ -229,9 +218,8 @@ output makes a hard-task grid a large spend).
 
 **Superseded:** Fable 5.2 (released 2026-11-09) cleared the routine task 13/13 at low in exp-94/95
 ([write-up](past-experiments.md)). Running 5.1's grid now would measure a retired model. The remaining
-gap is the **hard task on 5.2**: brazil-soccer-mcp × 13 languages at low, n=1 screen, roughly
-\$40–70 if it costs 4–8× its routine \$0.94 the way Fable 5 did. Not queued yet: it changes the board
-only if it undercuts Opus 5.5 at low (\$1.33–2.73 a cell), and Fable 5's hard cells cost ~\$10.
+gap was the **hard task on 5.2**, run as exp-97 on 2026-11-14: 13/13 at \$5.43 a cell, 1.3–2.7× Opus
+5.5, so it does not change the board ([write-up](past-experiments.md)).
 
 *Original plan, kept for the record:*
 

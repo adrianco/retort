@@ -1,6 +1,6 @@
 # The Tasks: What Gets Built, and How Differently a Run Can Pass
 
-*Published 2026-07-30 · updated 2026-11-08 — Adrian Cockcroft*
+*Published 2026-07-30 · updated 2026-11-14 — Adrian Cockcroft*
 
 What retort actually asks an agent to build, and — for each task — the fastest and the slowest run that fully passed. Both mean shortest/longest `duration_seconds` among runs scoring `requirement_coverage == 1.0`, restricted to runs whose **agent log was archived**, since a record with no log can't be shown.
 
@@ -74,7 +74,7 @@ It is hard for reasons that have nothing to do with algorithms: team names carry
 >
 > Measured at low effort, **GPT-6 Astra, Opus 5, Opus 5.5 and GPT-5.6 Terra all score 1.00 here.** They differ only in money and clock: Terra ~\$0.39 a run, Opus 5.5 \$1.33–\$2.73, Astra ~\$2.37, Opus 5 ~\$7.59. Opus 5.5 clears **all thirteen languages** on it.
 >
-> **Update 2026-10-18: the saturation now reaches down to the cheapest Claude.** Haiku 5.5 at `low` cleared **38 of 39** brazil runs across all thirteen languages (exp-86), at about \$0.33 a run. On the cloud side this task now separates almost nothing but price and clock — which makes a harder task more urgent, not less.
+> **Update 2026-10-18: the saturation now reaches down to the cheapest Claude.** Haiku 5.5 at `low` cleared **38 of 39** brazil runs across all thirteen languages (exp-86), at about \$0.33 a run. On the cloud side this task now separates almost nothing but price and clock — which makes a harder task more urgent, not less. Fable 5.2 at `low` added another 13 of 13 on 2026-11-14 (exp-97, all first attempts), at \$4.10–6.88 a run.
 >
 > **The task has not become easy — it has become unable to discriminate at the top of the market.** It still floors every local stack: the 80B scores **0.00** (verified config-invariant — it reaches 11 of 12 capabilities and never the twelfth), and the 35B **0.25**. So it remains a live measurement for local models and a saturated one for frontier cloud models.
 >

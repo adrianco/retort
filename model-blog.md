@@ -1,6 +1,6 @@
 # How Reliable Is Your AI Coding Stack? I Measured It
 
-*Published 2026-06-11 · updated 2026-11-13 — Adrian Cockcroft*
+*Published 2026-06-11 · updated 2026-11-14 — Adrian Cockcroft*
 
 ---
 
@@ -10,7 +10,7 @@ Those are the variables that decide a real project. So I built **[retort](https:
 
 ## What's new (2026-10-19)
 
-- **Fable 5.2 passes all thirteen routine languages at low effort, at about \$0.94 a run (2026-11-12).** It lists 20% cheaper per token than Fable 5.1, but it used more tokens, so on matched cells a run cost only 2–17% less (exp-94/95, one run per language). It changes no recommendation: Haiku 5.5 and the GPT Terras clear the same routine cells for \$0.04–0.26. It has not been run on the hard task yet.
+- **Fable 5.2 passes all twenty-six cells at low effort, every one on the first attempt, but costs about twice Opus 5.5 on the hard task (2026-11-14).** On the routine task it averaged \$0.94 a run (exp-94/95). It lists 20% cheaper per token than Fable 5.1, but it used more tokens, so on matched cells a run cost only 2–17% less. On the hard task (exp-97, one run per language) it averaged \$5.43 and 13 minutes. That is about half Fable 5's cost there, but 1.3–2.7× Opus 5.5 in every language for the same 1.00. It changes no recommendation: Opus 5.5 is cheaper on every hard cell, and Haiku 5.5 and the GPT Terras clear the routine cells for \$0.04–0.26.
 - **GPT-6.1 Terra at low effort passed all thirteen languages, at about four cents a run (2026-11-08).** Run through Codex, it cleared every routine language (exp-92 screened each once; exp-93 took C#, Erlang, Elixir, Objective-C and Swift to three runs). That is about a fifth of GPT-5.6 Terra's price, and it passed Swift, where 5.6 Terra did not. It is now the cheapest stack for C and Objective-C. Its C# and Python cells show below 1.00 only because three passes came on a second attempt after scorer bugs zeroed the first (#64, #65, both fixed). The C# fix also recovered one of Haiku 5.5's runs: its routine C# cell is 0.83, not 0.67. Not yet run on the hard task.
 - **Restated: a pass that needed a second attempt now counts half.** That has always been the documented rule; the generator behind these tables counted it as a full pass. Regenerated under the right rule, **the free 80B's TypeScript falls from 1.00 to 0.83**, so no local stack clears TypeScript unattended. Older Opus, Terra and Luna figures dip slightly too.
 - **Holo4-35B-A3B is the fastest local stack yet** — Python in under two and a half minutes, a third of the 80B's time — but it is not on the board. Re-measured on llama.cpp 0.9.0 and Hermes v0.23.0 (exp-96), Go passed 3/3, but two passes needed a second try because the first attempt missed one spec requirement. TypeScript scored 0/3: the code worked, but the tests were hand-rolled scripts the scorer cannot read, or declared a runner that was never installed. Getting that one clean TypeScript batch took four harness fixes ([harness](harness-blog.md)).

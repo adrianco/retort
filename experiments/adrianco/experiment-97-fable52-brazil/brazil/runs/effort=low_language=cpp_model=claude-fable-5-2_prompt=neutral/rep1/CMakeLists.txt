@@ -1,0 +1,21 @@
+cmake_minimum_required(VERSION 3.14)
+project(brazilian_soccer_mcp CXX)
+set(CMAKE_CXX_STANDARD 17)
+set(CMAKE_CXX_STANDARD_REQUIRED ON)
+if(NOT CMAKE_BUILD_TYPE)
+  set(CMAKE_BUILD_TYPE Release)
+endif()
+
+add_library(soccer STATIC src/soccer.cpp src/tools.cpp)
+target_include_directories(soccer PUBLIC src)
+target_compile_options(soccer PRIVATE -Wall -Wextra)
+
+add_executable(brazilian_soccer_mcp src/main.cpp)
+target_link_libraries(brazilian_soccer_mcp soccer)
+target_compile_definitions(brazilian_soccer_mcp PRIVATE DEFAULT_DATA_DIR="${CMAKE_SOURCE_DIR}/data/kaggle")
+
+enable_testing()
+add_executable(soccer_tests tests/test_main.cpp)
+target_link_libraries(soccer_tests soccer)
+target_compile_definitions(soccer_tests PRIVATE DATA_DIR="${CMAKE_SOURCE_DIR}/data/kaggle")
+add_test(NAME soccer_tests COMMAND soccer_tests)

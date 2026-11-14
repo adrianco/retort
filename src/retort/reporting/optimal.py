@@ -355,12 +355,13 @@ KNOWN_NONFEATURED = {
         "(same reasoning as the Qwen3-Coder-Next spellings below). Not featured yet "
         "because coverage is thin: 4 languages on rest-api-crud only, against the 13x2 "
         "grid every featured stack carries. Feature it once it has that coverage.",
-    "claude-fable-5-2": "Fable 5.2 (exp-94/95, released 2026-11-09, $8/$40): measured at LOW "
-        "effort, not featured. Routine task 13/13 at n=1, mean $0.94 and 108 s a run -- only "
-        "2-17% cheaper per run than isolated 5.1 (exp-80) on the four matched cells, because "
-        "it uses 1.2-1.8x the tokens. Not featured: no hard-task "
-        "(brazil) coverage yet, and on the routine task it is never the cheapest qualifier "
-        "(Haiku 5.5 and the GPT Terras clear the same cells for $0.04-0.26).",
+    "claude-fable-5-2": "Fable 5.2 (exp-94/95/97, released 2026-11-09, $8/$40): measured at LOW "
+        "effort on the full 13x2 grid, n=1, 26/26 first-try passes, not featured. Routine mean "
+        "$0.94 and 108 s a run; brazil (exp-97) $4.10-6.88, mean $5.43 and 761 s a run -- about "
+        "half Fable 5's $10.47 (which ran at default effort), but 1.3-2.7x Opus 5.5's isolated "
+        "low-effort cost on every matched hard cell (exp-79, mean $2.86) for the same 1.00. "
+        "Not featured because it is dominated: Opus 5.5 clears every hard cell cheaper, and "
+        "Haiku 5.5 and the GPT Terras clear the routine cells for $0.04-0.26.",
     "claude-sonnet-5-5": "Sonnet 5.5 (exp-77/78, released 2026-09-28): measured, not featured. "
         "35/36 on the routine task across the effort ladder in python and go; isolated (exp-78) "
         "low is ~$0.10 a run. Not featured: 2 languages on 1 task, and Haiku 5.5 (featured) clears "

@@ -2639,3 +2639,39 @@ experiment's real finding.
 
 Archive: `smoke-crash-67/`, `grid-crash-68/` (crashes), `rest-api-crud/` (go valid; typescript void, #70),
 `ts-node-mismatch-71/` (void, #71), `rest-api-crud-ts/` (the clean typescript batch).
+
+
+## exp-97 — Fable 5.2 on the hard task, 13 languages at low  — COMPLETE, 2026-11-14
+
+**Design:** `claude-fable-5-2 × effort=low × prompt=neutral × language{13} × brazil-soccer-mcp`, n=1,
+copied cell for cell from exp-79 (Opus 5.5, low, isolated). Claude Code 2.1.325 (smoke: id accepted,
+`--effort` reaches the model, 4 vs 414 output tokens low vs max). 21:07 → 00:29, one run at a time.
+
+**Hypothesis (recorded before the run):** 13/13 at ~\$3–5 a cell, ~\$40–70 total, no undercut of Opus 5.5.
+**Result: confirmed, at the top of the cost range.** 13/13, every run on the first attempt, coverage 1.00
+everywhere. \$70.59 total, mean \$5.43 and 761 s a run (Opus 5.5 exp-79: \$2.86, 711 s).
+
+| language | Fable 5.2 cost | time | Opus 5.5 (exp-79) | ratio |
+|---|---:|---:|---:|---:|
+| python | $4.10 | 511 s | $2.31 | 1.78× |
+| typescript | $4.42 | 559 s | $2.64 | 1.67× |
+| cpp | $4.83 | 639 s | $3.66 | 1.32× |
+| objc | $5.00 | 640 s | $3.21 | 1.56× |
+| java | $5.19 | 650 s | $2.29 | 2.27× |
+| go | $5.32 | 669 s | $3.39 | 1.57× |
+| clojure | $5.54 | 698 s | $2.62 | 2.12× |
+| rust | $5.57 | 808 s | $2.35 | 2.37× |
+| elixir | $5.64 | 783 s | $2.25 | 2.51× |
+| csharp | $5.77 | 746 s | $3.40 | 1.70× |
+| c | $6.10 | 808 s | $3.72 | 1.64× |
+| swift | $6.24 | 986 s | $2.35 | 2.65× |
+| erlang | $6.88 | 1388 s | $3.04 | 2.27× |
+
+- **Not featured.** Fable 5.2 now has the full 13×2 grid at 26/26, but Opus 5.5 clears every hard cell
+  for less (1.3–2.7× against the isolated exp-79; 2.0–4.7× against exp-75), and Haiku 5.5 / the GPT Terras
+  are cheaper on routine. A dominated stack is not added.
+- **Tokens are about the same** (1.79M vs 1.70M a run, 17.9 vs 20.8 turns): the higher bill is the per-token
+  price, not extra work.
+- **About half Fable 5's \$10.47 hard cost**, but Fable 5 ran at default effort, so most of that is the dial.
+- Fable 5 keeps its featured slot as the better-replicated (n=21) hard-task alternative; 5.2 is n=1 a cell.
+- No harness problems: recover found nothing to re-score.
