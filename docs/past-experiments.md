@@ -2601,3 +2601,41 @@ agent isolation.
 
 **Next:** exp-70 (the 13×2 grid on 5.1) is superseded by 5.2. The open question is the hard task: brazil-soccer-mcp on 5.2
 at low, where Opus 5.5 at low costs \$1.33–2.73 a cell and Fable 5 about \$10.47.
+
+## exp-96 — Holo4-35B-A3B re-measure on llama.cpp 0.9.0 + Hermes v0.23.0  — COMPLETE, 2026-11-13
+
+**Intent:** settle exp-91's go (1/3) and typescript (2/3) cells, which were muddied by a server exit (#59)
+and a re-judgement flip (#60), on a stable server. Stack as exp-91 except port 8081 (#66) and two version
+bumps: llama.cpp 0.7.0 → 0.9.0 and Hermes v0.22.2 → v0.23.0. Settings verified on the server: temp 0.6,
+top_p 0.95, top_k 20, repeat 1.0, n_ctx 262144. Hermes' resolver confirmed 262144.
+
+| cell | result | notes |
+|---|---|---|
+| python (smoke, n=1) | pass, 140 s | exp-91: 3/3 at 106–208 s |
+| go (n=3) | **3/3, credit 2.0/3 (0.67)** | rep1 first try, 376 s. rep2 and rep3 scored coverage 0.92 on the first attempt (one spec requirement missed, as in exp-91's go rep1) and passed on the second. rep2's wall-clock is void (#69) |
+| typescript (n=3, clean batch) | **0/3, GENUINE** | two runs tested with hand-written `ts-node` scripts that no recognised runner parses (one also had 2 real failures on re-test); one declared `jest` as its test script without depending on it |
+
+**Not featured.** Go is a repeatable one-requirement near-miss. TypeScript under Hermes v0.23.0 fails on
+test-harness choices, not on the API code. exp-91's 2/3 ran on Hermes v0.22.2 with a different Node, so the
+drop cannot be pinned on the model.
+
+**It took three typescript batches and four harness fixes to get one clean measurement.** This is the
+experiment's real finding.
+1. **#69:** `hermes gateway stop` refuses without `--yes` while the just-finished turn is listed live (5 of 6
+   stops failed). Killing a timed-out run kills only the client, so the turn ran on in the gateway for 66
+   min, through the next run. Fixed: `--yes`, and the gateway is stopped on the kill path too.
+2. **#70:** `/usr/local/bin/python3` hung at startup. A stale `.pth` pointed into a `~/Documents` that macOS
+   was blocking. node-gyp runs it, so every native `npm install` hung, and typescript took 35–60 min instead
+   of 3–9. llama-server was busy only ~2,600 s of a ~3 h grid. Fixed on the host (the `.pth` was deleted);
+   retort now probes every `python3` on the agent's PATH before each run and fails fast as HARNESS.
+3. **#71:** Hermes v0.23.0 builds its terminal env from a login-shell snapshot, so the agent got
+   `/usr/local/bin/node` (Node 22) while the scorer runs Homebrew's Node 26. The agent's better-sqlite3 build
+   passed 13/13 in its own terminal, but the scorer could neither load nor rebuild it, giving three
+   "tests did not run" zeros that `retort diagnose` misread as GENUINE. On re-test under Node 22 all three
+   archives pass. Fixed: retort writes its PATH to a file Hermes sources (`terminal.shell_init_files`),
+   checked with a probe (the agent now resolves Node 26.7.0).
+4. `recover`'s re-evaluate preflight could not find the `evaluate-run` skill when given a relative
+   `--experiment-dir`. Fixed by resolving the path first.
+
+Archive: `smoke-crash-67/`, `grid-crash-68/` (crashes), `rest-api-crud/` (go valid; typescript void, #70),
+`ts-node-mismatch-71/` (void, #71), `rest-api-crud-ts/` (the clean typescript batch).

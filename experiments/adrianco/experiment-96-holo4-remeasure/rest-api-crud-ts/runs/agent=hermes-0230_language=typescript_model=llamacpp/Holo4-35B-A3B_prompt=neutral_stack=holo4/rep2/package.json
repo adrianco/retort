@@ -1,0 +1,29 @@
+{
+  "name": "retort-50f9306eaef5",
+  "version": "1.0.0",
+  "description": "Book Collection REST API",
+  "main": "dist/index.js",
+  "scripts": {
+    "build": "tsc",
+    "start": "node dist/index.js",
+    "dev": "ts-node src/index.ts",
+    "test": "tsc --project tsconfig.tests.json && node dist/tests/books.test.js"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "type": "commonjs",
+  "dependencies": {
+    "better-sqlite3": "^13.1.1",
+    "express": "^5.3.0"
+  },
+  "devDependencies": {
+    "@types/better-sqlite3": "^9.6.0",
+    "@types/express": "^5.0.6",
+    "@types/node": "^26.6.6",
+    "@types/supertest": "^7.2.1",
+    "supertest": "^7.3.2",
+    "ts-node": "^10.9.2",
+    "typescript": "^7.0.2"
+  }
+}

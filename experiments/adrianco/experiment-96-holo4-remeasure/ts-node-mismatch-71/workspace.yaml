@@ -1,0 +1,33 @@
+# exp-96 (rest-api-crud): Holo4-35B-A3B re-measure on llama.cpp 0.9.0 (b12110) + Hermes v0.23.0.
+# Stack identical to exp-91 except serving port 8081 (8080 held by an unrelated app, #66)
+# and the two version bumps. See docs/future-experiments.md (exp-96).
+experiment:
+  name: experiment-96-holo4-remeasure-rest-api-crud-ts
+  visibility: public
+factors:
+  language: { levels: [python, go, typescript] }
+  agent: { levels: [hermes-0230, hermes-local] }
+  prompt: { levels: [neutral, none] }
+  stack: { levels: [holo4, q4] }
+  model:
+    levels:
+      - llamacpp/Holo4-35B-A3B
+      - mlxlocal/mlx-community--Qwen3-Coder-30B-A3B-Instruct-4bit
+responses: [code_quality, token_efficiency, test_coverage, defect_rate, maintainability, idiomatic]
+tasks:
+  - source: bundled://rest-api-crud
+playpen:
+  runner: local
+  replicates: 3
+  timeout_minutes: 60
+  stall_minutes: 25
+  max_turns: 400
+  stack_presets: stacks.yaml
+  prompts_dir: prompts
+  local_agents:
+    hermes-0230:
+      harness: hermes
+      bin: /Users/adriancockcroft/code/hermes-agent/.venv/bin/hermes
+design: { screening_resolution: 3, significance_threshold: 0.10 }
+promotion: { screening_to_trial: { p_value: 0.10 }, trial_to_production: { posterior_confidence: 0.80 } }
+evaluation: { enabled: true, model: opus-4.8 }

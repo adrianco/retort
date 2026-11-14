@@ -137,6 +137,8 @@ def _hermes_config() -> dict[str, Any] | None:
         "context_engine": (cfg.get("context") or {}).get("engine"),
         "provider_api": prov.get("api"),
         "provider_api_llamacpp": llamacpp.get("api"),
+        # #71: retort pins the agent terminal's PATH via this init file.
+        "terminal_shell_init_files": (cfg.get("terminal") or {}).get("shell_init_files"),
         "_config_version": cfg.get("_config_version"),
     }
 

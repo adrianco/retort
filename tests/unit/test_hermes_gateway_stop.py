@@ -89,3 +89,33 @@ def test_hung_interpreter_fails_the_run_fast(tmp_path, monkeypatch):
     env_id = runner.provision(stack, task)
     art = runner.execute(env_id, stack, task)
     assert art.exit_code == 125 and "HARNESS" in art.stderr and not ran
+
+
+def test_pin_hermes_toolchain_writes_path_and_registers_it(tmp_path, monkeypatch):
+    """#71: the agent's login-shell terminal must resolve the scorer's PATH."""
+    import yaml
+
+    monkeypatch.setenv("RETORT_HOME", str(tmp_path / "rh"))
+    hh = tmp_path / "hh"
+    hh.mkdir()
+    (hh / "config.yaml").write_text(yaml.safe_dump({"model": {"default": "m"}}))
+    env = {"PATH": "/opt/homebrew/bin:/usr/bin", "HERMES_HOME": str(hh)}
+    script = local_runner._pin_hermes_toolchain(env)
+    assert "export PATH=/opt/homebrew/bin:/usr/bin" in script.read_text()
+    cfg = yaml.safe_load((hh / "config.yaml").read_text())
+    assert cfg["terminal"]["shell_init_files"] == [str(script)]
+    assert cfg["model"] == {"default": "m"}
+    local_runner._pin_hermes_toolchain(env)  # idempotent: not registered twice
+    cfg = yaml.safe_load((hh / "config.yaml").read_text())
+    assert cfg["terminal"]["shell_init_files"] == [str(script)]
+
+
+def test_find_skill_path_from_a_relative_start(tmp_path, monkeypatch):
+    """recover passes a relative --experiment-dir; the walk must still go up."""
+    from pathlib import Path
+
+    (tmp_path / "skills" / "evaluate-run").mkdir(parents=True)
+    (tmp_path / "skills" / "evaluate-run" / "SKILL.md").write_text("x")
+    (tmp_path / "experiments" / "o" / "exp" / "runs").mkdir(parents=True)
+    monkeypatch.chdir(tmp_path / "experiments" / "o")
+    assert local_runner._find_skill_path("evaluate-run", start=Path("exp/runs")) is not None

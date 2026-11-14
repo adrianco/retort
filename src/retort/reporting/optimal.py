@@ -372,8 +372,9 @@ KNOWN_NONFEATURED = {
         "official Q4_K_M GGUF on llama.cpp): fastest local stack measured (python 106-141 s, 1/3 "
         "the 80B's time) and python 3/3. exp-96 re-measure (llama.cpp 0.9.0, Hermes v0.23.0): go "
         "3/3 but two on the 2nd try (credit 0.67) -- first attempts miss one spec requirement "
-        "(coverage 0.92), as exp-91's did, so go is a genuine near-miss. typescript is unmeasured: "
-        "exp-96's ts cells hung in npm install on a host fault (#70) and await a re-run.",
+        "(coverage 0.92), as exp-91's did, so go is a genuine near-miss. typescript 0/3 on the clean "
+        "batch: hand-rolled test scripts no runner parses, and a jest script with no jest dependency "
+        "(two earlier batches were voided by host and Node-mismatch faults, #70/#71).",
     "mlxlocal/devstral": "Devstral (exp-23): evaluated, not featured",
     "gpt-5.6-sol": "GPT-5.6 Sol (exp-58/59): evaluated, not featured",
     "opus": "legacy bare 'opus' (exp-1/2)",

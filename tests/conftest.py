@@ -164,3 +164,16 @@ def _skip_host_interpreter_probe(request, monkeypatch):
         return
     from retort.playpen import local_runner
     monkeypatch.setattr(local_runner, "_hung_interpreters", lambda env, timeout=20.0: [])
+
+
+@pytest.fixture(autouse=True)
+def _no_host_hermes_config_writes(request, monkeypatch):
+    """LocalRunner.execute pins the Hermes toolchain by editing the HOST's
+    ~/.hermes/config.yaml (#71). Unit tests must never touch it; the test of
+    the pin itself uses a tmp HERMES_HOME and opts out by name."""
+    if "pin_hermes_toolchain" in request.node.name:
+        return
+    from pathlib import Path
+    from retort.playpen import local_runner
+    monkeypatch.setattr(local_runner, "_pin_hermes_toolchain",
+                        lambda env: Path("/nonexistent/hermes-toolchain.sh"))

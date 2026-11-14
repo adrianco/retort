@@ -13,6 +13,7 @@ import os
 import re
 import shutil
 import signal
+import shlex
 import subprocess
 import sys
 import tempfile
@@ -781,6 +782,10 @@ class LocalRunner:
             self._write_opencode_config(info.workspace, stack)
             env["OPENCODE_DB"] = str(self._opencode_db_path(info.workspace))
 
+        toolchain_file = None
+        if self._resolve_harness(stack) == "hermes":
+            toolchain_file = _pin_hermes_toolchain(env)
+
         hung = _hung_interpreters(env)
         if hung:
             # A HARNESS fault, not the model's: fail in seconds, loudly, instead
@@ -876,6 +881,8 @@ class LocalRunner:
                 _hb = self._hermes_bin_for(stack)
                 _export_hermes_session(info.workspace, _hb)
                 metadata["hermes_gateway_stopped"] = str(_stop_hermes_gateway(_hb))
+                if toolchain_file is not None:
+                    metadata["hermes_toolchain_file"] = str(toolchain_file)
 
             # Fast mode bills at 2× but the CLI reports the standard-rate cost —
             # scale it up so the recorded cost is what's actually charged.
@@ -1398,7 +1405,14 @@ class LocalRunner:
 
 
 def _find_skill_path(skill_name: str, start: Path) -> Path | None:
-    """Walk upward from start to locate skills/<name>/SKILL.md."""
+    """Walk upward from start to locate skills/<name>/SKILL.md.
+
+    ``start`` is resolved first: a RELATIVE path's ``.parents`` stop at ``.``,
+    so `retort recover --experiment-dir experiment-NN/...` run from
+    experiments/<owner>/ never reached the repo's skills/ and every
+    re-evaluation failed its preflight ("evaluate-run skill not found").
+    """
+    start = Path(start).resolve()
     for base in [start, *start.parents]:
         candidate = base / "skills" / skill_name / "SKILL.md"
         if candidate.is_file():
@@ -1444,6 +1458,46 @@ def _build_agent_prompt(stack: StackConfig, prompt_injection: str = "") -> str:
         prompt += " " + direct
 
     return prompt
+
+
+def _pin_hermes_toolchain(env: dict) -> Path:
+    """Make the Hermes agent's terminal resolve the SAME toolchain the scorer uses.
+
+    From v0.23.0 Hermes builds its terminal env from a LOGIN-shell snapshot
+    (the agent runs in a gateway daemon started via osascript, not under
+    retort's process env). On macOS a login shell's path_helper puts
+    /etc/paths first, so the agent got /usr/local/bin/node (Node 22) and the
+    python.org python3 while retort's scorer ran Homebrew's Node 26. exp-96's
+    re-run: the agent built better-sqlite3 v9 under Node 22 and saw 13/13
+    tests pass; the scorer, on Node 26, could not load or rebuild it and
+    recorded "tests did not run" -- three TOOLING zeros (#71). Hermes sources
+    ``terminal.shell_init_files`` in that snapshot shell, so retort writes the
+    agent env's PATH to a file there and registers it. Idempotent.
+    """
+    import yaml
+
+    script = _playpen_root() / "hermes-toolchain.sh"
+    script.parent.mkdir(parents=True, exist_ok=True)
+    path = env.get("PATH") or os.environ.get("PATH", "")
+    body = ("# Written by retort before each Hermes run: the agent's terminal uses\n"
+            "# the scorer's toolchain (#71). Do not edit; it is rewritten.\n"
+            f"export PATH={shlex.quote(path)}\n")
+    if not script.exists() or script.read_text() != body:
+        script.write_text(body)
+    cfg_path = Path(env.get("HERMES_HOME") or Path.home() / ".hermes") / "config.yaml"
+    try:
+        cfg = yaml.safe_load(cfg_path.read_text()) or {}
+    except (OSError, yaml.YAMLError):
+        logger.warning("Hermes config %s unreadable; toolchain not pinned", cfg_path)
+        return script
+    term = cfg.get("terminal")
+    if not isinstance(term, dict):
+        term = cfg["terminal"] = {}
+    files = list(term.get("shell_init_files") or [])
+    if str(script) not in files:
+        term["shell_init_files"] = files + [str(script)]
+        cfg_path.write_text(yaml.safe_dump(cfg, sort_keys=False))
+    return script
 
 
 def _hung_interpreters(env: dict, timeout: float = 20.0) -> list[str]:
