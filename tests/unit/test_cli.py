@@ -1935,3 +1935,67 @@ def test_failed_rerun_replaces_the_failed_archive_and_keeps_the_earlier_one(tmp_
     second = _archive_run_workspace(runs, cfg, 1, attempt("a2", "second"), visibility="private")
     assert second == first and (second / "out.txt").read_text() == "second"
     assert (second.parent / "rep1-failed.prev1" / "out.txt").read_text() == "first"
+
+
+def test_analyze_runs_anova_on_csv(tmp_path: Path):
+    """`retort analyze` reaches the ANOVA and residual code.
+
+    It used to call helpers missing from ``retort.cli`` and crash.
+    """
+    import itertools
+    import random
+
+    rng = random.Random(0)
+    rows = ["mode,model,tokens"]
+    cells = itertools.product(["a", "b"], ["x", "y"], range(4))
+    for mode, model, _rep in cells:
+        base = 1000 * (2 if mode == "b" else 1) * (3 if model == "y" else 1)
+        rows.append(f"{mode},{model},{base * rng.uniform(0.9, 1.1):.1f}")
+    data = tmp_path / "data.csv"
+    data.write_text("\n".join(rows) + "\n")
+
+    result = CliRunner().invoke(
+        cli,
+        [
+            "analyze", "--data", str(data), "-r", "tokens",
+            "-f", "mode", "-f", "model", "--residuals",
+        ],
+    )
+    assert result.exit_code == 0, result.output
+    assert "Response: tokens" in result.output
+    assert "Significant" in result.output
+
+
+def test_cli_reexports_resolve():
+    """Every ``cli.<name>`` used in commands/ exists on ``retort.cli``.
+
+    commands/ reaches shared helpers through the ``cli`` module, so the
+    re-exports in cli.py look unused to linters. A dead-code sweep pruned two
+    of them once and ``retort analyze`` crashed with AttributeError; --help
+    tests don't run command bodies, so nothing else caught it.
+    """
+    import ast
+
+    import retort.cli as cli_module
+
+    commands_dir = Path(cli_module.__file__).parent / "commands"
+    missing = []
+    for path in sorted(commands_dir.glob("*.py")):
+        tree = ast.parse(path.read_text())
+        binds_cli = any(
+            isinstance(node, ast.ImportFrom)
+            and node.module == "retort"
+            and any(a.name == "cli" and a.asname is None for a in node.names)
+            for node in ast.walk(tree)
+        )
+        if not binds_cli:
+            continue
+        for node in ast.walk(tree):
+            if (
+                isinstance(node, ast.Attribute)
+                and isinstance(node.value, ast.Name)
+                and node.value.id == "cli"
+                and not hasattr(cli_module, node.attr)
+            ):
+                missing.append(f"{path.name}:{node.lineno} cli.{node.attr}")
+    assert not missing, "retort.cli is missing re-exports: " + ", ".join(missing)
