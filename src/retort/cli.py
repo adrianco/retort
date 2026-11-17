@@ -15,6 +15,8 @@ from retort.design.generator import DesignMatrix, generate_design
 # Split out of this file by concern (see retort/run/). Re-exported so the
 # `cli._name` references in commands/ and tests -- and monkeypatching through
 # this module -- keep resolving. Same pattern as the commands/ imports below.
+from retort.analysis.anova import run_all_responses  # noqa: F401
+from retort.analysis.residuals import check_residuals  # noqa: F401
 from retort.run.liveness import (  # noqa: F401
     _etime_to_seconds,
     _retort_run_pids_for,
