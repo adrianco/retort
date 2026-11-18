@@ -575,7 +575,7 @@ invest in the solver dependency, master.db merge, and first-class docs.
 <!-- SCAN-HEARTBEAT: the daily scan rewrites the next line on EVERY run, including
      days it finds nothing. Do not hand-edit it. If the date is more than ~2 days
      stale, the scan is not running — see "when the heartbeat goes stale" below. -->
-**Daily scan last completed: 2026-11-17** (scanning for new coding models: 64GB-fittable open weights, and frontier cloud models/versions)
+**Daily scan last completed: 2026-11-18** (scanning for new coding models: 64GB-fittable open weights, and frontier cloud models/versions)
 
 - 2026-09-08 — **GPT-6 Astra (OpenAI) — `gpt-6-astra`** — *the "new codex model"; added by hand
   because the daily scan's scope was open-weights-only until today (widened the same day, see the
@@ -2002,6 +2002,56 @@ survives the toggle, restart the Claude desktop app, which clears the in-memory 
   [Gemini pricing](https://aistudio.google.com/docs/pricing),
   [Artificial Analysis](https://artificialanalysis.ai/models/releases/gemini-4-hydrogen),
   [nocode.mba tracker](https://www.nocode.mba/ai-release-tracker/2026/11).
+- 2026-11-18 — **GPT-6.2 Sol (OpenAI) — `gpt-6.2-sol`** — *released **2026-11-17** with 6.2 Astra, in Codex and the
+  API ("for day-to-day coding, start with GPT-6.2 Sol"); supersedes the `gpt-6.1-sol` entry above as the Sol to
+  measure.* Facts from OpenAI's own model page, not a news story: **$2 in / $10 out per 1M, cached input $0.10,
+  cache writes $2.50 (30-min) / $5 (12-hour)** — identical to 6.1 Sol; the write is 1.25× input, so the `gpt-6`
+  cache-write rule carries over. **1,050,000 context**, 922K max input, 128K max output, knowledge cutoff
+  2026-06-01. Long-context tier: >272K input bills 2× input/cache and 1.5× output (not modelled in `pricing.py`).
+  Reasoning effort: the API **rejects `none`**; OpenAI's guide says start at `medium` and use `low` in place of
+  `none`/`minimal` — the full ladder is not listed, so find it on a smoke cell and record it. Standard / Fast /
+  Batch / Ultrafast tiers exist; Ultrafast and Fast ids/prices were not on the pages checked, so pin Standard.
+  Reachable as `codex exec --model gpt-6.2-sol -c model_reasoning_effort=…`; the minimum codex-cli version is not
+  stated — the installed 0.167.2 predates the release, so prove the id resolves on a smoke cell (cf. the 0.156.1
+  `gpt-6.1-sol` rejection). **⚠ `gpt-6.2-sol` is NOT in `src/retort/pricing.py`** (checked 2026-11-18;
+  `normalize_model` does not fall back to `gpt-6.1-sol`, so it returns `None`) — a run today reports **$0** and
+  corrupts the cost columns. Add `TokenPrice(2.00, 0.10, 10.00)` before any cell. **Framing:** same price as
+  6.1 Sol, so a matched 6.1 → 6.2 Sol cell is the clean point-release cost/clock question (§2's "is the point
+  release more expensive", asked of OpenAI); routine and brazil are saturated for frontier models, so it measures
+  cost and clock. Run isolated (per-run `CODEX_HOME`) and always pass `-m` explicitly.
+  Sources: [OpenAI model page](https://developers.openai.com/api/docs/models/gpt-6.2-sol),
+  [Using GPT-6.2 guide](https://developers.openai.com/api/docs/guides/latest-model),
+  [OpenAI announcement](https://openai.com/index/introducing-gpt-6-2-astra-sol/),
+  [Codex usage write-up](https://flaviocopes.com/gpt-6-2/).
+- 2026-11-18 — **GPT-6.2 Astra (OpenAI) — `gpt-6.2-astra`** — *released **2026-11-17**; OpenAI's new flagship and
+  the point release after the `gpt-6-astra` measured in exp-72/73 — and CHEAPER than it.* Facts from OpenAI's own
+  model page: **$8 in / $40 out per 1M** (down 20% from 6 Astra's $10/$50), **cached input $0.40** (vs $1.00),
+  cache writes $10 (30-min) / $20 (12-hour) = 1.25× input, so the `gpt-6` cache-write rule carries over.
+  **1,050,000 context**, 922K max input, 128K max output, knowledge cutoff 2026-05-18; same >272K long-context
+  tier (2× input, 1.5× output; not modelled). Effort: rejects `none`, full ladder not published — record it on a
+  smoke cell. `codex exec --model gpt-6.2-astra`; same unverified-CLI-version caveat as 6.2 Sol. **⚠ `gpt-6.2-astra`
+  is NOT in `src/retort/pricing.py`** — `normalize_model` returns `None`, so a run reports **$0**; add
+  `TokenPrice(8.00, 0.40, 40.00)` before any cell, and do not reuse the `gpt-6-astra` row (cached rate 2.5× too
+  high). **Framing:** 6 Astra was ~3.2× cheaper than Opus 5 on brazil at low (exp-73); 6.2 is 20% cheaper on
+  list and 60% cheaper on cache reads, which dominate agentic runs — a matched brazil cell vs exp-73 answers
+  whether the point release moves cost/clock. Brazil is saturated (1.00 for every frontier model), so it is
+  another argument for the harder-than-brazil task; at $40/M output, size any grid from one smoke cell's cost.
+  *(Also this cycle: **MAI Code 2 / MAI Code 2 Flash** (Microsoft, 2026-11-17) — coding-targeted but closed
+  weights and not reachable via `claude` or `codex`. **Qwen4-Max** (Alibaba, 2026-11-16) — no confirmed open
+  weights, Max-tier, far oversized. **Hy4 flash** (Tencent, 2026-11-16, 12B active of an undisclosed total) —
+  general productivity, no open-weight size published; re-check if a sub-40 GB build appears.
+  **SenseNova-Loop-9B-Preview** (SenseTime, Apache 2.0, released 2026-10-30, ~9B stored / ~14.6B effective via
+  looped layers) — a general multimodal model with coding/tool use among its uses, not coding-specialised; it
+  fits trivially, so it is a borderline gap entry alongside Nanbeige4.2-3B (also looped) if the far end of the
+  size axis is ever run. **Muse Spark Open / Beam / GLM-5.3 Prime** re-listed on trackers 2026-11-16/17 — already
+  excluded. No new 64GB-fittable open-weight coder. The New Stack AI category still returns HTTP 403; covered via
+  trackers.)*
+  Sources: [OpenAI model page](https://developers.openai.com/api/docs/models/gpt-6.2-astra),
+  [OpenAI announcement](https://openai.com/index/introducing-gpt-6-2-astra-sol/),
+  [OpenAI Devs on X](https://x.com/OpenAIDevs/status/2122752256923873753),
+  [nocode.mba tracker](https://www.nocode.mba/ai-release-tracker/2026/11),
+  [LLM Gateway timeline](https://llmgateway.io/timeline/2026),
+  [SenseNova-Loop-9B](https://technode.com/2026/11/02/sensetime-open-sources-9-billion-parameter-ai-model-that-reuses-layers-for-deeper-processing/).
 
 *Excluded 2026-11-10, recorded so they are not re-investigated:* **Hy4 preview weights** (Tencent, now on
 Hugging Face as `tencent/Hy4-preview`, Apache 2.0) — 770B-A49B, ~1.4 TiB BF16, far oversized (the 2026-11-06
