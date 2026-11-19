@@ -575,7 +575,7 @@ invest in the solver dependency, master.db merge, and first-class docs.
 <!-- SCAN-HEARTBEAT: the daily scan rewrites the next line on EVERY run, including
      days it finds nothing. Do not hand-edit it. If the date is more than ~2 days
      stale, the scan is not running — see "when the heartbeat goes stale" below. -->
-**Daily scan last completed: 2026-11-18** (scanning for new coding models: 64GB-fittable open weights, and frontier cloud models/versions)
+**Daily scan last completed: 2026-11-19** (scanning for new coding models: 64GB-fittable open weights, and frontier cloud models/versions)
 
 - 2026-09-08 — **GPT-6 Astra (OpenAI) — `gpt-6-astra`** — *the "new codex model"; added by hand
   because the daily scan's scope was open-weights-only until today (widened the same day, see the
@@ -2052,6 +2052,32 @@ survives the toggle, restart the Claude desktop app, which clears the in-memory 
   [nocode.mba tracker](https://www.nocode.mba/ai-release-tracker/2026/11),
   [LLM Gateway timeline](https://llmgateway.io/timeline/2026),
   [SenseNova-Loop-9B](https://technode.com/2026/11/02/sensetime-open-sources-9-billion-parameter-ai-model-that-reuses-layers-for-deeper-processing/).
+- 2026-11-19 — **Gemini 4 Neon (Google DeepMind) — `gemini-4-neon` — BLOCKED on reachability, same gate as
+  Argon/Carbon/Hydrogen.** *Released **2026-11-18**: a mid-tier Gemini 4 model between Carbon (heavy, long-horizon)
+  and Hydrogen (fast, everyday), pitched at "complex software engineering, knowledge work, and science workflows"
+  with "fast end-to-end task completion".* Facts from Google's own models and pricing pages, not a news story:
+  **`gemini-4-neon`**, **1M context**, max output listed as both 64K and 1M (same ambiguity as Carbon; check),
+  text/image/audio/video/PDF input, no Stable/Preview badge. Standard tier per 1M **$3 in / $15 out (thinking
+  billed as output), cached input $0.15**, implicit caching only; Batch/Flex $1.50 / $7.50, Priority $5.40 / $27;
+  **no free tier** and **no intro/standard date split** (unlike Argon/Carbon). Thinking levels are **not
+  documented** on either page; find them on a smoke cell and record them per CLAUDE.md. Google's coding pitch:
+  multi-file debugging and refactoring across large repos, and acting as an orchestrator for parallel Hydrogen
+  sub-agents in Antigravity. Vendor-reported: first on the Artificial Analysis Coding Agent Index (~58.6), and
+  "50–80% lower cost per task" than top competitors (Google's own comparison). Available in the Gemini API, AI
+  Studio, Gemini for business, Antigravity (paid) and the Gemini app (Pro/Ultra); **Gemini CLI is not
+  mentioned**. **Not runnable today:** retort drives `claude` and `codex`, no Gemini runner is installed, and
+  **`src/retort/pricing.py` has no Gemini entry**, so a run would report $0. **Framing:** priced 1.5× Sol/Sonnet
+  5.5 ($2/$10) and below Opus 5.5 ($4/$20). Once Carbon's intro rate ends on 2026-12-01 (rising to $4/$20), Neon
+  is the cheaper Gemini frontier option. Routine and brazil are saturated for frontier models, so a grid would
+  measure cost and clock and again argues for the harder-than-brazil task (exp-73). It is the fourth Gemini 4
+  model waiting on the same runner. *(Also this cycle: no new 64GB-fittable open-weight coder; **U2-Flash-1118**
+  (Unisound, announced 2026-11-18) has no size or weights published; **Rumble-2-Flash** is a 0.5B speech model.
+  The New Stack AI category still returns HTTP 403; covered via trackers.)*
+  Sources: [Gemini models page](https://aistudio.google.com/docs/models),
+  [Gemini pricing](https://aistudio.google.com/docs/pricing),
+  [Google for Developers on X](https://x.com/googledevs/status/2123176874818084938),
+  [InfoWorld](https://www.infoworld.com/article/4250618/google-launches-gemini-4-neon-touting-lower-costs-for-complex-ai-coding-tasks.html),
+  [nocode.mba tracker](https://www.nocode.mba/ai-release-tracker/2026/11).
 
 *Excluded 2026-11-10, recorded so they are not re-investigated:* **Hy4 preview weights** (Tencent, now on
 Hugging Face as `tencent/Hy4-preview`, Apache 2.0) — 770B-A49B, ~1.4 TiB BF16, far oversized (the 2026-11-06
