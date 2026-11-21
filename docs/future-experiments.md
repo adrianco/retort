@@ -575,7 +575,7 @@ invest in the solver dependency, master.db merge, and first-class docs.
 <!-- SCAN-HEARTBEAT: the daily scan rewrites the next line on EVERY run, including
      days it finds nothing. Do not hand-edit it. If the date is more than ~2 days
      stale, the scan is not running — see "when the heartbeat goes stale" below. -->
-**Daily scan last completed: 2026-11-20** (scanning for new coding models: 64GB-fittable open weights, and frontier cloud models/versions)
+**Daily scan last completed: 2026-11-21** (scanning for new coding models: 64GB-fittable open weights, and frontier cloud models/versions)
 
 - 2026-09-08 — **GPT-6 Astra (OpenAI) — `gpt-6-astra`** — *the "new codex model"; added by hand
   because the daily scan's scope was open-weights-only until today (widened the same day, see the
@@ -2078,6 +2078,42 @@ survives the toggle, restart the Claude desktop app, which clears the in-memory 
   [Google for Developers on X](https://x.com/googledevs/status/2123176874818084938),
   [InfoWorld](https://www.infoworld.com/article/4250618/google-launches-gemini-4-neon-touting-lower-costs-for-complex-ai-coding-tasks.html),
   [nocode.mba tracker](https://www.nocode.mba/ai-release-tracker/2026/11).
+- 2026-11-21 — **Inkling 2 Mini (Thinking Machines Lab) — `thinkingmachines/Inkling-2-Mini`** — *published
+  **2026-11-20**; the first Thinking Machines model small enough for this box (Inkling 2 Small, 594B, was excluded
+  2026-11-06), and a second **looped** transformer after Nanbeige4.2-3B, this time at subject size.* **Apache 2.0**,
+  **26.4B total / 3.4B active MoE** (8 of 128 experts, pruned from 384), 24 stored layers whose middle 12 run **three
+  times with shared weights** (48 layer applications per token, ~5.4B effective active), hybrid local/global attention,
+  multimodal (ViT image input — dead weight for retort's text tasks). Context "up to 1M" per the HF card (Tinker reportedly
+  caps it at 256K). **Single ~20 GB checkpoint** (experts NVFP4, last four layers MXFP8, rest BF16) and the vendor says it
+  runs on **Apple silicon with ≥32 GB** → fits 64GB with plenty of headroom. Vendor-reported agentic coding, against
+  candidates already on this list: **SWE-bench Verified 79.2** (Qwen3.8-27B 77.8, Muse Glimmer 76.0), **Terminal-Bench
+  2.1 71.6** (Qwen3.8-27B 73.0), **DeepSWE v1.1 48.2** (Qwen3.8-27B 42.2 — the best open model under 100B on it), SWE-bench
+  Multilingual 73.7, MCP Atlas 82.7; Artificial Analysis independently scores it level with Qwen3.8-27B (index 20.1).
+  **Serving is the gate.** The card lists Ollama and Exo on Apple silicon, llama.cpp via GGUF (Unsloth; 83 community
+  quants, none official) and vLLM/SGLang; **no MLX build is mentioned**, and the card itself warns "support for looped
+  models in local runtimes is new, and speed varies". The NVFP4 experts are a CUDA format, so an oMLX path needs a convert
+  from a BF16 source, and a llama.cpp path needs a build that implements the loop — gate-probe both, and confirm the
+  runtime actually executes three passes (a runtime that silently runs one pass would score the 1-pass model: the
+  varloop card shows SWE-bench Verified **56.3 at 1 pass vs 78.7 at 3**, DeepSWE 0.7 vs 47.4 — a set-but-not-verified
+  parameter of exactly the CLAUDE.md kind). **Not documented anywhere checked:** tool-call format/parser, recommended
+  sampling, and the thinking-mode API ("minimum effort does not fully disable reasoning") — smoke-test a real
+  `<tool_call>` through Hermes, and set, verify and record sampling and effort. **Why it earns a high slot:** coding
+  numbers in the Qwen3.8-27B / Ornith-1.5 bracket at a smaller footprint, a new lineage, and loop count is a new
+  compute-per-token axis on fixed weights. The research sibling **`thinkingmachines/TML-d24-varloop-research`** (same
+  weights class, trained at 1–5 passes, "not intended for production") would make **pass count a DoE factor** — a
+  test-time-compute dial for local models — if a runtime exposes it. Judge priority: alongside Qwen3.8-27B and
+  Ornith-1.5, behind them only on serving risk. *(Also this cycle: **bison-1 / groundhog-1** (Baseten, 2026-11-20,
+  Gemma 4 31B / 26B-A4B post-trains, MIT) are decision/classification models, same class as Strands Decider — not
+  coders. **Ayb-0.5** (Metric AI, 2026-11-20, 0.8B–9B on Qwen3.5) has no card found. "Kimi K3.1 Pro Prime" (one tracker,
+  2026-11-20) is unconfirmed and 3T-class like the K3.1 Pro excluded 2026-11-06. No new Track B model or version. The
+  New Stack AI category still returns HTTP 403; covered via trackers.)*
+  Sources: [Thinking Machines announcement](https://thinkingmachines.ai/news/inkling-2-mini/),
+  [HF card](https://huggingface.co/thinkingmachines/Inkling-2-Mini),
+  [varloop variant](https://huggingface.co/thinkingmachines/TML-d24-varloop-research),
+  [The Next Web](https://thenextweb.com/news/inkling-2-mini-thinking-machines-looped-open-weights-laptop),
+  [Artificial Analysis](https://artificialanalysis.ai/models/inkling-2-mini),
+  [nocode.mba tracker](https://www.nocode.mba/ai-release-tracker/2026/11),
+  [Baseten bison-1/groundhog-1](https://www.baseten.co/blog/meet-bison-1-and-groundhog-1/).
 
 *Excluded 2026-11-10, recorded so they are not re-investigated:* **Hy4 preview weights** (Tencent, now on
 Hugging Face as `tencent/Hy4-preview`, Apache 2.0) — 770B-A49B, ~1.4 TiB BF16, far oversized (the 2026-11-06
