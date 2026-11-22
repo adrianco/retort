@@ -144,3 +144,16 @@ def test_gpt61_terra_is_priced_and_charges_cache_writes():
         output_tokens=10_000)
     # 100K uncached @ $1 + 900K cached @ $0.05 + 10K out @ $5
     assert cost == pytest.approx(0.10 + 0.045 + 0.05)
+
+
+@pytest.mark.parametrize("model,uncached,cached,out", [
+    ("gpt-6.2-sol", 2.00, 0.10, 10.00),
+    ("gpt-6.2-astra", 8.00, 0.40, 40.00),
+])
+def test_gpt62_is_priced_at_its_own_rates_and_charges_cache_writes(model, uncached, cached, out):
+    # Without these rows normalize_model returns None and a run reports $0 (scan, 2026-11-18).
+    from retort.pricing import charges_for_cache_writes, estimate_openai_cost_usd
+    assert charges_for_cache_writes(model)
+    cost = estimate_openai_cost_usd(
+        model, input_tokens=1_000_000, cached_input_tokens=900_000, output_tokens=10_000)
+    assert cost == pytest.approx(0.1 * uncached + 0.9 * cached + 0.01 * out)

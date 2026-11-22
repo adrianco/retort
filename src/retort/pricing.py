@@ -34,7 +34,7 @@ from dataclasses import dataclass
 
 #: Where the table came from and when. Update both when you touch the numbers.
 PRICES_SOURCE = "https://developers.openai.com/api/docs/pricing"
-PRICES_AS_OF = "2026-09-23"
+PRICES_AS_OF = "2026-11-22"
 
 
 @dataclass(frozen=True)
@@ -76,6 +76,14 @@ OPENAI_PRICES: dict[str, TokenPrice] = {
     # cache-write rule covers it. >272K-input prompts bill 2x input/1.5x output -- not
     # modelled; a routine run never gets near it.
     "gpt-6.1-terra": TokenPrice(1.00, 0.05, 5.00),
+    # GPT-6.2 Sol / Astra -- released 2026-11-17. Verified 2026-11-22 against
+    # developers.openai.com/api/docs/models/gpt-6.2-{sol,astra}: Sol $2 / cached $0.10 /
+    # cache write $2.50 (30-min) / $10; Astra $8 / cached $0.40 / write $10 / $40. Writes
+    # are 1.25x input, so the gpt-6 cache-write rule covers both. Do NOT reuse the
+    # gpt-6-astra row (cached rate 2.5x too high). The API rejects effort `none`; the
+    # ladder is not published. NOT MODELLED: >272K-input prompts bill 2x input/1.5x output.
+    "gpt-6.2-sol": TokenPrice(2.00, 0.10, 10.00),
+    "gpt-6.2-astra": TokenPrice(8.00, 0.40, 40.00),
     # GPT-5.6
     "gpt-5.6-sol": TokenPrice(5.00, 0.50, 30.00),
     "gpt-5.6-terra": TokenPrice(2.50, 0.25, 15.00),
