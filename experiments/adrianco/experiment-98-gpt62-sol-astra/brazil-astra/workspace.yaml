@@ -1,0 +1,33 @@
+# Experiment 98 — GPT-6.2 Sol and GPT-6.2 Astra (released 2026-11-17) via Codex at LOW effort, n=1 screen,
+# all 13 languages on both tasks. Only the new models run; comparators come from master.db:
+# gpt-6-astra (exp-72/73, low), gpt-6.1-terra (exp-92/93, low). Sol has never been measured here.
+#
+# SMOKE 2026-11-22, codex-cli 0.171.0 (upgraded from 0.167.2), clean CODEX_HOME with auth.json only:
+# both ids resolve; effort reaches the model (6x6 three-per-row/column count, correct 297200 at both
+# levels; reasoning tokens Sol 30 low vs 157 high, Astra 10 vs 55); usage (incl. cached input) reported.
+# Prices added to pricing.py 2026-11-22 from OpenAI model pages: Sol $2/$0.10/$10, Astra $8/$0.40/$40.
+# Judge: Claude Code 2.1.330. n=1 is a screen: read 0/1 and 1/1 accordingly.
+experiment:
+  name: experiment-98-gpt62-brazil-astra
+  visibility: public
+factors:
+  language: { levels: [python, go, typescript, rust, java, clojure, erlang, elixir, csharp, c, cpp, swift, objc] }
+  agent: { levels: [codex, claude-code] }
+  prompt: { levels: [neutral, none] }
+  model: { levels: [gpt-6.2-sol, gpt-6.2-astra] }
+  effort: { levels: [low, default] }
+responses: [code_quality, token_efficiency, test_coverage, defect_rate, maintainability, idiomatic]
+tasks:
+  - source: github://brazil-bench/benchmark-template/brazilian-soccer-mcp-guide.md
+playpen:
+  runner: local
+  replicates: 1
+  timeout_minutes: 150
+  stall_minutes: 40
+  max_turns: 200
+  prompts_dir: prompts
+  local_agents:
+    codex: { harness: codex, model: gpt-6.2-astra }
+design: { screening_resolution: 3, significance_threshold: 0.10 }
+promotion: { screening_to_trial: { p_value: 0.10 }, trial_to_production: { posterior_confidence: 0.80 } }
+evaluation: { enabled: true, model: opus-4.8 }

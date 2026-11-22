@@ -1,0 +1,14 @@
+run,language,agent,prompt,model,effort
+0,python,codex,neutral,gpt-6.2-astra,low
+1,go,codex,neutral,gpt-6.2-astra,low
+2,typescript,codex,neutral,gpt-6.2-astra,low
+3,rust,codex,neutral,gpt-6.2-astra,low
+4,java,codex,neutral,gpt-6.2-astra,low
+5,clojure,codex,neutral,gpt-6.2-astra,low
+6,erlang,codex,neutral,gpt-6.2-astra,low
+7,elixir,codex,neutral,gpt-6.2-astra,low
+8,csharp,codex,neutral,gpt-6.2-astra,low
+9,c,codex,neutral,gpt-6.2-astra,low
+10,cpp,codex,neutral,gpt-6.2-astra,low
+11,swift,codex,neutral,gpt-6.2-astra,low
+12,objc,codex,neutral,gpt-6.2-astra,low

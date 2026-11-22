@@ -35,8 +35,8 @@ Upgraded the same day (user rule: run the latest versions and record them):
 
 | tool | was | now | verified by |
 |---|---|---|---|
-| Claude Code CLI | 2.1.322 | **2.1.325** (2026-11-13) | 2.1.325 Fable 5.2 id + `--effort` smoke (exp-97); 2.1.322 ran exp-94/95 |
-| codex-cli | 0.163.0 | **0.167.2** (2026-11-12; 0.167.0 ran exp-92/93) | `gpt-6.1-terra` smoke, then exp-92 (13 runs) |
+| Claude Code CLI | 2.1.325 | **2.1.330** (2026-11-22) | 2.1.325 Fable 5.2 id + `--effort` smoke (exp-97); 2.1.322 ran exp-94/95 |
+| codex-cli | 0.167.2 | **0.171.0** (2026-11-22, brew cask) | `gpt-6.2-sol` / `gpt-6.2-astra` smoke (exp-98); 0.167.x ran exp-92/93 |
 | llama.cpp (brew) | 0.7.0 (b11669) | **0.9.0 (b12110)** | Nemotron Bolt probe: no longer crashes (see exp-90) |
 | Hermes agent | v0.22.2 | **v0.23.0** | exp-96 smoke (2026-11-12): first try crashed in 10 s, because `--provider llamacpp` now means Hermes' own managed server (#67). It also migrates its config to v52 (`model: {default, context_length}`, `agent.max_turns`) and then ignores root keys. Both fixed in retort (c4275b7b). Re-smoke: python pass in 140 s, real tool calls, server `/props` temp 0.6 / top_p 0.95 / top_k 20 / repeat 1.0 / n_ctx 262144, and Hermes' resolver returns 262144 with or without the pin. **Also:** its gateway needs `stop --yes` (#69), and its terminal uses a login-shell PATH (Node 22, python.org python3), not retort's. retort now pins it via `terminal.shell_init_files` (#71) |
 
@@ -92,6 +92,23 @@ is picked after #4 frees the machine.
 
 
 
+
+## 0. exp-98 — GPT-6.2 Sol and GPT-6.2 Astra, 13 languages × both tasks at low  — QUEUED 2026-11-22
+
+**Intent:** screen both OpenAI point releases (2026-11-17) on the full 13×2 grid at `low`, n=1, via Codex
+0.171.0 with a clean per-run `CODEX_HOME`. Three phases run one at a time by a driver that never starts a
+phase that would cross the ~08:06 daily scan: rest-api-crud (both models, 26 runs), brazil Sol (13), brazil
+Astra (13). Comparators from master.db: `gpt-6-astra` low (exp-72/73: routine \$0.69, brazil \$2.25, 1.00),
+`gpt-6.1-terra` low (exp-92/93). Sol has never been measured here.
+
+**Smoke (2026-11-22):** both ids resolve; effort reaches the model (reasoning tokens Sol 30→157, Astra 10→55
+low→high, same correct answer); usage incl. cached input is reported. `pricing.py` had no row for either
+(a run would have reported \$0) — added from OpenAI's model pages: Sol \$2/\$0.10/\$10, Astra \$8/\$0.40/\$40.
+
+**Hypothesis, recorded before the run:** both pass ~all 26 cells (routine and brazil are saturated for
+frontier models). Astra 6.2 is cheaper per run than 6 Astra (20% lower list, 60% lower cached input). Sol
+lands between Terra 6.1 and Astra on cost. Neither undercuts Haiku 5.5 / Terra 6.1 on routine, so the
+interesting cells are brazil cost vs Haiku 5.5 (\$0.33) and Opus 5.5 — and any language below 1.00.
 
 ## 0. exp-90 — Nemotron 3.5 Bolt 74B-A9B on llama.cpp  — BLOCKED 2026-10-19 (llama.cpp Metal kernel gap)
 
