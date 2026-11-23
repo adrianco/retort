@@ -1,0 +1,27 @@
+cmake_minimum_required(VERSION 3.16)
+project(book_collection LANGUAGES CXX)
+
+find_package(PkgConfig REQUIRED)
+pkg_check_modules(LIBEVENT REQUIRED IMPORTED_TARGET libevent)
+pkg_check_modules(JSONC REQUIRED IMPORTED_TARGET json-c>=0.15)
+find_package(SQLite3 REQUIRED)
+
+if(TARGET SQLite3::SQLite3)
+    set(SQLITE_TARGET SQLite3::SQLite3)
+else()
+    set(SQLITE_TARGET SQLite::SQLite3)
+endif()
+
+add_executable(books_api books_api.cpp)
+target_compile_features(books_api PRIVATE cxx_std_17)
+target_link_libraries(books_api PRIVATE PkgConfig::LIBEVENT PkgConfig::JSONC ${SQLITE_TARGET})
+
+include(CTest)
+if(BUILD_TESTING)
+    add_executable(books_api_tests test_api.cpp)
+    target_compile_features(books_api_tests PRIVATE cxx_std_17)
+    target_link_libraries(books_api_tests PRIVATE PkgConfig::LIBEVENT PkgConfig::JSONC ${SQLITE_TARGET})
+    foreach(test health lifecycle filter validation persistence)
+        add_test(NAME books_${test} COMMAND books_api_tests ${test})
+    endforeach()
+endif()

@@ -1,0 +1,10 @@
+{
+  "severity_counts": {"critical": 0, "high": 0, "medium": 0, "low": 0, "info": 0},
+  "penalty_score": 1.0,
+  "top_findings": [],
+  "requirement_coverage": 1.0,
+  "model": "gpt-6.2-sol",
+  "evaluated_at": "2026-11-22T18:53:32Z",
+  "min_severity": "high",
+  "note": "2 info-level findings in findings.jsonl are below min_severity=high and excluded. All 12 pinned requirements implemented; test_coverage=1.0. No tracker issues filed (no findings at/above high; file-run-issues v2.0 does not create beads/GitHub issues)."
+}

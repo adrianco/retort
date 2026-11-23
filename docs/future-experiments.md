@@ -93,23 +93,6 @@ is picked after #4 frees the machine.
 
 
 
-## 0. exp-98 — GPT-6.2 Sol and GPT-6.2 Astra, 13 languages × both tasks at low  — QUEUED 2026-11-22
-
-**Intent:** screen both OpenAI point releases (2026-11-17) on the full 13×2 grid at `low`, n=1, via Codex
-0.171.0 with a clean per-run `CODEX_HOME`. Three phases run one at a time by a driver that never starts a
-phase that would cross the ~08:06 daily scan: rest-api-crud (both models, 26 runs), brazil Sol (13), brazil
-Astra (13). Comparators from master.db: `gpt-6-astra` low (exp-72/73: routine \$0.69, brazil \$2.25, 1.00),
-`gpt-6.1-terra` low (exp-92/93). Sol has never been measured here.
-
-**Smoke (2026-11-22):** both ids resolve; effort reaches the model (reasoning tokens Sol 30→157, Astra 10→55
-low→high, same correct answer); usage incl. cached input is reported. `pricing.py` had no row for either
-(a run would have reported \$0) — added from OpenAI's model pages: Sol \$2/\$0.10/\$10, Astra \$8/\$0.40/\$40.
-
-**Hypothesis, recorded before the run:** both pass ~all 26 cells (routine and brazil are saturated for
-frontier models). Astra 6.2 is cheaper per run than 6 Astra (20% lower list, 60% lower cached input). Sol
-lands between Terra 6.1 and Astra on cost. Neither undercuts Haiku 5.5 / Terra 6.1 on routine, so the
-interesting cells are brazil cost vs Haiku 5.5 (\$0.33) and Opus 5.5 — and any language below 1.00.
-
 ## 0. exp-90 — Nemotron 3.5 Bolt 74B-A9B on llama.cpp  — BLOCKED 2026-10-19 (llama.cpp Metal kernel gap)
 
 **Update 2026-11-06, llama.cpp 0.9.0 (b12110):** the ne20=9 kernel crash is **gone**. The full prompt runs

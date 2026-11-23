@@ -1,6 +1,6 @@
 # How Reliable Is Your AI Coding Stack? I Measured It
 
-*Published 2026-06-11 · updated 2026-11-14 — Adrian Cockcroft*
+*Published 2026-06-11 · updated 2026-11-22 — Adrian Cockcroft*
 
 ---
 
@@ -8,8 +8,9 @@ Every few weeks a new frontier model tops the leaderboards, and the implicit adv
 
 Those are the variables that decide a real project. So I built **[retort](https://github.com/adrianco/retort)** to measure them properly — with statistical Design of Experiments, the same technique you'd use to tune a manufacturing process. Vary the factors you care about (here: programming **language** × **model version** × **tooling** — and, newly, the **coding agent**, the **prompt methodology**, and **local self-hosted models**), run a factorial grid on a real task, score every cell, and let the analysis tell you which factors actually matter. And because retort accumulates results across a shared database, each new model just gets *added* to what's already known — the point of the project is to measure how each new release behaves without re-running everything. It now spans two tasks, **thirteen** languages, the Claude Sonnet/Opus lines (plus a fast-mode variant, the tier-above Fable 5, and the newest Opus 5), **OpenAI's Codex line (GPT-5.6)**, and **local models running for free on a laptop**.
 
-## What's new (2026-10-19)
+## What's new (2026-11-22)
 
+- **GPT-6.2 Astra is the fastest model yet on the hard task, and cheaper than Opus 5.5 (2026-11-22).** I ran OpenAI's new Sol and Astra through Codex at low effort, once in each of the thirteen languages on both tasks (exp-98). Astra built the twelve-capability MCP server in about four minutes a run for \$0.83. Opus 5.5 at low effort averages seven and a half minutes and \$2.01, and Haiku 5.5 eight minutes and \$0.33. On every cell where I have an isolated Opus 5.5 run to compare, Astra was both faster and cheaper, by 1.1–4× on time. It lists only 20% cheaper per token than GPT-6 Astra, but on the six cells both have run it cost a third to a half as much and finished about twice as fast. It used 18–47% fewer tokens, so most of the saving is less work, not the lower price. It isn't on the board yet because it scored 12 of 13. Its C# server worked, but it tested it with a hand-rolled checker instead of a test framework, so nothing measurable ran. Sol made exactly the same C# choice. **Sol** passed everything else too, at \$0.13 a routine run and \$0.49 a hard one. That is more than Haiku 5.5 in most cells, but it is now the cheapest stack that gets hard-task C and Elixir right, so it joins the board for those two cells. In C the next-best option is Opus 5.5 at \$3.00.
 - **Fable 5.2 passes all twenty-six cells at low effort, every one on the first attempt, but costs about twice Opus 5.5 on the hard task (2026-11-14).** On the routine task it averaged \$0.94 a run (exp-94/95). It lists 20% cheaper per token than Fable 5.1, but it used more tokens, so on matched cells a run cost only 2–17% less. On the hard task (exp-97, one run per language) it averaged \$5.43 and 13 minutes. That is about half Fable 5's cost there, but 1.3–2.7× Opus 5.5 in every language for the same 1.00. It changes no recommendation: Opus 5.5 is cheaper on every hard cell, and Haiku 5.5 and the GPT Terras clear the routine cells for \$0.04–0.26.
 - **GPT-6.1 Terra at low effort passed all thirteen languages, at about four cents a run (2026-11-08).** Run through Codex, it cleared every routine language (exp-92 screened each once; exp-93 took C#, Erlang, Elixir, Objective-C and Swift to three runs). That is about a fifth of GPT-5.6 Terra's price, and it passed Swift, where 5.6 Terra did not. It is now the cheapest stack for C and Objective-C. Its C# and Python cells show below 1.00 only because three passes came on a second attempt after scorer bugs zeroed the first (#64, #65, both fixed). The C# fix also recovered one of Haiku 5.5's runs: its routine C# cell is 0.83, not 0.67. Not yet run on the hard task.
 - **Restated: a pass that needed a second attempt now counts half.** That has always been the documented rule; the generator behind these tables counted it as a full pass. Regenerated under the right rule, **the free 80B's TypeScript falls from 1.00 to 0.83**, so no local stack clears TypeScript unattended. Older Opus, Terra and Luna figures dip slightly too.
@@ -88,6 +89,7 @@ Here is the full board, every model measured on the two tasks — **pass-proport
 | Claude Fable 5 | cloud | **1.00 (36)** | $1.58 | **1.00 (21)** | $10.47 |
 | GPT-5.6 Terra (codex) | cloud | 0.98 (31) | $0.24 | 0.55 (49) | $1.00 |
 | GPT-6.1 Terra (codex, low) | cloud | 0.93 (23) | $0.06 | *not run* | — |
+| GPT-6.2 Sol (codex, low) | cloud | 0.96 (13) | $0.13 | 0.92 (13) | $0.49 |
 | GPT-5.6 Luna (codex) | cloud | 0.67 (9) | $0.09 | 0.17 (6) | $0.17 |
 | Claude Sonnet 5 | cloud | **1.00 (15)** | $1.10 | 0.93 (15) | $7.64 |
 | Claude Opus 4.8 | cloud | 0.98 (65) | $0.93 | 0.59 (44) | $3.27 |

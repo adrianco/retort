@@ -1,0 +1,1 @@
+/usr/bin/c++ -Wall -Wextra -g -arch arm64 -Wl,-search_paths_first -Wl,-headerpad_max_install_names CMakeFiles/soccer_mcp.dir/main.cpp.o CMakeFiles/soccer_mcp.dir/soccer.cpp.o -o soccer_mcp  /opt/homebrew/lib/libboost_json.dylib /opt/homebrew/lib/libboost_container.dylib /opt/homebrew/Cellar/utf8proc/2.11.3/lib/libutf8proc.dylib

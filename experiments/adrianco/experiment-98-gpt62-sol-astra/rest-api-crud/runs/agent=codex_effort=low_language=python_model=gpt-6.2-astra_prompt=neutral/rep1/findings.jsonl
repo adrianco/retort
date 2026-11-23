@@ -1,0 +1,2 @@
+{"id": "enh-1", "kind": "enhancement", "severity": "info", "title": "Returns 415 for non-JSON content type beyond spec", "evidence": "app.py:13 read_book rejects non-application/json with 415", "suggestion": "None — robustness beyond the required validation"}
+{"id": "enh-2", "kind": "enhancement", "severity": "info", "title": "Maps sqlite3.Error to 503 and emits Allow header on 405", "evidence": "app.py:106-107 wraps DB errors as 503; app.py:65 sets Allow on 405", "suggestion": "None — graceful degradation beyond the required status codes"}

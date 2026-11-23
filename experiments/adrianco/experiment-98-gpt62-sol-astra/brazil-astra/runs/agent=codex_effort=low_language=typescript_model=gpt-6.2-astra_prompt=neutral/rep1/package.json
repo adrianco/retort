@@ -1,0 +1,15 @@
+{
+  "name": "brazilian-soccer-mcp",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "build": "tsc",
+    "start": "node dist/server.js",
+    "test": "npm run build && node --test dist/soccer.test.js"
+  },
+  "devDependencies": {
+    "typescript": "5.9.3",
+    "@types/node": "26.6.6"
+  }
+}

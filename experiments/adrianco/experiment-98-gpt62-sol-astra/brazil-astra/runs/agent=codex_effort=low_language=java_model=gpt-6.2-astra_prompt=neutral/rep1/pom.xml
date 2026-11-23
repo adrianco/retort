@@ -1,0 +1,16 @@
+<project xmlns="http://maven.apache.org/POM/4.0.0">
+  <modelVersion>4.0.0</modelVersion>
+  <groupId>demo.soccer</groupId><artifactId>soccer-mcp</artifactId><version>1.0</version>
+  <properties><maven.compiler.release>17</maven.compiler.release><project.build.sourceEncoding>UTF-8</project.build.sourceEncoding></properties>
+  <dependencies>
+    <dependency><groupId>com.fasterxml.jackson.datatype</groupId><artifactId>jackson-datatype-jsr310</artifactId><version>2.18.3</version></dependency>
+    <dependency><groupId>com.fasterxml.jackson.core</groupId><artifactId>jackson-databind</artifactId><version>2.18.3</version></dependency>
+    <dependency><groupId>org.apache.commons</groupId><artifactId>commons-csv</artifactId><version>1.11.0</version></dependency>
+    <dependency><groupId>org.junit.jupiter</groupId><artifactId>junit-jupiter</artifactId><version>5.11.4</version><scope>test</scope></dependency>
+  </dependencies>
+  <build><sourceDirectory>.</sourceDirectory><testSourceDirectory>.</testSourceDirectory><finalName>soccer-mcp</finalName><plugins>
+    <plugin><artifactId>maven-compiler-plugin</artifactId><version>3.13.0</version><configuration><includes><include>*.java</include></includes><excludes><exclude>*Test.java</exclude></excludes><testIncludes><testInclude>*Test.java</testInclude></testIncludes></configuration></plugin>
+    <plugin><artifactId>maven-surefire-plugin</artifactId><version>3.5.2</version></plugin>
+    <plugin><artifactId>maven-shade-plugin</artifactId><version>3.6.0</version><executions><execution><phase>package</phase><goals><goal>shade</goal></goals><configuration><createDependencyReducedPom>false</createDependencyReducedPom><transformers><transformer implementation="org.apache.maven.plugins.shade.resource.ManifestResourceTransformer"><mainClass>SoccerServer</mainClass></transformer></transformers></configuration></execution></executions></plugin>
+  </plugins></build>
+</project>

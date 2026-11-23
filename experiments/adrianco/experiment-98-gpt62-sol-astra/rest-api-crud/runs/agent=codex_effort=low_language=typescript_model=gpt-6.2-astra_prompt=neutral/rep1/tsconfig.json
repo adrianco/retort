@@ -1,0 +1,11 @@
+{
+  "compilerOptions": {
+    "target": "ES2023",
+    "module": "NodeNext",
+    "strict": true,
+    "noEmitOnError": true,
+    "outDir": "dist",
+    "types": ["node"]
+  },
+  "include": ["*.ts"]
+}

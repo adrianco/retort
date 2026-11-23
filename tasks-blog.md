@@ -1,6 +1,6 @@
 # The Tasks: What Gets Built, and How Differently a Run Can Pass
 
-*Published 2026-07-30 · updated 2026-11-14 — Adrian Cockcroft*
+*Published 2026-07-30 · updated 2026-11-22 — Adrian Cockcroft*
 
 What retort actually asks an agent to build, and — for each task — the fastest and the slowest run that fully passed. Both mean shortest/longest `duration_seconds` among runs scoring `requirement_coverage == 1.0`, restricted to runs whose **agent log was archived**, since a record with no log can't be shown.
 
@@ -74,7 +74,7 @@ It is hard for reasons that have nothing to do with algorithms: team names carry
 >
 > Measured at low effort, **GPT-6 Astra, Opus 5, Opus 5.5 and GPT-5.6 Terra all score 1.00 here.** They differ only in money and clock: Terra ~\$0.39 a run, Opus 5.5 \$1.33–\$2.73, Astra ~\$2.37, Opus 5 ~\$7.59. Opus 5.5 clears **all thirteen languages** on it.
 >
-> **Update 2026-10-18: the saturation now reaches down to the cheapest Claude.** Haiku 5.5 at `low` cleared **38 of 39** brazil runs across all thirteen languages (exp-86), at about \$0.33 a run. On the cloud side this task now separates almost nothing but price and clock — which makes a harder task more urgent, not less. Fable 5.2 at `low` added another 13 of 13 on 2026-11-14 (exp-97, all first attempts), at \$4.10–6.88 a run.
+> **Update 2026-10-18: the saturation now reaches down to the cheapest Claude.** Haiku 5.5 at `low` cleared **38 of 39** brazil runs across all thirteen languages (exp-86), at about \$0.33 a run. On the cloud side this task now separates almost nothing but price and clock — which makes a harder task more urgent, not less. Fable 5.2 at `low` added another 13 of 13 on 2026-11-14 (exp-97, all first attempts), at \$4.10–6.88 a run. On 2026-11-22 GPT-6.2 Sol and GPT-6.2 Astra each cleared 12 of 13 (exp-98), at \$0.49 and \$0.83 a run. Both missed only C#, for the same reason: they wrote their tests without a test framework, so the coverage tool had nothing to run (#74). Astra averaged 4.3 minutes a run, the fastest mean across all thirteen languages so far, though not a single-run record.
 >
 > **The task has not become easy — it has become unable to discriminate at the top of the market.** It still floors every local stack: the 80B scores **0.00** (verified config-invariant — it reaches 11 of 12 capabilities and never the twelfth), and the 35B **0.25**. So it remains a live measurement for local models and a saturated one for frontier cloud models.
 >
@@ -232,7 +232,7 @@ One pattern worth flagging inside this experiment: the three slowest passing run
 
 ## Cheapest passing configuration, per language, per task
 
-Every row below scores `requirement_coverage = 1.00`. This is the cheapest stack *measured so far* that fully implements the spec in that language — not the only one that passes. **Rebuilt 2026-11-08 from the same routing data as [`optimal.json`](optimal.json)**, rather than maintained by hand: the hand version had drifted to recommend stacks the generated routing no longer chose.
+Every row below scores `requirement_coverage = 1.00`. This is the cheapest stack *measured so far* that fully implements the spec in that language — not the only one that passes. **Rebuilt 2026-11-22 from the same routing data as [`optimal.json`](optimal.json)**, rather than maintained by hand: the hand version had drifted to recommend stacks the generated routing no longer chose.
 
 | language | bookshop — stack | $ | min | brazil — stack | $ | min |
 |---|---|---:|---:|---|---:|---:|
@@ -240,17 +240,17 @@ Every row below scores `requirement_coverage = 1.00`. This is the cheapest stack
 | rust | Haiku 5.5 `low` | 0.01 | 1.0 | Haiku 5.5 `low` | 0.14 | 5.1 |
 | python | Haiku 5.5 `low` | 0.01 | 1.0 | Haiku 5.5 `low` | 0.17 | 5.8 |
 | go | Haiku 5.5 `low` | 0.01 | 1.2 | Terra `low` | 0.39 | 3.5 |
-| c | GPT-6.1 Terra `low` | 0.04 | 2.1 | Opus 5.5 `low` | 3.00 | 11.3 |
+| c | GPT-6.1 Terra `low` | 0.04 | 2.1 | GPT-6.2 Sol `low` | 0.52 | 10.1 |
 | cpp | Haiku 5.5 `low` | 0.03 | 2.2 | Haiku 5.5 `low` | 0.38 | 8.4 |
 | csharp | Terra `default` | 0.26 | 4.3 | Haiku 5.5 `low` | 0.24 | 6.4 |
 | java | Haiku 5.5 `low` | 0.02 | 1.5 | Haiku 5.5 `low` | 0.34 | 7.4 |
 | clojure | Haiku 5.5 `low` | 0.01 | 1.6 | Haiku 5.5 `low` | 0.28 | 8.2 |
 | erlang | Haiku 5.5 `low` | 0.04 | 3.8 | Haiku 5.5 `low` | 0.54 | 12.0 |
-| elixir | Haiku 5.5 `low` | 0.01 | 1.4 | Haiku 5.5 `low` | 0.71 | 12.7 |
+| elixir | Haiku 5.5 `low` | 0.01 | 1.4 | GPT-6.2 Sol `low` | 0.47 | 8.8 |
 | swift | Haiku 5.5 `low` | 0.02 | 2.2 | Haiku 5.5 `low` | 0.25 | 7.1 |
 | objc | GPT-6.1 Terra `low` | 0.04 | 1.9 | Haiku 5.5 `low` | 0.28 | 7.4 |
 
-Two things stand out. **Haiku 5.5 at `low` is cheapest in 10 of 13 languages on the routine task and 11 of 13 on the hard one** (exp-84/86). **GPT-6.1 Terra at `low` (exp-92/93, via Codex) took routine C and Objective-C** on 2026-11-08, at \$0.04 a run. Haiku ties it on objc but costs \$0.09 on C. Terra 5.6 keeps C# routine (Haiku is 0.83 there, one pass needing the second attempt; it was 2 of 3 until the C# scorer fix, #65, recovered a passing suite that had been scored "tests did not run"), and Go on the hard task; hard-task C now goes to Opus 5.5 (Terra's two C runs no longer clear the bar once a second-attempt pass counts half — restated 2026-10-19). **Cheapest is not fastest:** on brazil Haiku takes 5–13 minutes a cell, where the cloud record is under 3, and its long sessions cross a 100K-token prompt tier that bills at 5×.
+Two things stand out. **Haiku 5.5 at `low` is cheapest in 10 of 13 languages on the routine task and 10 of 13 on the hard one** (exp-84/86). **GPT-6.1 Terra at `low` (exp-92/93, via Codex) took routine C and Objective-C** on 2026-11-08, at \$0.04 a run. Haiku ties it on objc but costs \$0.09 on C. Terra 5.6 keeps C# routine (Haiku is 0.83 there, one pass needing the second attempt; it was 2 of 3 until the C# scorer fix, #65, recovered a passing suite that had been scored "tests did not run"), and Go on the hard task; **GPT-6.2 Sol at `low` (exp-98, via Codex) took hard-task C and Elixir** on 2026-11-22. In C that replaced Opus 5.5 at \$3.00, since Haiku is 0.67 there and Terra's two C runs no longer clear the bar once a second-attempt pass counts half. In Elixir it undercut Haiku's \$0.71. Both are one run each. **Cheapest is not fastest:** on brazil Haiku takes 5–13 minutes a cell, where the cloud record is under 3, and its long sessions cross a 100K-token prompt tier that bills at 5×.
 
 The Apple pair stopped being an outlier. Objective-C on brazil used to cost \$13.30 because only Fable 5 had been run on it; Haiku 5.5 clears it for \$0.28. That gap was a which-model-got-measured artifact, not a difficulty one.
 

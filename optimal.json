@@ -1,7 +1,7 @@
 {
   "source": "retort report optimal (master.db)",
-  "generated_at": "2026-11-14T08:31:15Z",
-  "master_db_runs": 1767,
+  "generated_at": "2026-11-23T05:06:49Z",
+  "master_db_runs": 1819,
   "objective": "cheapest featured stack per language/task that clears its pass-bar",
   "notes": {
     "generated_at": "UTC timestamp of this file's last regeneration, and the master.db run count behind it. Regenerate with `retort report optimal --routing-json optimal.json`. If this is old, the routes are too: nothing recomputes them automatically.",
@@ -97,6 +97,21 @@
         "cost": 0.06
       },
       "hard": null
+    },
+    {
+      "stack": "GPT-6.2 Sol (codex, low)",
+      "short": "Sol 6.2",
+      "kind": "cloud",
+      "routine": {
+        "pass": 0.96,
+        "n": 13,
+        "cost": 0.13
+      },
+      "hard": {
+        "pass": 0.92,
+        "n": 13,
+        "cost": 0.49
+      }
     },
     {
       "stack": "GPT-5.6 Luna (codex)",
@@ -402,14 +417,14 @@
     "brazil-soccer-mcp": {
       "c": {
         "cloud": {
-          "stack": "Claude Opus 5.5",
+          "stack": "GPT-6.2 Sol (codex, low)",
           "models": [
-            "claude-opus-5-5"
+            "gpt-6.2-sol"
           ],
           "effort": "low",
-          "cost": 3.0040997999999997,
+          "cost": 0.5207452,
           "pass": 1.0,
-          "n": 2
+          "n": 1
         },
         "local": null
       },
@@ -454,14 +469,14 @@
       },
       "elixir": {
         "cloud": {
-          "stack": "Claude Haiku 5.5",
+          "stack": "GPT-6.2 Sol (codex, low)",
           "models": [
-            "claude-haiku-5-5"
+            "gpt-6.2-sol"
           ],
           "effort": "low",
-          "cost": 0.7080355799999999,
+          "cost": 0.4651392,
           "pass": 1.0,
-          "n": 3
+          "n": 1
         },
         "local": null
       },

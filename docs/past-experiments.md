@@ -2675,3 +2675,61 @@ everywhere. \$70.59 total, mean \$5.43 and 761 s a run (Opus 5.5 exp-79: \$2.86,
 - **About half Fable 5's \$10.47 hard cost**, but Fable 5 ran at default effort, so most of that is the dial.
 - Fable 5 keeps its featured slot as the better-replicated (n=21) hard-task alternative; 5.2 is n=1 a cell.
 - No harness problems: recover found nothing to re-score.
+
+## 0. exp-98 — GPT-6.2 Sol and GPT-6.2 Astra, 13 languages × both tasks at low  — COMPLETE, 2026-11-22
+
+**Intent:** screen both OpenAI point releases (2026-11-17) on the full 13×2 grid at `low`, n=1, via Codex
+0.171.0 with a clean per-run `CODEX_HOME`. Three phases run one at a time by a driver that never starts a
+phase that would cross the ~08:06 daily scan: rest-api-crud (both models, 26 runs), brazil Sol (13), brazil
+Astra (13). Comparators from master.db: `gpt-6-astra` low (exp-72/73: routine \$0.69, brazil \$2.25, 1.00),
+`gpt-6.1-terra` low (exp-92/93). Sol has never been measured here.
+
+**Smoke (2026-11-22):** both ids resolve; effort reaches the model (reasoning tokens Sol 30→157, Astra 10→55
+low→high, same correct answer); usage incl. cached input is reported. `pricing.py` had no row for either
+(a run would have reported \$0) — added from OpenAI's model pages: Sol \$2/\$0.10/\$10, Astra \$8/\$0.40/\$40.
+
+**Hypothesis, recorded before the run:** both pass ~all 26 cells (routine and brazil are saturated for
+frontier models). Astra 6.2 is cheaper per run than 6 Astra (20% lower list, 60% lower cached input). Sol
+lands between Terra 6.1 and Astra on cost. Neither undercuts Haiku 5.5 / Terra 6.1 on routine, so the
+interesting cells are brazil cost vs Haiku 5.5 (\$0.33) and Opus 5.5 — and any language below 1.00.
+
+**Run:** 10:27 → 21:04, one phase at a time. The ChatGPT-plan Codex quota ran out twice (brazil-sol at
+cell 9, brazil-astra at cell 1 and again at cell 10); retort stopped cleanly each time, left the interrupted
+cell unrecorded, and `--resume` continued after the reset (15:30, 20:35). Total \$22.94.
+
+**Result: hypothesis mostly confirmed — 25/26 each, and Astra 6.2 far cheaper than 6 Astra — but Sol was
+not dominated.**
+
+| language | Sol routine | Astra routine | Sol brazil | time | Astra brazil | time |
+|---|---:|---:|---:|---:|---:|---:|
+| c | $0.14 | $0.39 | $0.52 | 604 s | $0.71 | 229 s |
+| clojure | $0.11 | $0.30 | $0.39 | 369 s | $0.92 | 221 s |
+| cpp | $0.16 | $0.34 | $0.52 | 522 s | $0.72 | 240 s |
+| csharp | $0.15 ² | $0.54 | **FAIL** | — | **FAIL** | — |
+| elixir | $0.16 | $0.32 | $0.47 | 528 s | $0.90 | 321 s |
+| erlang | $0.12 | $0.35 | $0.56 | 712 s | $1.26 | 353 s |
+| go | $0.11 | $0.27 | $0.64 | 588 s | $0.75 | 214 s |
+| java | $0.15 | $0.35 | $0.52 | 525 s | $1.03 | 325 s |
+| objc | $0.11 | $0.26 | $0.46 | 528 s | $0.68 | 233 s |
+| python | $0.08 | $0.17 | $0.36 | 380 s | $0.70 | 217 s |
+| rust | $0.10 | $0.25 | $0.46 | 481 s | $0.73 | 230 s |
+| swift | $0.14 | $0.22 ² | $0.73 | 714 s | $0.71 | 223 s |
+| typescript | $0.16 | $0.34 | $0.50 | 541 s | $0.94 | 251 s |
+
+² passed on the second attempt (half credit).
+
+- **Both brazil C# misses are the same model choice:** hand-rolled tests inside the app behind `--test`, no
+  xUnit/NUnit/MSTest, so `dotnet test` has nothing to instrument (coverage 0, R12 unmet). Sol even hooked
+  its checker into `BeforeTargets="VSTest"`. `retort diagnose` mislabelled both TOOLING and `rescore` could
+  not recover them — filed #74. Scored as genuine failures.
+- **Sol FEATURED for two hard cells** (`FEATURED_STACKS`, n=1, the GPT-6.1 Terra precedent): cheapest 1.00
+  in brazil **c** (\$0.52 vs Opus 5.5's \$3.00; Haiku 5.5 is 0.67 there) and **elixir** (\$0.47 vs Haiku's
+  \$0.71). Elsewhere it costs more than Haiku 5.5 / Terra 6.1.
+- **Astra not featured, but the fastest hard-task mean measured** at ≥0.9 across 13 languages: 255 s
+  (Opus 5.5 low pooled 448 s, Haiku 5.5 472 s). On all 16 cells shared with isolated Opus 5.5 low (exp-79,
+  exp-83) it was faster and cheaper: 1.1–4.1× on time, 1.3–5.2× on cost. Below 1.00 because of C#; Sol and
+  Haiku are cheaper in every hard cell.
+- **6.2 Astra vs isolated 6 Astra (exp-82), six matched cells:** 2.2–3.3× cheaper, 1.6–2.6× faster, 18–47%
+  fewer tokens — on a 20% list-price cut. The opposite of Fable 5.2's per-token cut that became 2–17%.
+- **Also fixed while writing up:** optimal-blog had GPT-5.6 Terra "kept for c on the hard task" — it scores
+  0.75/0.00 there; it actually keeps go-hard and csharp-routine.

@@ -136,6 +136,18 @@ FEATURED_STACKS = [
         "pass_bar": 1.00,
     },
     {
+        # exp-98 (2026-11-22): at LOW effort via codex 0.171.0, 25/26 on the 13x2 grid
+        # (n=1; routine csharp passed on the 2nd try, hard csharp failed -- no test
+        # framework, #74). Featured because it is the cheapest 1.00 on the HARD task in
+        # c ($0.52 vs Opus 5.5's $3.00) and elixir ($0.47 vs Haiku 5.5's $0.71), the same
+        # n=1 footing GPT-6.1 Terra was featured on for routine c.
+        "name": "GPT-6.2 Sol (codex, low)",
+        "short": "Sol 6.2",
+        "models": ["gpt-6.2-sol"],
+        "kind": "cloud",
+        "pass_bar": 1.00,
+    },
+    {
         "name": "GPT-5.6 Luna (codex)",
         "short": "Luna",
         "models": ["gpt-5.6-luna"],
@@ -330,6 +342,13 @@ KNOWN_NONFEATURED = {
         "thin against the 13x2 grid every featured stack carries, and because Terra already "
         "occupies the cheap-and-reliable cloud slot it would compete for. Revisit if it gets the "
         "full grid.",
+    "gpt-6.2-astra": "GPT-6.2 Astra (exp-98, released 2026-11-17, $8/$40): measured at LOW effort "
+        "via codex on the full 13x2 grid, n=1, not featured. Routine 13/13 (swift on the 2nd try), "
+        "mean $0.32 and 98 s; hard task 12/13, mean $0.83 and 255 s -- the FASTEST hard-task stack "
+        "measured at >=0.9 across all 13 languages (Opus 5.5 low 448 s, Haiku 5.5 472 s); "
+        "1.1-4.1x faster and 1.3-5.2x cheaper than isolated Opus 5.5 low on all 16 matched cells (exp-79/83); 2.2-3.3x cheaper than GPT-6 Astra's isolated exp-82 runs on matched cells. Not featured: its one miss (csharp, no "
+        "test framework, #74) keeps it below the 1.00 bar Opus 5.5 holds, and Haiku 5.5 is ~2.5x "
+        "cheaper on the hard task. Feature it as the speed pick if a csharp re-run clears.",
     # The exp-64/67/68/69 quant ladder: four builds of ONE model, deliberately kept as
     # four distinct strings. Merging them would destroy the entire point of that work --
     # the whole finding is that plain 4-bit stalls in 80% of agent runs while 4bit-DWQ

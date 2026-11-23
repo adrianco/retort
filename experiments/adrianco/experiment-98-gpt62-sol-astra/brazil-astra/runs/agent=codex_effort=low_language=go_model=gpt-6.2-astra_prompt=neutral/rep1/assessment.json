@@ -1,0 +1,10 @@
+{
+  "severity_counts": {"critical": 0, "high": 0, "medium": 0, "low": 0, "info": 0},
+  "penalty_score": 1.0,
+  "top_findings": [],
+  "requirement_coverage": 1.0,
+  "model": "gpt-6.2-astra",
+  "evaluated_at": "2026-11-22T00:00:00Z",
+  "min_severity": "high",
+  "note": "4 findings in findings.jsonl (2 low, 2 info); none at or above min_severity=high, so counts are zero and penalty_score is 1.0. Requirement coverage 12/12 from pinned REQUIREMENTS.json."
+}
