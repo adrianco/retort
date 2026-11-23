@@ -2114,6 +2114,41 @@ survives the toggle, restart the Claude desktop app, which clears the in-memory 
   [Artificial Analysis](https://artificialanalysis.ai/models/inkling-2-mini),
   [nocode.mba tracker](https://www.nocode.mba/ai-release-tracker/2026/11),
   [Baseten bison-1/groundhog-1](https://www.baseten.co/blog/meet-bison-1-and-groundhog-1/).
+- 2026-11-23 — **Qwen3.8-27B-hermes-adapted (Hugging Face harness-hub) — `harness-hub/Qwen3.8-27B-hermes-adapted`** —
+  *published **~2026-11-19/20** (the pi adapter came first on 2026-11-17, OpenCode and Hermes days later); a LoRA trained
+  by RL specifically to be the model behind **Hermes Agent**, retort's own local agent, on the already-listed
+  **Qwen3.8-27B**.* **Apache 2.0**, **rank-32 LoRA on all linear layers (~300 MB)**, so merged and 4-bit it is just the
+  27B base (**~17–19 GB → fits 64GB with enormous headroom**). From the card, all under Hermes Agent (one attempt,
+  100 steps, 131,072 context, thinking off, temp 0.8 / top_p 1.0), paired against the base: **Terminal-Bench 2.1 44.7 →
+  58.8** (19 newly solved / 7 lost, sign-test p = 0.029), **SWE-bench Pro hard-51 29.4 → 43.1** (p = 0.092), with
+  **under 40% of the base's turns** and about half its generated tokens on tasks both solve. With thinking off it
+  matches the base *with* thinking at xhigh (58.8 vs 58.8 TB2.1) at **3.5–4.4× fewer tokens** — the cost the JetBrains
+  Junie entry flagged (3.8 "needs reasoning … roughly four times slower"). The card also reports thinking-on Hermes
+  sessions running out of a 131K window because Hermes resends each turn's reasoning, which matters for our
+  `context_threshold` settings. Every evaluation trajectory is published (`harness-hub/harness-adapters-trajectories`).
+  **Serving:** upstream documents vLLM `--enable-lora` with `--tool-call-parser qwen3_xml` (our parser family) and a
+  merge-then-serve path; neither oMLX nor mainline llama.cpp applies a PEFT adapter usefully, so a cell needs
+  `merge_and_unload()` onto `Qwen/Qwen3.8-27B` and a fresh 4-bit convert (record the merged hash), or a community
+  GGUF (a GGUF of the merged three-harness **super-adapter** already exists). Inherits the Qwen3.8-27B caveats: Gated
+  DeltaNet needs a recent llama.cpp, and smoke-test a real `<tool_call>` through Hermes on the specific quant. **Record
+  per CLAUDE.md:** thinking **off** (as trained), sampling temp 0.8 / top_p 1.0 (the training sampling, not Qwen's
+  card default), and note the eval ran **without** compaction while retort's stack uses lcm. **Why it earns a top
+  slot:** it is the cleanest matched-base probe on the list for a harness-measuring project — same weights, same
+  context class, same serving path, with **"post-trained for our exact agent"** as the only variable — and it needs a
+  stock Qwen3.8-27B 4-bit cell beside it as the control, which that entry already calls for. A `-pi-adapted` and
+  `-opencode` sibling plus the merged super-adapter would make **harness-specialisation a factor** (adapter for Hermes
+  vs adapter for another harness, both run under Hermes). *(Also this cycle: **GLM-5.4** (Z.ai, reported 2026-11-23,
+  a Loop-Transformer flagship) is live only in Z.ai's Coding Plan/ZCode, weights promised "after safety hardening",
+  and it is flagship-class like the 753B GLM-5.2, far oversized — re-check only if a small variant appears. The New
+  Stack's 2026-11-21 Nemotron 3 Ultra / Factory Droid story is post-training news on the excluded 550B model, not a
+  release. No new Track B model or version since GPT-6.2 Astra/Sol and Gemini 4 Neon. The New Stack AI category
+  was reachable this run.)*
+  Sources: [HF card](https://huggingface.co/harness-hub/Qwen3.8-27B-hermes-adapted),
+  [harness-hub org](https://huggingface.co/harness-hub),
+  [super-adapter GGUF](https://huggingface.co/netprojects/Qwen3.8-27B-super-adapter-GGUF),
+  [MarkTechPost (pi adapter)](https://www.marktechpost.com/2026/11/18/hugging-face-qwen3-8-27b-pi-adapted-lora/),
+  [The New Stack](https://thenewstack.io/nvidia-droid-harness-nemotron/) (2026-11-21),
+  [GLM-5.4](https://thenextweb.com/news/zai-glm-5-4-loop-transformer-coding-model).
 
 *Excluded 2026-11-10, recorded so they are not re-investigated:* **Hy4 preview weights** (Tencent, now on
 Hugging Face as `tencent/Hy4-preview`, Apache 2.0) — 770B-A49B, ~1.4 TiB BF16, far oversized (the 2026-11-06
