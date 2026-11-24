@@ -575,7 +575,7 @@ invest in the solver dependency, master.db merge, and first-class docs.
 <!-- SCAN-HEARTBEAT: the daily scan rewrites the next line on EVERY run, including
      days it finds nothing. Do not hand-edit it. If the date is more than ~2 days
      stale, the scan is not running — see "when the heartbeat goes stale" below. -->
-**Daily scan last completed: 2026-11-23** (scanning for new coding models: 64GB-fittable open weights, and frontier cloud models/versions)
+**Daily scan last completed: 2026-11-24** (scanning for new coding models: 64GB-fittable open weights, and frontier cloud models/versions)
 
 - 2026-09-08 — **GPT-6 Astra (OpenAI) — `gpt-6-astra`** — *the "new codex model"; added by hand
   because the daily scan's scope was open-weights-only until today (widened the same day, see the
@@ -2149,6 +2149,16 @@ survives the toggle, restart the Claude desktop app, which clears the in-memory 
   [MarkTechPost (pi adapter)](https://www.marktechpost.com/2026/11/18/hugging-face-qwen3-8-27b-pi-adapted-lora/),
   [The New Stack](https://thenewstack.io/nvidia-droid-harness-nemotron/) (2026-11-21),
   [GLM-5.4](https://thenextweb.com/news/zai-glm-5-4-loop-transformer-coding-model).
+
+*Excluded 2026-11-24, recorded so they are not re-investigated:* **Sarvam-105B-1711** (Sarvam AI, 2026-11-22,
+open weights, a tool-calling/agentic post-train of Sarvam-105B) — 105B-A10.3B MoE, ~53–55 GB at 4-bit, over the
+~48 GB bar and at the exp-62 ceiling; Indian-language focus, not a coder. **Strands Decider v2** (AWS, 2026-11-23,
+five Gemma 4-based models) — "System One" decision models, same class as Strands Decider / Clef. **Macaron-V1.1-Venti-Pro**
+(Mind Lab, 2026-11-20) — the GLM-5.2-scale Venti line, far oversized. **SenseNova U1.6** (2026-11-24, 8B) — image
+model. No new Track B model or version since GPT-6.2 Astra/Sol, Gemini 4 Neon and Fable 5.2; GLM-5.4 still has no
+weights. The New Stack AI pages were reachable this run and carry no new model launch. Sources:
+https://www.nocode.mba/ai-release-tracker/2026/11 · https://www.llmreference.com/model/sarvam-105b-1711 ·
+https://thenewstack.io/aws-strands-decider-v2/
 
 *Excluded 2026-11-10, recorded so they are not re-investigated:* **Hy4 preview weights** (Tencent, now on
 Hugging Face as `tencent/Hy4-preview`, Apache 2.0) — 770B-A49B, ~1.4 TiB BF16, far oversized (the 2026-11-06
