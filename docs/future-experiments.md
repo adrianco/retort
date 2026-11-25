@@ -575,7 +575,7 @@ invest in the solver dependency, master.db merge, and first-class docs.
 <!-- SCAN-HEARTBEAT: the daily scan rewrites the next line on EVERY run, including
      days it finds nothing. Do not hand-edit it. If the date is more than ~2 days
      stale, the scan is not running — see "when the heartbeat goes stale" below. -->
-**Daily scan last completed: 2026-11-24** (scanning for new coding models: 64GB-fittable open weights, and frontier cloud models/versions)
+**Daily scan last completed: 2026-11-25** (scanning for new coding models: 64GB-fittable open weights, and frontier cloud models/versions)
 
 - 2026-09-08 — **GPT-6 Astra (OpenAI) — `gpt-6-astra`** — *the "new codex model"; added by hand
   because the daily scan's scope was open-weights-only until today (widened the same day, see the
@@ -2149,6 +2149,25 @@ survives the toggle, restart the Claude desktop app, which clears the in-memory 
   [MarkTechPost (pi adapter)](https://www.marktechpost.com/2026/11/18/hugging-face-qwen3-8-27b-pi-adapted-lora/),
   [The New Stack](https://thenewstack.io/nvidia-droid-harness-nemotron/) (2026-11-21),
   [GLM-5.4](https://thenextweb.com/news/zai-glm-5-4-loop-transformer-coding-model).
+- 2026-11-25 — **Mellum2.1 Instruct (JetBrains)** — *released **2026-11-25**; the non-reasoning sibling of the
+  already-listed **Mellum2.1-12B-A2.5B-Thinking** (2026-10-10 entry), same architecture and the same two RL stages,
+  post-trained to answer directly without chain-of-thought for coding-agent tasks.* **Apache 2.0**, **12B total /
+  2.5B active MoE** (64 experts, 8 active), **131,072 context**, **~7 GB at 4-bit** → leaves essentially the whole
+  64GB free. Ships with the **MTP head** the Thinking release promised ("up to 1.8× faster" generation, vendor
+  claim) — a no-draft-model probe for the §3 speculative-decoding lever. **Exact HF repo id not confirmed** at scan
+  time (the Thinking repo is `JetBrains/Mellum2.1-12B-A2.5B-Thinking`); GGUF/MLX availability for Instruct not
+  confirmed either. **Why list it:** paired with the Thinking variant it is a matched-weights **thinking on/off**
+  probe, where tokens and wall-clock are the response — the same question ThinkingCap and the hermes-adapted
+  Qwen3.8-27B ask at 27B, asked at the small end. **Caveats:** inherits the Thinking entry's gates — confirm mainline
+  llama.cpp/oMLX loads it, smoke-test a real `<tool_call>` through Hermes (the Thinking card documents the `hermes`
+  parser), set/verify/record sampling. Benchmarks are JetBrains' own. Judge priority: with Mellum2.1 Thinking,
+  alongside the 9Bs, below every 27B–35B coder. *(Also this cycle: **SWE-2.1** (Cognition, announced 2026-11-24, an
+  RL post-train of Kimi K3) — closed weights, not reachable via `claude` or `codex`, and its base is 3T-class.
+  **MAGI-2** (Sand AI) is video generation; **SenseNova U1.6** already excluded. No new Track B model or version.
+  The New Stack AI pages were reachable and carry no model launch through 2026-11-24.)*
+  Sources: [JetBrains blog](https://blog.jetbrains.com/ai/2026/11/mellum2-1-instruct-is-out-bringing-faster-answers-for-coding-agents/),
+  [nocode.mba tracker](https://www.nocode.mba/ai-release-tracker/2026/11),
+  [Mellum2.1 Thinking](https://blog.jetbrains.com/ai/2026/10/mellum2-1-gets-to-work-a-fast-open-model-for-coding-agents/).
 
 *Excluded 2026-11-24, recorded so they are not re-investigated:* **Sarvam-105B-1711** (Sarvam AI, 2026-11-22,
 open weights, a tool-calling/agentic post-train of Sarvam-105B) — 105B-A10.3B MoE, ~53–55 GB at 4-bit, over the
