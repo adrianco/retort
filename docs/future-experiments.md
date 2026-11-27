@@ -575,7 +575,7 @@ invest in the solver dependency, master.db merge, and first-class docs.
 <!-- SCAN-HEARTBEAT: the daily scan rewrites the next line on EVERY run, including
      days it finds nothing. Do not hand-edit it. If the date is more than ~2 days
      stale, the scan is not running — see "when the heartbeat goes stale" below. -->
-**Daily scan last completed: 2026-11-26** (scanning for new coding models: 64GB-fittable open weights, and frontier cloud models/versions)
+**Daily scan last completed: 2026-11-27** (scanning for new coding models: 64GB-fittable open weights, and frontier cloud models/versions)
 
 - 2026-09-08 — **GPT-6 Astra (OpenAI) — `gpt-6-astra`** — *the "new codex model"; added by hand
   because the daily scan's scope was open-weights-only until today (widened the same day, see the
@@ -2168,6 +2168,30 @@ survives the toggle, restart the Claude desktop app, which clears the in-memory 
   Sources: [JetBrains blog](https://blog.jetbrains.com/ai/2026/11/mellum2-1-instruct-is-out-bringing-faster-answers-for-coding-agents/),
   [nocode.mba tracker](https://www.nocode.mba/ai-release-tracker/2026/11),
   [Mellum2.1 Thinking](https://blog.jetbrains.com/ai/2026/10/mellum2-1-gets-to-work-a-fast-open-model-for-coding-agents/).
+- 2026-11-27 — **IQuest-Coder-V1-40B (IQuestLab) — `IQuestLab/IQuest-Coder-V1-40B-Instruct`** — *a gap entry, not a
+  last-cycle drop: the technical report is arXiv 2603.16733 (March 2026); it surfaced because Hugging Face Transformers
+  5.23.0 (~2026-11-13) added native support for the family.* Coder-specialised **dense** family in 7B / 14B / **40B**,
+  each with Base, Instruct and Thinking variants, plus a **40B Loop** (looped-layer) variant. The 40B is 80 layers,
+  hidden 5120, 40/8 GQA heads, **128K context**. **~22–24 GB at 4-bit → fits 64GB with plenty of headroom.**
+  Reported **SWE-bench Verified 76.2** (secondary source; which 40B variant is not stated). **Licence: the HF card says
+  `other` (custom `iquestcoder` licence)**; one mirror says MIT, so read the LICENSE file before use. **Not confirmed
+  at scan time:** a GGUF or MLX build, the tool-call format/parser, and recommended sampling. Smoke-test a real
+  `<tool_call>` through Hermes, and set, verify and record sampling and thinking mode per CLAUDE.md. **Why list it:** a
+  coder-specialised dense ~40B is the dense end of the §3 MoE-vs-dense question at the top of the size bar, and the
+  **Loop** variant is a third looped model (after Nanbeige4.2-3B and Inkling 2 Mini); like Inkling, verify the runtime
+  actually executes the loop. Dense 40B means slow generation on this M5 Pro (cf. Ripple-65B), so budget the timeout.
+  Judge priority below the zero-friction MoEs (Ornith-1.5, Qwen3.8-27B) and alongside Ripple-65B. *(Also this cycle:
+  **MiMo-V2.6-Flash-MOPD** (Xiaomi) is a tool-call-repetition fix of the 309B-A15B MiMo-V2.6-Flash already excluded
+  2026-09-23, unchanged verdict. **Munin 2.0** (Danish Foundation Models, 2026-11-18, 120B-A12B) is a Danish/English
+  general model, ~60 GB at 4-bit, excluded. **Nova 2.0 Omni** (Amazon) is closed and not reachable. Community 4B coder
+  fine-tunes (Qwopus3.5-4B-Coder, CCORE-Web-Coder-4B) are too small to be subjects. No new Track B model or version
+  since GPT-6.2 Astra/Sol, Gemini 4 Neon and Fable 5.2; The New Stack's 2026-11-27 SWE-2.1 story is the closed model
+  already excluded 2026-11-25.)*
+  Sources: [HF card](https://huggingface.co/IQuestLab/IQuest-Coder-V1-40B-Instruct),
+  [technical report](https://arxiv.org/abs/2603.16733),
+  [IDS lab write-up](https://ids-lab-asia.github.io/blog/2026/post-iquest-coder),
+  [Transformers 5.23.0](https://freedom.tech/posts/2026-11-13-hugging-face-transformers-5-23-0/),
+  [The New Stack](https://thenewstack.io/cognition-swe21-coding-model/).
 
 *Excluded 2026-11-24, recorded so they are not re-investigated:* **Sarvam-105B-1711** (Sarvam AI, 2026-11-22,
 open weights, a tool-calling/agentic post-train of Sarvam-105B) — 105B-A10.3B MoE, ~53–55 GB at 4-bit, over the
