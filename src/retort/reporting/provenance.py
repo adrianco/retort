@@ -360,7 +360,14 @@ def capture(
                 # The ONLY host config a plugin level adds back, per level.
                 agent_config["claude_code"]["prompt_plugins"] = plugins
 
+    try:
+        from retort.metaharness_config import snapshot as _mh_snapshot
+        metaharness = _mh_snapshot()
+    except Exception as exc:  # recorded, never silently dropped
+        metaharness = {"error": str(exc)}
+
     return {
+        "metaharness": metaharness,
         "retort": _git(repo),
         "host": _host(),
         "tools": _tool_versions(_hermes_bin_from(pp)),

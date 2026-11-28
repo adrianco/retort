@@ -1,0 +1,62 @@
+# Retort's own metaharness config: which Claude model + effort each of Retort's
+# OWN `claude -p` calls uses. Read by src/retort/metaharness_config.py.
+#
+# Two classes of role:
+#   pinned  -- the experiment and the result evaluator. NEVER routed. Changing a pin
+#              changes what is being measured, so it is recorded in provenance.json and a
+#              routed override of a pinned role is refused (override only via an explicit
+#              pin edit here).
+#   routed  -- auxiliary work (requirements, preflight, scorers, diagnosis). The router
+#              picks the cheapest tier whose measured quality clears `quality_bar`;
+#              `tier` below is the static fallback when no routing evidence is supplied.
+version: 1
+
+pinned:
+  # The model UNDER TEST comes from the design's `model`/`effort` factors per cell; this
+  # pins the *rules*: it must come from the design, and the router may not touch it.
+  experiment:
+    source: design-factors
+  # The evaluator/judge. master.db: 1464/1819 runs (every run since 2026-06-30) were
+  # judged by `claude-code:opus-4.8` with no effort flag. Pinned to THAT so scores stay
+  # comparable. It is old, but a moving judge redefines the response variable: moving it
+  # means `retort reevaluate` over past runs first. (An earlier draft pinned haiku-4-5, the
+  # schema default -- wrong; not what the data was judged with.)
+  evaluator:
+    model: claude-opus-4-8
+    effort: default
+  # Scoring judges: "held fixed -- a moving judge silently redefines the response
+  # variable" (see each scorer). Values equal the previous hard-coded defaults.
+  judge_idiomatic: {model: claude-haiku-4-5, effort: default}
+  judge_atdd:      {model: claude-opus-4-8,  effort: default}
+  judge_mcp_facts: {model: claude-opus-4-8,  effort: default}
+
+routed:
+  quality_bar: 0.9
+  roles:
+    requirements_gen: {tier: mid,   rationale: "structured extraction from a spec; errors propagate to every score"}
+    eval_preflight:   {tier: cheap, rationale: "'Reply OK' liveness probe"}
+    issue_filing:     {tier: cheap, rationale: "mechanical mirroring of findings"}
+    diagnose:         {tier: mid,   rationale: "classify HARNESS/TOOLING/GENUINE from logs"}
+
+# Metaharness-style escalation (cost-aware 3-pass): pass 1 on the lowest tier of the
+# role's span; escalate one rung ONLY when the pass is unconvincing; never past `ceiling`.
+# Each role may set `start`/`ceiling` (defaults: first/last rung of the ladder).
+escalation:
+  ladder: [cheap, mid, top]        # TUNE: order must be ascending in price
+  min_confidence: 0.7              # escalate when a pass reports confidence below this
+  escalate_on_invalid: true        # escalate when the pass output failed validation
+
+# TUNE HERE: the model + effort behind each rung. Effort values are `claude --effort` levels.
+# tier -> (model, effort). Effort values are the `claude --effort` levels.
+tiers:
+  # Chosen from master.db (optimal.json, 1819 runs, generated 2026-11-23). Measured on
+  # CODING tasks, not on these aux roles -- see docs/metaharness.md. `low` effort won every
+  # time: higher levels cost 1.5-17x with no pass gain (Opus 5.5 routine: low $0.48 n=78,
+  # high $0.84, xhigh $2.44, max $8.50; Haiku 5.5 hard: low 1.00 n=38).
+  cheap: {model: claude-haiku-5-5,  effort: low}   # routine 1.00 n=45 $0.023; hard 1.00 n=38 $0.34
+  mid:   {model: claude-sonnet-5-5, effort: low}   # routine 1.00 n=12 $0.151 (medium $0.160 ~same); NO hard-task data
+  top:   {model: claude-opus-5-5,   effort: low}   # routine 1.00 n=78 $0.48; hard 1.00 n=38 $2.01 (high: $5.60 n=12, same pass)
+
+# Per-tier USD per MTok (in+out blended) for the cost-aware router.
+# $/run measured on routine coding tasks (relative ordering is what the router uses).
+prices: {cheap: 0.023, mid: 0.151, top: 0.48}

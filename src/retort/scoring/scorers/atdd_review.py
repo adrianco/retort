@@ -43,7 +43,13 @@ logger = logging.getLogger(__name__)
 
 #: Fixed so every run in an experiment is graded by the same reviewer, and NOT
 #: the model under test (exp-83 builds with Opus 5.5). Override: ATDD_REVIEW_MODEL.
-DEFAULT_REVIEW_MODEL = "claude-opus-4-8"
+DEFAULT_REVIEW_MODEL = "claude-opus-4-8"  # == pinned judge_atdd in config/metaharness.yaml
+
+
+def _pinned_effort(role: str) -> list[str]:
+    from retort.metaharness_config import resolve
+    from retort.playpen.local_runner import _effort_cli_args
+    return _effort_cli_args(resolve(role).effort)
 CATEGORIES = ("A", "B", "C", "D", "E", "F", "G")
 _MAX_PER_CATEGORY = 4
 #: The plugin level whose plugin + MCP server the reviewer gets.
@@ -122,7 +128,7 @@ class AtddReviewScorer:
             shutil.copytree(workspace, copy, ignore=_COPY_IGNORE, symlinks=True)
             cmd = ["claude", "-p", _PROMPT, "--output-format", "stream-json", "--verbose",
                    "--max-turns", "80", "--dangerously-skip-permissions",
-                   "--model", self.model, *iso]
+                   "--model", self.model, *_pinned_effort("judge_atdd"), *iso]
             try:
                 proc = subprocess.run(cmd, cwd=copy, capture_output=True, text=True,
                                       timeout=self.timeout_seconds)

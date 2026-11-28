@@ -12,6 +12,24 @@ implemented versus planned, and specifies the interface between Retort and the m
 
 ---
 
+## 4. Retort's own metaharness config (`config/metaharness.yaml`)
+
+Separate from the experiment factors above: this picks the Claude **model + effort for Retort's own
+`claude -p` calls**, via `src/retort/metaharness_config.py`.
+
+- **Pinned, never routed:** `experiment` (model under test comes from the design factors), `evaluator`
+  (`claude-opus-4-8` -- what 1464/1819 runs in master.db were actually judged with) and the scoring judges `judge_idiomatic`, `judge_atdd`,
+  `judge_mcp_facts`. `resolve(pinned_role, quality=...)` raises. The full snapshot is written into
+  `provenance.json` under `metaharness`.
+- **Tiers** (from `optimal.json`/master.db): cheap = Haiku 5.5, mid = Sonnet 5.5, top = Opus 5.5, all at
+  `low` effort. Caveat: measured on coding tasks, not on these aux roles; Sonnet 5.5 has no hard-task data.
+- **Routed:** `requirements_gen`, `eval_preflight`, `issue_filing`, `diagnose` — cheapest tier whose
+  measured quality clears `quality_bar`, else the static tier in the file.
+- **Status:** pinned judge effort is wired into the judge/scorer commands and provenance. The routed
+  roles resolve correctly but their call sites are not yet switched over, and there is no measured
+  per-tier quality data yet, so they always use the static tier. `--effort` acceptance on each tier was
+  **not smoke-tested** (the local `claude` login had expired) — do that before relying on it.
+
 ## What metaharness actually is (the concept)
 
 Metaharness is an **optimization and memory layer that chooses which harness/model to run for a given

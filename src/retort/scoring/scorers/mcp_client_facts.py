@@ -58,7 +58,13 @@ from retort.scoring.scorers import runtime as rt
 
 #: Judge for this column. Held fixed like every other judge here — a moving
 #: judge silently redefines the response variable.
-DEFAULT_JUDGE_MODEL = "claude-opus-4-8"
+DEFAULT_JUDGE_MODEL = "claude-opus-4-8"  # == pinned judge_mcp_facts in config/metaharness.yaml
+
+
+def _pinned_effort() -> list[str]:
+    from retort.metaharness_config import resolve
+    from retort.playpen.local_runner import _effort_cli_args
+    return _effort_cli_args(resolve("judge_mcp_facts").effort)
 
 #: The MCP server name the config registers, hence the tool prefix to look for.
 SERVER_NAME = "brazil"
@@ -178,7 +184,7 @@ def measure(run_dir: Path, language: str,
              # configured on the run host, and the measurement stops being a
              # property of the produced server.
              "--strict-mcp-config",
-             "--model", model,
+             "--model", model, *_pinned_effort(),
              "--output-format", "stream-json", "--verbose",
              "--dangerously-skip-permissions"],
             cwd=run_dir, capture_output=True, text=True,

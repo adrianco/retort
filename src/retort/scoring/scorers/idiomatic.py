@@ -33,7 +33,13 @@ logger = logging.getLogger(__name__)
 
 # Default model name for the judge. Override via the IDIOMATIC_JUDGE_MODEL env
 # var or by registering a custom IdiomaticScorer instance.
-DEFAULT_JUDGE_MODEL = "haiku"
+def _pinned_effort() -> list[str]:
+    from retort.metaharness_config import resolve
+    from retort.playpen.local_runner import _effort_cli_args
+    return _effort_cli_args(resolve("judge_idiomatic").effort)
+
+
+DEFAULT_JUDGE_MODEL = "haiku"  # == pinned judge_idiomatic in config/metaharness.yaml (haiku -> claude-haiku-4-5)
 
 _LANGUAGE_EXTENSIONS: dict[str, set[str]] = {
     "python": {".py"},
@@ -121,7 +127,7 @@ class IdiomaticScorer:
                 [
                     self.cli,
                     "-p", prompt,
-                    "--model", self.model,
+                    "--model", self.model, *_pinned_effort(),
                     "--max-turns", "1",
                     "--output-format", "text",
                     "--dangerously-skip-permissions",

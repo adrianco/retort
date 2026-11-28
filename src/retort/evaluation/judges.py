@@ -25,10 +25,22 @@ class JudgeRunner(Protocol):
     def build_command(self, judge: JudgeSpec, run_dir: Path, prompt: str) -> list[str]: ...
 
 
+def _evaluator_effort(model: str) -> list[str]:
+    """Pinned evaluator effort -- applied only when the judge model IS the pinned one,
+    so an explicit ``--eval-model`` override is never given another model's effort."""
+    from retort.metaharness_config import resolve
+    from retort.playpen.local_runner import MODEL_ALIASES, _effort_cli_args
+    pin = resolve("evaluator")
+    if MODEL_ALIASES.get(model, model) != MODEL_ALIASES.get(pin.model, pin.model):
+        return []
+    return _effort_cli_args(pin.effort)
+
+
 class ClaudeJudgeRunner:
     def build_command(self, judge: JudgeSpec, run_dir: Path, prompt: str) -> list[str]:
         return [
             "claude", "-p", prompt, *_model_cli_args(judge.model),
+            *_evaluator_effort(judge.model),
             "--output-format", "text", "--dangerously-skip-permissions",
         ]
 
